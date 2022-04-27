@@ -11,3 +11,4 @@ cron.avaliacao.sh
 *.pdf
 *.xml
 mysql/*
+home/perazzo/teste.py

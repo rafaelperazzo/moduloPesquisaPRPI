@@ -1,0 +1,13 @@
+cron.avaliacao.sh
+*.log
+*.gz
+*.tar.gz
+*.zip
+*.txt
+*.pass
+*.sql
+*.yml
+*.sh
+*.pdf
+*.xml
+mysql/*

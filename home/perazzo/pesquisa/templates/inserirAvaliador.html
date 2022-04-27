@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Inserir Avaliador</title>
+  </head>
+  <body>
+    <i>Total de Projetos: {{ totalDeLinhas }}</i>
+    <form name="frmEnviar" action="/pesquisa/inserirAvaliador" method="POST"><br>
+      <b>Projeto</b>:
+      <select name="txtProjeto" required="required">
+        {% for linha in listaProjetos %}
+        <option value="{{ linha[0] }}">(Id: {{ linha[0] }}){{ linha[1] }} - Concluídas: {{ linha[2] }} - Envios: {{ linha[3] }}</option>
+        {% endfor %}
+      </select>
+      <br>
+      <b>E-mail do avaliador</b>: <input name="txtEmail" required="required" size="80"
+        type="text"><br>
+      <div style="text-align: left;"><input name="btnEnviar" value="Enviar" type="submit"><br>
+      </div>
+      <br>
+
+    </form>
+    <p><br>
+    </p>
+    <a href="/pesquisa/editalProjeto?edital={{codigoEdital}}"> VOLTAR PARA LISTA DE PROJETOS</a>
+  </body>
+</html>

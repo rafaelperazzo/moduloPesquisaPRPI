@@ -1,0 +1,10 @@
+WSGIDaemonProcess pesquisa threads=5
+                WSGIScriptAlias /pesquisa /home/perazzo/pesquisa/wsgi.py
+                <Directory /home/perazzo/pesquisa/>
+                 WSGIProcessGroup pesquisa  
+                 WSGIApplicationGroup %{GLOBAL}
+                 WSGIScriptReloading On
+                 WSGIPassAuthorization On
+                 Require all granted
+                </Directory>
+

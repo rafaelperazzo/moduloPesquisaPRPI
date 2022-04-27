@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta  content="text/html; charset=UTF-8"  http-equiv="content-type">
+    <title>Autenticação de documentos</title>
+  </head>
+  <body>
+    <form  method="POST" action="/pesquisa/autenticacao"  name="frmAutenticacao">
+      <div  style="text-align: center;">
+        <h1><span  style="font-weight: bold;">Autenticação de Declarações</span></h1>
+      </div>
+      <br>
+      Tipo de declaração:
+      <select  required="required"  name="tipo">
+        <option  value="0">Orientador</option>
+        <option  value="1">Aluno</option>
+      </select>
+      <br>
+      Identificador: <input  required="required"  name="codigo"  type="text"><br>
+      <input  value="Autenticar"  name="btnEnviar"  type="submit"></form><p><br></p>
+</body></html>

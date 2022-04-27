@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-164056633-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-164056633-1');
+    </script>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Cadastro de Projeto de Pesquisa - Plataforma Yoko</title>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+<script>
+
+var _validFileExtensions = [".pdf",".xml"];
+function ValidateSingleInput(oInput) {
+    if (oInput.type == "file") {
+        var sFileName = oInput.value;
+         if (sFileName.length > 0) {
+            var blnValid = false;
+            for (var j = 0; j < _validFileExtensions.length; j++) {
+                var sCurExtension = _validFileExtensions[j];
+                if (sFileName.substr(sFileName.length - sCurExtension.length, sCurExtension.length).toLowerCase() == sCurExtension.toLowerCase()) {
+                    blnValid = true;
+                    break;
+                }
+            }
+
+            if (!blnValid) {
+                alert("Arquivo inválido! Tipo de arquivo permitido: " + _validFileExtensions.join(", "));
+                oInput.value = "";
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+var _validFileExtensionsPDF = [".pdf"];
+function ValidateSingleInputPDF(oInput) {
+    if (oInput.type == "file") {
+        var sFileName = oInput.value;
+         if (sFileName.length > 0) {
+            var blnValid = false;
+            for (var j = 0; j < _validFileExtensionsPDF.length; j++) {
+                var sCurExtension = _validFileExtensionsPDF[j];
+                if (sFileName.substr(sFileName.length - sCurExtension.length, sCurExtension.length).toLowerCase() == sCurExtension.toLowerCase()) {
+                    blnValid = true;
+                    break;
+                }
+            }
+
+            if (!blnValid) {
+                alert("Arquivo inválido! Tipo de arquivo permitido: " + _validFileExtensionsPDF.join(", "));
+                oInput.value = "";
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+    function tipo_projeto() {
+       var x = document.forms["frmCadastroProjeto"]["tipo"].value;
+
+       if (x == "0") { //Fluxo Continuo
+            document.forms["frmCadastroProjeto"]["arquivo_plano1"].disabled = true;
+		        document.forms["frmCadastroProjeto"]["arquivo_plano2"].disabled = true;
+            document.forms["frmCadastroProjeto"]["numero_bolsas"].value = 0;
+		        document.forms["frmCadastroProjeto"]["numero_bolsas"].disabled = true;
+		    }
+		else { //Edital
+			  //document.forms["frmCadastroProjeto"]["arquivo_plano1"].disabled = false;
+		    //document.forms["frmCadastroProjeto"]["arquivo_plano2"].disabled = false;
+		    document.forms["frmCadastroProjeto"]["numero_bolsas"].disabled = false;
+		}
+	}
+
+	function categoria_do_projeto() {
+       var x = document.forms["frmCadastroProjeto"]["categoria_projeto"].value;
+
+       if (x == "0") { //Em andamento
+          document.forms["frmCadastroProjeto"]["arquivo_projeto"].disabled = true;
+          document.forms["frmCadastroProjeto"]["arquivo_projeto"].required = false;
+          document.forms["frmCadastroProjeto"]["avaliador1_email"].required = false;
+          document.forms["frmCadastroProjeto"]["avaliador2_email"].required = false;
+          document.forms["frmCadastroProjeto"]["avaliador3_email"].required = false;
+
+		}
+		else { //Projeto Novo
+			document.forms["frmCadastroProjeto"]["arquivo_projeto"].disabled = false;
+      document.forms["frmCadastroProjeto"]["arquivo_projeto"].required = true;
+      document.forms["frmCadastroProjeto"]["avaliador1_email"].required = true;
+      document.forms["frmCadastroProjeto"]["avaliador2_email"].required = true;
+      document.forms["frmCadastroProjeto"]["avaliador3_email"].required = true;
+
+		}
+	}
+
+	function bolsas() {
+
+       var numero_bolsas = parseInt(document.forms["frmCadastroProjeto"]["numero_bolsas"].value,10);
+       if (numero_bolsas==0) {
+		   document.forms["frmCadastroProjeto"]["arquivo_plano1"].disabled = true;
+		    document.forms["frmCadastroProjeto"]["arquivo_plano2"].disabled = true;
+        document.forms["frmCadastroProjeto"]["arquivo_plano1"].required = false;
+ 		    document.forms["frmCadastroProjeto"]["arquivo_plano2"].required = false;
+	   }
+	   if (numero_bolsas==1) {
+		   document.forms["frmCadastroProjeto"]["arquivo_plano1"].disabled = false;
+		    document.forms["frmCadastroProjeto"]["arquivo_plano2"].disabled = true;
+        document.forms["frmCadastroProjeto"]["arquivo_plano1"].required = true;
+ 		    document.forms["frmCadastroProjeto"]["arquivo_plano2"].required = false;
+	   }
+	   if (numero_bolsas==2) {
+		   document.forms["frmCadastroProjeto"]["arquivo_plano1"].disabled = false;
+		    document.forms["frmCadastroProjeto"]["arquivo_plano2"].disabled = false;
+        document.forms["frmCadastroProjeto"]["arquivo_plano1"].required = true;
+ 		    document.forms["frmCadastroProjeto"]["arquivo_plano2"].required = true;
+	   }
+	}
+
+  function iniciar() {
+
+    tipo_projeto();
+    categoria_do_projeto();
+    bolsas();
+    document.forms["frmCadastroProjeto"]["arquivo_plano1"].disabled = true;
+    document.forms["frmCadastroProjeto"]["arquivo_plano2"].disabled = true;
+    document.forms["frmCadastroProjeto"]["arquivo_projeto"].disabled = true;
+
+  }
+  function humano() {
+     if (grecaptcha.getResponse() == ""){
+	    alert("Marque a caixa abaixo para continuar...");
+	    return (false);
+     } else {
+            //alert("Thank you");
+	    return (true);
+       }
+  }
+
+  function emAndamento() {
+    var texto = "";
+    if (document.forms["frmCadastroProjeto"]["categoria_projeto"].value==0) {
+      texto = "<i>*(projeto em andamento deve estar previamente cadastrado na PRPI e com cronograma válido até pelo menos o final da vigência do edital selecionado)</i><br>";
+      texto = texto + "<i>Utilize o mesmo título do projeto em andamento.</i>";
+        document.getElementById("texto_projeto").innerHTML = texto;
+    }
+    else {
+      document.getElementById("texto_projeto").innerHTML = "";
+    }
+
+
+
+  }
+
+    </script>
+
+  </head>
+  <style>
+input[type=text], select {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+input[type=email], select {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+input[type=submit] {
+
+  background-color: #808080;
+  color: black;
+  padding: 14px 20px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+input[type=submit]:hover {
+  background-color: #45a049;
+}
+
+div {
+  border-radius: 5px;
+  background-color: #f2f2f2;
+  padding: 20px;
+}
+
+textarea {
+  width: 100%;
+  height: 150px;
+  padding: 12px 20px;
+  box-sizing: border-box;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  background-color: #f8f8f8;
+  resize: none;
+}
+
+</style>
+  <body onload="iniciar()"><br>
+    <form name="frmCadastroProjeto" action="/pesquisa/cadastrarProjeto" onsubmit="return humano()" method="POST"
+      enctype="multipart/form-data">
+      <center><img src="{{ url_for('static', filename='brasao.jpg')}}" width="8%" alt="" align="center"></center>
+      <br><center>
+      Ministério da Educação<BR>
+      Universidade Federal do Cariri<BR>
+      Pró-reitoria de Pesquisa, Pós-graduação e Inovação<BR></center>
+
+      <h1 style="text-align: center;"> CADASTRAR PROJETO DE PESQUISA - Plataforma Yoko</h1><br>
+      <center><i><font size="2">Sistema Experimental. Quaisquer erros ou problemas podem ser reportados ao e-mail atendimento.prpi@ufca.edu.br para correção(ões).</font></i></center><br>
+
+      <label><b>Destino da Submissão</b>:
+        <select name="tipo" required="required" onchange="tipo_projeto()">
+          <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+          {% for linha in abertos %}
+          <option value="{{linha[0]}}">{{linha[1]}} - Até: {{linha[2]}}</option>
+          {% endfor %}
+        </select>
+        <br>
+
+      </label>
+      <label><b>Categoria de projeto</b>:
+        <select name="categoria_projeto" onchange="categoria_do_projeto()" onblur="emAndamento()" required="required">
+        <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+          <option value="0">Projeto em andamento</option>
+          <option value="1">Projeto novo</option>
+        </select></label><br>
+
+        <label><b>Escolha o ODS (Objetivos de desenvolvimento sustentável) principal de seu projeto: </b><br>
+          <select name="ods_projeto" required="required">
+            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+            <option value="01">ERRADICAÇÃO DA POBREZA<br>
+            <option value="02">FOME ZERO E AGRICULTURA SUSTENTÁVEL<br>
+            <option value="03">SAUDE E BEM ESTAR<br>
+            <option value="04">EDUCAÇÃO DE QUALIDADE<br>
+            <option value="05">IGUALDADE DE GÊNERO<br>
+            <option value="06">ÁGUA POTÁVEL E SANEAMENTO<br>
+            <option value="07">ENERGIA LIMPA E ACESSÍVEL<br>
+            <option value="08">TRABALHO DECENTE E CRESCIMENTO ECONÔMICO<br>
+            <option value="09">INDUSTRIA, INOVAÇÃO E INFRAESTRUTURA<br>
+            <option value="10">REDUÇÃO DAS DESIGUALDADES<br>
+            <option value="11">CIDADES E COMUNIDADES SUSTENTÁVEIS<br>
+            <option value="12">CONSUMO E PRODUÇÃO RESPONSÁVEIS<br>
+            <option value="13">AÇÃO CONTRA A MUDANÇA GLOBAL DO CLIMA<br>
+            <option value="14">VIDA NA ÁGUA<br>
+            <option value="15">VIDA TERRESTRE<br>
+            <option value="16">PAZ, JUSTIÇA E INSTITUIÇÕES EFICAZES<br>
+            <option value="17">PARCERIAS E MEIOS DE IMPLEMENTAÇÃO<br>
+            <!--<input type="checkbox" name="ods_projeto" value="17">PARCERIA EM PROL DAS METAS<br>-->
+            <br>
+          </select>
+
+        </label><br>
+      <h2> Dados pessoais</h2>
+      <br>
+      <label><b>Nome</b>: <input name="nome" required="required" size="80" type="text"><br>
+        <b>SIAPE</b>: <input name="siape" required="required" size="10" type="text"><br>
+        <b>E-Mail</b>: <input name="email" required="required" size="80" type="email"><br>
+        <br>
+        <b>Unidade Academica</b>:
+        <select name="ua" required="required">
+          <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+          <option value="CCT">CCT</option>
+          <option value="FAMED">FAMED</option>
+          <option value="CCSA">CCSA</option>
+          <option value="IISCA">IISCA</option>
+          <option value="CCAB">CCAB</option>
+          <option value="IFE">IFE</option>
+          <option value="IESA">IESA</option>
+          <option value="OUTRO">NÃO SE APLICA</option>
+
+        </select>
+        <br>
+        <b>Área CAPES</b>:
+        <select name="area_capes">
+          <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+          <option value="ADMINISTRACAO_PUBLICA_E_DE_EMPRESAS_CIENCIAS_CONTABEIS_E_TURISMO">ADMINISTRACAO_PUBLICA_E_DE_EMPRESAS_CIENCIAS_CONTABEIS_E_TURISMO</option>
+          <option value="ANTROPOLOGIA_ARQUEOLOGIA">ANTROPOLOGIA_ARQUEOLOGIA</option>
+          <option value="ARQUITETURA_URBANISMO_E_DESIGN">ARQUITETURA_URBANISMO_E_DESIGN</option>
+          <option value="ARTES">ARTES</option>
+          <option value="ASTRONOMIA_FISICA">ASTRONOMIA_FISICA</option>
+          <option value="BIODIVERSIDADE">BIODIVERSIDADE</option>
+          <option value="BIOTECNOLOGIA">BIOTECNOLOGIA</option>
+          <option value="CIENCIAS_AGRARIAS_I">CIENCIAS_AGRARIAS_I</option>
+          <option value="CIENCIAS_AMBIENTAIS">CIENCIAS_AMBIENTAIS</option>
+          <option value="CIENCIAS_BIOLOGICAS_I">CIENCIAS_BIOLOGICAS_I</option>
+          <option value="CIENCIAS_BIOLOGICAS_II">CIENCIAS_BIOLOGICAS_II</option>
+          <option value="CIENCIAS_BIOLOGICAS_III">CIENCIAS_BIOLOGICAS_III</option>
+          <option value="CIENCIAS_DA_RELIGIAO_E_TEOLOGIA">CIENCIAS_DA_RELIGIAO_E_TEOLOGIA</option>
+          <option value="CIENCIA_DA_COMPUTACAO">CIENCIA_DA_COMPUTACAO</option>
+          <option value="CIENCIA_DE_ALIMENTOS">CIENCIA_DE_ALIMENTOS</option>
+          <option value="CIENCIA_POLITICA_E_RELACOES_INTERNACIONAIS">CIENCIA_POLITICA_E_RELACOES_INTERNACIONAIS</option>
+          <option value="COMUNICACAO_E_INFORMACAO">COMUNICACAO_E_INFORMACAO</option>
+          <option value="DIREITO">DIREITO</option>
+          <option value="ECONOMIA">ECONOMIA</option>
+          <option value="EDUCACAO">EDUCACAO</option>
+          <option value="EDUCACAO_FISICA">EDUCACAO_FISICA</option>
+          <option value="ENFERMAGEM">ENFERMAGEM</option>
+          <option value="ENGENHARIAS_I">ENGENHARIAS_I</option>
+          <option value="ENGENHARIAS_II">ENGENHARIAS_II</option>
+          <option value="ENGENHARIAS_III">ENGENHARIAS_III</option>
+          <option value="ENGENHARIAS_IV">ENGENHARIAS_IV</option>
+          <option value="ENSINO">ENSINO</option>
+          <option value="FARMACIA">FARMACIA</option>
+          <option value="FILOSOFIA">FILOSOFIA</option>
+          <option value="GEOCIENCIAS">GEOCIENCIAS</option>
+          <option value="GEOGRAFIA">GEOGRAFIA</option>
+          <option value="HISTORIA">HISTORIA</option>
+          <option value="INTERDISCIPLINAR">INTERDISCIPLINAR</option>
+          <option value="LINGUISTICA_E_LITERATURA">LINGUISTICA_E_LITERATURA</option>
+          <option value="MATEMATICA_PROBABILIDADE_E_ESTATISTICA">MATEMATICA_PROBABILIDADE_E_ESTATISTICA</option>
+          <option value="MATERIAIS">MATERIAIS</option>
+          <option value="MEDICINA_I">MEDICINA_I</option>
+          <option value="MEDICINA_II">MEDICINA_II</option>
+          <option value="MEDICINA_III">MEDICINA_III</option>
+          <option value="MEDICINA_VETERINARIA">MEDICINA_VETERINARIA</option>
+          <option value="NUTRICAO">NUTRICAO</option>
+          <option value="ODONTOLOGIA">ODONTOLOGIA</option>
+          <option value="PLANEJAMENTO_URBANO_E_REGIONAL_DEMOGRAFIA">PLANEJAMENTO_URBANO_E_REGIONAL_DEMOGRAFIA</option>
+          <option value="PSICOLOGIA">PSICOLOGIA</option>
+          <option value="QUIMICA">QUIMICA</option>
+          <option value="SAUDE_COLETIVA">SAUDE_COLETIVA</option>
+          <option value="SERVICO_SOCIAL">SERVICO_SOCIAL</option>
+          <option value="SOCIOLOGIA">SOCIOLOGIA</option>
+          <option value="ZOOTECNIA_RECURSOS_PESQUEIROS">ZOOTECNIA_RECURSOS_PESQUEIROS</option>
+        </select>
+        <br>
+        <b>Grande Área</b>:
+        <select name="grande_area" required="required">
+          <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+          <option value="Ciências Exatas e da Terra">Ciências Exatas e da Terra</option>
+          <option value="Ciências Biológicas">Ciências Biológicas</option>
+          <option value="Engenharias">Engenharias</option>
+          <option value="Ciências da Saúde">Ciências da Saúde</option>
+          <option value="Ciências Agrárias">Ciências Agrárias</option>
+          <option value="Ciências Sociais Aplicadas">Ciências Sociais Aplicadas</option>
+          <option value="Ciências Humanas">Ciências Humanas</option>
+          <option value="Linguistica, Letras e Artes">Linguistica, Letras e
+            Artes</option>
+          <option value="Multidisciplinar">Multidisciplinar</option>
+        </select>
+        <br>
+        <b>Grupo de Pesquisa CNPq</b>: <input name="grupo" required="required"
+          size="80" type="text"><br>
+          <b>Curriculo Lattes (xml)</b>: <input name="arquivo_lattes"  onchange="ValidateSingleInput(this);" type="file" required="required"><br>
+          <br>
+          <b>Curriculo Lattes (pdf) - (produção dos últimos 5 anos)</b>: <input name="arquivo_lattes_pdf"  onchange="ValidateSingleInputPDF(this);" type="file" required="required"><br>
+          <br>
+      </label><br>
+      <hr><br>
+      <h2>Dados do projeto</h2>
+      <p id="texto_projeto"></p>
+      <label><b>Título</b>: <br>
+        <textarea name="titulo" cols="130" rows="3" required="required" maxlength="200"></textarea><br>
+        <b>Validade</b> <b>(em anos):</b>
+        <select name="validade" required="required">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3" selected>3</option>
+        </select>
+        <br>
+        <b>Palavras chave</b>:<input name="palavras_chave" required="required" size="80"
+          type="text"><br>
+        <b>Resumo do Projeto</b>: <br>
+        <textarea name="descricao_resumida" cols="130" rows="20" required="required"
+maxlength="15000"></textarea><br>
+<hr>
+<h2>Cronograma</h2><br>
+<b>Início do projeto:</b>
+<input type="date" name="inicio" required="required">
+<b>Fim do projeto:</b>
+<input type="date" name="fim" required="required"><br>
+<hr>
+        <br>
+        <b>Arquivo do projeto</b> <b>(pdf)</b>: <input name="arquivo_projeto" onchange="ValidateSingleInput(this);"
+        type="file"><br>
+      <br>
+      <hr><br>
+      <h2> Planos de Trabalho</h2>
+      <label><b>Bolsas solicitadas</b>:
+        <select name="numero_bolsas" required="required" onchange="bolsas()">
+          <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+        </select>
+        <br>
+        <b>Plano de Trabalho 1 (pdf)</b>: <input name="arquivo_plano1" onchange="ValidateSingleInput(this);"
+          type="file"><br>
+        <b>Plano de Trabalho 2 (pdf)</b>: <input name="arquivo_plano2"  onchange="ValidateSingleInput(this);" type="file"><br>
+        <br>
+        <b>O projeto precisa de transporte da UFCA ? Quantos dias aproximadamente ? (se não precisa, marque 0)</b> <br>
+        <select name="transporte" required="required">
+          <option value="0" selected>0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">Mais de sete dias</option>
+        </select>
+      </label>
+      <hr>
+      <h2>Comprovantes</h2>
+      <b>Comprovantes (Docente permanente/colaborador de pós-graduação, Submissão a Comitê de Ética (Plataforma Brasil) - se aplicável, etc... - Todos juntos em um único PDF)</b>
+      <BR> <input name="arquivo_comprovantes" type="file"><br>
+      <hr>
+      <h2>Avaliadores externos a UFCA sugeridos para avaliação do projeto (indique 3 - sujeito a aprovação da Coordenadoria de Pesquisa)</h2>
+      <h4><i>Com título de doutor, preferencialmente bolsista de produtividade e/ou membro de programa de Pós-Graduação Stricto sensu. </i></h4>
+        <br><h4>Informe preferencialmente o e-mail institucional do avaliador.</h4>
+      <label>
+        <b>E-mail1:</b> <input name="avaliador1_email" size="80" maxlength="80"
+          type="email"><br>
+
+        <b>Email2</b>: <input name="avaliador2_email" size="80" maxlength="80" type="email"><br>
+
+        <b>Email3:</b> <input name="avaliador3_email" size="80" maxlength="80" type="email"><br>
+      </label>
+      <hr><label><br>
+        <br>
+      </label>
+      <center><div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div></center>
+      <center><h4>Clique em "Enviar" apenas uma vez e aguarde a conclusão da submissão (o processo pode demorar alguns minutos)!</h4></center>
+      <div style="text-align: center;"><label><input name="btnEnviar" value="Enviar"
+formenctype="multipart/form-data" type="submit"></label><br>
+        <label></label></div>
+      <div style="text-align: right;"><label></label><br>
+      </div>
+      <br>
+</form>
+  </body>
+</html>

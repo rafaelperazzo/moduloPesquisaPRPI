@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-164056633-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-164056633-1');
+    </script>
+
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Avaliação de Projeto</title>
+
+<script>
+    function recomendacao() {
+       var c1 = parseInt(document.forms["frmAvaliacao"]["c1"].value);
+       var c2 = parseInt(document.forms["frmAvaliacao"]["c2"].value);
+       var c3 = parseInt(document.forms["frmAvaliacao"]["c3"].value);
+       var c4 = parseInt(document.forms["frmAvaliacao"]["c4"].value);
+       var c5 = parseInt(document.forms["frmAvaliacao"]["c5"].value);
+       var c6 = parseInt(document.forms["frmAvaliacao"]["c6"].value);
+       var c7 = parseInt(document.forms["frmAvaliacao"]["c7"].value);
+       var total = c1+c2+c3+c4+c5+c6+c7;
+       var totalStr = total.toString();
+       document.getElementById("total").innerHTML = "<h3>Pontuação total: " + totalStr + "</h3>";
+       if (total>=70) {
+          document.getElementById("resultado").innerHTML = "<h3>PROJETO RECOMENDADO (APROVADO)</h3>";
+          document.getElementById("txtRecomendacao").value = 1;
+       }
+       else {
+         document.getElementById("resultado").innerHTML = "<h3>PROJETO <B>NÃO</B> RECOMENDADO (NÃO APROVADO)</h3>";
+         document.getElementById("txtRecomendacao").value = 0;
+       }
+     }
+
+
+
+</script>
+  </head>
+  <style>
+table {
+font-family: arial, sans-serif;
+border-collapse: collapse;
+width: 100%;
+}
+
+td, th {
+border: 1px solid #dddddd;
+text-align: left;
+padding: 8px;
+}
+
+tr:nth-child(even) {
+background-color: #dddddd;
+}
+
+input[type=text], select {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+input[type=email], select {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+input[type=submit] {
+
+  background-color: #808080;
+  color: black;
+  padding: 14px 20px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+input[type=submit]:hover {
+  background-color: #45a049;
+}
+
+textarea {
+  width: 100%;
+  height: 150px;
+  padding: 12px 20px;
+  box-sizing: border-box;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  background-color: #f8f8f8;
+  resize: none;
+}
+
+</style>
+  <body>
+    <center><img src="{{ url_for('static', filename='brasao.jpg')}}" width="8%" alt="" align="center"></center>
+    <br><center>
+    Ministério da Educação<BR>
+    Universidade Federal do Cariri<BR>
+    Pró-reitoria de Pesquisa, Pós-graduação e Inovação<BR></center>
+    <center><h1>Avaliação de Projeto de Pesquisa</h1><center>
+      <hr>
+      <h3>Informações importantes</h3>
+      <ol>
+        <li>A declaração de participação como consultor ad-hoc é gerada imediatamente após a submissão deste formulário de avaliação.</li>
+        <li>Os proponentes não tem acesso, em hipótese alguma, aos nomes dos avaliadores, ficando estes dados acessíveis apenas a coordenadoria de pesquisa para fins de controle das declarações.</li>
+        <li>Quaisquer dúvidas podem ser endereçadas a <b>pesquisa.prpi@ufca.edu.br</b>, ou pelo telefone <b>(88) 3221-9566</b></li>
+      </ol>
+
+
+    <form name="frmAvaliacao" action="/pesquisa/avaliar" method="POST">
+      <hr>
+      <h3>Arquivos do projeto</h3>
+      {{ arquivos }} <br>
+
+      <hr>
+      <h2>FORMULÁRIO DE AVALIAÇÃO</h2>
+      <h3>O projeto é considerado APROVADO (recomendado) caso o somatório dos conceitos abaixo seja maior ou igual a 70.</h3>
+      <hr>
+      <b>Seu nome completo (para geração de declaração de avaliação):</b> <input name="txtNome"
+        required="required" size="80" type="text"><br>
+      <br>
+      <table style="width:100%">
+
+        <tr>
+          <th>Item</th><th>Critério de análise e julgamento</th><th>Pontuação</th>
+        </tr>
+
+        <tr>
+          <td>A</td><td>Clareza na apresentação do tema e delimitação do problema <b>(Máximo 15 pontos)</b></td>
+          <td>
+          <select name="c1" required="required">
+            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+            {% for i in range(16) %}
+              <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+          </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td>B</td><td>Qualidade das referências bibliográficas utilizadas, considerando
+atualização, relevância e adequação ao tema de pesquisa <b>(Máximo 10 pontos)</b></td>
+          <td>
+          <select name="c2" required="required">
+            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+            {% for i in range(11) %}
+              <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+          </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td>C</td><td>Clareza na definição dos objetivos e metas <b>(Máximo 10 pontos)</b></td>
+          <td>
+          <select name="c3" required="required">
+            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+            {% for i in range(11) %}
+              <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+          </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td>D</td><td>Originalidade e/ou relevância da pesquisa para o desenvolvimento
+científico do país <b>(Máximo 20 pontos)</b></td>
+          <td>
+          <select name="c4" required="required">
+            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+            {% for i in range(21) %}
+              <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+          </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td>E</td><td>Adequação da metodologia e do cronograma de execução ao(s)
+objetivo(s) proposto(s) <b>(Máximo 15 pontos)</b></td>
+          <td>
+          <select name="c5" required="required">
+            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+            {% for i in range(16) %}
+              <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+          </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td>F</td><td>Potencial de impacto dos resultados do ponto de vista
+técnico-científico, difusão, socioeconômico, ambiental e cultural <b>(Máximo 15 pontos)</b></td>
+          <td>
+          <select name="c6" required="required">
+            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+            {% for i in range(16) %}
+              <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+          </select>
+          </td>
+        </tr>
+
+        <tr>
+          <td>G</td><td>No caso de projetos de pesquisa: potencial de avanço científico do
+projeto em relação à fronteira do conhecimento <b>(Máximo 15 pontos)</b></td>
+          <td>
+          <select name="c7" required="required">
+            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+            {% for i in range(16) %}
+              <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+          </select>
+          </td>
+        </tr>
+
+      </table>
+      <br>
+      <div align="right"
+      <p id="total"></p>
+      </div>
+      <BR>
+      <div align="right"
+      <p id="resultado"></p>
+    </div><br>
+      <b>Projeto necessita de parecer de comitê de ética ? </b>
+      <select name="comite" required="required">
+        <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+        <option value="0">Não</option>
+        <option value="1">Sim</option>
+        <option value="2">Não sei responder</option>
+      </select><br>
+      <b>Comentários:<br>
+        <textarea name="txtComentarios" cols="120" rows="40" required="required" onfocus="recomendacao()"></textarea><br>
+
+        Recomendação:
+        <select id="txtRecomendacao" name="txtRecomendacao" required="required" onblur="recomendacao()" onfocus="recomendacao()" width="50%">
+          <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+          <option value="1">Recomendado</option>
+          <option value="0">Não recomendado</option>
+        </select>
+        <br>
+      </b>
+      <div style="text-align: center;"><br>
+      </div>
+      <b><input name="btnEnviar" value="Submeter Avaliação" type="submit"><br>
+      </b> </form>
+    <p><br>
+    </p>
+    <p><br>
+    </p>
+    <p><br>
+    </p>
+  </body>
+</html>

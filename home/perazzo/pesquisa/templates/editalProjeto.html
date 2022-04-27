@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-164056633-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-164056633-1');
+    </script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css">
+    <script type="text/javascript" language="javascript" src="https://code.jquery.com/jquery-3.5.1.js"></script>
+	  <script type="text/javascript" language="javascript" src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+    
+
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Propostas submetidas a edital</title>
+    <style>
+    .column {
+      float: left;
+      width: 45%;
+      padding: 5px;
+    }
+    
+    /* Clearfix (clear floats) */
+    .row::after {
+      content: "";
+      clear: both;
+      display: table;
+    }
+    
+    </style>
+  </head>
+  <body>
+    <center><img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" width="120" height="130" alt=""></center>
+    <center>
+    MINISTÉRIO DA EDUCAÇÃO<br>
+    UNIVERSIDADE FEDERAL DO CARIRI<br>
+    PRÓ-REITORIA DE PESQUISA, INOVAÇÃO E PÓS-GRADUAÇÃO<br>
+    COORDENADORIA DE PESQUISA <br>
+    </center>
+    <hr>
+    <h1><b>Propostas submetidas a Edital</b></h1>
+    <h3>{{ descricao }} </h3>
+    {% if resultado==1 %}
+        <center><h2>{{mensagem}}</h2></center>
+
+    {% endif %}
+
+    <hr>
+    {% if resultado==0 %}
+    <h1><b>Resumo da Demanda</b></h1>
+
+          <table id="tab0" class="display" style="width:100%">
+            <thead>
+                <th>Unidade Academica</th><th>Número de propostas submetidas</th><th>Previsão de cota (UFCA)</th><th>Previsão de cota (CNPq)</th>
+            </thead>
+            <tbody id="resumoDemanda">
+                  {% for linha in linhas_demanda %}
+                  <tr>
+                    <td align="center">{{linha[0]}}</td><td align="center">{{linha[1]}}</td><td align="center">({{ ((linha[1]/total)*bolsas_ufca)|round|int }})</td><td align="center">({{ ((linha[1]/total)*bolsas_cnpq)|round|int }})</td>
+                  </tr>
+                  {% endfor %}
+             </tbody>
+          </table>
+          <b>Total: {{total}}</b>
+
+
+    <center><img src="{{ url_for('static', filename='plots/grafico-oferta-demanda-2.png')}}?rnd={{ range(1, 10000) | random }}" style="width:50%" alt="" align="center"></center>
+    <center><figcaption>Gráfico 0: Oferta/Demanda de bolsas (total).</figcaption></center>
+    <br>
+    <div class="row">
+      <div class="column">
+        <center><img src="{{ url_for('static', filename='plots/grafico-demanda.png')}}?rnd={{ range(1, 10000) | random }}" style="width:100%" alt="" align="center"></center>
+        <center><figcaption>Gráfico 1: Percentual de propostas por unidade acadêmica.</figcaption></center>
+      </div>
+      <div class="column">
+        <center><img src="{{ url_for('static', filename='plots/grafico-demanda-2.png')}}?rnd={{ range(1, 10000) | random }}" style="width:100%" alt="" align="center"></center>
+        <center><figcaption>Gráfico 2: Quantidade de propostas por unidade acadêmica.</figcaption></center>
+      </div>
+    </div>
+    <br>
+    <div class="row">
+      <div class="column">
+        <center><img src="{{ url_for('static', filename='plots/grafico-demanda-bolsas-1.png')}}?rnd={{ range(1, 10000) | random }}" style="width:100%" alt="" align="center"></center>
+        <center><figcaption>Gráfico 3: Percentual de demanda por bolsas por unidade acadêmica.</figcaption></center>
+      </div>
+      <div class="column">
+        <center><img src="{{ url_for('static', filename='plots/grafico-demanda-bolsas-2.png')}}?rnd={{ range(1, 10000) | random }}" style="width:100%" alt="" align="center"></center>
+        <center><figcaption>Gráfico 4: Quantidade de demanda de bolsas por unidade acadêmica.</figcaption></center>
+      </div>
+    </div>
+    <br>
+
+    <div class="row">
+      <div class="column">
+        <center><img src="{{ url_for('static', filename='plots/grafico-novos1.png')}}?rnd={{ range(1, 10000) | random }}" style="width:100%" alt="" align="center"></center>
+        <center><figcaption>Gráfico 5: Situação (em percentual) dos projetos novos.</figcaption></center>
+      </div>
+      <div class="column">
+        <center><img src="{{ url_for('static', filename='plots/grafico-novos2.png')}}?rnd={{ range(1, 10000) | random }}" style="width:100%" alt="" align="center"></center>
+        <center><figcaption>Gráfico 6: Situação (em quantidades) dos projetos novos.</figcaption></center>
+      </div>
+    </div>
+
+    <br>
+    <div class="row">
+      <div class="column">
+        <center><img src="{{ url_for('static', filename='plots/grafico-avaliadores1.png')}}?rnd={{ range(1, 10000) | random }}" style="width:100%" alt="" align="center"></center>
+        <center><figcaption>Gráfico 7: Respostas aos convites de avaliação.</figcaption></center>
+      </div>
+      <div class="column">
+        <center><img src="{{ url_for('static', filename='plots/grafico-avaliadores2.png')}}?rnd={{ range(1, 10000) | random }}" style="width:100%" alt="" align="center"></center>
+        <center><figcaption>Gráfico 8: Totais de respostas aos convites de avaliação.</figcaption></center>
+      </div>
+    </div>
+    <br>
+    <div class="row">
+      <div class="column">
+        <center><img src="{{ url_for('static', filename='plots/grafico-avaliacoes1.png')}}?rnd={{ range(1, 10000) | random }}" style="width:100%" alt="" align="center"></center>
+        <center><figcaption>Gráfico 9: Situação das avaliações.</figcaption></center>
+      </div>
+      <div class="column">
+        <center><img src="{{ url_for('static', filename='plots/grafico-avaliacoes2.png')}}?rnd={{ range(1, 10000) | random }}" style="width:100%" alt="" align="center"></center>
+        <center><figcaption>Gráfico 10: Totais avaliações.</figcaption></center>
+      </div>
+    </div>
+    <br>
+    <div class="row">
+      <div class="column">
+        <center><img src="{{ url_for('static', filename='plots/grafico-score2.png')}}?rnd={{ range(1, 10000) | random }}" style="width:100%" alt="" align="center"></center>
+        <center><figcaption>Gráfico 11: Média do ScoreLattes por Unidade Acadêmica.</figcaption></center>
+      </div>
+    </div>
+    <BR>
+
+        <center><img src="{{ url_for('static', filename='plots/grafico-scoreArea2.png')}}?rnd={{ range(1, 10000) | random }}" style="width:50%" alt="" align="center"></center>
+        <center><figcaption>Gráfico 12: Média do ScoreLattes por Área Capes.</figcaption></center>
+    <br>
+    <div class="row">
+      <div class="column">
+        <center><img src="{{ url_for('static', filename='plots/grafico-tempoAvaliacao1.png')}}?rnd={{ range(1, 10000) | random }}" style="width:100%" alt="" align="center"></center>
+        <center><figcaption>Gráfico 13: Quantidades percentuais de tempo de avaliação (em dias).</figcaption></center>
+      </div>
+      <div class="column">
+        <center><img src="{{ url_for('static', filename='plots/grafico-tempoAvaliacao2.png')}}?rnd={{ range(1, 10000) | random }}" style="width:100%" alt="" align="center"></center>
+        <center><figcaption>Gráfico 14: Quantidade de avaliações concluídas por unidade de tempo (dias).</figcaption></center>
+      </div>
+    </div>
+    <hr>
+    {% endif %}
+
+    <h1>Propostas ordenadas por Unidade Academica e Scorelattes</h1>
+    
+    <table id="tab1" class="display" style="width:100%">
+      <thead>
+        <th>Id</th><th>ARQUIVAR</th>
+        {% if resultado==0 %}<th>Código do Edital</th>{% endif %}
+        <th>Categoria</th><th>Proponente</th>
+        {% if resultado==0 %} <th>E-mail</th> {% endif %}
+        <th>UA</th><th>Prioridade</th><th>ScoreLattes</th><th>Título</th>
+        {% if resultado==0 %} <th>Projeto</th><th>Plano1</th><th>Plano2</th> {% endif %}
+        <th>Lattes</th>
+        {% if resultado==0 %} <th>Comprovantes</th> {% endif %}
+        {% if resultado==0 %}<th>Data</th><th>Início</th><th>Fim</th>{% endif %}
+        <th>Bolsas solicitadas</th><th>Bolsas concedidas</th><th>OBS</th>
+      </thead>
+    <tbody id="myTable">
+    {% for linha in listaProjetos %}
+    <tr>
+    <td>{{ linha[0] }}</td><td><a href="/pesquisa/arquivar/{{linha[0]}}" onclick="return confirm('Tem certeza que deseja arquivar o id {{linha[0]}}?')">ARQUIVAR</a></td>
+    {% if resultado==0 %}<td>{{ linha[1] }}</td>{% endif %}
+    <td>
+      {% if linha[2]==1 %}
+      PROJETO NOVO
+      {% endif %}
+      {% if linha[2]==0 %}
+      PROJETO EM ANDAMENTO
+      {% endif %}
+    </td>
+    {% if linha[2]==1 and linha[8]=="0" %}
+    <td style="background-color:#FF0000">
+    {% else %}
+    <td>
+    {% endif %}
+    {{ linha[3] }}</td>
+    
+    {% if resultado==0 %} <td>{{ linha[4] }}</td> <!-- E-MAIL --> {% endif %}
+    <td>{{ linha[5] }}</td><td>{{ linha[16] }}</td>
+    <!-- Scorelattes -->
+    {% if linha[6]<=0 %}
+      <td style="background-color:#EBEE1F">
+    {% else %}
+      <td>
+    {% endif %}
+    <a href="/pesquisa/lattesDetalhado?id={{ linha[0] }}">{{ linha[6] }}</a></td>
+    
+    <td>{{ linha[7] }}</td>
+    {% if resultado==0 %}
+          <td>
+            {% if linha[8]!="0" %}
+            <a href="/pesquisa/static/files/{{ linha[8] }}">PROJETO</a>
+            {% else %}
+            -
+            {% endif %}
+          </td>
+          <td>
+            {% if linha[9]!="0" %}
+            <a href="/pesquisa/static/files/{{ linha[9] }}">PLANO1</a>
+            {% else %}
+            -
+            {% endif %}
+          </td>
+          <td>
+            {% if linha[10]!="0" %}
+            <a href="/pesquisa/static/files/{{ linha[10] }}">PLANO2</a>
+            {% else %}
+            -
+            {% endif %}
+          </td>
+    {% endif %}
+    <td><a href="/pesquisa/static/files/{{ linha[11] }}">LATTES</a></td>
+    {% if resultado==0 %}
+    <td>
+      {% if linha[12]!="0" %}
+      <a href="/pesquisa/static/files/{{ linha[12] }}">COMPROVANTES</a>
+      {% else %}
+      -
+      {% endif %}
+    </td>
+    {% endif %}
+
+    {% if resultado==0 %}<td>{{ linha[13] }}</td><td>{{ linha[14] }}</td><td>{{ linha[15] }}</td>{% endif %}
+    <td>{{ linha[17] }}</td>
+    <td>{{ linha[18] }}</td>
+    <td>{{ linha[19]|safe }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot>
+      <th>Id</th><th>ARQUIVAR</th>
+        {% if resultado==0 %}<th>Código do Edital</th>{% endif %}
+        <th>Categoria</th><th>Proponente</th>
+        {% if resultado==0 %} <th>E-mail</th> {% endif %}
+        <th>UA</th><th>Prioridade</th><th>ScoreLattes</th><th>Título</th>
+        {% if resultado==0 %} <th>Projeto</th><th>Plano1</th><th>Plano2</th> {% endif %}
+        <th>Lattes</th>
+        {% if resultado==0 %} <th>Comprovantes</th> {% endif %}
+        {% if resultado==0 %}<th>Data</th><th>Início</th><th>Fim</th>{% endif %}
+        <th>Bolsas solicitadas</th><th>Bolsas concedidas</th><th>OBS</th>
+    </tfoot>
+    </table>
+    Total: {{total}} propostas submetidas.
+
+    {% if resultado==0 %}
+
+              <hr>
+              <h1>PROJETOS NOVOS (em avaliação)</h1>
+              
+              <table id="tab2" class="display" style="width:100%">
+                <thead>
+                <th>ARQUIVAR</th><th>Finalizadas as Avaliações ?</th><th>ID</th><th>Nome</th><th>UA</th><th>Título</th><th>Palavras-Chave</th><th>Qtde de avaliações finalizadas</th><th>Inserir Consultor<th>Consultores</th><th>Recomendações</th><th>Enviado?</th><th>Aceitou?</th><th>Finalizados</th>
+                <th>Aprovados</th><th>NÃO Aprovados</th><th>Indefinidos</th><th>Situação</th>
+              </thead>
+              <tbody id="tabelaNovos">
+                {% for linha in novos %}
+                <tr>
+                  <td><a href="/pesquisa/arquivar/{{linha[0]}}" onclick="return confirm('Tem certeza que deseja arquivar o id {{linha[0]}}?')">ARQUIVAR</a></td>
+                  <td>
+                    {% if (linha[9]==0) %}
+                      <img src="{{ url_for('static', filename='interrogacao_vermelha.png')}}?rnd={{ range(1, 10000) | random }}" style="width:50%" alt="" align="center">
+                      SEM AVALIAÇÕES!
+                    {% endif %}
+                    {% if (linha[9]==1) %}
+                      <img src="{{ url_for('static', filename='interrogacao_amarela.png')}}?rnd={{ range(1, 10000) | random }}" style="width:50%" alt="" align="center">
+                      APENAS 1 AVALIAÇÃO!
+                    {% endif %}
+                    {% if (linha[9]>1) %}
+                      {% if linha[12]-linha[11]==0 %}
+                        <img src="{{ url_for('static', filename='interrogacao_amarela.png')}}?rnd={{ range(1, 10000) | random }}" style="width:50%" alt="" align="center">
+                        <br>EMPATADO
+                      {% else %}
+                        {% if linha[12]-linha[11]>0 %}
+                          <img src="{{ url_for('static', filename='aprovado.png')}}?rnd={{ range(1, 10000) | random }}" style="width:50%" alt="" align="center">
+                        {% else %}
+                          <img src="{{ url_for('static', filename='reprovado.png')}}?rnd={{ range(1, 10000) | random }}" style="width:50%" alt="" align="center">
+                        {% endif %}
+                      {% endif %}
+                    {% endif %}
+                  </td>
+                  <td><a href="/pesquisa/meusPareceres?id={{linha[0]}}&todos=1">{{linha[0]}}</a></td><td>{{linha[1]}}</td><td>{{linha[2]}}</td>
+                  <td>
+                    <a href="/pesquisa/static/files/{{ linha[4] }}">{{linha[3]}}</a></td>
+                  <td>{{linha[13]}}<td>{{linha[9]}}</td></td><td><a href="/pesquisa/avaliacoesNegadas?edital={{codigoEdital}}&id={{linha[0]}}">Adicionar consultor</a></td><td>{{linha[5]|safe}}</td><td>{{linha[6]|safe}}</td>
+                  <td>{{linha[7]|safe}}</td>
+                  <td>{{linha[8]|safe}}</td>
+                  <td>{{linha[9]}}</td>
+                  <td>{{linha[12]}}</td>
+                  <td>{{linha[11]}}</td>
+                  <td>{{linha[10]}}</td>
+                  <td>
+                    {% if (linha[12]+linha[11])>=2 %}
+                      {% if linha[12]-linha[11]>0 %}
+                      <p class="aprovado">APROVADO</p>
+                      {% endif %}
+                      {% if linha[12]-linha[11]<0 %}
+                      <p class="reprovado">NÃO APROVADO</p>
+                      {% endif %}
+                      {% if linha[12]-linha[11]==0 %}
+                      <p class="indefinido">INDEFINIDO</p>
+                      {% endif %}
+                    {% else %}
+                      <p class="indefinido">INDEFINIDO</p>
+                    {% endif %}
+
+                  </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+                <tfoot>
+                  <th>ARQUIVAR</th><th>Finalizadas as Avaliações ?</th><th>ID</th><th>Nome</th><th>UA</th><th>Título</th><th>Palavras-Chave</th><th>Qtde de avaliações finalizadas</th><th>Inserir Consultor<th>Consultores</th><th>Recomendações</th><th>Enviado?</th><th>Aceitou?</th><th>Finalizados</th>
+                <th>Aprovados</th><th>NÃO Aprovados</th><th>Indefinidos</th><th>Situação</th>
+                </tfoot>
+              </table>
+              Total: {{total_novos}} projetos novos submetidos.
+      {% endif %}
+              <script>
+                    $(document).ready(function() {
+                        // Setup - add a text input to each footer cell
+                        $('#tab2 tfoot th').each( function () {
+                            var title = $(this).text();
+                            $(this).html( '<input type="text" placeholder="Search '+title+'" />' );
+                        } );
+                    
+                        // DataTable
+                        var table = $('#tab2').DataTable({
+                            iDisplayLength: 120,
+                            initComplete: function () {
+                                // Apply the search
+                                this.api().columns().every( function () {
+                                    var that = this;
+                    
+                                    $( 'input', this.footer() ).on( 'keyup change clear', function () {
+                                        if ( that.search() !== this.value ) {
+                                            that
+                                                .search( this.value )
+                                                .draw();
+                                        }
+                                    } );
+                                } );
+                            }
+                        });
+                    
+                    } );
+              </script>
+              
+              <script>
+                       $(document).ready(function() {
+                        // Setup - add a text input to each footer cell
+                        $('#tab1 tfoot th').each( function () {
+                            var title = $(this).text();
+                            $(this).html( '<input type="text" placeholder="Search '+title+'" />' );
+                        } );
+                    
+                        // DataTable
+                        var table = $('#tab1').DataTable({
+                          iDisplayLength: 120,  
+                          initComplete: function () {
+                                // Apply the search
+                                this.api().columns().every( function () {
+                                    var that = this;
+                    
+                                    $( 'input', this.footer() ).on( 'keyup change clear', function () {
+                                        if ( that.search() !== this.value ) {
+                                            that
+                                                .search( this.value )
+                                                .draw();
+                                        }
+                                    } );
+                                } );
+                            }
+                        });
+                        $('#container').css( 'display', 'block' );
+                        table.columns.adjust().draw();
+                    
+                    } );
+              </script>
+
+              <script>
+                $(document).ready(function() {
+                  $('#tab0').DataTable();
+                } );
+              </script>
+    </body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+	  <style>
+table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+td, th {
+    border: 1px solid #dddddd;
+    text-align: center;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background-color: #dddddd;
+}
+
+table.novos {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 50%;
+}
+
+td.novos, th.novos {
+    border: 1px solid #dddddd;
+    text-align: center;
+    padding: 8px;
+}
+
+tr.novos:nth-child(even) {
+    background-color: #CCFFCC;
+}
+
+p.definido {
+  color: green;
+}
+
+p.alerta1 {
+  color: orange;
+}
+
+p.alerta2 {
+  color: red;
+}
+
+.column {
+  float: left;
+  width: 45%;
+  padding: 5px;
+}
+
+/* Clearfix (clear floats) */
+.row::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+</style>
+
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Situação das Indicações</title>
+  </head>
+  <body>
+    <center><img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" width="120" height="130" alt=""></center>
+    <center>
+    MINISTÉRIO DA EDUCAÇÃO<br>
+    UNIVERSIDADE FEDERAL DO CARIRI<br>
+    PRÓ-REITORIA DE PESQUISA, INOVAÇÃO E PÓS-GRADUAÇÃO<br>
+    COORDENADORIA DE PESQUISA <br>
+    </center>
+    <hr>
+    <h1><b>Situação das Indicações</b></h1>
+    <h2>Edital(ais): {{edital}}</h2>
+    <table>
+      <th>Edital</th><th>id</th><th>Situação das indicações</th><th>Nome</th><th>UA</th><th>Título</th><th>Bolsas solicitadas</th>
+      <th>Bolsas Concedidas</th><th>Número de indicados</th><th>Nomes dos indicados</th>
+      {% for linha in linhas %}
+        <tr>
+          <td>{{linha[0]}}</td> <!--EDITAL -->
+          <td>{{linha[1]}}</td> <!--ID PROJETO -->
+          {% if linha[6]>linha[7] %}
+              <td><p class="alerta2">NÃO FINALIZOU AS INDICAÇÕES</p></td> <!--NOME -->
+          {% endif %}
+          {% if linha[6]==linha[7] %}
+              <td><p class="definido">FINALIZADO</p></td> <!--NOME -->
+          {% endif %}
+          <td>{{linha[2]}}</td>
+          <td>{{linha[3]}}</td> <!--UA -->
+          <td>{{linha[4]}}</td> <!--TÍTULO -->
+          <td>{{linha[5]}}</td> <!--BOLSAS SOLICITADAS -->
+          <td>{{linha[6]}}</td> <!--BOLSAS CONCEDIDAS -->
+          <td>{{linha[7]}}</td> <!--NÚMERO DE INDICADOS -->
+          <td>{{linha[8]|safe}}</td> <!--INDICADOS -->
+        </tr>
+      {% endfor %}
+
+    </table>
+
+              Total: {{total}} projetos aptos para indicações de bolsistas.
+  </body>
+</html>

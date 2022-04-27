@@ -1,0 +1,230 @@
+2020-04-07 09:48:25,932 matplotlib - DEBUG - CACHEDIR=/tmp/matplotlib-ILyUms
+2020-04-07 09:48:25,932 matplotlib.font_manager - INFO - font search path ['/usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf', '/usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm', '/usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts']
+2020-04-07 09:48:25,991 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXNonUni.ttf
+2020-04-07 09:48:25,991 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizFourSymReg.ttf
+2020-04-07 09:48:25,991 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/cmmi10.ttf
+2020-04-07 09:48:25,991 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXGeneralBol.ttf
+2020-04-07 09:48:25,992 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans.ttf
+2020-04-07 09:48:25,992 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/cmr10.ttf
+2020-04-07 09:48:25,992 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXNonUniBol.ttf
+2020-04-07 09:48:25,992 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizTwoSymReg.ttf
+2020-04-07 09:48:25,992 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSerif-Bold.ttf
+2020-04-07 09:48:25,992 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSansMono-Oblique.ttf
+2020-04-07 09:48:25,992 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSansMono-BoldOblique.ttf
+2020-04-07 09:48:25,992 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizThreeSymBol.ttf
+2020-04-07 09:48:25,992 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizOneSymBol.ttf
+2020-04-07 09:48:25,992 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXGeneralBolIta.ttf
+2020-04-07 09:48:25,993 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSansDisplay.ttf
+2020-04-07 09:48:25,993 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans-Bold.ttf
+2020-04-07 09:48:25,993 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/cmsy10.ttf
+2020-04-07 09:48:25,993 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSerif-Italic.ttf
+2020-04-07 09:48:25,993 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXNonUniBolIta.ttf
+2020-04-07 09:48:25,993 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSerif.ttf
+2020-04-07 09:48:25,993 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/cmb10.ttf
+2020-04-07 09:48:25,993 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans-BoldOblique.ttf
+2020-04-07 09:48:25,993 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizFiveSymReg.ttf
+2020-04-07 09:48:25,994 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizTwoSymBol.ttf
+2020-04-07 09:48:25,994 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXNonUniIta.ttf
+2020-04-07 09:48:25,994 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizFourSymBol.ttf
+2020-04-07 09:48:25,994 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSerifDisplay.ttf
+2020-04-07 09:48:25,994 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/cmss10.ttf
+2020-04-07 09:48:25,994 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSansMono.ttf
+2020-04-07 09:48:25,994 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSerif-BoldItalic.ttf
+2020-04-07 09:48:25,994 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans-Oblique.ttf
+2020-04-07 09:48:25,995 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXGeneral.ttf
+2020-04-07 09:48:25,995 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/cmex10.ttf
+2020-04-07 09:48:25,995 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizThreeSymReg.ttf
+2020-04-07 09:48:25,995 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSansMono-Bold.ttf
+2020-04-07 09:48:25,995 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizOneSymReg.ttf
+2020-04-07 09:48:25,995 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/cmtt10.ttf
+2020-04-07 09:48:25,995 matplotlib.font_manager - DEBUG - trying fontname /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXGeneralItalic.ttf
+2020-04-07 09:48:25,995 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationSerif-BoldItalic.ttf
+2020-04-07 09:48:25,996 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf
+2020-04-07 09:48:25,996 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf
+2020-04-07 09:48:25,996 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/noto/NotoMono-Regular.ttf
+2020-04-07 09:48:25,997 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf
+2020-04-07 09:48:25,997 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+2020-04-07 09:48:25,997 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationMono-BoldItalic.ttf
+2020-04-07 09:48:25,997 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf
+2020-04-07 09:48:25,997 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationSansNarrow-Bold.ttf
+2020-04-07 09:48:25,997 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationSansNarrow-Regular.ttf
+2020-04-07 09:48:25,997 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/openoffice/opens___.ttf
+2020-04-07 09:48:25,997 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf
+2020-04-07 09:48:25,997 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+2020-04-07 09:48:25,998 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf
+2020-04-07 09:48:25,998 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf
+2020-04-07 09:48:25,998 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationSans-BoldItalic.ttf
+2020-04-07 09:48:25,998 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf
+2020-04-07 09:48:25,998 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf
+2020-04-07 09:48:25,998 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf
+2020-04-07 09:48:25,998 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf
+2020-04-07 09:48:25,998 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf
+2020-04-07 09:48:25,999 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationMono-Italic.ttf
+2020-04-07 09:48:25,999 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationSansNarrow-BoldItalic.ttf
+2020-04-07 09:48:25,999 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationSansNarrow-Italic.ttf
+2020-04-07 09:48:25,999 matplotlib.font_manager - DEBUG - trying fontname /usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf
+2020-04-07 09:48:25,999 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXNonUni.ttf
+2020-04-07 09:48:26,000 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizFourSymReg.ttf
+2020-04-07 09:48:26,001 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/cmmi10.ttf
+2020-04-07 09:48:26,001 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXGeneralBol.ttf
+2020-04-07 09:48:26,001 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans.ttf
+2020-04-07 09:48:26,002 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/cmr10.ttf
+2020-04-07 09:48:26,002 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXNonUniBol.ttf
+2020-04-07 09:48:26,003 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizTwoSymReg.ttf
+2020-04-07 09:48:26,003 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSerif-Bold.ttf
+2020-04-07 09:48:26,004 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSansMono-Oblique.ttf
+2020-04-07 09:48:26,004 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSansMono-BoldOblique.ttf
+2020-04-07 09:48:26,005 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizThreeSymBol.ttf
+2020-04-07 09:48:26,005 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizOneSymBol.ttf
+2020-04-07 09:48:26,005 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXGeneralBolIta.ttf
+2020-04-07 09:48:26,006 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSansDisplay.ttf
+2020-04-07 09:48:26,006 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans-Bold.ttf
+2020-04-07 09:48:26,007 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/cmsy10.ttf
+2020-04-07 09:48:26,007 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSerif-Italic.ttf
+2020-04-07 09:48:26,008 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXNonUniBolIta.ttf
+2020-04-07 09:48:26,008 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSerif.ttf
+2020-04-07 09:48:26,009 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/cmb10.ttf
+2020-04-07 09:48:26,009 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans-BoldOblique.ttf
+2020-04-07 09:48:26,009 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizFiveSymReg.ttf
+2020-04-07 09:48:26,010 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizTwoSymBol.ttf
+2020-04-07 09:48:26,010 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXNonUniIta.ttf
+2020-04-07 09:48:26,011 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizFourSymBol.ttf
+2020-04-07 09:48:26,011 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSerifDisplay.ttf
+2020-04-07 09:48:26,011 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/cmss10.ttf
+2020-04-07 09:48:26,012 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSansMono.ttf
+2020-04-07 09:48:26,012 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSerif-BoldItalic.ttf
+2020-04-07 09:48:26,013 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans-Oblique.ttf
+2020-04-07 09:48:26,013 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXGeneral.ttf
+2020-04-07 09:48:26,014 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/cmex10.ttf
+2020-04-07 09:48:26,014 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizThreeSymReg.ttf
+2020-04-07 09:48:26,015 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSansMono-Bold.ttf
+2020-04-07 09:48:26,015 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXSizOneSymReg.ttf
+2020-04-07 09:48:26,015 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/cmtt10.ttf
+2020-04-07 09:48:26,016 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/STIXGeneralItalic.ttf
+2020-04-07 09:48:26,016 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationSerif-BoldItalic.ttf
+2020-04-07 09:48:26,017 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf
+2020-04-07 09:48:26,017 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf
+2020-04-07 09:48:26,018 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/noto/NotoMono-Regular.ttf
+2020-04-07 09:48:26,018 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf
+2020-04-07 09:48:26,019 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+2020-04-07 09:48:26,019 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationMono-BoldItalic.ttf
+2020-04-07 09:48:26,019 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf
+2020-04-07 09:48:26,019 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationSansNarrow-Bold.ttf
+2020-04-07 09:48:26,020 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationSansNarrow-Regular.ttf
+2020-04-07 09:48:26,020 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/openoffice/opens___.ttf
+2020-04-07 09:48:26,020 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf
+2020-04-07 09:48:26,021 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+2020-04-07 09:48:26,021 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf
+2020-04-07 09:48:26,021 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf
+2020-04-07 09:48:26,021 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationSans-BoldItalic.ttf
+2020-04-07 09:48:26,022 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf
+2020-04-07 09:48:26,022 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf
+2020-04-07 09:48:26,023 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf
+2020-04-07 09:48:26,023 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf
+2020-04-07 09:48:26,023 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf
+2020-04-07 09:48:26,024 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationMono-Italic.ttf
+2020-04-07 09:48:26,024 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationSansNarrow-BoldItalic.ttf
+2020-04-07 09:48:26,025 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationSansNarrow-Italic.ttf
+2020-04-07 09:48:26,025 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf
+2020-04-07 09:48:26,061 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/cmtt10.afm
+2020-04-07 09:48:26,065 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pncbi8a.afm
+2020-04-07 09:48:26,075 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts/Helvetica-BoldOblique.afm
+2020-04-07 09:48:26,109 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts/Times-BoldItalic.afm
+2020-04-07 09:48:26,139 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/ptmri8a.afm
+2020-04-07 09:48:26,149 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pplbi8a.afm
+2020-04-07 09:48:26,158 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/ptmbi8a.afm
+2020-04-07 09:48:26,167 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/phvb8an.afm
+2020-04-07 09:48:26,177 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/phvlo8a.afm
+2020-04-07 09:48:26,185 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pzcmi8a.afm
+2020-04-07 09:48:26,194 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/putri8a.afm
+2020-04-07 09:48:26,207 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/phvro8a.afm
+2020-04-07 09:48:26,217 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts/Times-Roman.afm
+2020-04-07 09:48:26,245 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pbkd8a.afm
+2020-04-07 09:48:26,254 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/ptmb8a.afm
+2020-04-07 09:48:26,264 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pcrro8a.afm
+2020-04-07 09:48:26,272 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pbkdi8a.afm
+2020-04-07 09:48:26,280 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/phvbo8a.afm
+2020-04-07 09:48:26,290 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pncr8a.afm
+2020-04-07 09:48:26,299 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pagd8a.afm
+2020-04-07 09:48:26,309 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts/Courier-Oblique.afm
+2020-04-07 09:48:26,318 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts/Courier-BoldOblique.afm
+2020-04-07 09:48:26,328 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/phvl8a.afm
+2020-04-07 09:48:26,336 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pcrr8a.afm
+2020-04-07 09:48:26,345 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pcrbo8a.afm
+2020-04-07 09:48:26,353 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts/Helvetica-Oblique.afm
+2020-04-07 09:48:26,387 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/cmmi10.afm
+2020-04-07 09:48:26,393 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pagk8a.afm
+2020-04-07 09:48:26,402 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pncb8a.afm
+2020-04-07 09:48:26,411 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/putb8a.afm
+2020-04-07 09:48:26,424 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pagdo8a.afm
+2020-04-07 09:48:26,433 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/phvr8an.afm
+2020-04-07 09:48:26,443 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/phvro8an.afm
+2020-04-07 09:48:26,452 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts/ZapfDingbats.afm
+2020-04-07 09:48:26,459 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pncri8a.afm
+2020-04-07 09:48:26,468 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pzdr.afm
+2020-04-07 09:48:26,474 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/cmsy10.afm
+2020-04-07 09:48:26,478 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts/Helvetica.afm
+2020-04-07 09:48:26,512 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts/Courier-Bold.afm
+2020-04-07 09:48:26,522 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pcrb8a.afm
+2020-04-07 09:48:26,530 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pbkli8a.afm
+2020-04-07 09:48:26,539 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts/Courier.afm
+2020-04-07 09:48:26,548 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/cmr10.afm
+2020-04-07 09:48:26,554 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/cmex10.afm
+2020-04-07 09:48:26,558 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/phvb8a.afm
+2020-04-07 09:48:26,568 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pplri8a.afm
+2020-04-07 09:48:26,576 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/putr8a.afm
+2020-04-07 09:48:26,589 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pplb8a.afm
+2020-04-07 09:48:26,597 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/putbi8a.afm
+2020-04-07 09:48:26,610 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/psyr.afm
+2020-04-07 09:48:26,616 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts/Times-Bold.afm
+2020-04-07 09:48:26,646 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/phvbo8an.afm
+2020-04-07 09:48:26,656 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pplr8a.afm
+2020-04-07 09:48:26,664 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/ptmr8a.afm
+2020-04-07 09:48:26,674 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/phvr8a.afm
+2020-04-07 09:48:26,684 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pbkl8a.afm
+2020-04-07 09:48:26,692 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts/Symbol.afm
+2020-04-07 09:48:26,698 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/afm/pagko8a.afm
+2020-04-07 09:48:26,707 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts/Helvetica-Bold.afm
+2020-04-07 09:48:26,739 matplotlib.font_manager - DEBUG - createFontDict: /usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/pdfcorefonts/Times-Italic.afm
+2020-04-07 09:48:26,770 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n021024l.afm
+2020-04-07 09:48:26,795 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n019024l.afm
+2020-04-07 09:48:26,820 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n021004l.afm
+2020-04-07 09:48:26,845 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/s050000l.afm
+2020-04-07 09:48:26,851 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/p052024l.afm
+2020-04-07 09:48:26,875 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/p052004l.afm
+2020-04-07 09:48:26,899 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n019044l.afm
+2020-04-07 09:48:26,925 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/b018012l.afm
+2020-04-07 09:48:26,949 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n022003l.afm
+2020-04-07 09:48:26,975 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n019063l.afm
+2020-04-07 09:48:27,000 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/a010033l.afm
+2020-04-07 09:48:27,025 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/c059036l.afm
+2020-04-07 09:48:27,050 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/z003034l.afm
+2020-04-07 09:48:27,073 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n022024l.afm
+2020-04-07 09:48:27,097 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/c059033l.afm
+2020-04-07 09:48:27,122 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n019064l.afm
+2020-04-07 09:48:27,147 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n019003l.afm
+2020-04-07 09:48:27,172 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/d050000l.afm
+2020-04-07 09:48:27,179 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/b018035l.afm
+2020-04-07 09:48:27,202 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/a010013l.afm
+2020-04-07 09:48:27,228 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n022004l.afm
+2020-04-07 09:48:27,252 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n021003l.afm
+2020-04-07 09:48:27,278 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n019043l.afm
+2020-04-07 09:48:27,304 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n019023l.afm
+2020-04-07 09:48:27,329 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/p052023l.afm
+2020-04-07 09:48:27,353 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n019004l.afm
+2020-04-07 09:48:27,378 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/p052003l.afm
+2020-04-07 09:48:27,402 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/a010015l.afm
+2020-04-07 09:48:27,427 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/c059013l.afm
+2020-04-07 09:48:27,452 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/b018032l.afm
+2020-04-07 09:48:27,476 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/c059016l.afm
+2020-04-07 09:48:27,501 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n022023l.afm
+2020-04-07 09:48:27,525 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/n021023l.afm
+2020-04-07 09:48:27,549 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/a010035l.afm
+2020-04-07 09:48:27,574 matplotlib.font_manager - DEBUG - createFontDict: /usr/share/fonts/type1/gsfonts/b018015l.afm
+2020-04-07 09:48:27,611 matplotlib.font_manager - INFO - generated new fontManager
+2020-04-07 09:48:27,757 matplotlib.backends - DEBUG - backend agg version v2.2
+2020-04-07 09:48:27,825 matplotlib.font_manager - DEBUG - findfont: Matching :family=sans-serif:style=normal:variant=normal:weight=normal:stretch=normal:size=10.0 to DejaVu Sans ('/usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans.ttf') with score of 0.050000
+2020-04-07 09:48:28,097 matplotlib.font_manager - DEBUG - findfont: Matching :family=sans-serif:style=normal:variant=normal:weight=bold:stretch=normal:size=10.0 to DejaVu Sans ('/usr/local/lib/python2.7/dist-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans-Bold.ttf') with score of 0.000000
+2020-04-07 10:30:02,767 root - ERROR - <type 'exceptions.ValueError'>
+2020-04-07 10:30:02,767 root - ERROR - ERRO Na função /editalProjeto. Ver consulta abaixo.
+2020-04-07 10:30:02,769 root - ERROR - SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,"%d/%m/%Y - %H:%i") as data,DATE_FORMAT(inicio,"%d/%m/%Y") as inicio,DATE_FORMAT(fim,"%d/%m/%Y") as fim,if(produtividade=0,"PROD. CNPq",if(produtividade=1,"BPI FUNCAP","NORMAL")) as prioridade,bolsas,bolsas_concedidas,obs FROM editalProjeto WHERE tipo=3 AND valendo=1 ORDER BY ua,produtividade,scorelattes DESC

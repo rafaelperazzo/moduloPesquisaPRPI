@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!-- https://github.com/cognitom/paper-css -->
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>DECLARAÇÃO</title>
+
+  <!-- Normalize or reset CSS with your favorite library -->
+
+
+  <!-- Load paper.css for happy printing -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='paper.css')}}">
+
+  <!-- Set page size here: A5, A4 or A3 -->
+  <!-- Set also "landscape" if you need -->
+  <style>@page { size: A4 }</style>
+
+</head>
+
+<!-- Set "A5", "A4" or "A3" for class name -->
+<!-- Set also "landscape" if you need -->
+<body class="A4">
+
+  <!-- Each sheet element should have the class "sheet" -->
+  <!-- "padding-**mm" is optional: you can set 10, 15, 20 or 25 -->
+  <section class="sheet padding-10mm">
+
+    <!-- Write HTML just like a web page -->
+    <article></article>
+    <center><img src="{{ url_for('static', filename='cabecalho.png')}}" width="100" height="150" alt=""></center>
+    <center>
+    MINISTÉRIO DA EDUCAÇÃO<br>
+    UNIVERSIDADE FEDERAL DO CARIRI<br>
+    PRÓ-REITORIA DE PESQUISA, INOVAÇÃO E PÓS-GRADUAÇÃO<br>
+    COORDENADORIA DE PESQUISA <br>
+    </center>
+<BR><BR><BR>
+<center><h1>DECLARAÇÃO</h1></center><br>
+<div align="justify">
+Declaramos, para os devidos fins, que <b> {{ nome }}</b>
+participou, como consultor ad-hoc, da avaliação de projetos de pesquisa (<b>{{ edital }}</b>) referente ao Programa Institucional de
+Iniciação científica e tecnológica (PIICT) da Universidade Federal do Cariri (UFCA).
+<br><br>
+</div>
+<br>
+ <div align="right">
+  Juazeiro do Norte, {{data}}
+</div>
+<br><br>
+<center><img src="{{raiz}}{{ url_for('static', filename='assinatura_laura.png')}}" width="284" height="80" alt=""></center>
+<center>___________________________________</center><br>
+<center>LAURA HEVILA INOCENCIO LEITE</center><br>
+<center>PRÓ-REITORA DE PESQUISA, PÓS-GRADUAÇÃO E INOVAÇÃO</center><br>
+<center>SIAPE: 2222214</center>
+<br><br><br><center><small><i><a href="http://prpi.ufca.edu.br">http://prpi.ufca.edu.br</a></i></small></center><br><br><br><br>
+<center><img src="{{ url_for('static', filename='rodape.png')}}" width="100%" height="161" alt="" align="left"></center>
+  </section>
+
+</body>
+
+</html>

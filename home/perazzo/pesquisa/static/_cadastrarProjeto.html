@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Cadastro de Projeto de Pesquisa - Edital</title>
+  </head>
+  <body><br>
+    <form name="frmCadastroProjeto" action="/pesquisa/cadastrarProjeto" method="POST"
+      enctype="multipart/form-data">
+      <h1 style="text-align: center;"> CADASTRAR PROJETO DE PESQUISA</h1>
+      <label><b>Tipo de Submissão</b>:
+        <select name="tipo" required="required">
+          <option value="Edital 07/2018/PRPI">Edital 07/2018/PRPI</option>
+          <option value="Fluxo Continuo">Fluxo Contínuo</option>
+        </select>
+      </label><br>
+      <h2> Dados pessoais</h2>
+      <br>
+      <label><b>Nome</b>: <input name="nome" required="required" size="80" type="text"><br>
+        <b>SIAPE</b>: <input name="siape" required="required" size="10" type="text"><br>
+        <b>E-Mail</b>: <input name="email" required="required" size="80" type="email"><br>
+        <br>
+        <b>Unidade Academica</b>:
+        <select name="ua" required="required">
+          <option value="CCT">CCT</option>
+          <option value="FAMED">FAMED</option>
+          <option value="CCSA">CCSA</option>
+          <option value="IISCA">IISCA</option>
+          <option value="CCAB">CCAB</option>
+          <option value="IFE">IFE</option>
+          <option value="IESA">IESA</option>
+        </select>
+        <br>
+        <b>Área CAPES</b>:
+        <select name="area_capes">
+          <option value="ADMINISTRACAO_PUBLICA_E_DE_EMPRESAS_CIENCIAS_CONTABEIS_E_TURISMO">ADMINISTRACAO_PUBLICA_E_DE_EMPRESAS_CIENCIAS_CONTABEIS_E_TURISMO</option>
+          <option value="ANTROPOLOGIA_ARQUEOLOGIA">ANTROPOLOGIA_ARQUEOLOGIA</option>
+          <option value="ARQUITETURA_URBANISMO_E_DESIGN">ARQUITETURA_URBANISMO_E_DESIGN</option>
+          <option value="ARTES">ARTES</option>
+          <option value="ASTRONOMIA_FISICA">ASTRONOMIA_FISICA</option>
+          <option value="BIODIVERSIDADE">BIODIVERSIDADE</option>
+          <option value="BIOTECNOLOGIA">BIOTECNOLOGIA</option>
+          <option value="CIENCIAS_AGRARIAS_I">CIENCIAS_AGRARIAS_I</option>
+          <option value="CIENCIAS_AMBIENTAIS">CIENCIAS_AMBIENTAIS</option>
+          <option value="CIENCIAS_BIOLOGICAS_I">CIENCIAS_BIOLOGICAS_I</option>
+          <option value="CIENCIAS_BIOLOGICAS_II">CIENCIAS_BIOLOGICAS_II</option>
+          <option value="CIENCIAS_BIOLOGICAS_III">CIENCIAS_BIOLOGICAS_III</option>
+          <option value="CIENCIAS_DA_RELIGIAO_E_TEOLOGIA">CIENCIAS_DA_RELIGIAO_E_TEOLOGIA</option>
+          <option value="CIENCIA_DA_COMPUTACAO">CIENCIA_DA_COMPUTACAO</option>
+          <option value="CIENCIA_DE_ALIMENTOS">CIENCIA_DE_ALIMENTOS</option>
+          <option value="CIENCIA_POLITICA_E_RELACOES_INTERNACIONAIS">CIENCIA_POLITICA_E_RELACOES_INTERNACIONAIS</option>
+          <option value="COMUNICACAO_E_INFORMACAO">COMUNICACAO_E_INFORMACAO</option>
+          <option value="DIREITO">DIREITO</option>
+          <option value="ECONOMIA">ECONOMIA</option>
+          <option value="EDUCACAO">EDUCACAO</option>
+          <option value="EDUCACAO_FISICA">EDUCACAO_FISICA</option>
+          <option value="ENFERMAGEM">ENFERMAGEM</option>
+          <option value="ENGENHARIAS_I">ENGENHARIAS_I</option>
+          <option value="ENGENHARIAS_II">ENGENHARIAS_II</option>
+          <option value="ENGENHARIAS_III">ENGENHARIAS_III</option>
+          <option value="ENGENHARIAS_IV">ENGENHARIAS_IV</option>
+          <option value="ENSINO">ENSINO</option>
+          <option value="FARMACIA">FARMACIA</option>
+          <option value="FILOSOFIA">FILOSOFIA</option>
+          <option value="GEOCIENCIAS">GEOCIENCIAS</option>
+          <option value="GEOGRAFIA">GEOGRAFIA</option>
+          <option value="HISTORIA">HISTORIA</option>
+          <option value="INTERDISCIPLINAR">INTERDISCIPLINAR</option>
+          <option value="LINGUISTICA_E_LITERATURA">LINGUISTICA_E_LITERATURA</option>
+          <option value="MATEMATICA_PROBABILIDADE_E_ESTATISTICA">MATEMATICA_PROBABILIDADE_E_ESTATISTICA</option>
+          <option value="MATERIAIS">MATERIAIS</option>
+          <option value="MEDICINA_I">MEDICINA_I</option>
+          <option value="MEDICINA_II">MEDICINA_II</option>
+          <option value="MEDICINA_III">MEDICINA_III</option>
+          <option value="MEDICINA_VETERINARIA">MEDICINA_VETERINARIA</option>
+          <option value="NUTRICAO">NUTRICAO</option>
+          <option value="ODONTOLOGIA">ODONTOLOGIA</option>
+          <option value="PLANEJAMENTO_URBANO_E_REGIONAL_DEMOGRAFIA">PLANEJAMENTO_URBANO_E_REGIONAL_DEMOGRAFIA</option>
+          <option value="PSICOLOGIA">PSICOLOGIA</option>
+          <option value="QUIMICA">QUIMICA</option>
+          <option value="SAUDE_COLETIVA">SAUDE_COLETIVA</option>
+          <option value="SERVICO_SOCIAL">SERVICO_SOCIAL</option>
+          <option value="SOCIOLOGIA">SOCIOLOGIA</option>
+          <option value="ZOOTECNIA_RECURSOS_PESQUEIROS">ZOOTECNIA_RECURSOS_PESQUEIROS</option>
+        </select>
+        <br>
+        <b>Grande Área</b>:
+        <select name="grande_area" required="required">
+          <option value="Ciências Exatas e da Terra">Ciências Exatas e da Terra</option>
+          <option value="Ciências Biológicas">Ciências Biológicas</option>
+          <option value="Engenharias">Engenharias</option>
+          <option value="Ciências da Saúde">Ciências da Saúde</option>
+          <option value="Ciências Agrárias">Ciências Agrárias</option>
+          <option value="Ciências Sociais Aplicadas">Ciências Sociais Aplicadas</option>
+          <option value="Ciências Humanas">Ciências Humanas</option>
+          <option value="Linguistica, Letras e Artes">Linguistica, Letras e
+            Artes</option>
+          <option value="Multidisciplinar">Multidisciplinar</option>
+        </select>
+        <br>
+        <b>Grupo de Pesquisa CNPq</b>: <input name="grupo" required="required"
+          size="80" type="text"><br>
+      </label><br>
+      <hr><br>
+      <h2>Dados do projeto</h2>
+      <label><b>Título</b>: <br>
+        <textarea name="titulo" cols="130" rows="3" required="required" maxlength="200"></textarea><br>
+        <b>Validade</b> <b>(em anos):</b>
+        <select name="validade" required="required">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
+        <br>
+        <b>Palavras chave</b>:<input name="palavras_chave" required="required" size="80"
+          type="text"><br>
+        <b>Descrição Resumida</b>: <br>
+        <textarea name="descricao_resumida" cols="130" rows="20" required="required"
+maxlength="15000"></textarea><br>
+        <br>
+        <b>Introdução/Justificativa</b>:<br>
+        <textarea name="introducao" cols="130" rows="20" required="required" maxlength="15000"></textarea><br>
+      </label> <br>
+      <b>Objetivos</b>: <br>
+      <textarea name="objetivos" cols="130" rows="20" maxlength="15000"></textarea><br>
+      <br>
+      <b>Metodologia</b>: <br>
+      <textarea name="metodologia" cols="130" rows="20" required="required" maxlength="15000"></textarea><br>
+      <br>
+      <b>Referências</b>:<br>
+      <textarea name="referencias" cols="130" rows="20" required="required" maxlength="15000"></textarea><br>
+      <b><br>
+        Arquivo do projeto</b> <b>(pdf)</b>: <input name="arquivo_projeto" required="required"
+        type="file"><br>
+      <br>
+      <hr><br>
+      <h2> Planos de Trabalho</h2>
+      <label><b>Bolsas solicitadas</b>:
+        <select name="numero_bolsas" required="required">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+        </select>
+        <br>
+        <b>Plano de Trabalho 1 (pdf)</b>: <input name="arquivo_plano1" required="required"
+          type="file"><br>
+        <b>Plano de Trabalho 2 (pdf)</b>: <input name="arquivo_plano2" type="file"><br>
+        <br>
+      </label>
+      <hr>
+      <h2>Avaliadores sugeridos (indique até 3) (opcional) </h2>
+      <label><b>Nome</b>: <input name="avaliador1" size="80" maxlength="100" type="text"><br>
+        <b>E-mail:</b> <input name="avaliador1_email" size="80" maxlength="80"
+          type="email"><br>
+        <b>Nome</b>: <input name="avaliador2" size="80" maxlength="100" type="text"><br>
+        <b>Email</b>: <input name="avaliador2_email" size="80" maxlength="80" type="email"><br>
+        <b>Nome:</b> <input name="avaliador3" size="80" maxlength="100" type="text"><br>
+        <b>Email:</b> <input name="avaliador3_email" size="80" maxlength="80" type="email"><br>
+      </label>
+      <hr><label><br>
+        <br>
+      </label>
+      <div style="text-align: center;"><label><input name="btnEnviar" value="Enviar"
+formenctype="multipart/form-data" type="submit"></label><br>
+        <label></label></div>
+      <div style="text-align: right;"><label></label><br>
+      </div>
+      <br>
+    </form>
+  </body>
+</html>

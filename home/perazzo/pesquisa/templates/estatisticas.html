@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Estatísticas por edital</title>
+    <style>
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}
+</style>
+  </head>
+  <body>
+    <p><b><h1>Edital em Números</b></h1></p>
+    <p><b><h2>{{ nomeEdital }}</h2><br></b></p>
+
+    <table style="width:100%">
+      <caption><h2>Resumo Geral dos Projetos Novos</h2></caption>
+      <tr>
+        <th>Id do Projeto</th><th>Título</th><th>Unidade Academica</th><th>Proponente</th><th>Score Lattes</th><th>Recomendações</th><th>Não recomendado</th>
+        <th>Sem resposta</th><th>Não aceitou avaliar</th>
+      </tr>
+      {% for linha in linhasResumo %}
+      <tr>
+        <td>{{ linha[1] }}</td><td>{{ linha[2] }}</td><td>{{ linha[3] }}</td><td>{{ linha[4] }}</td><td>{{ linha[9] }}</td><td>{{ linha[5] }}</td><td>{{ linha[6] }}</td>
+        <td>{{ linha[7] }}</td><td>{{ linha[8] }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p><br>
+
+      <br>
+      <hr>
+      <table style="width:100%">
+        <caption><h2>Projetos Novos Aprovados</h2></caption>
+        <tr>
+          <th>Id do Projeto</th><th>Título</th><th>Unidade Academica</th><th>Proponente</th><th>Score Lattes</th><th>Recomendações</th><th>Não recomendado</th>
+          <th>Sem resposta</th><th>Não aceitou avaliar</th>
+        </tr>
+        {% for linha in projetosAprovados %}
+        <tr>
+          <td>{{ linha[1] }}</td><td>{{ linha[2] }}</td><td>{{ linha[3] }}</td><td>{{ linha[4] }}</td><td>{{ linha[9] }}</td><td>{{ linha[5] }}</td><td>{{ linha[6] }}</td>
+          <td>{{ linha[7] }}</td><td>{{ linha[8] }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+
+      <br>
+      <hr>
+      <table style="width:100%">
+        <caption><h2>Projetos novos com pendencias de avaliação</h2></caption>
+        <tr>
+          <th>Id do Projeto</th><th>Título</th><th>Unidade Academica</th><th>Proponente</th><th>Score Lattes</th><th>Recomendações</th><th>Não recomendado</th>
+          <th>Sem resposta</th><th>Não aceitou avaliar</th>
+        </tr>
+        {% for linha in projetosPendentes %}
+        <tr>
+          <td>{{ linha[1] }}</td><td>{{ linha[2] }}</td><td>{{ linha[3] }}</td><td>{{ linha[4] }}</td><td>{{ linha[9] }}</td><td>{{ linha[5] }}</td><td>{{ linha[6] }}</td>
+          <td>{{ linha[7] }}</td><td>{{ linha[8] }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+
+      <br>
+      <hr>
+      <table style="width:100%">
+        <caption><h2>Projetos Novos NÃO recomendados</h2></caption>
+        <tr>
+          <th>Id do Projeto</th><th>Título</th><th>Unidade Academica</th><th>Proponente</th><th>Score Lattes</th><th>Recomendações</th><th>Não recomendado</th>
+          <th>Sem resposta</th><th>Não aceitou avaliar</th>
+        </tr>
+        {% for linha in projetosReprovados %}
+        <tr>
+          <td>{{ linha[1] }}</td><td>{{ linha[2] }}</td><td>{{ linha[3] }}</td><td>{{ linha[4] }}</td><td>{{ linha[9] }}</td><td>{{ linha[5] }}</td><td>{{ linha[6] }}</td>
+          <td>{{ linha[7] }}</td><td>{{ linha[8] }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+
+    </p>
+  </body>
+</html>

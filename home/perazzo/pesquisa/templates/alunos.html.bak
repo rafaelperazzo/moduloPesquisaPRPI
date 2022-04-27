@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Projetos - Alunos</title>
+  </head>
+  <body>
+    <h1><b>Projetos do aluno</b></h1>
+    <p><b>Nome</b>: {{nome}}</p>
+    <p>{% for linha in listaProjetos %}</p>
+    <pre><span class="cp"><a href="/pesquisa/declaracao?txtCPF=%7B%7B%20linha[7]%20%7D%7D">{{ linha[4] }}</a><br></span></pre>
+    <p><span class="cp">{% endfor %}</span></p>
+    <p> </p>
+    <p><br>
+    </p>
+    
+  </body>
+</html>

@@ -12,3 +12,4 @@ cron.avaliacao.sh
 *.xml
 mysql/*
 home/perazzo/teste.py
+*.bak

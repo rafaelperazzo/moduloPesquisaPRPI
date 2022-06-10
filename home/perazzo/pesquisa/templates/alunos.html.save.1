@@ -52,13 +52,11 @@ tr:nth-child(even) {
     <tr>
     <td>{{ linha[0] }}</td>
     <td>{{ linha[4] }}</td>
-    <td>
-      <a href="/pesquisa/discente/minhaDeclaracao2019?id={{linha[7]}}">
-      <img src="{{ url_for('static', filename='pdf.png')}}" style="width:15%" alt="" align="center"></a> 
+    <td><a href="/pesquisa/discente/minhaDeclaracao2019?id={{linha[7]}}">
+        <img src="{{ url_for('static', filename='pdf.png')}}" style="width:15%" alt="" align="center"></a>
     </td>
-    <td>
-       <a href="/pesquisa/discente/meuCertificado?id={{linha[7]}}">
-       <img src="{{ url_for('static', filename='pdf.png')}}" style="width:15%" alt="" align="center"></a>   
+    <td><a href="/pesquisa/discente/minhaDeclaracao2019?id={{linha[7]}}">
+      <img src="{{ url_for('static', filename='pdf.png')}}" style="width:15%" alt="" align="center"></a>
     </td>
     </tr>
 

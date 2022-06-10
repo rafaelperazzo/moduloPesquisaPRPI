@@ -35,6 +35,7 @@ from flask_mail import Message
 from flask_uploads import *
 import csv
 import pandas as pd
+#from datetime import datetime
 
 UPLOAD_FOLDER = '/home/perazzo/pesquisa/static/files'
 ALLOWED_EXTENSIONS = set(['pdf','xml'])
@@ -170,6 +171,7 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def getData():
+    import datetime
     Meses=('janeiro','fevereiro',u'março','abril','maio','junho',
        'julho','agosto','setembro','outubro','novembro','dezembro')
     agora = datetime.date.today()
@@ -639,9 +641,9 @@ def cadastrarProjeto():
     sumario = "---"
     try:
         logging.debug("Iniciando o cálculo do scorelattes...")
-        s = calcularScoreLattes(0,area_capes,"2016","2022",CURRICULOS_DIR + arquivo_curriculo_lattes)
+        s = calcularScoreLattes(0,area_capes,"2017","2022",CURRICULOS_DIR + arquivo_curriculo_lattes)
         pontuacao = float(s)
-        sumario = calcularScoreLattes(1,area_capes,"2016","2021",CURRICULOS_DIR + arquivo_curriculo_lattes)
+        sumario = calcularScoreLattes(1,area_capes,"2017","2022",CURRICULOS_DIR + arquivo_curriculo_lattes)
         sumario = sumario.decode('utf-8')
         logging.debug("Calculo do scorelattes finalizado com sucesso.")
     except:
@@ -708,7 +710,7 @@ def getScoreLattesFromFile():
     #CALCULANDO scorelattes
     pontuacao = -100
     try:
-        s = calcularScoreLattes(1,area_capes,"2016","2021",CURRICULOS_DIR + arquivo_curriculo_lattes)
+        s = calcularScoreLattes(1,area_capes,"2017","2022",CURRICULOS_DIR + arquivo_curriculo_lattes)
         return(s)
     except:
         e = sys.exc_info()[0]
@@ -1595,6 +1597,71 @@ def minhaDeclaracaoDiscente():
             return("OK")
 
 
+@app.route("/discente/meuCertificado", methods=['GET', 'POST'])
+def meuCertificado():
+        if request.method == "GET":
+            #Recuperando o token da declaração
+            if 'id' in request.args:
+                idIndicacao = str(request.args.get('id'))
+
+                consulta = """SELECT i.nome,i.cpf,IF(i.modalidade=1,'PIBIC',IF(i.modalidade=2,'PIBITI','PIBIC-EM')) as modalidade,
+IF(i.tipo_de_vaga=1,'BOLSISTA','VOLUNTÁRIO') as vaga,
+e.nome,e.titulo,i.ch,DATE_FORMAT(i.inicio,'%d/%m/%Y') as inicio, DATE_FORMAT(i.fim,'%d/%m/%Y') as fim,
+ROUND((DATEDIFF(i.fim,i.inicio)/7)*i.ch) as ch_total
+FROM indicacoes i, editalProjeto e WHERE i.idProjeto=e.id and e.valendo=1 and i.id=""" + idIndicacao
+                consulta2 = """SELECT * from gestores ORDER BY id"""
+                from datetime import datetime
+		projeto,total = executarSelect(consulta,1)
+                gestores,total_gestores = executarSelect(consulta2)
+                proreitor = gestores[0]
+                coordenador = gestores[1]
+		logging.debug(proreitor)
+		logging.debug(coordenador)
+		inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
+                fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
+      		agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"),'%d/%m/%Y')
+                periodo = abs((fim-inicio).days)
+                if periodo<180:
+                    return('Certificado indisponível. Período de bolsa inferior a 180 dias')
+                data_agora = getData()
+		if ((fim-agora).days>0):
+		    return('Certificado disponível apenas após a conclusão do projeto em andamento: ')
+                if total==1:
+                    arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
+                    options = {
+                        'page-size': 'A4',
+                        'margin-top': '2cm',
+                        'margin-right': '2cm',
+                        'margin-bottom': '1cm',
+                        'margin-left': '2cm',
+                    }
+                    options = {
+ 			'page-size': 'A4',
+		        'orientation': 'landscape',
+			'margin-top': '0mm',
+			'margin-right': '0mm',
+			'margin-bottom': '0mm',
+			'margin-left': '0mm',
+			'encoding': "UTF-8",
+			'quiet': '',
+			'custom-header' : [
+			('Accept-Encoding', 'gzip')
+			],
+			'no-outline': None
+		    }
+                    pdfkit.from_string(render_template('certificado_discente.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                    return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
+                    #return(render_template('certificado_discente.html',conteudo=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE))
+                    #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')
+                    #return(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token))
+                else:
+                    return("declaração inexistente!")
+            else:
+                return("OK")
+        else:
+            return("OK")
+
+
 @app.route("/discente/minhaDeclaracao2019", methods=['GET', 'POST'])
 def minhaDeclaracaoDiscente2019():
         if request.method == "GET":
@@ -1607,8 +1674,13 @@ def minhaDeclaracaoDiscente2019():
                 consulta = """SELECT indicacoes.nome,indicacoes.cpf,if(indicacoes.fim>NOW(),1,0) as verbo,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),editalProjeto.nome,editalProjeto.titulo,indicacoes.ch,DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'), indicacoes.id
                             FROM indicacoes,editalProjeto
                             WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.id=""" + idIndicacao
-
+                from datetime import datetime
                 projeto,total = executarSelect(consulta,1)
+                inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
+                fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
+                periodo = abs((fim-inicio).days)
+                #if periodo<180:
+                #    return('Declaração indisponível. Período de bolsa inferior a 180 dias')
                 data_agora = getData()
                 if total==1:
                     arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'

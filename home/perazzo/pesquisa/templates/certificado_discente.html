@@ -1,0 +1,245 @@
+{% extends "BASE_documento.html" %}
+    {% block header %}
+        <style type='text/css'>
+                        .serif{
+            font-family: serif;
+            }
+            .texto {
+            margin: 0;
+            }
+            .negrito {
+            font-weight: 700
+            }
+            .negrito-2 {
+            font-weight: 600
+            }
+            .sublinhar{
+            text-decoration: underline;
+            }
+            .center {
+            text-align: center
+            }
+            .esquerda {
+            text-align: right;
+            }
+            .overline {
+            text-decoration: overline;
+            }
+            .quebra_linha{
+            display: block;
+            }
+            /*configurações de fonts*/
+	    .font-9 {
+             font-size: 20px;
+            }
+            .font-11 {
+            font-size: 25px;
+            }
+            .font-12 {
+            font-size: 28px;
+            }
+            .font-13 {
+            font-size: 29px;
+            }
+            .font-15 {
+            font-size: 33px;
+            }
+            .font-16 {
+            font-size: 35pt;
+            }
+            .font-17 {
+            font-size: 17px;
+            }
+            .font-24 {
+            font-size: 24px;
+            }
+            .font-36 {
+            font-size: 36px;
+            }
+            .font-40 {
+            font-size: 40px;
+            }
+            /*confifurações de margin*/
+            .padding_top_35{
+            padding-top:35px;
+            }
+            .margin_bottom_35{
+            margin-bottom: 35px;
+            }
+            .altura_linhas_19{
+            line-height: 19px;
+            }
+            .altura_linhas_35{
+            line-height: 35px;
+            }
+            .altura_linhas_25{
+            line-height: 25px;
+            }
+            .caixa_informacoes{
+            font-size: 28px;
+            text-align: justify;
+            padding-right: 20px;
+            }
+            
+            .local_data{
+            font-size: 28px;
+            text-align: right;
+            padding-right: 145px;
+            padding-top: 15px;
+            }
+	    .caixa_assinatura1{      
+            text-align: center;
+            padding-left: 5cm;
+            padding-bottom: 0px;       
+            line-height: 1.2;
+            }
+
+           .caixa_assinatura2{      
+            text-align: center;
+            padding-right: 6cm;
+            padding-bottom: 0px;       
+            line-height: 1.2;
+            }                       
+            .enchimento {
+                padding: 225px;
+            }
+	    .imagem{
+		padding-top:40px;
+	    }
+            .assinatura{
+            font-size: 20px;
+            padding-top: 120px;
+            }
+            
+            .token{
+            line-height: 22px;
+            font-size: 15px;
+            padding-top: 60px;
+            padding-right: 80px;
+            }
+                        
+            /*configurações de exibição da pagina e conteudo*/
+            .certificado_conteudo {
+            -webkit-print-color-adjust: exact;
+            background-image: url({{url_for('static',filename='ufca2.jpg',_external=True)}});
+            height: 1238px;
+            width: 1754px;
+            background-repeat: no-repeat;
+            background-position: center;
+            }
+            .certificado_pagina {
+            padding: 5mm;
+            width: 1754px;
+            margin: 0mm auto;
+            box-shadow: .5px .5px 7px #000;
+            border-radius: 2px;
+            overflow: hidden;
+            }
+            /*area de configuraçõa da pagina*/
+            @page {
+            size: 297mm 210mm;
+            margin: 0mm;
+            size: landscape
+            }
+            body {
+            margin: 0;
+            padding: 0px !important;
+            font-family: 'Open Sans', sans-serif
+            }
+            p{
+            margin: 0px;
+            }
+            /*SEMPRE DEIXAR NO FIM DO CODIGO configuração de impressão*/
+            @media print {
+            .certificado_pagina {
+            padding: 0;
+            padding-top: 0px;
+            background: transparent;
+            margin: 0;
+            border-radius: 2px;
+            box-shadow: 1px;
+            -webkit-box-shadow: none
+            }
+            }
+        </style>
+        {% endblock %}
+
+{% block body %}
+        <div>
+            <div class="certificado_pagina">
+                <div class="certificado_conteudo">
+                    <div class="row center-xs">
+                        <p class="enchimento"></p>
+                    </div>
+                    <div class="row center-xs">
+                        <div class="col-xs-10">
+                            <div class="box">
+                                <div class="caixa_informacoes serif">
+									<!--
+                                    <p class="center">Certificamos que</p>
+                                    <p class="center negrito">{{conteudo[0]}}</p>
+									-->
+                                    <p>
+                                        Certificamos que o(a) estudante <b>{{conteudo[0]}}</b>, CPF: {{conteudo[1]}} foi vinculado(a) ao Programa Institucional  
+                                        de Bolsas de Iniciação Científica e Tecnológica (PIICT) na condição de {{conteudo[3]}}, modalidade {{conteudo[2]}}  
+                                        sob orientação do(a) professor(a) <b>{{conteudo[4]}}</b>, no projeto de pesquisa intitulado <b>"{{conteudo[5]}}"</b> 
+                                        desempenhando suas atividades com carga horária de {{conteudo[6]}} horas semanais. A participação do(a)  
+                                        estudante no referido Projeto de Pesquisa se estendeu de {{conteudo[7]}} a {{conteudo[8]}}
+                                        contabilizando um total de {{conteudo[9]}} horas. 
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+		    <div class="row end-xs">
+                        <div class="col-xs-10">
+                            <div class="box times font-12">
+                                <div class="caixa_informacoes">
+                                    <p class="local_data font-12">
+                                        {{data}}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+		    <br>
+   		    <div class="row between-xs">
+                               <div class="col-sm">
+                                          <div class="caixa_assinatura1">
+                                                    <img src="{{raiz}}{{ url_for('static', filename=coordenador[2])}}" width="284" height="80" alt="">
+						    <p class="center font-11">_____________________________________</p>
+						    <p class="center font-11"><b>{{coordenador[1]}}</b></p>
+                                                    <p class="center font-11"><b>Coordenador de Pesquisa</b></p>
+						    <p class="center font-11"><b>SIAPE: {{coordenador[3]}}</b></p>
+                                          </div>
+                               </div>
+                               
+
+
+                                <div class="col-sm">
+                                          <div class="caixa_assinatura2">
+                                                    <p class="center font-11 entre_linhas"><img src="{{raiz}}{{ url_for('static', filename=proreitor[2])}}" width="284" height="80" alt=""></p>
+						    <p class="center font-11 entre_linhas">_____________________________________</p>
+						    <p class="center font-11"><b>{{proreitor[1]}}</b></p>
+                                                    <p class="center font-11"><b>Pró-reitor de Pesquisa, <br>Pós-Graduação e Inovação</b></p>
+						    <p class="center font-11"><b>SIAPE: {{proreitor[3]}}</b></p>
+                                          </div>
+                               </div>
+                   </div>
+ 
+                    <div class="row end-xs">
+                        <div class="col-xs-10">
+                            <div class="box">
+                                <div class="token serif">
+                                    <p class="esquerda">Verifique a autenticidade deste documento em: </p>
+                                    <p class="esquerda"><a href="{{url_for('meuCertificado',id=identificador,_external=True)}}" target="_blank">{{url_for('meuCertificado',id=identificador,_external=True)}}</a></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+        </div>
+{% endblock %}

@@ -1301,12 +1301,20 @@ def editalProjeto():
                 else:
                     consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs FROM editalProjeto WHERE tipo=" + codigoEdital + " AND valendo=1 ORDER BY produtividade,scorelattes,nome DESC"
                 consulta_novos = """SELECT editalProjeto.id,nome,ua,titulo,arquivo_projeto,
-                GROUP_CONCAT(avaliacoes.avaliador ORDER BY avaliador SEPARATOR '<BR>') as avaliadores,GROUP_CONCAT(avaliacoes.recomendacao ORDER BY avaliador SEPARATOR '<BR>') as recomendacoes,GROUP_CONCAT(avaliacoes.enviado ORDER BY avaliador SEPARATOR '<BR>') as enviado,GROUP_CONCAT(avaliacoes.aceitou ORDER BY avaliador SEPARATOR '<BR>') as aceitou,
-                sum(avaliacoes.finalizado) as finalizados,sum(if(recomendacao=-1,1,0)), sum(if(recomendacao=0,1,0)),sum(if(recomendacao=1,1,0)),palavras"""
-                consulta_novos = consulta_novos + """ FROM editalProjeto,avaliacoes WHERE tipo=""" + codigoEdital + """ AND valendo=1 AND categoria=1
-                AND editalProjeto.id=avaliacoes.idProjeto GROUP BY editalProjeto.id ORDER BY finalizados,editalProjeto.ua,editalProjeto.id"""
-                demanda = """SELECT ua,count(id) FROM editalProjeto WHERE valendo=1 and tipo=""" + codigoEdital + """ GROUP BY ua ORDER BY ua"""
-                demanda_bolsas = """SELECT ua,sum(bolsas) FROM editalProjeto WHERE valendo=1 and tipo=""" + codigoEdital + """ GROUP BY ua ORDER BY ua"""
+                GROUP_CONCAT(avaliacoes.avaliador ORDER BY avaliador SEPARATOR '<BR>') as avaliadores,
+                GROUP_CONCAT(IF(avaliacoes.recomendacao=1,'RECOMENDADO',IF(avaliacoes.recomendacao=0,'***NÃO RECOMENDADO***','EM AVALIAÇÃO')) ORDER BY avaliador SEPARATOR '<BR>') as recomendacoes, 
+                GROUP_CONCAT(avaliacoes.enviado ORDER BY avaliador SEPARATOR '<BR>') as enviado,
+                GROUP_CONCAT(IF(avaliacoes.aceitou=1,'ACEITOU',IF(avaliacoes.aceitou=0,'REJEITOU','NÃO RESPONDEU')) ORDER BY avaliador SEPARATOR '<BR>') as aceitou,
+                sum(avaliacoes.finalizado) as finalizados,sum(if(recomendacao=-1,1,0)), 
+                sum(if(recomendacao=0,1,0)),sum(if(recomendacao=1,1,0)),palavras"""
+                consulta_novos = consulta_novos + """ FROM editalProjeto,avaliacoes WHERE tipo=""" + codigoEdital + """ 
+                AND valendo=1 AND categoria=1 
+                AND editalProjeto.id=avaliacoes.idProjeto GROUP BY editalProjeto.id 
+                ORDER BY finalizados,editalProjeto.ua,editalProjeto.id"""
+                demanda = """SELECT ua,count(id) FROM editalProjeto WHERE valendo=1 and tipo=""" + codigoEdital + """ GROUP BY ua 
+                ORDER BY ua"""
+                demanda_bolsas = """SELECT ua,sum(bolsas) FROM editalProjeto 
+                WHERE valendo=1 and tipo=""" + codigoEdital + """ GROUP BY ua ORDER BY ua"""
                 bolsas_ufca = int(obterColunaUnica("editais","quantidade_bolsas","id",codigoEdital))
                 bolsas_cnpq = int(obterColunaUnica("editais","quantidade_bolsas_cnpq","id",codigoEdital))
                 situacaoProjetosNovos = """SELECT if(situacao=1,"APROVADO",if(situacao=-1,"INDEFINIDO","NÃO APROVADO")) as situacaoD,count(id) FROM resumoProjetosNovos WHERE
@@ -1596,6 +1604,70 @@ def minhaDeclaracaoDiscente():
         else:
             return("OK")
 
+
+@app.route("/discente/meuCertificado2018", methods=['GET', 'POST'])
+def meuCertificado2018():
+        if request.method == "GET":
+            #Recuperando o token da declaração
+            if 'id' in request.args:
+                idIndicacao = str(request.args.get('id'))
+
+                consulta = """SELECT i.nome,i.cpf,IF(i.modalidade=1,'PIBIC',IF(i.modalidade=2,'PIBITI','PIBIC-EM')) as modalidade,
+IF(i.tipo_de_vaga=1,'BOLSISTA','VOLUNTÁRIO') as vaga,
+e.nome,e.titulo,i.ch,DATE_FORMAT(i.inicio,'%d/%m/%Y') as inicio, DATE_FORMAT(i.fim,'%d/%m/%Y') as fim,
+ROUND((DATEDIFF(i.fim,i.inicio)/7)*i.ch) as ch_total
+FROM indicacoes i, editalProjeto e WHERE i.idProjeto=e.id and e.valendo=1 and i.id=""" + idIndicacao
+                consulta2 = """SELECT * from gestores ORDER BY id"""
+                from datetime import datetime
+		projeto,total = executarSelect(consulta,1)
+                gestores,total_gestores = executarSelect(consulta2)
+                proreitor = gestores[0]
+                coordenador = gestores[1]
+		logging.debug(proreitor)
+		logging.debug(coordenador)
+		inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
+                fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
+      		agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"),'%d/%m/%Y')
+                periodo = abs((fim-inicio).days)
+                if periodo<180:
+                    return('Certificado indisponível. Período de bolsa inferior a 180 dias')
+                data_agora = getData()
+		if ((fim-agora).days>0):
+		    return('Certificado disponível apenas após a conclusão do projeto em andamento: ')
+                if total==1:
+                    arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
+                    options = {
+                        'page-size': 'A4',
+                        'margin-top': '2cm',
+                        'margin-right': '2cm',
+                        'margin-bottom': '1cm',
+                        'margin-left': '2cm',
+                    }
+                    options = {
+ 			'page-size': 'A4',
+		        'orientation': 'landscape',
+			'margin-top': '0mm',
+			'margin-right': '0mm',
+			'margin-bottom': '0mm',
+			'margin-left': '0mm',
+			'encoding': "UTF-8",
+			'quiet': '',
+			'custom-header' : [
+			('Accept-Encoding', 'gzip')
+			],
+			'no-outline': None
+		    }
+                    pdfkit.from_string(render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                    return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
+                    #return(render_template('certificado_discente.html',conteudo=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE))
+                    #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')
+                    #return(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token))
+                else:
+                    return("declaração inexistente!")
+            else:
+                return("OK")
+        else:
+            return("OK")
 
 @app.route("/discente/meuCertificado", methods=['GET', 'POST'])
 def meuCertificado():

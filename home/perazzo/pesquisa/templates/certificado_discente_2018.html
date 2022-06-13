@@ -59,6 +59,9 @@
             .font-40 {
             font-size: 40px;
             }
+	    .cor_assinaturas {
+	    color: #663300;
+	    }
             /*confifurações de margin*/
             .padding_top_35{
             padding-top:35px;
@@ -92,6 +95,7 @@
             padding-left: 5cm;
             padding-bottom: 0px;       
             line-height: 1.2;
+	    color: #663300;
             }
 
            .caixa_assinatura2{      
@@ -99,12 +103,15 @@
             padding-right: 6cm;
             padding-bottom: 0px;       
             line-height: 1.2;
+	    color: #663300;
             }                       
             .enchimento {
                 padding: 225px;
             }
 	    .imagem{
-		padding-top:40px;
+		position: absolute;
+		margin-top: -50px;
+		margin-left: -150px;
 	    }
             .assinatura{
             font-size: 20px;
@@ -203,11 +210,11 @@
                             </div>
                         </div>
                     </div>
-		    <br>
+		    <br><br><br><br>
    		    <div class="row between-xs">
                                <div class="col-sm">
                                           <div class="caixa_assinatura1">
-                                                    <img src="{{raiz}}{{ url_for('static', filename=coordenador[2])}}" width="284" height="80" alt="">
+						  <p class="center font-11"><img class="imagem" src="{{raiz}}{{ url_for('static', filename=coordenador[2])}}" width="284" height="80" alt=""></p>
 						    <p class="center font-11">_____________________________________</p>
 						    <p class="center font-11"><b>{{coordenador[1]}}</b></p>
                                                     <p class="center font-11"><b>Coordenador de Pesquisa</b></p>
@@ -219,7 +226,7 @@
 
                                 <div class="col-sm">
                                           <div class="caixa_assinatura2">
-                                                    <p class="center font-11 entre_linhas"><img src="{{raiz}}{{ url_for('static', filename=proreitor[2])}}" width="284" height="80" alt=""></p>
+                                                    <p class="center font-11 entre_linhas"><img class="imagem" src="{{raiz}}{{ url_for('static', filename=proreitor[2])}}" width="284" height="80" alt=""></p>
 						    <p class="center font-11 entre_linhas">_____________________________________</p>
 						    <p class="center font-11"><b>{{proreitor[1]}}</b></p>
                                                     <p class="center font-11"><b>Pró-reitor de Pesquisa, <br>Pós-Graduação e Inovação</b></p>

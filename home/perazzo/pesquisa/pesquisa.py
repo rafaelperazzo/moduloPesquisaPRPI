@@ -1609,22 +1609,20 @@ def minhaDeclaracaoDiscente():
 def meuCertificado2018():
         if request.method == "GET":
             #Recuperando o token da declaração
-            if 'id' in request.args:
-                idIndicacao = str(request.args.get('id'))
-
-                consulta = """SELECT i.nome,i.cpf,IF(i.modalidade=1,'PIBIC',IF(i.modalidade=2,'PIBITI','PIBIC-EM')) as modalidade,
-IF(i.tipo_de_vaga=1,'BOLSISTA','VOLUNTÁRIO') as vaga,
-e.nome,e.titulo,i.ch,DATE_FORMAT(i.inicio,'%d/%m/%Y') as inicio, DATE_FORMAT(i.fim,'%d/%m/%Y') as fim,
-ROUND((DATEDIFF(i.fim,i.inicio)/7)*i.ch) as ch_total
-FROM indicacoes i, editalProjeto e WHERE i.idProjeto=e.id and e.valendo=1 and i.id=""" + idIndicacao
+            if 'token' in request.args:
+                token = str(request.args.get('token'))
+		consulta = """
+		SELECT estudante_nome_completo,cpf,estudante_tipo_de_vaga,estudante_modalidade,
+		nome_do_coordenador,titulo_do_projeto,ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y'),
+ 		DATE_FORMAT(estudante_fim,'%d/%m/%Y') ,
+		ROUND((DATEDIFF(estudante_fim,estudante_inicio)/7)*ch_semanal) as ch_total
+		FROM cadastro_geral WHERE token=\"""" + token + """\""""
                 consulta2 = """SELECT * from gestores ORDER BY id"""
                 from datetime import datetime
 		projeto,total = executarSelect(consulta,1)
                 gestores,total_gestores = executarSelect(consulta2)
                 proreitor = gestores[0]
                 coordenador = gestores[1]
-		logging.debug(proreitor)
-		logging.debug(coordenador)
 		inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
                 fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
       		agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"),'%d/%m/%Y')
@@ -1657,7 +1655,7 @@ FROM indicacoes i, editalProjeto e WHERE i.idProjeto=e.id and e.valendo=1 and i.
 			],
 			'no-outline': None
 		    }
-                    pdfkit.from_string(render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                    pdfkit.from_string(render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=token,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
                     return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
                     #return(render_template('certificado_discente.html',conteudo=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE))
                     #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')

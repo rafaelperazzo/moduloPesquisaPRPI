@@ -3,7 +3,6 @@ cron.avaliacao.sh
 *.gz
 *.tar.gz
 *.zip
-*.txt
 *.pass
 *.sql
 *.yml

@@ -1,0 +1,52 @@
+SELECT editalProjeto.tipo,editalProjeto.id,editalProjeto.nome,editalProjeto.ua,titulo
+FROM editalProjeto
+WHERE tipo=3 
+AND valendo=1 
+ORDER BY editalProjeto.ua,editalProjeto.scorelattes DESC
+
+
+#COM INDICAÇÕES
+SELECT editalProjeto.tipo,editalProjeto.id,editalProjeto.nome,editalProjeto.ua,titulo,
+bolsas,bolsas_concedidas,count(indicacoes.id) as nindicados,
+GROUP_CONCAT(indicacoes.nome ORDER BY indicacoes.nome SEPARATOR '<BR>') as indicados
+FROM editalProjeto 
+LEFT JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
+WHERE tipo=3
+AND valendo=1
+AND indicacoes.tipo_de_vaga=1
+GROUP BY editalProjeto.id 
+ORDER BY editalProjeto.ua,editalProjeto.scorelattes DESC
+
+#SEM INDICACÕES
+SELECT editalProjeto.tipo,editalProjeto.id,editalProjeto.nome,editalProjeto.ua,titulo
+bolsas,bolsas_concedidas,0 as nindicados,
+'SEM INDICAÇÕES' as indicados
+FROM editalProjeto LEFT JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
+WHERE tipo=3 
+AND indicacoes.idProjeto is null
+AND valendo=1
+AND bolsas_concedidas>0
+ORDER BY editalProjeto.ua,editalProjeto.scorelattes DESC
+
+#união
+(SELECT editalProjeto.tipo,editalProjeto.id,editalProjeto.nome,editalProjeto.ua,titulo,
+bolsas,bolsas_concedidas,count(indicacoes.id) as nindicados,
+GROUP_CONCAT(indicacoes.nome ORDER BY indicacoes.nome SEPARATOR '<BR>') as indicados
+FROM editalProjeto 
+LEFT JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
+WHERE tipo=3
+AND valendo=1
+AND indicacoes.tipo_de_vaga=1
+GROUP BY editalProjeto.id)
+
+UNION
+
+(SELECT editalProjeto.tipo,editalProjeto.id,editalProjeto.nome,editalProjeto.ua,titulo,
+bolsas,bolsas_concedidas,0 as nindicados,'SEM INDICAÇÕES' as indicados
+FROM editalProjeto LEFT JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
+WHERE tipo=3 
+AND indicacoes.idProjeto is null
+AND valendo=1
+AND bolsas_concedidas>0)
+
+ORDER BY tipo,ua,bolsas_concedidas DESC, nindicados DESC,nome

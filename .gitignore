@@ -13,4 +13,4 @@ mysql/*
 home/perazzo/teste.py
 *.bak
 *.pyc
-grafico*.png
+*grafico*.png

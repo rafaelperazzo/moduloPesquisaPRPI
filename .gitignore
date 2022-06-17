@@ -1,3 +1,4 @@
+*.ini
 cron.avaliacao.sh
 *.log
 *.gz
@@ -13,4 +14,4 @@ mysql/*
 home/perazzo/teste.py
 *.bak
 *.pyc
-home/perazzo/pesquisa/static/plots/grafico*.png
+home/perazzo/pesquisa/static/plots/*.png

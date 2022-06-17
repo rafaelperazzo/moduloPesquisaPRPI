@@ -1,4 +1,5 @@
 cron.avaliacao.sh
+*.ini
 *.log
 *.gz
 *.tar.gz

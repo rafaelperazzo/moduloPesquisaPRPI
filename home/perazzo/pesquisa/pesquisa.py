@@ -56,7 +56,6 @@ USUARIO_SITE = ROOT_SITE + "/pesquisa/usuario"
 ATTACHMENTS_DIR = '/home/perazzo/pesquisa/docs_indicacoes/'
 MYSQL_DB = "db_pesquisa"
 LINK_AVALIACAO = ROOT_SITE + "/pesquisa/avaliacao"
-
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 mail = Mail(app)

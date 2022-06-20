@@ -37,6 +37,7 @@ import csv
 import pandas as pd
 #from datetime import datetime
 import configparser
+import threading
 
 WORKING_DIR='/home/perazzo/pesquisa/'
 config = configparser.ConfigParser()
@@ -959,6 +960,8 @@ def inserirAvaliador():
         avaliador1_email = str(request.form['txtEmail'])
         consulta = "INSERT INTO avaliacoes (aceitou,avaliador,token,idProjeto) VALUES (-1,\"" + avaliador1_email + "\", \"" + token + "\", " + str(idProjeto) + ")"
         atualizar(consulta)
+        t = threading.Thread(target=enviarPedidoAvaliacao,args=(id,))
+        t.start()
         return("Avaliador cadastrado com sucesso.")
     else:
         return("OK")
@@ -2665,6 +2668,34 @@ def email_solicitar_avaliacao(edital):
     AND a.finalizado=0 AND a.aceitou!=0 AND e.categoria=1 AND a.idProjeto 
     IN (SELECT id FROM resumoGeralAvaliacoes WHERE ((aceites+rejeicoes<2) OR (aceites=rejeicoes)) 
     AND tipo=""" + str(edital) + """)"""
+    linhas,total = executarSelect(consulta)
+    for linha in linhas:
+        titulo = unicode(linha[1])
+        resumo = unicode(linha[2])
+        link = unicode(linha[4])
+        token = unicode(linha[7])
+        email_avaliador = unicode(linha[3])
+        link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
+        deadline = obterColunaUnica('editais',"DATE_FORMAT(deadline_avaliacao,'%d/%m/%Y')",'id',str(edital))
+        nome_longo = obterColunaUnica('editais','nome','id',str(edital))
+        texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
+        msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+        #msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=["rafael.mota@ufca.edu.br"],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+        try:
+            mail.send(msg)    
+        except:
+            logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: " + email_avaliador)
+            return("Erro! Verifique o log!")
+        #break
+    return("Emails enviados com sucesso\n")
+
+def enviarPedidoAvaliacao(id):
+    consulta = """
+    SELECT e.id,e.titulo,e.resumo,a.avaliador,a.link,a.id,a.enviado,a.token,e.categoria,e.tipo 
+    FROM editalProjeto as e, avaliacoes as a WHERE e.id=a.idProjeto AND e.valendo=1 
+    AND a.finalizado=0 AND e.categoria=1 and e.id=""" + str(id) + """ 
+    ORDER BY a.id DESC LIMIT 1
+    """
     linhas,total = executarSelect(consulta)
     for linha in linhas:
         titulo = unicode(linha[1])

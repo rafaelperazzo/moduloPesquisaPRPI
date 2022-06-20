@@ -96,7 +96,9 @@ function humano() {
   </div>
 
 </form>
-<center><div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div></center>
-<BR><a href="/pesquisa/esqueciMinhaSenha">Esqueci/Não Sei minha Senha</a>
+{% if session['producao']==1 %}
+    <center><div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div></center>
+    <BR><a href="/pesquisa/esqueciMinhaSenha">Esqueci/Não Sei minha Senha</a>
+{% endif %}
 </body>
 </html>

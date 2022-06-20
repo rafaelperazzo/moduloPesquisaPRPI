@@ -43,6 +43,12 @@ WORKING_DIR='/home/perazzo/pesquisa/'
 config = configparser.ConfigParser()
 config.read(WORKING_DIR + 'config.ini')
 SERVER_URL = config['DEFAULT']['server']
+PRODUCAO = 1
+try:
+    PRODUCAO = config['DEFAULT']['producao']
+    PRODUCAO = int(PRODUCAO)
+except:
+    PRODUCAO = 1
 
 UPLOAD_FOLDER = '/home/perazzo/pesquisa/static/files'
 ALLOWED_EXTENSIONS = set(['pdf','xml'])
@@ -71,7 +77,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['CURRICULOS_FOLDER'] = CURRICULOS_DIR
 app.config['DECLARACOES_FOLDER'] = DECLARACOES_DIR
 app.config['TEMP_FOLDER'] = DECLARACOES_DIR
-
 
 
 ## TODO: Preparar o log geral
@@ -373,6 +378,7 @@ def secret_page():
 @app.route("/")
 def home():
     editaisAbertos = getEditaisAbertos()
+    session['PRODUCAO'] = PRODUCAO
     return (render_template('cadastrarProjeto.html',abertos=editaisAbertos))
 
 @app.route("/admin")
@@ -960,7 +966,8 @@ def inserirAvaliador():
         avaliador1_email = str(request.form['txtEmail'])
         consulta = "INSERT INTO avaliacoes (aceitou,avaliador,token,idProjeto) VALUES (-1,\"" + avaliador1_email + "\", \"" + token + "\", " + str(idProjeto) + ")"
         atualizar(consulta)
-        t = threading.Thread(target=enviarPedidoAvaliacao,args=(id,))
+        edital = obterColunaUnica('editalProjeto','tipo','id',str(idProjeto))
+        t = threading.Thread(target=enviarPedidoAvaliacao,args=(idProjeto,edital,))
         t.start()
         return("Avaliador cadastrado com sucesso.")
     else:
@@ -2689,7 +2696,9 @@ def email_solicitar_avaliacao(edital):
         #break
     return("Emails enviados com sucesso\n")
 
-def enviarPedidoAvaliacao(id):
+
+def enviarPedidoAvaliacao(id,edital):
+    gerarLinkAvaliacao(str(edital))
     consulta = """
     SELECT e.id,e.titulo,e.resumo,a.avaliador,a.link,a.id,a.enviado,a.token,e.categoria,e.tipo 
     FROM editalProjeto as e, avaliacoes as a WHERE e.id=a.idProjeto AND e.valendo=1 
@@ -2697,6 +2706,8 @@ def enviarPedidoAvaliacao(id):
     ORDER BY a.id DESC LIMIT 1
     """
     linhas,total = executarSelect(consulta)
+    logging.debug("Enviado pedido de avaliacao para: " + str(total))
+    
     for linha in linhas:
         titulo = unicode(linha[1])
         resumo = unicode(linha[2])
@@ -2704,18 +2715,16 @@ def enviarPedidoAvaliacao(id):
         token = unicode(linha[7])
         email_avaliador = unicode(linha[3])
         link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
-        deadline = obterColunaUnica('editais',"DATE_FORMAT(deadline_avaliacao,'%d/%m/%Y')",'id',str(edital))
-        nome_longo = obterColunaUnica('editais','nome','id',str(edital))
-        texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
-        msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
-        #msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=["rafael.mota@ufca.edu.br"],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
-        try:
-            mail.send(msg)    
-        except:
-            logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: " + email_avaliador)
-            return("Erro! Verifique o log!")
-        #break
-    return("Emails enviados com sucesso\n")
+        deadline = obterColunaUnica('editais',"DATE_FORMAT(deadline_avaliacao,'%d/%m/%Y')",'id',str(linha[9]))
+        nome_longo = obterColunaUnica('editais','nome','id',str(linha[9]))
+        with app.app_context():
+            texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
+            msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+            try:
+                mail.send(msg)
+                logging.debug("E-MAIL ENVIADO COM SUCESSO.")    
+            except:
+                logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: " + email_avaliador)
 
 @app.route("/arquivar/<id_projeto>", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])

@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db_pesquisa:
+     image: mariadb:10.5.8
+     restart: always
+     command: mysqld --sql_mode=""
+     environment:
+       MYSQL_ROOT_PASSWORD: ***SUASENHA***
+       MYSQL_DATABASE: pesquisa
+       MYSQL_USER: pesquisa
+       MYSQL_PASSWORD: ***SUASENHA***
+       TZ: America/Fortaleza
+     volumes:
+       - ./mysql:/var/lib/mysql
+       - ./share:/share
+     networks:
+       - web  
+  pesquisa:
+    image: pesquisa:latest
+    build: .
+    volumes:
+      - ./home:/home
+    restart: always
+    ports:
+      - "9008:80"
+    networks:
+      - web
+
+  adminer:
+     image: adminer:latest
+     restart: always
+     ports:
+      - "9009:8080"
+     environment:
+       ADMINER_DEFAULT_SERVER: db_pesquisa
+     networks:
+       - web
+
+networks:
+  web:
+    external: true

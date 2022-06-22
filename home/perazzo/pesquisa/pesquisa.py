@@ -78,7 +78,6 @@ app.config['CURRICULOS_FOLDER'] = CURRICULOS_DIR
 app.config['DECLARACOES_FOLDER'] = DECLARACOES_DIR
 app.config['TEMP_FOLDER'] = DECLARACOES_DIR
 
-
 ## TODO: Preparar o log geral
 logging.basicConfig(filename=WORKING_DIR + 'app.log', filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',level=logging.ERROR)
 logging.getLogger('waitress')
@@ -91,13 +90,16 @@ app.config['SECRET_KEY'] = SESSION_SECRET_KEY
 app.config['MAIL_PASSWORD'] = GMAIL_PASSWORD
 mail = Mail(app)
 
-
 #Flask-flask_uploads
 app.config['UPLOADED_DOCUMENTS_DEST'] = ATTACHMENTS_DIR
 app.config['UPLOADS_DEFAULT_DEST'] = ATTACHMENTS_DIR
 anexos = UploadSet('documents',ALL)
 configure_uploads(app, anexos)
 patch_request_class(app)
+
+@app.before_first_request
+def prepararInicializacao():
+    session['PRODUCAO'] = PRODUCAO
 
 def removerAspas(texto):
     resultado = texto.replace('"',' ')
@@ -437,9 +439,9 @@ def autenticar():
     tipo = int(request.form['tipo'])
     codigo = str(request.form['codigo'])
     if tipo==0:
-		return redirect("/pesquisa/orientadorDeclaracao?idProjeto=" + codigo)
+	    return redirect("/pesquisa/orientadorDeclaracao?idProjeto=" + codigo)
     else:
-		return redirect("/pesquisa/declaracao?idProjeto=" + codigo)
+	    return redirect("/pesquisa/declaracao?idProjeto=" + codigo)
 
 
 @app.route("/projetosPorOrientador", methods=['GET', 'POST'])

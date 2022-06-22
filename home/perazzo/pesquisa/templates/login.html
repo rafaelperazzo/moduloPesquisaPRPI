@@ -96,9 +96,10 @@ function humano() {
   </div>
 
 </form>
-{% if session['producao']==1 %}
+{% if session['PRODUCAO']==1 %}
     <center><div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div></center>
-    <BR><a href="/pesquisa/esqueciMinhaSenha">Esqueci/Não Sei minha Senha</a>
 {% endif %}
+    <BR><a href="/pesquisa/esqueciMinhaSenha">Esqueci/Não Sei minha Senha</a>
+
 </body>
 </html>

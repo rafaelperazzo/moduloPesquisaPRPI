@@ -966,8 +966,7 @@ def inserirAvaliador():
         avaliador1_email = str(request.form['txtEmail'])
         consulta = "INSERT INTO avaliacoes (aceitou,avaliador,token,idProjeto) VALUES (-1,\"" + avaliador1_email + "\", \"" + token + "\", " + str(idProjeto) + ")"
         atualizar(consulta)
-        edital = obterColunaUnica('editalProjeto','tipo','id',str(idProjeto))
-        t = threading.Thread(target=enviarPedidoAvaliacao,args=(idProjeto,edital,))
+        t = threading.Thread(target=enviarPedidoAvaliacao,args=(idProjeto,))
         t.start()
         return("Avaliador cadastrado com sucesso.")
     else:
@@ -2649,9 +2648,9 @@ def substituicoes():
     else:
         return("OK")
 
-def gerarLinkAvaliacao(edital):
+def gerarLinkAvaliacao():
     consulta = """SELECT id,idProjeto,token FROM avaliacoes 
-    WHERE idProjeto in (SELECT id FROM editalProjeto WHERE valendo=1 and tipo=""" + edital + """) ORDER BY id """
+    WHERE idProjeto in (SELECT id FROM editalProjeto WHERE valendo=1) ORDER BY id """
     linhas,total = executarSelect(consulta)
     for linha in linhas:
         id = str(linha[0])
@@ -2661,20 +2660,17 @@ def gerarLinkAvaliacao(edital):
         consulta = "UPDATE avaliacoes SET link=\"" + link + "\"" + " WHERE id=" + id
         atualizar(consulta)
 
-@app.route("/emailSolicitarAvaliacao/<edital>", methods=['GET', 'POST'])
-@auth.login_required(role=['admin'])
-def email_solicitar_avaliacao(edital):
-    deadline = obterColunaUnica('editais','deadline_avaliacao','id',str(edital))
-    from datetime import datetime
-    hoje = datetime.today().strftime('%Y-%m-%d')
-    if hoje>deadline:
-        return("Deadline vencido!\n")
-    gerarLinkAvaliacao(str(edital))
-    consulta = """SELECT e.id,e.titulo,e.resumo,a.avaliador,a.link,a.id,a.enviado,a.token,e.categoria,e.tipo 
-    FROM editalProjeto as e, avaliacoes as a WHERE e.id=a.idProjeto AND e.valendo=1 
-    AND a.finalizado=0 AND a.aceitou!=0 AND e.categoria=1 AND a.idProjeto 
+def enviar_email_avaliadores():
+    gerarLinkAvaliacao()
+    consulta = """
+    SELECT e.id,e.titulo,e.resumo,a.avaliador,a.link,a.id,a.enviado,a.token,e.categoria,
+    e.tipo, DATEDIFF(NOW(),a.data_envio) as enviados,DATE_FORMAT(ed.deadline_avaliacao,'%d/%m/%Y') as deadline_avaliacao,ed.nome 
+    FROM editalProjeto as e, avaliacoes as a,editais as ed WHERE e.id=a.idProjeto AND e.tipo=ed.id AND e.valendo=1
+    AND a.finalizado=0 AND a.aceitou!=0 AND e.categoria=1 AND DATEDIFF(NOW(),a.data_envio)>1 
+    AND a.idProjeto 
     IN (SELECT id FROM resumoGeralAvaliacoes WHERE ((aceites+rejeicoes<2) OR (aceites=rejeicoes)) 
-    AND tipo=""" + str(edital) + """)"""
+    AND tipo in (SELECT id from editais WHERE deadline_avaliacao>now() AND ADDDATE(deadline,5)<now()))
+    """
     linhas,total = executarSelect(consulta)
     for linha in linhas:
         titulo = unicode(linha[1])
@@ -2683,22 +2679,28 @@ def email_solicitar_avaliacao(edital):
         token = unicode(linha[7])
         email_avaliador = unicode(linha[3])
         link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
-        deadline = obterColunaUnica('editais',"DATE_FORMAT(deadline_avaliacao,'%d/%m/%Y')",'id',str(edital))
-        nome_longo = obterColunaUnica('editais','nome','id',str(edital))
-        texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
-        msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
-        #msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=["rafael.mota@ufca.edu.br"],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
-        try:
-            mail.send(msg)    
-        except:
-            logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: " + email_avaliador)
-            return("Erro! Verifique o log!")
-        #break
-    return("Emails enviados com sucesso\n")
+        deadline = str(linha[11])
+        nome_longo = unicode(linha[12])
+        with app.app_context():
+            texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
+            msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+            try:
+                mail.send(msg)
+                consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
+                atualizar(consulta)    
+            except:
+                logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: " + email_avaliador)
+                return("Erro! Verifique o log!")
 
-
-def enviarPedidoAvaliacao(id,edital):
-    gerarLinkAvaliacao(str(edital))
+@app.route("/emailSolicitarAvaliacao", methods=['GET', 'POST'])
+@auth.login_required(role=['admin'])
+def email_solicitar_avaliacao():
+    t = threading.Thread(target=enviar_email_avaliadores)
+    t.start()
+    return("Envio de e-mails iniciado!")
+    
+def enviarPedidoAvaliacao(id):
+    gerarLinkAvaliacao()
     consulta = """
     SELECT e.id,e.titulo,e.resumo,a.avaliador,a.link,a.id,a.enviado,a.token,e.categoria,e.tipo 
     FROM editalProjeto as e, avaliacoes as a WHERE e.id=a.idProjeto AND e.valendo=1 

@@ -2380,7 +2380,6 @@ def listaNegra():
                     texto_email = render_template('lembrete_frequencia.html')
                     msg = Message(subject = "Plataforma Yoko - LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisa.prpi@ufca.edu.br','dic.prpi@ufca.edu.br'],bcc=lista_emails,html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     mail.send(msg)
-                    pass
 
             return(render_template('listaNegra.html',lista=tuple(lista),mes=mes,ano=ano,total=len(lista)))
         else:

@@ -1,36 +1,25 @@
 # -*- coding: utf-8 -*-
 from flask import Flask
 from flask import render_template
-from flask import request,url_for,send_file,send_from_directory,redirect,flash,Markup,Response,session
+from flask import request,url_for,send_from_directory,redirect,Markup,session
 from flask_httpauth import HTTPBasicAuth
-from werkzeug.security import generate_password_hash, check_password_hash
-import datetime
 from waitress import serve
-import sqlite3
 import MySQLdb
 from werkzeug.utils import secure_filename
 import os
 import string
 import random
 import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.MIMEImage import MIMEImage
 from email.mime.text import MIMEText
 from email.header import Header
 import logging
 import sys
-import xml.etree.ElementTree as ET
-from modules import scoreLattes as SL
-import json
 import numpy as np
 import pdfkit
-from functools import wraps
 from flask_mail import Mail
 from flask_mail import Message
 from flask_uploads import *
-import csv
 import pandas as pd
-#from datetime import datetime
 import configparser
 import threading
 import matplotlib
@@ -209,10 +198,10 @@ def atualizar(consulta):
     try:
         cursor.execute(consulta)
         conn.commit()
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
         #e = sys.exc_info()[0]
         logging.debug(e)
-	logging.debug(consulta)
+        logging.debug(consulta)
         #conn.rollback()
     finally:
         cursor.close()
@@ -226,10 +215,10 @@ def inserir(consulta,valores):
     try:
         cursor.execute(consulta,valores)
         conn.commit()
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
         #e = sys.exc_info()[0]
         logging.error(e)
-	logging.debug(consulta)
+        logging.debug(consulta)
         logging.error("Erro ao inserir registro")
         logging.error(valores)
         #conn.rollback()
@@ -1260,18 +1249,7 @@ def gerarPDF(template):
 
 @app.route("/editalProjeto", methods=['GET', 'POST'])
 def editalProjeto():
-    #SELECT editalProjeto.id,editalProjeto.nome,GROUP_CONCAT(avaliacoes.avaliador,"(",avaliacoes.finalizado,")") as avaliadores FROM editalProjeto,avaliacoes WHERE tipo=3 and categoria=1 and valendo=1 and editalProjeto.id=avaliacoes.idProjeto GROUP BY editalProjeto.id
-    #SELECT editalProjeto.id,editalProjeto.nome,GROUP_CONCAT(avaliacoes.avaliador ORDER BY avaliador SEPARATOR '\n') as avaliadores,GROUP_CONCAT(avaliacoes.recomendacao ORDER BY avaliador SEPARATOR '\n') as recomendacoes FROM editalProjeto,avaliacoes WHERE tipo=3 and categoria=1 and valendo=1 and editalProjeto.id=avaliacoes.idProjeto GROUP BY editalProjeto.id ORDER BY editalProjeto.id
-    '''
-    SELECT editalProjeto.id,editalProjeto.nome, sum(avaliacoes.recomendacao),
-    GROUP_CONCAT(avaliacoes.avaliador ORDER BY avaliador SEPARATOR '\n') as avaliadores,
-    GROUP_CONCAT(avaliacoes.recomendacao ORDER BY avaliador SEPARATOR '\n') as recomendacoes,
-    GROUP_CONCAT(avaliacoes.enviado ORDER BY avaliador SEPARATOR '\n') as enviado
-    FROM editalProjeto,avaliacoes
-    WHERE tipo=3 and categoria=1 and valendo=1 and editalProjeto.id=avaliacoes.idProjeto
-    GROUP BY editalProjeto.id
-    ORDER BY editalProjeto.id
-    '''
+    
     if (autenticado() and int(session['permissao'])==0):
         if request.method == "GET":
             #Recuperando o código do edital
@@ -1498,8 +1476,7 @@ def minhaDeclaracao():
                     }
                     pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
                     return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')
-                    #return(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token))
+                    
                 else:
                     return("declaração inexistente!")
             else:
@@ -1526,7 +1503,6 @@ def minhaDeclaracao():
                         return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
                     else:
                         return("declaracao inexistente...")
-                    return("Em construcao...")
 
                 if 'idAluno' in request.args:
                     idAluno = str(request.args.get('idAluno'))
@@ -1582,8 +1558,7 @@ def minhaDeclaracaoDiscente():
                     }
                     pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
                     return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')
-                    #return(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token))
+                    
                 else:
                     return("declaração inexistente!")
             else:
@@ -1628,14 +1603,7 @@ def meuCertificado2018():
                 arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
                 options = {
                     'page-size': 'A4',
-                    'margin-top': '2cm',
-                    'margin-right': '2cm',
-                    'margin-bottom': '1cm',
-                    'margin-left': '2cm',
-                }
-                options = {
-                    'page-size': 'A4',
-                        'orientation': 'landscape',
+                    'orientation': 'landscape',
                     'margin-top': '0mm',
                     'margin-right': '0mm',
                     'margin-bottom': '0mm',
@@ -1686,14 +1654,7 @@ def meuCertificado():
                 arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
                 options = {
                     'page-size': 'A4',
-                    'margin-top': '2cm',
-                    'margin-right': '2cm',
-                    'margin-bottom': '1cm',
-                    'margin-left': '2cm',
-                }
-                options = {
-                    'page-size': 'A4',
-                        'orientation': 'landscape',
+                    'orientation': 'landscape',
                     'margin-top': '0mm',
                     'margin-right': '0mm',
                     'margin-bottom': '0mm',

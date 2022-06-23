@@ -1591,6 +1591,11 @@ def minhaDeclaracaoDiscente():
         else:
             return("OK")
 
+'''
+qrcode_url = url_for('avaliacao_gerar_declaracao',ano=ano,periodo=periodo,token=token,_external=True)
+qrcode = pyqrcode.create(qrcode_url)
+qrcode.png(app.config['PNG_DIR'] + 'qrcode.png',scale=3)
+'''
 
 @app.route("/discente/meuCertificado2018", methods=['GET', 'POST'])
 def meuCertificado2018():

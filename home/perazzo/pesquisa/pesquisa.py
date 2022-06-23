@@ -2354,6 +2354,7 @@ def cadastrarFrequencia():
         return("OK")
 
 @app.route("/listaNegra", methods=['GET', 'POST'])
+@auth.login_required(role=['admin'])
 def listaNegra():
     if request.method == "GET":
         if ('mes' in request.args) and ('ano' in request.args):
@@ -2378,7 +2379,6 @@ def listaNegra():
                 if enviarEmail=="1":
                     texto_email = render_template('lembrete_frequencia.html')
                     msg = Message(subject = "Plataforma Yoko - LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisa.prpi@ufca.edu.br','dic.prpi@ufca.edu.br'],bcc=lista_emails,html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
-                    #msg = Message(subject = "Plataforma Yoko - LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisa.prpi@ufca.edu.br','dic.prpi@ufca.edu.br'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     mail.send(msg)
                     pass
 

@@ -67,6 +67,28 @@ textarea {
 
 <div>
   <form name="frmFrequencia" method="POST" action="/pesquisa/cadastrarFrequencia">
+    <label for="mes">Mês</label>
+    <select name="mes" id="mes">
+      <option selected="selected" value="{{mes}}">{{referencia}}</option>
+      <option value="1">Janeiro</option>
+      <option value="2">Fevereiro</option>
+      <option value="3">Março</option>
+      <option value="4">Abril</option>
+      <option value="5">Maio</option>
+      <option value="6">Junho</option>
+      <option value="7">Julho</option>
+      <option value="8">Agosto</option>
+      <option value="9">Setembro</option>
+      <option value="10">Outubro</option>
+      <option value="11">Novembro</option>
+      <option value="12">Dezembro</option>
+    </select>
+    <label for="ano">Ano</label>
+    <select name="ano" id="ano">
+      <option value="{{ano-1}}">{{ano-1}}</option>
+      <option selected="selected" value="{{ano}}">{{ano}}</option>
+      <option value="{{ano+1}}">{{ano+1}}</option>
+    </select>
     <label for="fs1">Atividades da Semana 1</label>
     <textarea name="s1" cols="130" rows="5" required="required" maxlength="300"></textarea>
 
@@ -82,10 +104,9 @@ textarea {
     <label for="fobs">Observações e/ou justificativas (opcional)</label>
     <textarea name="obs" cols="130" rows="5" maxlength="300"></textarea>
     <input type="checkbox" name="confirmo" value="sim" required="required">Declaro que as informações contidas neste documento são verdadeiras e assumo o compromisso de apresentar, quando solicitado, os comprovantes originais, ficando ciente das penalidades previstas no edital de referência.<br>
-    <input type="hidden" id="mes" name="mes" value="{{mes}}">
-    <input type="hidden" id="ano" name="ano" value="{{ano}}">
+    <!--<input type="hidden" id="mes" name="mes" value="{{mes}}">
+    <input type="hidden" id="ano" name="ano" value="{{ano}}">-->
     <input type="hidden" id="idAluno" name="idAluno" value="{{idAluno}}">
-
     <input type="submit" value="Enviar">
   </form>
 </div>

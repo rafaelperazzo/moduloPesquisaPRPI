@@ -1,3 +1,6 @@
+cron
+*.conf
+*directory*
 *.ini
 cron.avaliacao.sh
 *.ini

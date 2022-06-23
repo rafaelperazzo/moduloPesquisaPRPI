@@ -8,6 +8,7 @@
 - [x] Certificados de conclusão do projeto para discentes
 - [x] Envio imediato de e-mail ao incluir um novo avaliador para um projeto
 - [x] Envio dos convites de avaliação para todos os editais em aberto
+- [x] Possibilidade de enviar frequências atrasadas
 
 ## TODO
 - [ ] Autenticação por QRCode

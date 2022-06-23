@@ -689,40 +689,24 @@ def cadastrarProjeto():
     t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
     t.start()
     #processarPontuacaoLattes(cpf,area_capes,ultimo_id,dados)
-    return("Verifique a confirmação de sua submissão no e-mail, em alguns minutos.")
+    return("Verifique a confirmação de sua submissão no e-mail, em alguns minutos. ESTA PÁGINA JÁ PODE SER FECHADA COM SEGURANÇA.")
 
 @app.route("/score", methods=['GET', 'POST'])
 def getScoreLattesFromFile():
-    codigo = id_generator()
-    arquivo_curriculo_lattes = ""
     area_capes = unicode(request.form['area_capes'])
-    if ('arquivo_lattes' in request.files):
-        arquivo_lattes = request.files['arquivo_lattes']
-        if arquivo_lattes and allowed_file(arquivo_lattes.filename):
-            arquivo_lattes.filename = "000_CONSULTA" + "_" + codigo + ".xml"
-            filename = secure_filename(arquivo_lattes.filename)
-            arquivo_lattes.save(os.path.join(app.config['CURRICULOS_FOLDER'], filename))
-            caminho = str(app.config['CURRICULOS_FOLDER'] + "/" + filename)
-            arquivo_curriculo_lattes = filename
-
-        elif not allowed_file(arquivo_lattes.filename):
-    		return ("Arquivo de curriculo lattes não permitido")
-    else:
-        return("Não foi incluído um arquivo de curriculo")
-
-    #CALCULANDO scorelattes
-    pontuacao = -100
+    idlattes = unicode(request.form['idlattes'])
+    salvarCV(idlattes)
+    arquivo = XML_DIR + idlattes + ".xml"
     try:
         from datetime import date
         ano_fim = date.today().year
         ano_inicio = ano_fim - 5
-        s = calcularScoreLattes(1,area_capes,str(ano_inicio),str(ano_fim),CURRICULOS_DIR + arquivo_curriculo_lattes)
+        s = calcularScoreLattes(1,area_capes,str(ano_inicio),str(ano_fim),arquivo)
         return(s)
     except:
         e = sys.exc_info()[0]
         logging.error("[SCORELATTES] Erro ao calcular o scorelattes.")
         logging.error(e)
-        pontuacao = -1
         return("Erro ao calcular pontuacao! Favor, comunicar para o e-mail: atendimento.prpi@ufca.edu.br")
 
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam

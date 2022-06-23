@@ -273,6 +273,7 @@ textarea {
       <br>
       <label><b>Nome</b>: <input name="nome" required="required" size="80" type="text"><br>
         <b>SIAPE</b>: <input name="siape" required="required" size="10" type="text"><br>
+        <b>CPF</b>: <input name="cpf"  type="text" required="required"><br>
         <b>E-Mail</b>: <input name="email" required="required" size="80" type="email"><br>
         <br>
         <b>Unidade Academica</b>:
@@ -360,9 +361,7 @@ textarea {
         <br>
         <b>Grupo de Pesquisa CNPq</b>: <input name="grupo" required="required"
           size="80" type="text"><br>
-          <b>Curriculo Lattes (xml)</b>: <input name="arquivo_lattes"  onchange="ValidateSingleInput(this);" type="file" required="required"><br>
-          <br>
-          <b>Curriculo Lattes (pdf) - (produção dos últimos 5 anos)</b>: <input name="arquivo_lattes_pdf"  onchange="ValidateSingleInputPDF(this);" type="file" required="required"><br>
+          
           <br>
       </label><br>
       <hr><br>
@@ -439,7 +438,9 @@ maxlength="15000"></textarea><br>
       <hr><label><br>
         <br>
       </label>
-      <center><div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div></center>
+      {% if session['PRODUCAO']==1 %}
+        <center><div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div></center>
+      {% endif %}
       <center><h4>Clique em "Enviar" apenas uma vez e aguarde a conclusão da submissão (o processo pode demorar alguns minutos)!</h4></center>
       <div style="text-align: center;"><label><input name="btnEnviar" value="Enviar"
 formenctype="multipart/form-data" type="submit"></label><br>

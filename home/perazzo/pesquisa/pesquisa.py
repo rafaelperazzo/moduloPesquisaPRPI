@@ -1599,170 +1599,156 @@ qrcode.png(app.config['PNG_DIR'] + 'qrcode.png',scale=3)
 
 @app.route("/discente/meuCertificado2018", methods=['GET', 'POST'])
 def meuCertificado2018():
-        if request.method == "GET":
-            #Recuperando o token da declaração
-            if 'token' in request.args:
-                token = str(request.args.get('token'))
-		consulta = """
-		SELECT estudante_nome_completo,cpf,estudante_tipo_de_vaga,estudante_modalidade,
-		nome_do_coordenador,titulo_do_projeto,ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y'),
- 		DATE_FORMAT(estudante_fim,'%d/%m/%Y') ,
-		ROUND((DATEDIFF(estudante_fim,estudante_inicio)/7)*ch_semanal) as ch_total
-		FROM cadastro_geral WHERE token=\"""" + token + """\""""
-                consulta2 = """SELECT * from gestores ORDER BY id"""
-                from datetime import datetime
-		projeto,total = executarSelect(consulta,1)
-                gestores,total_gestores = executarSelect(consulta2)
-                proreitor = gestores[0]
-                coordenador = gestores[1]
-		inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
-                fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
-      		agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"),'%d/%m/%Y')
-                periodo = abs((fim-inicio).days)
-                if periodo<180:
-                    return('Certificado indisponível. Período de bolsa inferior a 180 dias')
-                data_agora = getData()
-		if ((fim-agora).days>0):
-		    return('Certificado disponível apenas após a conclusão do projeto em andamento: ')
-                if total==1:
-                    arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                    options = {
-                        'page-size': 'A4',
-                        'margin-top': '2cm',
-                        'margin-right': '2cm',
-                        'margin-bottom': '1cm',
-                        'margin-left': '2cm',
-                    }
-                    options = {
- 			'page-size': 'A4',
-		        'orientation': 'landscape',
-			'margin-top': '0mm',
-			'margin-right': '0mm',
-			'margin-bottom': '0mm',
-			'margin-left': '0mm',
-			'encoding': "UTF-8",
-			'quiet': '',
-			'custom-header' : [
-			('Accept-Encoding', 'gzip')
-			],
-			'no-outline': None
-		    }
-                    pdfkit.from_string(render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=token,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
-                    return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    #return(render_template('certificado_discente.html',conteudo=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE))
-                    #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')
-                    #return(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token))
-                else:
-                    return("declaração inexistente!")
+    if request.method == "GET":
+        #Recuperando o token da declaração
+        if 'token' in request.args:
+            token = str(request.args.get('token'))
+            consulta = """
+            SELECT estudante_nome_completo,cpf,estudante_tipo_de_vaga,estudante_modalidade,
+            nome_do_coordenador,titulo_do_projeto,ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y'),
+            DATE_FORMAT(estudante_fim,'%d/%m/%Y') ,
+            ROUND((DATEDIFF(estudante_fim,estudante_inicio)/7)*ch_semanal) as ch_total
+            FROM cadastro_geral WHERE token=\"""" + token + """\""""
+            consulta2 = """SELECT * from gestores ORDER BY id"""
+            from datetime import datetime
+            projeto,total = executarSelect(consulta,1)
+            gestores,total_gestores = executarSelect(consulta2)
+            proreitor = gestores[0]
+            coordenador = gestores[1]
+            inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
+            fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
+            agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"),'%d/%m/%Y')
+            periodo = abs((fim-inicio).days)
+            if periodo<180:
+                return('Certificado indisponível. Período de bolsa inferior a 180 dias')
+            data_agora = getData()
+            if ((fim-agora).days>0):
+                return('Certificado disponível apenas após a conclusão do projeto em andamento: ')
+            if total==1:
+                arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
+                options = {
+                    'page-size': 'A4',
+                    'margin-top': '2cm',
+                    'margin-right': '2cm',
+                    'margin-bottom': '1cm',
+                    'margin-left': '2cm',
+                }
+                options = {
+                    'page-size': 'A4',
+                        'orientation': 'landscape',
+                    'margin-top': '0mm',
+                    'margin-right': '0mm',
+                    'margin-bottom': '0mm',
+                    'margin-left': '0mm',
+                    'encoding': "UTF-8",
+                    'quiet': '',
+                    'custom-header' : [
+                    ('Accept-Encoding', 'gzip')
+                    ],
+                    'no-outline': None
+                }
+                pdfkit.from_string(render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=token,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
-                return("OK")
+                return("declaração inexistente!")
         else:
             return("OK")
+    else:
+        return("OK")
 
 @app.route("/discente/meuCertificado", methods=['GET', 'POST'])
 def meuCertificado():
-        if request.method == "GET":
-            #Recuperando o token da declaração
-            if 'id' in request.args:
-                idIndicacao = str(request.args.get('id'))
-
-                consulta = """SELECT i.nome,i.cpf,IF(i.modalidade=1,'PIBIC',IF(i.modalidade=2,'PIBITI','PIBIC-EM')) as modalidade,
-IF(i.tipo_de_vaga=1,'BOLSISTA','VOLUNTÁRIO') as vaga,
-e.nome,e.titulo,i.ch,DATE_FORMAT(i.inicio,'%d/%m/%Y') as inicio, DATE_FORMAT(i.fim,'%d/%m/%Y') as fim,
-ROUND((DATEDIFF(i.fim,i.inicio)/7)*i.ch) as ch_total
-FROM indicacoes i, editalProjeto e WHERE i.idProjeto=e.id and e.valendo=1 and i.id=""" + idIndicacao
-                consulta2 = """SELECT * from gestores ORDER BY id"""
-                from datetime import datetime
-		projeto,total = executarSelect(consulta,1)
-                gestores,total_gestores = executarSelect(consulta2)
-                proreitor = gestores[0]
-                coordenador = gestores[1]
-		logging.debug(proreitor)
-		logging.debug(coordenador)
-		inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
-                fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
-      		agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"),'%d/%m/%Y')
-                periodo = abs((fim-inicio).days)
-                if periodo<180:
-                    return('Certificado indisponível. Período de bolsa inferior a 180 dias')
-                data_agora = getData()
-		if ((fim-agora).days>0):
-		    return('Certificado disponível apenas após a conclusão do projeto em andamento: ')
-                if total==1:
-                    arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                    options = {
-                        'page-size': 'A4',
-                        'margin-top': '2cm',
-                        'margin-right': '2cm',
-                        'margin-bottom': '1cm',
-                        'margin-left': '2cm',
-                    }
-                    options = {
- 			'page-size': 'A4',
-		        'orientation': 'landscape',
-			'margin-top': '0mm',
-			'margin-right': '0mm',
-			'margin-bottom': '0mm',
-			'margin-left': '0mm',
-			'encoding': "UTF-8",
-			'quiet': '',
-			'custom-header' : [
-			('Accept-Encoding', 'gzip')
-			],
-			'no-outline': None
-		    }
-                    pdfkit.from_string(render_template('certificado_discente.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
-                    return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    #return(render_template('certificado_discente.html',conteudo=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE))
-                    #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')
-                    #return(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token))
-                else:
-                    return("declaração inexistente!")
+    if request.method == "GET":
+        #Recuperando o token da declaração
+        if 'id' in request.args:
+            idIndicacao = str(request.args.get('id'))
+            consulta = """SELECT i.nome,i.cpf,IF(i.modalidade=1,'PIBIC',IF(i.modalidade=2,'PIBITI','PIBIC-EM')) as modalidade,
+            IF(i.tipo_de_vaga=1,'BOLSISTA','VOLUNTÁRIO') as vaga,
+            e.nome,e.titulo,i.ch,DATE_FORMAT(i.inicio,'%d/%m/%Y') as inicio, DATE_FORMAT(i.fim,'%d/%m/%Y') as fim,
+            ROUND((DATEDIFF(i.fim,i.inicio)/7)*i.ch) as ch_total
+            FROM indicacoes i, editalProjeto e WHERE i.idProjeto=e.id and e.valendo=1 and i.id=""" + idIndicacao
+            consulta2 = """SELECT * from gestores ORDER BY id"""
+            from datetime import datetime
+            projeto,total = executarSelect(consulta,1)
+            gestores,total_gestores = executarSelect(consulta2)
+            proreitor = gestores[0]
+            coordenador = gestores[1]
+            inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
+            fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
+            agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"),'%d/%m/%Y')
+            periodo = abs((fim-inicio).days)
+            if periodo<180:
+                return('Certificado indisponível. Período de bolsa inferior a 180 dias')
+            data_agora = getData()
+            if ((fim-agora).days>0):
+                return('Certificado disponível apenas após a conclusão do projeto em andamento: ')
+            if total==1:
+                arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
+                options = {
+                    'page-size': 'A4',
+                    'margin-top': '2cm',
+                    'margin-right': '2cm',
+                    'margin-bottom': '1cm',
+                    'margin-left': '2cm',
+                }
+                options = {
+                    'page-size': 'A4',
+                        'orientation': 'landscape',
+                    'margin-top': '0mm',
+                    'margin-right': '0mm',
+                    'margin-bottom': '0mm',
+                    'margin-left': '0mm',
+                    'encoding': "UTF-8",
+                    'quiet': '',
+                    'custom-header' : [
+                    ('Accept-Encoding', 'gzip')
+                    ],
+                    'no-outline': None
+                }
+                pdfkit.from_string(render_template('certificado_discente.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
-                return("OK")
+                return("declaração inexistente!")
         else:
             return("OK")
+    else:
+        return("OK")
 
 
 @app.route("/discente/minhaDeclaracao2019", methods=['GET', 'POST'])
 def minhaDeclaracaoDiscente2019():
-        if request.method == "GET":
-            #Recuperando o token da declaração
-            if 'id' in request.args:
-                idIndicacao = str(request.args.get('id'))
-                #consulta = """SELECT estudante_nome_completo,cpf,if(estudante_fim>NOW(),1,0) as verbo,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,
-                #            ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(estudante_fim,'%d/%m/%Y') as final FROM cadastro_geral WHERE token='""" + token + """'"""
-
-                consulta = """SELECT indicacoes.nome,indicacoes.cpf,if(indicacoes.fim>NOW(),1,0) as verbo,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),editalProjeto.nome,editalProjeto.titulo,indicacoes.ch,DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'), indicacoes.id
-                            FROM indicacoes,editalProjeto
-                            WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.id=""" + idIndicacao
-                from datetime import datetime
-                projeto,total = executarSelect(consulta,1)
-                inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
-                fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
-                periodo = abs((fim-inicio).days)
-                #if periodo<180:
-                #    return('Declaração indisponível. Período de bolsa inferior a 180 dias')
-                data_agora = getData()
-                if total==1:
-                    arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                    options = {
-                        'page-size': 'A4',
-                        'margin-top': '2cm',
-                        'margin-right': '2cm',
-                        'margin-bottom': '1cm',
-                        'margin-left': '2cm',
-                    }
-                    pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
-                    return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')
-                    #return(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token))
-                else:
-                    return("declaração inexistente!")
+    if request.method == "GET":
+        #Recuperando o token da declaração
+        if 'id' in request.args:
+            idIndicacao = str(request.args.get('id'))
+            consulta = """SELECT indicacoes.nome,indicacoes.cpf,if(indicacoes.fim>NOW(),1,0) as verbo,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),editalProjeto.nome,editalProjeto.titulo,indicacoes.ch,DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'), indicacoes.id
+                        FROM indicacoes,editalProjeto
+                        WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.id=""" + idIndicacao
+            from datetime import datetime
+            projeto,total = executarSelect(consulta,1)
+            inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
+            fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
+            periodo = abs((fim-inicio).days)
+            #if periodo<180:
+            #    return('Declaração indisponível. Período de bolsa inferior a 180 dias')
+            data_agora = getData()
+            if total==1:
+                arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
+                options = {
+                    'page-size': 'A4',
+                    'margin-top': '2cm',
+                    'margin-right': '2cm',
+                    'margin-bottom': '1cm',
+                    'margin-left': '2cm',
+                }
+                pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
-                return("OK")
+                return("declaração inexistente!")
         else:
             return("OK")
+    else:
+        return("OK")
 
 @app.route("/meusPareceres", methods=['GET', 'POST'])
 def meusPareceres():

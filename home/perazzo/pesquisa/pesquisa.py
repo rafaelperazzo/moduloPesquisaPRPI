@@ -38,6 +38,11 @@ import pandas as pd
 #from datetime import datetime
 import configparser
 import threading
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import zeep
+import zipfile
 
 WORKING_DIR='/home/perazzo/pesquisa/'
 config = configparser.ConfigParser()
@@ -55,6 +60,7 @@ ALLOWED_EXTENSIONS = set(['pdf','xml'])
 
 PLOTS_DIR = '/home/perazzo/pesquisa/static/plots/'
 CURRICULOS_DIR='/home/perazzo/pesquisa/static/files/'
+XML_DIR = '/home/perazzo/pesquisa/xml/'
 SITE = SERVER_URL + "/pesquisa/static/files/"
 IMAGENS_URL = SERVER_URL + "/pesquisa/static/"
 DECLARACOES_DIR = '/home/perazzo/pesquisa/pdfs/'
@@ -100,11 +106,71 @@ patch_request_class(app)
 @app.before_first_request
 def prepararInicializacao():
     session['PRODUCAO'] = PRODUCAO
+    
 
 def removerAspas(texto):
     resultado = texto.replace('"',' ')
     resultado = resultado.replace("'"," ")
     return(resultado)
+
+def getID(cpf):
+    wsdl = 'https://sci01-ter-jne.ufca.edu.br/cnpq'
+    client = zeep.Client(wsdl=wsdl)
+    idlattes = client.service.getIdentificadorCNPq(cpf,"","")
+    return str(idlattes)
+
+def salvarCV(id):
+    wsdl = 'https://sci01-ter-jne.ufca.edu.br/cnpq'
+    client = zeep.Client(wsdl=wsdl)
+    resultado = client.service.getCurriculoCompactado(id)
+    arquivo = open(id + '.zip','wb')
+    arquivo.write(resultado)
+    arquivo.close()
+    with zipfile.ZipFile(id + '.zip','r') as zip_ref:
+        zip_ref.extractall(XML_DIR)
+    if os.path.exists(id + '.zip'):
+        os.remove(id + '.zip')
+
+def processarPontuacaoLattes(cpf,area,idProjeto,dados):
+    idlattes = getID(cpf)
+    salvarCV(idlattes)
+    arquivo = XML_DIR + idlattes + ".xml"
+    
+    pontuacao = -100
+    sumario = "---"
+    try:
+        from datetime import date
+        ano_fim = date.today().year
+        ano_inicio = ano_fim - 5
+        s = calcularScoreLattes(0,area,str(ano_inicio),str(ano_fim),arquivo)
+        pontuacao = float(s)
+        sumario = calcularScoreLattes(1,area,str(ano_inicio),str(ano_fim),arquivo)
+        sumario = sumario.decode('utf-8')
+    except:
+        e = sys.exc_info()[0]
+        logging.error(e)
+        logging.error(XML_DIR + arquivo)
+        pontuacao = -1
+        logging.error("Nao foi possivel calcular o scorelattes: " + str(e))
+
+    try:
+        consulta = "UPDATE editalProjeto SET scorelattes=" + str(pontuacao) + " WHERE id=" + str(idProjeto)
+        atualizar(consulta)
+    except:
+        e = sys.exc_info()[0]
+        logging.error(e)
+        logging.error("Procedimento para o ID: " + str(idProjeto) + " finalizado. Erros ocorreram ao tentar atualizar o scorelattes.")
+        logging.error(str(e))
+    with app.app_context():
+        try:
+            #ENVIAR E-MAIL DE CONFIRMAÇÃO
+            texto_email = render_template('confirmacao_submissao.html',email_proponente=dados[0],id_projeto=idProjeto,proponente=dados[1],titulo_projeto=dados[2],resumo_projeto=dados[3],score=pontuacao,sumario=sumario)
+            msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=[dados[0]],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+            mail.send(msg)
+        except:
+            e = sys.exc_info()[0]
+            logging.error(e)
+            logging.error("Procedimento para o ID: " + str(idProjeto) + " finalizado. Erros ocorreram ao enviar e-mail.")        
 
 def calcularScoreLattes(tipo,area,since,until,arquivo):
     #Tipo = 0: Apenas pontuacao; Tipo = 1: Sumário
@@ -115,7 +181,6 @@ def calcularScoreLattes(tipo,area,since,until,arquivo):
         command = "python " + pasta + "scorerun.py -p 2016 -s " +  since + " -u " + until + " \"" + area + "\" " +  arquivo
     s = os.popen(command).read()
     return (s)
-
 
 def enviarEmail(to,subject,body):
     gmail_user = 'pesquisa.prpi@ufca.edu.br'
@@ -471,6 +536,7 @@ def cadastrarProjeto():
     grande_area = unicode(request.form['grande_area'])
     grupo = unicode(request.form['grupo'])
     ods_projeto = unicode(request.form['ods_projeto'])
+    cpf = unicode(request.form['cpf'])
     #CONEXÃO COM BD
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
     conn.autocommit(True)
@@ -483,7 +549,7 @@ def cadastrarProjeto():
     try:
         cursor.execute(consulta)
         conn.commit()
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
         logging.error(str(e))
         logging.error(consulta)
         #conn.rollback()
@@ -530,7 +596,6 @@ def cadastrarProjeto():
     consulta = "UPDATE editalProjeto SET fim=\"" + fim + "\" WHERE id=" + str(ultimo_id)
     atualizar(consulta)
     logging.debug("Dados do projeto cadastrados.")
-    arquivo_curriculo_lattes = ""
     codigo = id_generator()
 
     if ('arquivo_projeto' in request.files):
@@ -581,22 +646,6 @@ def cadastrarProjeto():
     else:
         logging.debug("Não foi incluído um arquivo de plano 2")
 
-    #LATTES EM PDF
-    if ('arquivo_lattes_pdf' in request.files):
-        arquivo_lattes_pdf = request.files['arquivo_lattes_pdf']
-        if arquivo_lattes_pdf and allowed_file(arquivo_lattes_pdf.filename):
-            arquivo_lattes_pdf.filename = "LATTES_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
-            filename = secure_filename(arquivo_lattes_pdf.filename)
-            arquivo_lattes_pdf.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
-            consulta = "UPDATE editalProjeto SET arquivo_lattes_pdf=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-            atualizar(consulta)
-            logging.debug("Arquivo Lattes PDF cadastrado.")
-        elif not allowed_file(arquivo_lattes_pdf.filename):
-    		return ("Arquivo de LATTES PDF não permitido")
-    else:
-        logging.debug("Não foi incluído um arquivo de LATTES PDF")
-
     #ARQUIVO DE COMPROVANTES
     if ('arquivo_comprovantes' in request.files):
         arquivo_comprovantes = request.files['arquivo_comprovantes']
@@ -612,22 +661,6 @@ def cadastrarProjeto():
     	#	return ("Arquivo de COMPROVANTES não permitido")
     else:
         logging.debug("Não foi incluído um arquivo de COMPROVANTES")
-
-    if ('arquivo_lattes' in request.files):
-        arquivo_lattes = request.files['arquivo_lattes']
-        if arquivo_lattes and allowed_file(arquivo_lattes.filename):
-            arquivo_lattes.filename = str(siape) + "_" + codigo + ".xml"
-            filename = secure_filename(arquivo_lattes.filename)
-            arquivo_lattes.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
-            consulta = "UPDATE editalProjeto SET arquivo_lattes=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-            arquivo_curriculo_lattes = filename
-            atualizar(consulta)
-        elif not allowed_file(arquivo_lattes.filename):
-    		return ("Arquivo de curriculo lattes não permitido")
-    else:
-        logging.debug("Não foi incluído um arquivo de curriculo")
-    logging.debug("Arquivo lattes cadastrado.")
 
     #CADASTRAR AVALIADORES SUGERIDOS
     avaliador1_email = unicode(request.form['avaliador1_email'])
@@ -652,56 +685,11 @@ def cadastrarProjeto():
         logging.debug("Avaliador 3 sugerido cadastrado.")
 
     #CALCULANDO scorelattes
-
-    pontuacao = -100
-    sumario = "---"
-    try:
-        logging.debug("Iniciando o cálculo do scorelattes...")
-        s = calcularScoreLattes(0,area_capes,"2017","2022",CURRICULOS_DIR + arquivo_curriculo_lattes)
-        pontuacao = float(s)
-        sumario = calcularScoreLattes(1,area_capes,"2017","2022",CURRICULOS_DIR + arquivo_curriculo_lattes)
-        sumario = sumario.decode('utf-8')
-        logging.debug("Calculo do scorelattes finalizado com sucesso.")
-    except:
-        e = sys.exc_info()[0]
-        logging.error(e)
-        logging.error(CURRICULOS_DIR + arquivo_curriculo_lattes)
-        pontuacao = -1
-        logging.error("Nao foi possivel calcular o scorelattes.")
-
-    try:
-        consulta = "UPDATE editalProjeto SET scorelattes=" + str(pontuacao) + " WHERE id=" + str(ultimo_id)
-        atualizar(consulta)
-        logging.debug("Procedimento de atualizacao do scorelattes para o ID: " + ultimo_id_str + " finalizado com sucesso.")
-    except:
-        e = sys.exc_info()[0]
-        logging.error(e)
-        logging.error("Procedimento para o ID: " + ultimo_id_str + " finalizado. Erros ocorreram ao tentar atualizar o scorelattes.")
-    finally:
-        cursor.close()
-        conn.close()
-
-    try:
-        #ENVIAR E-MAIL DE CONFIRMAÇÃO
-        texto_email = render_template('confirmacao_submissao.html',email_proponente=email,id_projeto=ultimo_id,proponente=nome,titulo_projeto=titulo,resumo_projeto=descricao_resumida,score=pontuacao,sumario=sumario)
-        msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=[email],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
-        mail.send(msg)
-        '''
-        Texto_email = "Projeto [" + tipo_str + "] [" + categoria_str + "] com ID: " + ultimo_id_str + " cadastrado. Proponente: " + nome
-        if enviarEmail(email,u"[PIICT - CONFIRMACAO] - Cadastro de Projeto de Pesquisa",Texto_email):
-            logging.debug("E-mail de confirmacao enviado com sucesso.")
-            return ("E-mail de confirmação enviado com sucesso.<BR>ID do seu projeto: " + str(ultimo_id))
-        else:
-            logging.error("Nao foi possivel enviar e-mail de confirmacao.[" + str(ultimo_id) + "]")
-            return("Não foi possível enviar o e-mail de confirmação. Anote o ID de seu projeto: " + str(ultimo_id))
-        '''
-    except:
-        e = sys.exc_info()[0]
-        logging.error(e)
-        logging.error("Procedimento para o ID: " + ultimo_id_str + " finalizado. Erros ocorreram ao enviar e-mail.")
-    finally:
-        #return("Projeto cadastrado com sucesso! Anote o ID de seu projeto: " + str(ultimo_id))
-        return (render_template('confirmacao_submissao.html',email_proponente=email,id_projeto=ultimo_id,proponente=nome,titulo_projeto=titulo,resumo_projeto=descricao_resumida,score=pontuacao,sumario=sumario))
+    dados = [email,nome,titulo,descricao_resumida]
+    t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
+    t.start()
+    #processarPontuacaoLattes(cpf,area_capes,ultimo_id,dados)
+    return("Verifique a confirmação de sua submissão no e-mail, em alguns minutos.")
 
 @app.route("/score", methods=['GET', 'POST'])
 def getScoreLattesFromFile():
@@ -715,7 +703,6 @@ def getScoreLattesFromFile():
             filename = secure_filename(arquivo_lattes.filename)
             arquivo_lattes.save(os.path.join(app.config['CURRICULOS_FOLDER'], filename))
             caminho = str(app.config['CURRICULOS_FOLDER'] + "/" + filename)
-
             arquivo_curriculo_lattes = filename
 
         elif not allowed_file(arquivo_lattes.filename):
@@ -726,7 +713,10 @@ def getScoreLattesFromFile():
     #CALCULANDO scorelattes
     pontuacao = -100
     try:
-        s = calcularScoreLattes(1,area_capes,"2017","2022",CURRICULOS_DIR + arquivo_curriculo_lattes)
+        from datetime import date
+        ano_fim = date.today().year
+        ano_inicio = ano_fim - 5
+        s = calcularScoreLattes(1,area_capes,str(ano_inicio),str(ano_fim),CURRICULOS_DIR + arquivo_curriculo_lattes)
         return(s)
     except:
         e = sys.exc_info()[0]
@@ -1247,9 +1237,9 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
         conn.close()
 
 def gerarGraficos(demandas,grafico1,grafico2,rotacao=0):
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
+    #import matplotlib
+    #matplotlib.use('Agg')
+    #import matplotlib.pyplot as plt
     unidades = []
     fatias = []
     for linha in demandas:
@@ -2618,6 +2608,8 @@ def consultas():
             except:
                 logging.debug(sys.exc_info()[0])
                 return("Erro!")
+    else:
+        return("OK")
 
 '''
 SELECT indicacoes.id,idProjeto,editalProjeto.tipo,IF(tipo_de_vaga=1,'BOLSISTA','VOLUNARIO(A)') AS tipo,IF(indicacoes.situacao=1,'DESLIGADO(A)','SUBSTITUIDO(A)') AS tipo_situacao,indicacoes.nome,nome_banco,agencia,conta, DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y') as inicio,

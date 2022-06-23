@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-#https://stackoverflow.com/questions/89228/calling-an-external-command-in-python
-#SELECT sec_to_time(TIMESTAMPDIFF(SECOND,avaliacoes.data_envio,avaliacoes.data_avaliacao)) as tempoAvaliacao FROM avaliacoes;
-#SELECT TIMESTAMPDIFF(DAY,avaliacoes.data_envio,avaliacoes.data_avaliacao) as dias FROM avaliacoes;
-#SELECT avaliacoes.idProjeto,sum(avaliacoes.finalizado),editalProjeto.titulo FROM avaliacoes,editalProjeto WHERE editalProjeto.tipo=1 and editalProjeto.id=avaliacoes.idProjeto GROUP BY idProjeto;
-#SELECT editalProjeto.titulo, (SELECT sum(avaliacoes.finalizado) FROM avaliacoes WHERE avaliacoes.idProjeto=editalProjeto.id) as soma FROM editalProjeto WHERE id=25;
 from flask import Flask
 from flask import render_template
 from flask import request,url_for,send_file,send_from_directory,redirect,flash,Markup,Response,session

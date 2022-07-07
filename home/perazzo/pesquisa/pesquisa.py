@@ -1483,9 +1483,9 @@ def minhaDeclaracao():
                 if 'id' in request.args:
                     idProjeto = str(request.args.get('id'))
                     consulta = """SELECT DISTINCT editalProjeto.nome,editalProjeto.siape,editalProjeto.titulo,
-                    DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(indicacoes.fim,'%d/%m/%Y') as fim,
+                    editalProjeto.inicio,editalProjeto.fim,
                     (SELECT GROUP_CONCAT(indicacoes.nome ORDER BY indicacoes.nome SEPARATOR ', ') from indicacoes WHERE indicacoes.idProjeto=editalProjeto.id GROUP BY indicacoes.idProjeto) as indicados,
-                    editalProjeto.id,if(indicacoes.fim<NOW(),"exerceu","exerce") as verbo
+                    editalProjeto.id,if(editalProjeto.fim<NOW(),"exerceu","exerce") as verbo
                     FROM editalProjeto,indicacoes
                     WHERE editalProjeto.id=indicacoes.idProjeto AND editalProjeto.id=""" + idProjeto + """ ORDER BY fim DESC"""
                     projeto,total = executarSelect(consulta,1)
@@ -2413,7 +2413,6 @@ def desligarIndicacao():
                     discente = obterColunaUnica('indicacoes','nome','id',idAluno)
                     tipo_vaga = obterColunaUnica('indicacoes','tipo_de_vaga','id',idAluno)
                     timestamp = agora()
-                    #return("Ainda não disponível. Favor aguardar até as 17:00 de 13/09/2019")
                     consulta = "UPDATE indicacoes SET situacao=1, fim=NOW() WHERE id=" + idAluno
                     atualizar(consulta)
                     email = obterColunaUnica('editalProjeto','email','id',idProjeto)

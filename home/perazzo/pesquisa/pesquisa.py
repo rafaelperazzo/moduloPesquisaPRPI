@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from flask import Flask
 from flask import render_template
-from flask import request,url_for,send_from_directory,redirect,Markup,session
+from flask import request,url_for,send_from_directory,redirect,Markup,session,flash
 from flask_httpauth import HTTPBasicAuth
 from waitress import serve
 import MySQLdb
@@ -90,7 +90,6 @@ patch_request_class(app)
 @app.before_first_request
 def prepararInicializacao():
     session['PRODUCAO'] = PRODUCAO
-    
 
 def removerAspas(texto):
     resultado = texto.replace('"',' ')
@@ -1145,6 +1144,7 @@ def resultados():
         consulta = "SELECT ua,sum(bolsas) as solicitadas, sum(bolsas_concedidas) as concedidas,(sum(bolsas_concedidas)/sum(bolsas))*100 as percentual FROM resumoGeralClassificacao WHERE tipo=" + codigoEdital + " GROUP BY ua ORDER BY ua"
         cursor.execute(consulta)
         somatorios = cursor.fetchall()
+        app.logger.debug(consulta)
 
         #Verificando se as avaliacoes estão encerradas
         if avaliacoesEncerradas(codigoEdital):
@@ -1262,9 +1262,9 @@ def editalProjeto():
                 tipo_classificacao = int(obterColunaUnica("editais","classificacao","id",codigoEdital))
                 #ORDENA DE ACORDO COM O TIPO DE CLASSIFICAÇÃO: 1 - POR UA; 2 - POR LATTES
                 if (tipo_classificacao==1):
-                    consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs FROM editalProjeto WHERE tipo=" + codigoEdital + " AND valendo=1 ORDER BY ua,produtividade,scorelattes,nome DESC"
+                    consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs FROM editalProjeto WHERE tipo=" + codigoEdital + " AND valendo=1 ORDER BY ua,produtividade,scorelattes DESC,nome"
                 else:
-                    consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs FROM editalProjeto WHERE tipo=" + codigoEdital + " AND valendo=1 ORDER BY produtividade,scorelattes,nome DESC"
+                    consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs FROM editalProjeto WHERE tipo=" + codigoEdital + " AND valendo=1 ORDER BY produtividade,scorelattes DESC,nome"
                 consulta_novos = """SELECT editalProjeto.id,nome,ua,titulo,arquivo_projeto,
                 GROUP_CONCAT(avaliacoes.avaliador ORDER BY avaliador SEPARATOR '<BR>') as avaliadores,
                 GROUP_CONCAT(IF(avaliacoes.recomendacao=1,'RECOMENDADO',IF(avaliacoes.recomendacao=0,'***NÃO RECOMENDADO***','EM AVALIAÇÃO')) ORDER BY avaliador SEPARATOR '<BR>') as recomendacoes, 
@@ -2659,6 +2659,31 @@ def arquivar_projeto(id_projeto):
     atualizar(consulta)
     edital = str(session['edital'])
     return(redirect("/pesquisa/editalProjeto?edital=" + edital))
+
+@app.route("/aprovar/projetos/<edital>", methods=['GET', 'POST'])
+@auth.login_required(role=['admin'])
+def aprovar_projetos(edital):
+    #RECOMENDADOS
+    consulta1 = """UPDATE editalProjeto SET situacao=1 
+    WHERE id in (SELECT editalProjeto.id FROM editalProjeto,avaliacoes WHERE tipo=""" + edital + """ 
+    AND valendo=1 AND categoria=1 AND editalProjeto.id=avaliacoes.idProjeto 
+    GROUP BY editalProjeto.id 
+    HAVING sum(if(recomendacao=1,1,0))-sum(if(recomendacao=0,1,0))>0 
+    ORDER BY editalProjeto.ua,editalProjeto.id)
+    """
+    #NÃO RECOMENDADOS
+    consulta2 = """UPDATE editalProjeto SET situacao=1 
+    WHERE id in (SELECT editalProjeto.id FROM editalProjeto,avaliacoes WHERE tipo=""" + edital + """ 
+    AND valendo=1 AND categoria=1 AND editalProjeto.id=avaliacoes.idProjeto 
+    GROUP BY editalProjeto.id 
+    HAVING sum(if(recomendacao=1,1,0))-sum(if(recomendacao=0,1,0))<=0 
+    ORDER BY editalProjeto.ua,editalProjeto.id)
+    """
+
+    atualizar(consulta1)
+    atualizar(consulta2)
+    flash("Projetos atualizados com sucesso")
+    return(redirect("/pesquisa/admin"))
 
 if __name__ == "__main__":
     #app.run()

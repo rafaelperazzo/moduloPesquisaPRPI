@@ -9,6 +9,7 @@
 - [x] Envio imediato de e-mail ao incluir um novo avaliador para um projeto
 - [x] Envio dos convites de avaliação para todos os editais em aberto
 - [x] Possibilidade de enviar frequências atrasadas
+- [x] Possibilidade de justificar o desligamento do bolsista/voluntário
 
 ## TODO
 - [ ] Autenticação por QRCode

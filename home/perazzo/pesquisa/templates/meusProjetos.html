@@ -201,8 +201,8 @@ tr:nth-child(even) {
                           {{linha[7]|safe}}
                      {% endif %}
                 </td>
-                <td><a href="/pesquisa/desligarIndicacao?id={{linha[0]}}" onclick="return confirm('Tem certeza que deseja desligar o discente ?')">Desligar</a></td>
-                <td><a href="/pesquisa/substituirIndicacao?id={{linha[0]}}" onclick="return confirm('Tem certeza que deseja substituir o discente ?')">Substituir</a></td>
+                <td><a href="/pesquisa/desligar/{{linha[0]}}" onclick="return confirm('Tem certeza que deseja desligar o discente ?')">Desligar</a></td>
+                <td><a href="/pesquisa/desligar/{{linha[0]}}" onclick="return confirm('Tem certeza que deseja substituir o discente ?')">Substituir</a></td>
             </tr>
 
       {% endfor %}

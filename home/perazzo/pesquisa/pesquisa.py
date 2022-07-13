@@ -2398,41 +2398,56 @@ def timestamp():
     now = dt.now()
     return(str(now))
 
-@app.route("/desligarIndicacao", methods=['GET', 'POST'])
-def desligarIndicacao():
-    if request.method == "GET":
-        if 'id' in request.args:
-            idAluno = str(request.args.get('id'))
-            siape = session['username']
-            if (autenticado()):
-                if verificarSiapeIndicacao(siape,idAluno): #O aluno é indicação do usuário atual
-                    idProjeto = obterColunaUnica('indicacoes','idProjeto','id',idAluno)
-                    logging.debug(idProjeto)
-                    orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)
-                    titulo = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
-                    discente = obterColunaUnica('indicacoes','nome','id',idAluno)
-                    tipo_vaga = obterColunaUnica('indicacoes','tipo_de_vaga','id',idAluno)
-                    timestamp = agora()
-                    consulta = "UPDATE indicacoes SET situacao=1, fim=NOW() WHERE id=" + idAluno
-                    atualizar(consulta)
-                    email = obterColunaUnica('editalProjeto','email','id',idProjeto)
-                    email2 = "pesquisa.prpi@ufca.edu.br"
-                    email3 = "rafael.mota@ufca.edu.br"
-                    texto_email = render_template('confirmacao_desligamento.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
-                    if tipo_vaga==1:
-                        msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE BOLSISTA",recipients=[email,email2,email3],html=texto_email)
+@app.route("/desligarIndicacao/<id_indicacao>", methods=['GET', 'POST'])
+def desligarIndicacao(id_indicacao):
+    idAluno = id_indicacao
+    siape = session['username']
+    if (autenticado()):
+        if verificarSiapeIndicacao(siape,idAluno): #O aluno é indicação do usuário atual
+            motivos = []
+            for motivo in request.form:
+                if 'op' in motivo:
+                    motivos.append(unicode(request.form[motivo]))
+            lista_motivos = ''
+            for i in range(0,len(motivos),1):
+                if motivos[i]!='' and motivos[i]!=' ':
+                    if i<len(motivos)-1:
+                        lista_motivos = lista_motivos + motivos[i] + ', '
                     else:
-                        msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE VOLUNTARIO",recipients=[email,email2,email3],html=texto_email)
-                    mail.send(msg)
-                    return(render_template('confirmacao_desligamento.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp))
-                else:
-                    return("ACESSO NEGADO")
+                        lista_motivos = lista_motivos + motivos[i]
+            #atualizar coluna motivos em indicacoes
+            consulta = """
+            UPDATE indicacoes SET motivo=\"""" + lista_motivos + """\" WHERE id=""" + idAluno
+            atualizar(consulta)
+
+            #desligar a indicação
+            idProjeto = obterColunaUnica('indicacoes','idProjeto','id',idAluno)
+            orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)
+            titulo = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
+            discente = obterColunaUnica('indicacoes','nome','id',idAluno)
+            tipo_vaga = obterColunaUnica('indicacoes','tipo_de_vaga','id',idAluno)
+            timestamp = agora()
+            consulta = "UPDATE indicacoes SET situacao=1, fim=NOW() WHERE id=" + idAluno
+            atualizar(consulta)
+            email = obterColunaUnica('editalProjeto','email','id',idProjeto)
+            email2 = "pesquisa.prpi@ufca.edu.br"
+            
+            texto_email = render_template('confirmacao_desligamento.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
+            if tipo_vaga==1:
+                msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE BOLSISTA",recipients=[email,email2],html=texto_email)
             else:
-                return(redirect(url_for('login')))
+                msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE VOLUNTARIO",recipients=[email,email2],html=texto_email)
+            if PRODUCAO==1:
+                mail.send(msg)
+            else:
+                app.logger.debug('E-MAIL DE DESLIGAMENTO ENVIADO')
+            return(render_template('confirmacao_desligamento.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp))
+            
         else:
-            return("Erro: ID nao informado")
+            return("ACESSO NEGADO")
     else:
-        return("ERRO: Metodo invalido")
+        return(redirect(url_for('login')))
+
 
 @app.route("/substituirIndicacao", methods=['GET', 'POST'])
 def substituirIndicacao():
@@ -2684,6 +2699,12 @@ def aprovar_projetos(edital):
     atualizar(consulta2)
     flash("Projetos atualizados com sucesso")
     return(redirect("/pesquisa/admin"))
+
+@app.route("/desligar/<id_indicacao>", methods=['GET', 'POST'])
+def desligar(id_indicacao):
+    action = url_for('desligarIndicacao',id_indicacao=id_indicacao)
+    return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao="DESLIGAMENTO",action=action))
+
 
 if __name__ == "__main__":
     #app.run()

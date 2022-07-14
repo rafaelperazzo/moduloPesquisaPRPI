@@ -2438,7 +2438,8 @@ def desligarIndicacao(id_indicacao):
             else:
                 msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE VOLUNTARIO",recipients=[email,email2],html=texto_email)
             if PRODUCAO==1:
-                mail.send(msg)
+                t = threading.Thread(target=enviar_email_desligamento_substituicao,args=(msg,))
+                t.start()
             else:
                 app.logger.debug('E-MAIL DE DESLIGAMENTO ENVIADO')
             return(render_template('confirmacao_desligamento.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp))
@@ -2448,55 +2449,66 @@ def desligarIndicacao(id_indicacao):
     else:
         return(redirect(url_for('login')))
 
+def enviar_email_desligamento_substituicao(msg):
+    with app.app_context():
+        mail.send(msg)
 
-@app.route("/substituirIndicacao", methods=['GET', 'POST'])
-def substituirIndicacao():
-    if request.method == "GET":
-        if 'id' in request.args:
-            idAluno = str(request.args.get('id'))
-            siape = session['username']
-            if (autenticado()):
-                if verificarSiapeIndicacao(siape,idAluno): #O aluno é indicação do usuário atual
-                    idProjeto = obterColunaUnica('indicacoes','idProjeto','id',idAluno)
-                    logging.debug(idProjeto)
-                    orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)
-                    titulo = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
-                    discente = obterColunaUnica('indicacoes','nome','id',idAluno)
-                    tipo_vaga = obterColunaUnica('indicacoes','tipo_de_vaga','id',idAluno)
-                    timestamp = agora()
-                    fomento = int(obterColunaUnica('indicacoes','fomento','id',idAluno))
-                    #return("Ainda não disponível. Favor aguardar até as 17:00 de 13/09/2019")
-                    consulta = "UPDATE indicacoes SET situacao=2, fim=NOW() WHERE id=" + idAluno
-                    atualizar(consulta)
-                    email = obterColunaUnica('editalProjeto','email','id',idProjeto)
-                    email2 = "pesquisa.prpi@ufca.edu.br"
-                    email3 = "rafael.mota@ufca.edu.br"
-                    texto_email = render_template('confirmacao_substituicao.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
-                    if tipo_vaga=="1":
-                        msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE BOLSISTA",recipients=[email,email2,email3],html=texto_email)
+
+@app.route("/substituirIndicacao/<id_indicacao>", methods=['GET', 'POST'])
+def substituirIndicacao(id_indicacao):
+    idAluno = id_indicacao
+    siape = session['username']
+    if (autenticado()):
+        if verificarSiapeIndicacao(siape,idAluno): #O aluno é indicação do usuário atual
+            motivos = []
+            for motivo in request.form:
+                if 'op' in motivo:
+                    motivos.append(unicode(request.form[motivo]))
+            lista_motivos = ''
+            for i in range(0,len(motivos),1):
+                if motivos[i]!='' and motivos[i]!=' ':
+                    if i<len(motivos)-1:
+                        lista_motivos = lista_motivos + motivos[i] + ', '
                     else:
-                        msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE VOLUNTARIO",recipients=[email,email2,email3],html=texto_email)
-                    mail.send(msg)
-
-                    #return(render_template('confirmacao_substituicao.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp))
-                    edital = int(obterColunaUnica('editalProjeto','tipo','id',idProjeto))
-                    indicacao_inicio = str(obterColunaUnica('editais',"""DATE_FORMAT(indicacao_inicio,'%d/%m/%Y')""",'id',str(edital)))
-                    indicacao_fim = str(obterColunaUnica('editais',"""DATE_FORMAT(indicacao_termino,'%d/%m/%Y')""",'id',str(edital)))
-                    modalidade = int(obterColunaUnica('indicacoes','modalidade','id',idAluno))
-                    codigoSubstituido = int(idAluno)
-                    if (int(tipo_vaga)==1):
-                        return(render_template('indicacao.html',inicio=indicacao_inicio,fim=indicacao_fim,continua=1,modalidade=modalidade,vaga=1,idProjeto=idProjeto,plano=0,substituicao=1,substituido=codigoSubstituido))
-                    else:
-                        return(render_template('indicacao.html',inicio=indicacao_inicio,fim=indicacao_fim,continua=1,modalidade=modalidade,vaga=0,idProjeto=idProjeto,plano=0,substituicao=1,substituido=codigoSubstituido))
-
-                else:
-                    return("ACESSO NEGADO")
+                        lista_motivos = lista_motivos + motivos[i]
+            
+            #atualizar coluna motivos em indicacoes
+            consulta = """
+            UPDATE indicacoes SET motivo=\"""" + lista_motivos + """\" WHERE id=""" + idAluno
+            atualizar(consulta)
+            
+            idProjeto = obterColunaUnica('indicacoes','idProjeto','id',idAluno)
+            orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)
+            titulo = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
+            discente = obterColunaUnica('indicacoes','nome','id',idAluno)
+            tipo_vaga = obterColunaUnica('indicacoes','tipo_de_vaga','id',idAluno)
+            timestamp = agora()
+            fomento = int(obterColunaUnica('indicacoes','fomento','id',idAluno))
+            consulta = "UPDATE indicacoes SET situacao=2, fim=NOW() WHERE id=" + idAluno
+            atualizar(consulta)
+            email = obterColunaUnica('editalProjeto','email','id',idProjeto)
+            email2 = "pesquisa.prpi@ufca.edu.br"
+            texto_email = render_template('confirmacao_substituicao.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
+            if tipo_vaga=="1":
+                msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE BOLSISTA",recipients=[email,email2],html=texto_email)
             else:
-                return(redirect(url_for('login')))
+                msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE VOLUNTARIO",recipients=[email,email2],html=texto_email)
+            if PRODUCAO==1:
+                t = threading.Thread(target=enviar_email_desligamento_substituicao,args=(msg,))
+                t.start()
+            edital = int(obterColunaUnica('editalProjeto','tipo','id',idProjeto))
+            indicacao_inicio = str(obterColunaUnica('editais',"""DATE_FORMAT(indicacao_inicio,'%d/%m/%Y')""",'id',str(edital)))
+            indicacao_fim = str(obterColunaUnica('editais',"""DATE_FORMAT(indicacao_termino,'%d/%m/%Y')""",'id',str(edital)))
+            modalidade = int(obterColunaUnica('indicacoes','modalidade','id',idAluno))
+            codigoSubstituido = int(idAluno)
+            if (int(tipo_vaga)==1):
+                return(render_template('indicacao.html',inicio=indicacao_inicio,fim=indicacao_fim,continua=1,modalidade=modalidade,vaga=1,idProjeto=idProjeto,plano=0,substituicao=1,substituido=codigoSubstituido))
+            else:
+                return(render_template('indicacao.html',inicio=indicacao_inicio,fim=indicacao_fim,continua=1,modalidade=modalidade,vaga=0,idProjeto=idProjeto,plano=0,substituicao=1,substituido=codigoSubstituido))
         else:
-            return("Erro: ID nao informado")
+            return("ACESSO NEGADO")
     else:
-        return("ERRO: Metodo invalido")
+        return(redirect(url_for('login')))
 
 
 @app.route("/pub/consulta", methods=['GET', 'POST'])
@@ -2705,7 +2717,11 @@ def desligar(id_indicacao):
     action = url_for('desligarIndicacao',id_indicacao=id_indicacao)
     return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao="DESLIGAMENTO",action=action))
 
+@app.route("/substituir/<id_indicacao>", methods=['GET', 'POST'])
+def substituir(id_indicacao):
+    action = url_for('substituirIndicacao',id_indicacao=id_indicacao)
+    return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao=u"SUBSTITUIÇÃO",action=action))
+
 
 if __name__ == "__main__":
-    #app.run()
     serve(app, host='0.0.0.0', port=80, url_prefix='/pesquisa')

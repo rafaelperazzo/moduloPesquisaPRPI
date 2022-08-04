@@ -2316,6 +2316,10 @@ def enviarFrequencia():
                 titulo_projeto = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
                 codigoEdital = obterColunaUnica('editalProjeto','tipo','id',idProjeto)
                 descricaoEdital = obterColunaUnica('editais','nome','id',codigoEdital)
+                data_final = obterColunaUnica('indicacoes','ADDDATE(DATE(fim),INTERVAL 30 DAY)','id',idAluno)
+                data_hoje = obterColunaUnica('indicacoes','DATE(NOW())','id',idAluno)
+                if data_hoje>data_final:
+                    return("Prazo para envio de frequências expirado (%s)!" %(data_final))
                 mes_ext = {1: 'janeiro', 2 : 'fevereiro', 3: 'marco', 4: 'abril', 5: 'maio', 6: 'junho', 7: 'julho',8: 'agosto', 9: 'setembro', 10: 'outubro', 11: 'novembro', 12: 'dezembro'}
                 now = datetime.now()
                 mesReferencia = now.month-1
@@ -2323,10 +2327,10 @@ def enviarFrequencia():
                 if (mesReferencia==0):
                     mesReferencia = 12
                     anoReferencia = anoReferencia-1
-                if jaEnviouFrequenciaAtual(idAluno,str(mesReferencia),str(anoReferencia)):
-                    return("A frequência atual já foi enviada, não é possível realizar um novo envio.")
-                else:
-                    return(render_template('frequencia.html',nomeAluno=nomeAluno,referencia=mes_ext[mesReferencia],ano=anoReferencia,idAluno=idAluno,titulo=titulo_projeto,mes=mesReferencia,edital=descricaoEdital))
+                #if jaEnviouFrequenciaAtual(idAluno,str(mesReferencia),str(anoReferencia)):
+                #    return("A frequência atual já foi enviada, não é possível realizar um novo envio.")
+                #else:
+                return(render_template('frequencia.html',nomeAluno=nomeAluno,referencia=mes_ext[mesReferencia],ano=anoReferencia,idAluno=idAluno,titulo=titulo_projeto,mes=mesReferencia,edital=descricaoEdital))
             else:
                 return("Permissão negada!")
         else:
@@ -2346,6 +2350,12 @@ def cadastrarFrequencia():
         ano = str(request.form['ano'])
         idAluno = str(request.form['idAluno'])
         obs = unicode(request.form['obs'])
+        consulta_verificacao = """
+        SELECT id FROM frequencias WHERE idIndicacao=%s AND mes=%s AND ano=%s
+        """ %(idAluno,mes,ano)
+        linhas,total = executarSelect(consulta_verificacao)
+        if total>0:
+            return("A frequência para o mes/ano solicitado já foi enviada anteriormente! Não é possível modificar!")
         consulta = """INSERT INTO frequencias (idIndicacao,mes,ano,s1,s2,s3,s4,obs) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)"""
         valores = (idAluno,mes,ano,s1,s2,s3,s4,obs)
         inserir(consulta,valores)

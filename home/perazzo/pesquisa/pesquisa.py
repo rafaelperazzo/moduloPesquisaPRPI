@@ -1,41 +1,25 @@
 # -*- coding: utf-8 -*-
-#https://stackoverflow.com/questions/89228/calling-an-external-command-in-python
-#SELECT sec_to_time(TIMESTAMPDIFF(SECOND,avaliacoes.data_envio,avaliacoes.data_avaliacao)) as tempoAvaliacao FROM avaliacoes;
-#SELECT TIMESTAMPDIFF(DAY,avaliacoes.data_envio,avaliacoes.data_avaliacao) as dias FROM avaliacoes;
-#SELECT avaliacoes.idProjeto,sum(avaliacoes.finalizado),editalProjeto.titulo FROM avaliacoes,editalProjeto WHERE editalProjeto.tipo=1 and editalProjeto.id=avaliacoes.idProjeto GROUP BY idProjeto;
-#SELECT editalProjeto.titulo, (SELECT sum(avaliacoes.finalizado) FROM avaliacoes WHERE avaliacoes.idProjeto=editalProjeto.id) as soma FROM editalProjeto WHERE id=25;
 from flask import Flask
 from flask import render_template
-from flask import request,url_for,send_file,send_from_directory,redirect,flash,Markup,Response,session
+from flask import request,url_for,send_from_directory,redirect,Markup,session,flash
 from flask_httpauth import HTTPBasicAuth
-from werkzeug.security import generate_password_hash, check_password_hash
-import datetime
 from waitress import serve
-import sqlite3
 import MySQLdb
 from werkzeug.utils import secure_filename
 import os
 import string
 import random
 import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.MIMEImage import MIMEImage
 from email.mime.text import MIMEText
 from email.header import Header
 import logging
 import sys
-import xml.etree.ElementTree as ET
-from modules import scoreLattes as SL
-import json
 import numpy as np
 import pdfkit
-from functools import wraps
 from flask_mail import Mail
 from flask_mail import Message
 from flask_uploads import *
-import csv
 import pandas as pd
-#from datetime import datetime
 import configparser
 import threading
 import matplotlib
@@ -106,7 +90,6 @@ patch_request_class(app)
 @app.before_first_request
 def prepararInicializacao():
     session['PRODUCAO'] = PRODUCAO
-    
 
 def removerAspas(texto):
     resultado = texto.replace('"',' ')
@@ -214,10 +197,10 @@ def atualizar(consulta):
     try:
         cursor.execute(consulta)
         conn.commit()
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
         #e = sys.exc_info()[0]
         logging.debug(e)
-	logging.debug(consulta)
+        logging.debug(consulta)
         #conn.rollback()
     finally:
         cursor.close()
@@ -231,10 +214,10 @@ def inserir(consulta,valores):
     try:
         cursor.execute(consulta,valores)
         conn.commit()
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
         #e = sys.exc_info()[0]
         logging.error(e)
-	logging.debug(consulta)
+        logging.debug(consulta)
         logging.error("Erro ao inserir registro")
         logging.error(valores)
         #conn.rollback()
@@ -689,40 +672,24 @@ def cadastrarProjeto():
     t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
     t.start()
     #processarPontuacaoLattes(cpf,area_capes,ultimo_id,dados)
-    return("Verifique a confirmação de sua submissão no e-mail, em alguns minutos.")
+    return("Verifique a confirmação de sua submissão no e-mail, em alguns minutos. ESTA PÁGINA JÁ PODE SER FECHADA COM SEGURANÇA.")
 
 @app.route("/score", methods=['GET', 'POST'])
 def getScoreLattesFromFile():
-    codigo = id_generator()
-    arquivo_curriculo_lattes = ""
     area_capes = unicode(request.form['area_capes'])
-    if ('arquivo_lattes' in request.files):
-        arquivo_lattes = request.files['arquivo_lattes']
-        if arquivo_lattes and allowed_file(arquivo_lattes.filename):
-            arquivo_lattes.filename = "000_CONSULTA" + "_" + codigo + ".xml"
-            filename = secure_filename(arquivo_lattes.filename)
-            arquivo_lattes.save(os.path.join(app.config['CURRICULOS_FOLDER'], filename))
-            caminho = str(app.config['CURRICULOS_FOLDER'] + "/" + filename)
-            arquivo_curriculo_lattes = filename
-
-        elif not allowed_file(arquivo_lattes.filename):
-    		return ("Arquivo de curriculo lattes não permitido")
-    else:
-        return("Não foi incluído um arquivo de curriculo")
-
-    #CALCULANDO scorelattes
-    pontuacao = -100
+    idlattes = unicode(request.form['idlattes'])
+    salvarCV(idlattes)
+    arquivo = XML_DIR + idlattes + ".xml"
     try:
         from datetime import date
         ano_fim = date.today().year
         ano_inicio = ano_fim - 5
-        s = calcularScoreLattes(1,area_capes,str(ano_inicio),str(ano_fim),CURRICULOS_DIR + arquivo_curriculo_lattes)
+        s = calcularScoreLattes(1,area_capes,str(ano_inicio),str(ano_fim),arquivo)
         return(s)
     except:
         e = sys.exc_info()[0]
         logging.error("[SCORELATTES] Erro ao calcular o scorelattes.")
         logging.error(e)
-        pontuacao = -1
         return("Erro ao calcular pontuacao! Favor, comunicar para o e-mail: atendimento.prpi@ufca.edu.br")
 
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam
@@ -1177,6 +1144,7 @@ def resultados():
         consulta = "SELECT ua,sum(bolsas) as solicitadas, sum(bolsas_concedidas) as concedidas,(sum(bolsas_concedidas)/sum(bolsas))*100 as percentual FROM resumoGeralClassificacao WHERE tipo=" + codigoEdital + " GROUP BY ua ORDER BY ua"
         cursor.execute(consulta)
         somatorios = cursor.fetchall()
+        app.logger.debug(consulta)
 
         #Verificando se as avaliacoes estão encerradas
         if avaliacoesEncerradas(codigoEdital):
@@ -1281,18 +1249,7 @@ def gerarPDF(template):
 
 @app.route("/editalProjeto", methods=['GET', 'POST'])
 def editalProjeto():
-    #SELECT editalProjeto.id,editalProjeto.nome,GROUP_CONCAT(avaliacoes.avaliador,"(",avaliacoes.finalizado,")") as avaliadores FROM editalProjeto,avaliacoes WHERE tipo=3 and categoria=1 and valendo=1 and editalProjeto.id=avaliacoes.idProjeto GROUP BY editalProjeto.id
-    #SELECT editalProjeto.id,editalProjeto.nome,GROUP_CONCAT(avaliacoes.avaliador ORDER BY avaliador SEPARATOR '\n') as avaliadores,GROUP_CONCAT(avaliacoes.recomendacao ORDER BY avaliador SEPARATOR '\n') as recomendacoes FROM editalProjeto,avaliacoes WHERE tipo=3 and categoria=1 and valendo=1 and editalProjeto.id=avaliacoes.idProjeto GROUP BY editalProjeto.id ORDER BY editalProjeto.id
-    '''
-    SELECT editalProjeto.id,editalProjeto.nome, sum(avaliacoes.recomendacao),
-    GROUP_CONCAT(avaliacoes.avaliador ORDER BY avaliador SEPARATOR '\n') as avaliadores,
-    GROUP_CONCAT(avaliacoes.recomendacao ORDER BY avaliador SEPARATOR '\n') as recomendacoes,
-    GROUP_CONCAT(avaliacoes.enviado ORDER BY avaliador SEPARATOR '\n') as enviado
-    FROM editalProjeto,avaliacoes
-    WHERE tipo=3 and categoria=1 and valendo=1 and editalProjeto.id=avaliacoes.idProjeto
-    GROUP BY editalProjeto.id
-    ORDER BY editalProjeto.id
-    '''
+    
     if (autenticado() and int(session['permissao'])==0):
         if request.method == "GET":
             #Recuperando o código do edital
@@ -1305,9 +1262,9 @@ def editalProjeto():
                 tipo_classificacao = int(obterColunaUnica("editais","classificacao","id",codigoEdital))
                 #ORDENA DE ACORDO COM O TIPO DE CLASSIFICAÇÃO: 1 - POR UA; 2 - POR LATTES
                 if (tipo_classificacao==1):
-                    consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs FROM editalProjeto WHERE tipo=" + codigoEdital + " AND valendo=1 ORDER BY ua,produtividade,scorelattes,nome DESC"
+                    consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs FROM editalProjeto WHERE tipo=" + codigoEdital + " AND valendo=1 ORDER BY ua,produtividade,scorelattes DESC,nome"
                 else:
-                    consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs FROM editalProjeto WHERE tipo=" + codigoEdital + " AND valendo=1 ORDER BY produtividade,scorelattes,nome DESC"
+                    consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs FROM editalProjeto WHERE tipo=" + codigoEdital + " AND valendo=1 ORDER BY produtividade,scorelattes DESC,nome"
                 consulta_novos = """SELECT editalProjeto.id,nome,ua,titulo,arquivo_projeto,
                 GROUP_CONCAT(avaliacoes.avaliador ORDER BY avaliador SEPARATOR '<BR>') as avaliadores,
                 GROUP_CONCAT(IF(avaliacoes.recomendacao=1,'RECOMENDADO',IF(avaliacoes.recomendacao=0,'***NÃO RECOMENDADO***','EM AVALIAÇÃO')) ORDER BY avaliador SEPARATOR '<BR>') as recomendacoes, 
@@ -1519,17 +1476,16 @@ def minhaDeclaracao():
                     }
                     pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
                     return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')
-                    #return(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token))
+                    
                 else:
                     return("declaração inexistente!")
             else:
                 if 'id' in request.args:
                     idProjeto = str(request.args.get('id'))
                     consulta = """SELECT DISTINCT editalProjeto.nome,editalProjeto.siape,editalProjeto.titulo,
-                    DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(indicacoes.fim,'%d/%m/%Y') as fim,
+                    editalProjeto.inicio,editalProjeto.fim,
                     (SELECT GROUP_CONCAT(indicacoes.nome ORDER BY indicacoes.nome SEPARATOR ', ') from indicacoes WHERE indicacoes.idProjeto=editalProjeto.id GROUP BY indicacoes.idProjeto) as indicados,
-                    editalProjeto.id,if(indicacoes.fim<NOW(),"exerceu","exerce") as verbo
+                    editalProjeto.id,if(editalProjeto.fim<NOW(),"exerceu","exerce") as verbo
                     FROM editalProjeto,indicacoes
                     WHERE editalProjeto.id=indicacoes.idProjeto AND editalProjeto.id=""" + idProjeto + """ ORDER BY fim DESC"""
                     projeto,total = executarSelect(consulta,1)
@@ -1547,7 +1503,6 @@ def minhaDeclaracao():
                         return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
                     else:
                         return("declaracao inexistente...")
-                    return("Em construcao...")
 
                 if 'idAluno' in request.args:
                     idAluno = str(request.args.get('idAluno'))
@@ -1603,8 +1558,7 @@ def minhaDeclaracaoDiscente():
                     }
                     pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
                     return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')
-                    #return(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token))
+                    
                 else:
                     return("declaração inexistente!")
             else:
@@ -1612,173 +1566,150 @@ def minhaDeclaracaoDiscente():
         else:
             return("OK")
 
+'''
+qrcode_url = url_for('avaliacao_gerar_declaracao',ano=ano,periodo=periodo,token=token,_external=True)
+qrcode = pyqrcode.create(qrcode_url)
+qrcode.png(app.config['PNG_DIR'] + 'qrcode.png',scale=3)
+'''
 
 @app.route("/discente/meuCertificado2018", methods=['GET', 'POST'])
 def meuCertificado2018():
-        if request.method == "GET":
-            #Recuperando o token da declaração
-            if 'token' in request.args:
-                token = str(request.args.get('token'))
-		consulta = """
-		SELECT estudante_nome_completo,cpf,estudante_tipo_de_vaga,estudante_modalidade,
-		nome_do_coordenador,titulo_do_projeto,ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y'),
- 		DATE_FORMAT(estudante_fim,'%d/%m/%Y') ,
-		ROUND((DATEDIFF(estudante_fim,estudante_inicio)/7)*ch_semanal) as ch_total
-		FROM cadastro_geral WHERE token=\"""" + token + """\""""
-                consulta2 = """SELECT * from gestores ORDER BY id"""
-                from datetime import datetime
-		projeto,total = executarSelect(consulta,1)
-                gestores,total_gestores = executarSelect(consulta2)
-                proreitor = gestores[0]
-                coordenador = gestores[1]
-		inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
-                fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
-      		agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"),'%d/%m/%Y')
-                periodo = abs((fim-inicio).days)
-                if periodo<180:
-                    return('Certificado indisponível. Período de bolsa inferior a 180 dias')
-                data_agora = getData()
-		if ((fim-agora).days>0):
-		    return('Certificado disponível apenas após a conclusão do projeto em andamento: ')
-                if total==1:
-                    arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                    options = {
-                        'page-size': 'A4',
-                        'margin-top': '2cm',
-                        'margin-right': '2cm',
-                        'margin-bottom': '1cm',
-                        'margin-left': '2cm',
-                    }
-                    options = {
- 			'page-size': 'A4',
-		        'orientation': 'landscape',
-			'margin-top': '0mm',
-			'margin-right': '0mm',
-			'margin-bottom': '0mm',
-			'margin-left': '0mm',
-			'encoding': "UTF-8",
-			'quiet': '',
-			'custom-header' : [
-			('Accept-Encoding', 'gzip')
-			],
-			'no-outline': None
-		    }
-                    pdfkit.from_string(render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=token,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
-                    return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    #return(render_template('certificado_discente.html',conteudo=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE))
-                    #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')
-                    #return(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token))
-                else:
-                    return("declaração inexistente!")
+    if request.method == "GET":
+        #Recuperando o token da declaração
+        if 'token' in request.args:
+            token = str(request.args.get('token'))
+            consulta = """
+            SELECT estudante_nome_completo,cpf,estudante_tipo_de_vaga,estudante_modalidade,
+            nome_do_coordenador,titulo_do_projeto,ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y'),
+            DATE_FORMAT(estudante_fim,'%d/%m/%Y') ,
+            ROUND((DATEDIFF(estudante_fim,estudante_inicio)/7)*ch_semanal) as ch_total
+            FROM cadastro_geral WHERE token=\"""" + token + """\""""
+            consulta2 = """SELECT * from gestores ORDER BY id"""
+            from datetime import datetime
+            projeto,total = executarSelect(consulta,1)
+            gestores,total_gestores = executarSelect(consulta2)
+            proreitor = gestores[0]
+            coordenador = gestores[1]
+            inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
+            fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
+            agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"),'%d/%m/%Y')
+            periodo = abs((fim-inicio).days)
+            if periodo<180:
+                return('Certificado indisponível. Período de bolsa inferior a 180 dias')
+            data_agora = getData()
+            if ((fim-agora).days>0):
+                return('Certificado disponível apenas após a conclusão do projeto em andamento: ')
+            if total==1:
+                arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
+                options = {
+                    'page-size': 'A4',
+                    'orientation': 'landscape',
+                    'margin-top': '0mm',
+                    'margin-right': '0mm',
+                    'margin-bottom': '0mm',
+                    'margin-left': '0mm',
+                    'encoding': "UTF-8",
+                    'quiet': '',
+                    'custom-header' : [
+                    ('Accept-Encoding', 'gzip')
+                    ],
+                    'no-outline': None
+                }
+                pdfkit.from_string(render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=token,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
-                return("OK")
+                return("declaração inexistente!")
         else:
             return("OK")
+    else:
+        return("OK")
 
 @app.route("/discente/meuCertificado", methods=['GET', 'POST'])
 def meuCertificado():
-        if request.method == "GET":
-            #Recuperando o token da declaração
-            if 'id' in request.args:
-                idIndicacao = str(request.args.get('id'))
-
-                consulta = """SELECT i.nome,i.cpf,IF(i.modalidade=1,'PIBIC',IF(i.modalidade=2,'PIBITI','PIBIC-EM')) as modalidade,
-IF(i.tipo_de_vaga=1,'BOLSISTA','VOLUNTÁRIO') as vaga,
-e.nome,e.titulo,i.ch,DATE_FORMAT(i.inicio,'%d/%m/%Y') as inicio, DATE_FORMAT(i.fim,'%d/%m/%Y') as fim,
-ROUND((DATEDIFF(i.fim,i.inicio)/7)*i.ch) as ch_total
-FROM indicacoes i, editalProjeto e WHERE i.idProjeto=e.id and e.valendo=1 and i.id=""" + idIndicacao
-                consulta2 = """SELECT * from gestores ORDER BY id"""
-                from datetime import datetime
-		projeto,total = executarSelect(consulta,1)
-                gestores,total_gestores = executarSelect(consulta2)
-                proreitor = gestores[0]
-                coordenador = gestores[1]
-		logging.debug(proreitor)
-		logging.debug(coordenador)
-		inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
-                fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
-      		agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"),'%d/%m/%Y')
-                periodo = abs((fim-inicio).days)
-                if periodo<180:
-                    return('Certificado indisponível. Período de bolsa inferior a 180 dias')
-                data_agora = getData()
-		if ((fim-agora).days>0):
-		    return('Certificado disponível apenas após a conclusão do projeto em andamento: ')
-                if total==1:
-                    arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                    options = {
-                        'page-size': 'A4',
-                        'margin-top': '2cm',
-                        'margin-right': '2cm',
-                        'margin-bottom': '1cm',
-                        'margin-left': '2cm',
-                    }
-                    options = {
- 			'page-size': 'A4',
-		        'orientation': 'landscape',
-			'margin-top': '0mm',
-			'margin-right': '0mm',
-			'margin-bottom': '0mm',
-			'margin-left': '0mm',
-			'encoding': "UTF-8",
-			'quiet': '',
-			'custom-header' : [
-			('Accept-Encoding', 'gzip')
-			],
-			'no-outline': None
-		    }
-                    pdfkit.from_string(render_template('certificado_discente.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
-                    return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    #return(render_template('certificado_discente.html',conteudo=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE))
-                    #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')
-                    #return(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token))
-                else:
-                    return("declaração inexistente!")
+    if request.method == "GET":
+        #Recuperando o token da declaração
+        if 'id' in request.args:
+            idIndicacao = str(request.args.get('id'))
+            consulta = """SELECT i.nome,i.cpf,IF(i.modalidade=1,'PIBIC',IF(i.modalidade=2,'PIBITI','PIBIC-EM')) as modalidade,
+            IF(i.tipo_de_vaga=1,'BOLSISTA','VOLUNTÁRIO') as vaga,
+            e.nome,e.titulo,i.ch,DATE_FORMAT(i.inicio,'%d/%m/%Y') as inicio, DATE_FORMAT(i.fim,'%d/%m/%Y') as fim,
+            ROUND((DATEDIFF(i.fim,i.inicio)/7)*i.ch) as ch_total
+            FROM indicacoes i, editalProjeto e WHERE i.idProjeto=e.id and e.valendo=1 and i.id=""" + idIndicacao
+            consulta2 = """SELECT * from gestores ORDER BY id"""
+            from datetime import datetime
+            projeto,total = executarSelect(consulta,1)
+            gestores,total_gestores = executarSelect(consulta2)
+            proreitor = gestores[0]
+            coordenador = gestores[1]
+            inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
+            fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
+            agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"),'%d/%m/%Y')
+            periodo = abs((fim-inicio).days)
+            if periodo<180:
+                return('Certificado indisponível. Período de bolsa inferior a 180 dias')
+            data_agora = getData()
+            if ((fim-agora).days>0):
+                return('Certificado disponível apenas após a conclusão do projeto em andamento: ')
+            if total==1:
+                arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
+                options = {
+                    'page-size': 'A4',
+                    'orientation': 'landscape',
+                    'margin-top': '0mm',
+                    'margin-right': '0mm',
+                    'margin-bottom': '0mm',
+                    'margin-left': '0mm',
+                    'encoding': "UTF-8",
+                    'quiet': '',
+                    'custom-header' : [
+                    ('Accept-Encoding', 'gzip')
+                    ],
+                    'no-outline': None
+                }
+                pdfkit.from_string(render_template('certificado_discente.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
-                return("OK")
+                return("declaração inexistente!")
         else:
             return("OK")
+    else:
+        return("OK")
 
 
 @app.route("/discente/minhaDeclaracao2019", methods=['GET', 'POST'])
 def minhaDeclaracaoDiscente2019():
-        if request.method == "GET":
-            #Recuperando o token da declaração
-            if 'id' in request.args:
-                idIndicacao = str(request.args.get('id'))
-                #consulta = """SELECT estudante_nome_completo,cpf,if(estudante_fim>NOW(),1,0) as verbo,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,
-                #            ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(estudante_fim,'%d/%m/%Y') as final FROM cadastro_geral WHERE token='""" + token + """'"""
-
-                consulta = """SELECT indicacoes.nome,indicacoes.cpf,if(indicacoes.fim>NOW(),1,0) as verbo,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),editalProjeto.nome,editalProjeto.titulo,indicacoes.ch,DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'), indicacoes.id
-                            FROM indicacoes,editalProjeto
-                            WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.id=""" + idIndicacao
-                from datetime import datetime
-                projeto,total = executarSelect(consulta,1)
-                inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
-                fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
-                periodo = abs((fim-inicio).days)
-                #if periodo<180:
-                #    return('Declaração indisponível. Período de bolsa inferior a 180 dias')
-                data_agora = getData()
-                if total==1:
-                    arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                    options = {
-                        'page-size': 'A4',
-                        'margin-top': '2cm',
-                        'margin-right': '2cm',
-                        'margin-bottom': '1cm',
-                        'margin-left': '2cm',
-                    }
-                    pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
-                    return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')
-                    #return(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token))
-                else:
-                    return("declaração inexistente!")
+    if request.method == "GET":
+        #Recuperando o token da declaração
+        if 'id' in request.args:
+            idIndicacao = str(request.args.get('id'))
+            consulta = """SELECT indicacoes.nome,indicacoes.cpf,if(indicacoes.fim>NOW(),1,0) as verbo,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),editalProjeto.nome,editalProjeto.titulo,indicacoes.ch,DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'), indicacoes.id
+                        FROM indicacoes,editalProjeto
+                        WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.id=""" + idIndicacao
+            from datetime import datetime
+            projeto,total = executarSelect(consulta,1)
+            inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
+            fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
+            periodo = abs((fim-inicio).days)
+            #if periodo<180:
+            #    return('Declaração indisponível. Período de bolsa inferior a 180 dias')
+            data_agora = getData()
+            if total==1:
+                arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
+                options = {
+                    'page-size': 'A4',
+                    'margin-top': '2cm',
+                    'margin-right': '2cm',
+                    'margin-bottom': '1cm',
+                    'margin-left': '2cm',
+                }
+                pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
-                return("OK")
+                return("declaração inexistente!")
         else:
             return("OK")
+    else:
+        return("OK")
 
 @app.route("/meusPareceres", methods=['GET', 'POST'])
 def meusPareceres():
@@ -2423,6 +2354,7 @@ def cadastrarFrequencia():
         return("OK")
 
 @app.route("/listaNegra", methods=['GET', 'POST'])
+@auth.login_required(role=['admin'])
 def listaNegra():
     if request.method == "GET":
         if ('mes' in request.args) and ('ano' in request.args):
@@ -2446,10 +2378,8 @@ def listaNegra():
                 enviarEmail = str(request.args.get('email'))
                 if enviarEmail=="1":
                     texto_email = render_template('lembrete_frequencia.html')
-                    msg = Message(subject = "Plataforma Yoko - LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisa.prpi@ufca.edu.br','dic.prpi@ufca.edu.br'],bcc=lista_emails,html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
-                    #msg = Message(subject = "Plataforma Yoko - LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisa.prpi@ufca.edu.br','dic.prpi@ufca.edu.br'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisa.prpi@ufca.edu.br','dic.prpi@ufca.edu.br'],bcc=lista_emails,html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     mail.send(msg)
-                    pass
 
             return(render_template('listaNegra.html',lista=tuple(lista),mes=mes,ano=ano,total=len(lista)))
         else:
@@ -2468,91 +2398,117 @@ def timestamp():
     now = dt.now()
     return(str(now))
 
-@app.route("/desligarIndicacao", methods=['GET', 'POST'])
-def desligarIndicacao():
-    if request.method == "GET":
-        if 'id' in request.args:
-            idAluno = str(request.args.get('id'))
-            siape = session['username']
-            if (autenticado()):
-                if verificarSiapeIndicacao(siape,idAluno): #O aluno é indicação do usuário atual
-                    idProjeto = obterColunaUnica('indicacoes','idProjeto','id',idAluno)
-                    logging.debug(idProjeto)
-                    orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)
-                    titulo = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
-                    discente = obterColunaUnica('indicacoes','nome','id',idAluno)
-                    tipo_vaga = obterColunaUnica('indicacoes','tipo_de_vaga','id',idAluno)
-                    timestamp = agora()
-                    #return("Ainda não disponível. Favor aguardar até as 17:00 de 13/09/2019")
-                    consulta = "UPDATE indicacoes SET situacao=1, fim=NOW() WHERE id=" + idAluno
-                    atualizar(consulta)
-                    email = obterColunaUnica('editalProjeto','email','id',idProjeto)
-                    email2 = "pesquisa.prpi@ufca.edu.br"
-                    email3 = "rafael.mota@ufca.edu.br"
-                    texto_email = render_template('confirmacao_desligamento.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
-                    if tipo_vaga==1:
-                        msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE BOLSISTA",recipients=[email,email2,email3],html=texto_email)
+@app.route("/desligarIndicacao/<id_indicacao>", methods=['GET', 'POST'])
+def desligarIndicacao(id_indicacao):
+    idAluno = id_indicacao
+    siape = session['username']
+    if (autenticado()):
+        if verificarSiapeIndicacao(siape,idAluno): #O aluno é indicação do usuário atual
+            motivos = []
+            for motivo in request.form:
+                if 'op' in motivo:
+                    motivos.append(unicode(request.form[motivo]))
+            lista_motivos = ''
+            for i in range(0,len(motivos),1):
+                if motivos[i]!='' and motivos[i]!=' ':
+                    if i<len(motivos)-1:
+                        lista_motivos = lista_motivos + motivos[i] + ', '
                     else:
-                        msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE VOLUNTARIO",recipients=[email,email2,email3],html=texto_email)
-                    mail.send(msg)
-                    return(render_template('confirmacao_desligamento.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp))
-                else:
-                    return("ACESSO NEGADO")
+                        lista_motivos = lista_motivos + motivos[i]
+            #atualizar coluna motivos em indicacoes
+            consulta = """
+            UPDATE indicacoes SET motivo=\"""" + lista_motivos + """\" WHERE id=""" + idAluno
+            atualizar(consulta)
+
+            #desligar a indicação
+            idProjeto = obterColunaUnica('indicacoes','idProjeto','id',idAluno)
+            orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)
+            titulo = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
+            discente = obterColunaUnica('indicacoes','nome','id',idAluno)
+            tipo_vaga = obterColunaUnica('indicacoes','tipo_de_vaga','id',idAluno)
+            timestamp = agora()
+            consulta = "UPDATE indicacoes SET situacao=1, fim=NOW() WHERE id=" + idAluno
+            atualizar(consulta)
+            email = obterColunaUnica('editalProjeto','email','id',idProjeto)
+            email2 = "pesquisa.prpi@ufca.edu.br"
+            
+            texto_email = render_template('confirmacao_desligamento.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
+            if tipo_vaga==1:
+                msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE BOLSISTA",recipients=[email,email2],html=texto_email)
             else:
-                return(redirect(url_for('login')))
-        else:
-            return("Erro: ID nao informado")
-    else:
-        return("ERRO: Metodo invalido")
-
-@app.route("/substituirIndicacao", methods=['GET', 'POST'])
-def substituirIndicacao():
-    if request.method == "GET":
-        if 'id' in request.args:
-            idAluno = str(request.args.get('id'))
-            siape = session['username']
-            if (autenticado()):
-                if verificarSiapeIndicacao(siape,idAluno): #O aluno é indicação do usuário atual
-                    idProjeto = obterColunaUnica('indicacoes','idProjeto','id',idAluno)
-                    logging.debug(idProjeto)
-                    orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)
-                    titulo = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
-                    discente = obterColunaUnica('indicacoes','nome','id',idAluno)
-                    tipo_vaga = obterColunaUnica('indicacoes','tipo_de_vaga','id',idAluno)
-                    timestamp = agora()
-                    fomento = int(obterColunaUnica('indicacoes','fomento','id',idAluno))
-                    #return("Ainda não disponível. Favor aguardar até as 17:00 de 13/09/2019")
-                    consulta = "UPDATE indicacoes SET situacao=2, fim=NOW() WHERE id=" + idAluno
-                    atualizar(consulta)
-                    email = obterColunaUnica('editalProjeto','email','id',idProjeto)
-                    email2 = "pesquisa.prpi@ufca.edu.br"
-                    email3 = "rafael.mota@ufca.edu.br"
-                    texto_email = render_template('confirmacao_substituicao.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
-                    if tipo_vaga=="1":
-                        msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE BOLSISTA",recipients=[email,email2,email3],html=texto_email)
-                    else:
-                        msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE VOLUNTARIO",recipients=[email,email2,email3],html=texto_email)
-                    mail.send(msg)
-
-                    #return(render_template('confirmacao_substituicao.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp))
-                    edital = int(obterColunaUnica('editalProjeto','tipo','id',idProjeto))
-                    indicacao_inicio = str(obterColunaUnica('editais',"""DATE_FORMAT(indicacao_inicio,'%d/%m/%Y')""",'id',str(edital)))
-                    indicacao_fim = str(obterColunaUnica('editais',"""DATE_FORMAT(indicacao_termino,'%d/%m/%Y')""",'id',str(edital)))
-                    modalidade = int(obterColunaUnica('indicacoes','modalidade','id',idAluno))
-                    codigoSubstituido = int(idAluno)
-                    if (int(tipo_vaga)==1):
-                        return(render_template('indicacao.html',inicio=indicacao_inicio,fim=indicacao_fim,continua=1,modalidade=modalidade,vaga=1,idProjeto=idProjeto,plano=0,substituicao=1,substituido=codigoSubstituido))
-                    else:
-                        return(render_template('indicacao.html',inicio=indicacao_inicio,fim=indicacao_fim,continua=1,modalidade=modalidade,vaga=0,idProjeto=idProjeto,plano=0,substituicao=1,substituido=codigoSubstituido))
-
-                else:
-                    return("ACESSO NEGADO")
+                msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE VOLUNTARIO",recipients=[email,email2],html=texto_email)
+            if PRODUCAO==1:
+                t = threading.Thread(target=enviar_email_desligamento_substituicao,args=(msg,))
+                t.start()
             else:
-                return(redirect(url_for('login')))
+                app.logger.debug('E-MAIL DE DESLIGAMENTO ENVIADO')
+            return(render_template('confirmacao_desligamento.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp))
+            
         else:
-            return("Erro: ID nao informado")
+            return("ACESSO NEGADO")
     else:
-        return("ERRO: Metodo invalido")
+        return(redirect(url_for('login')))
+
+def enviar_email_desligamento_substituicao(msg):
+    with app.app_context():
+        mail.send(msg)
+
+
+@app.route("/substituirIndicacao/<id_indicacao>", methods=['GET', 'POST'])
+def substituirIndicacao(id_indicacao):
+    idAluno = id_indicacao
+    siape = session['username']
+    if (autenticado()):
+        if verificarSiapeIndicacao(siape,idAluno): #O aluno é indicação do usuário atual
+            motivos = []
+            for motivo in request.form:
+                if 'op' in motivo:
+                    motivos.append(unicode(request.form[motivo]))
+            lista_motivos = ''
+            for i in range(0,len(motivos),1):
+                if motivos[i]!='' and motivos[i]!=' ':
+                    if i<len(motivos)-1:
+                        lista_motivos = lista_motivos + motivos[i] + ', '
+                    else:
+                        lista_motivos = lista_motivos + motivos[i]
+            
+            #atualizar coluna motivos em indicacoes
+            consulta = """
+            UPDATE indicacoes SET motivo=\"""" + lista_motivos + """\" WHERE id=""" + idAluno
+            atualizar(consulta)
+            
+            idProjeto = obterColunaUnica('indicacoes','idProjeto','id',idAluno)
+            orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)
+            titulo = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
+            discente = obterColunaUnica('indicacoes','nome','id',idAluno)
+            tipo_vaga = obterColunaUnica('indicacoes','tipo_de_vaga','id',idAluno)
+            timestamp = agora()
+            fomento = int(obterColunaUnica('indicacoes','fomento','id',idAluno))
+            consulta = "UPDATE indicacoes SET situacao=2, fim=NOW() WHERE id=" + idAluno
+            atualizar(consulta)
+            email = obterColunaUnica('editalProjeto','email','id',idProjeto)
+            email2 = "pesquisa.prpi@ufca.edu.br"
+            texto_email = render_template('confirmacao_substituicao.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
+            if tipo_vaga=="1":
+                msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE BOLSISTA",recipients=[email,email2],html=texto_email)
+            else:
+                msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE VOLUNTARIO",recipients=[email,email2],html=texto_email)
+            if PRODUCAO==1:
+                t = threading.Thread(target=enviar_email_desligamento_substituicao,args=(msg,))
+                t.start()
+            edital = int(obterColunaUnica('editalProjeto','tipo','id',idProjeto))
+            indicacao_inicio = str(obterColunaUnica('editais',"""DATE_FORMAT(indicacao_inicio,'%d/%m/%Y')""",'id',str(edital)))
+            indicacao_fim = str(obterColunaUnica('editais',"""DATE_FORMAT(indicacao_termino,'%d/%m/%Y')""",'id',str(edital)))
+            modalidade = int(obterColunaUnica('indicacoes','modalidade','id',idAluno))
+            codigoSubstituido = int(idAluno)
+            if (int(tipo_vaga)==1):
+                return(render_template('indicacao.html',inicio=indicacao_inicio,fim=indicacao_fim,continua=1,modalidade=modalidade,vaga=1,idProjeto=idProjeto,plano=0,substituicao=1,substituido=codigoSubstituido))
+            else:
+                return(render_template('indicacao.html',inicio=indicacao_inicio,fim=indicacao_fim,continua=1,modalidade=modalidade,vaga=0,idProjeto=idProjeto,plano=0,substituicao=1,substituido=codigoSubstituido))
+        else:
+            return("ACESSO NEGADO")
+    else:
+        return(redirect(url_for('login')))
 
 
 @app.route("/pub/consulta", methods=['GET', 'POST'])
@@ -2731,6 +2687,41 @@ def arquivar_projeto(id_projeto):
     edital = str(session['edital'])
     return(redirect("/pesquisa/editalProjeto?edital=" + edital))
 
+@app.route("/aprovar/projetos/<edital>", methods=['GET', 'POST'])
+@auth.login_required(role=['admin'])
+def aprovar_projetos(edital):
+    #RECOMENDADOS
+    consulta1 = """UPDATE editalProjeto SET situacao=1 
+    WHERE id in (SELECT editalProjeto.id FROM editalProjeto,avaliacoes WHERE tipo=""" + edital + """ 
+    AND valendo=1 AND categoria=1 AND editalProjeto.id=avaliacoes.idProjeto 
+    GROUP BY editalProjeto.id 
+    HAVING sum(if(recomendacao=1,1,0))-sum(if(recomendacao=0,1,0))>0 
+    ORDER BY editalProjeto.ua,editalProjeto.id)
+    """
+    #NÃO RECOMENDADOS
+    consulta2 = """UPDATE editalProjeto SET situacao=1 
+    WHERE id in (SELECT editalProjeto.id FROM editalProjeto,avaliacoes WHERE tipo=""" + edital + """ 
+    AND valendo=1 AND categoria=1 AND editalProjeto.id=avaliacoes.idProjeto 
+    GROUP BY editalProjeto.id 
+    HAVING sum(if(recomendacao=1,1,0))-sum(if(recomendacao=0,1,0))<=0 
+    ORDER BY editalProjeto.ua,editalProjeto.id)
+    """
+
+    atualizar(consulta1)
+    atualizar(consulta2)
+    flash("Projetos atualizados com sucesso")
+    return(redirect("/pesquisa/admin"))
+
+@app.route("/desligar/<id_indicacao>", methods=['GET', 'POST'])
+def desligar(id_indicacao):
+    action = url_for('desligarIndicacao',id_indicacao=id_indicacao)
+    return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao="DESLIGAMENTO",action=action))
+
+@app.route("/substituir/<id_indicacao>", methods=['GET', 'POST'])
+def substituir(id_indicacao):
+    action = url_for('substituirIndicacao',id_indicacao=id_indicacao)
+    return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao=u"SUBSTITUIÇÃO",action=action))
+
+
 if __name__ == "__main__":
-    #app.run()
     serve(app, host='0.0.0.0', port=80, url_prefix='/pesquisa')

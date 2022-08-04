@@ -6,6 +6,21 @@ Página administrativa
 
 {% block content %}
 <center><h1>Editais</h1></center>
+<hr>
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    
+    {% for message in messages %}
+    <div class="alert alert-success" role="alert">
+        {{message}}
+      </div>
+    {% endfor %}
+    
+  {% endif %}
+{% endwith %}
+<hr>
+<center><A href="{{url_for('meusProjetos')}}">Ir para MeusProjetos</A></center>
+<hr>
 <table>
   <th>Edital</th><th>Lista de Bolsistas</th><th>Lista de Voluntários</th><th>Situação das indicações</th><th>Desligamentos e Substituições</TH><th>Estatísticas</th><th>Resultados</th>
     {% for edital in editais %}
@@ -16,6 +31,7 @@ Página administrativa
             <td><a href="/pesquisa/situacaoIndicacoes?edital={{edital[0]}}">Situação das indicações</a></td>
             <td><a href="/pesquisa/substituicoes?id={{edital[0]}}">DESLIGAMENTO e SUBSTITUIÇÕES</a></td>
             <td><a href="/pesquisa/editalProjeto?edital={{edital[0]}}">Estatísticas</a></td>
+            <td><a href="/pesquisa/aprovar/projetos/{{edital[0]}}">Atualizar Projetos</a></td>
             <td><a href="/pesquisa/editalProjeto?edital={{edital[0]}}&resultado=1">Resultados</a></td>
         </tr>
     {% endfor %}

@@ -73,8 +73,8 @@ input[type=submit]:hover {
   <body>
     <h1>Período: ÚLTIMOS 5 ANOS</h1>
     <form name="frmLattes" action="/pesquisa/score" method="POST" enctype="multipart/form-data"><br>
-      <b>Currículo Lattes (xml):</b> <input name="arquivo_lattes" required="required"
-        type="file"><br>
+      <b>ID Lattes:</b> <input name="idlattes" required="required"
+        type="text"><br>
         <b>Área CAPES</b>:
         <select name="area_capes">
           <option value="ADMINISTRACAO_PUBLICA_E_DE_EMPRESAS_CIENCIAS_CONTABEIS_E_TURISMO">ADMINISTRACAO_PUBLICA_E_DE_EMPRESAS_CIENCIAS_CONTABEIS_E_TURISMO</option>
@@ -128,7 +128,8 @@ input[type=submit]:hover {
           <option value="ZOOTECNIA_RECURSOS_PESQUEIROS">ZOOTECNIA_RECURSOS_PESQUEIROS</option>
         </select>
         <br>
-      <input name="btnEnviar" value="Calcular" type="submit"><br>
+        <h4>Clique em "Calcular" apenas uma vez e aguarde a conclusão do processo (o processo pode demorar alguns minutos)!</h4>
+        <input name="btnEnviar" value="Calcular" type="submit"><br>
       <br>
     </form>
     <p style="text-align: center;"><br>

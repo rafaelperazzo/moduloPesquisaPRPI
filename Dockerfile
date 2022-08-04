@@ -11,6 +11,8 @@ RUN pip install numpy==1.16.6 pandas==0.24.2 matplotlib==2.2.5 werkzeug==0.16.1 
 RUN pip install unidecode==1.1.1
 RUN pip install zeep
 RUN pip install iniconfig==1.1.1
-RUN apt-get install python-tk
+RUN pip install PyQRCode==1.2.1
+RUN apt-get -y install python-tk
+RUN pip install pypng
 EXPOSE 80
 CMD python /home/perazzo/pesquisa/pesquisa.py

@@ -1437,13 +1437,13 @@ def meusProjetos():
          FROM editalProjeto,editais WHERE valendo=1 AND editalProjeto.tipo=editais.id AND siape=""" + str(session['username']) + """ ORDER BY editalProjeto.data """
         projetos2019,total2019 = executarSelect(consulta_outros)
 
-        consulta_orientandos_atuais = """SELECT indicacoes.id,indicacoes.nome,DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPq','FUNCAP')),IF(indicacoes.tipo_de_vaga=0,'VOLUNTÁRIO','BOLSISTA'),DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'),IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
+        consulta_orientandos_atuais = """SELECT indicacoes.id,indicacoes.nome,DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPq','FUNCAP')),IF(indicacoes.tipo_de_vaga=0,'VOLUNTÁRIO','BOLSISTA'),DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'),IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI',IF(indicacoes.modalidade=3,'PIBIC-EM','PIBIC-AF'))),
         (SELECT GROUP_CONCAT(CONCAT_WS('/',mes,ano) SEPARATOR '<BR><BR>') FROM frequencias WHERE frequencias.idIndicacao=indicacoes.id) as enviadas, editalProjeto.titulo
         FROM indicacoes,editalProjeto
         WHERE editalProjeto.id=indicacoes.idProjeto AND indicacoes.fim>NOW() AND editalProjeto.siape=""" + str(session['username']) + """ ORDER BY indicacoes.tipo_de_vaga,editalProjeto.titulo,indicacoes.nome """
         orientandos_atuais,totalOrientandos = executarSelect(consulta_orientandos_atuais)
 
-        consulta_orientandos_antigos = """SELECT indicacoes.id,indicacoes.nome,DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPq','FUNCAP')),IF(indicacoes.tipo_de_vaga=0,'VOLUNTÁRIO','BOLSISTA'),DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'),IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
+        consulta_orientandos_antigos = """SELECT indicacoes.id,indicacoes.nome,DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPq','FUNCAP')),IF(indicacoes.tipo_de_vaga=0,'VOLUNTÁRIO','BOLSISTA'),DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'),IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI',IF(indicacoes.modalidade=3,'PIBIC-EM','PIBIC-AF'))),
         (SELECT GROUP_CONCAT(CONCAT_WS('/',mes,ano) SEPARATOR '<BR><BR>') FROM frequencias WHERE frequencias.idIndicacao=indicacoes.id) as enviadas, editalProjeto.titulo
         FROM indicacoes,editalProjeto
         WHERE editalProjeto.id=indicacoes.idProjeto AND indicacoes.fim<NOW() AND editalProjeto.siape=""" + str(session['username']) + """ ORDER BY indicacoes.tipo_de_vaga,editalProjeto.titulo,indicacoes.nome """

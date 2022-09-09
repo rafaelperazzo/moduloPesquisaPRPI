@@ -69,7 +69,7 @@ app.config['DECLARACOES_FOLDER'] = DECLARACOES_DIR
 app.config['TEMP_FOLDER'] = DECLARACOES_DIR
 
 ## TODO: Preparar o log geral
-logging.basicConfig(filename=WORKING_DIR + 'app.log', filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',level=logging.ERROR)
+logging.basicConfig(filename=WORKING_DIR + 'app.log', filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',level=logging.ERROR)
 logging.getLogger('waitress')
 #Obtendo senhas
 lines = [line.rstrip('\n') for line in open(WORKING_DIR + 'senhas.pass')]
@@ -149,7 +149,11 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
             #ENVIAR E-MAIL DE CONFIRMAÇÃO
             texto_email = render_template('confirmacao_submissao.html',email_proponente=dados[0],id_projeto=idProjeto,proponente=dados[1],titulo_projeto=dados[2],resumo_projeto=dados[3],score=pontuacao,sumario=sumario)
             msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=[dados[0]],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
-            mail.send(msg)
+            try:
+                mail.send(msg)
+            except Exception as e:
+                logging.error("Erro ao enviar e-mail. processarPontuacaoLattes")
+                logging.error(str(e))
         except:
             e = sys.exc_info()[0]
             logging.error(e)
@@ -1781,7 +1785,11 @@ def enviarMinhaSenha():
                 #logging.debug(usuario)
                 texto_mensagem = "Usuario: " + usuario + "\nSenha: " + senha + "\n" + USUARIO_SITE
                 msg = Message(subject = "Plataforma Yoko - Lembrete de senha",recipients=[email],body=texto_mensagem)
-                mail.send(msg)
+                try:
+                    mail.send(msg)
+                except Exception as e:
+                    logging.error("Erro ao enviar e-mail. /enviarMinhaSenha")
+                    logging.error(str(e))
                 return(render_template('login.html',mensagem='Senha enviada para o email: ' + email))
             else:
                 return(render_template('login.html',mensagem=u'E-mail não cadastrado. Envie e-mail para atendimento.prpi@ufca.edu.br para solicitar sua senha.'))
@@ -2170,7 +2178,11 @@ def efetivarIndicacao():
                     msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE BOLSISTA",recipients=[email,email2],html=texto_email)
                 else:
                     msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE VOLUNTARIO",recipients=[email,email2],html=texto_email)
-                mail.send(msg)
+                try:
+                    mail.send(msg)
+                except Exception as e:
+                    logging.error("Erro ao enviar e-mail. /efetivarIndicacao")
+                    logging.error(str(e))
                 return(render_template('confirmacao_indicacao.html',vaga=vaga,id_projeto=idProjeto,indicado=nome,proponente=orientador,titulo=titulo_projeto,email_proponente=email,idIndicacao=idIndicacao))
             else:
                 return (u"Você já indicou todos os bolsistas/voluntários. Entrar em contato através do e-mail atendimento.prpi@ufca.edu.br")
@@ -2319,7 +2331,7 @@ def enviarFrequencia():
                 data_final = obterColunaUnica('indicacoes','ADDDATE(DATE(fim),INTERVAL 30 DAY)','id',idAluno)
                 data_hoje = obterColunaUnica('indicacoes','DATE(NOW())','id',idAluno)
                 if data_hoje>data_final:
-                    return("Prazo para envio de frequências expirado (%s)!" %(data_final))
+                    return("Prazo para envio de frequencias expirado (%s)!" %(data_final))
                 mes_ext = {1: 'janeiro', 2 : 'fevereiro', 3: 'marco', 4: 'abril', 5: 'maio', 6: 'junho', 7: 'julho',8: 'agosto', 9: 'setembro', 10: 'outubro', 11: 'novembro', 12: 'dezembro'}
                 now = datetime.now()
                 mesReferencia = now.month-1
@@ -2389,7 +2401,11 @@ def listaNegra():
                 if enviarEmail=="1":
                     texto_email = render_template('lembrete_frequencia.html')
                     msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisa.prpi@ufca.edu.br','dic.prpi@ufca.edu.br'],bcc=lista_emails,html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
-                    mail.send(msg)
+                    try:
+                        mail.send(msg)
+                    except Exception as e:
+                        logging.error("Erro ao enviar e-mail. /listaNegra")
+                        logging.error(str(e))
 
             return(render_template('listaNegra.html',lista=tuple(lista),mes=mes,ano=ano,total=len(lista)))
         else:
@@ -2461,7 +2477,11 @@ def desligarIndicacao(id_indicacao):
 
 def enviar_email_desligamento_substituicao(msg):
     with app.app_context():
-        mail.send(msg)
+        try:
+            mail.send(msg)
+        except Exception as e:
+            logging.error("Erro ao enviar e-mail. enviar_email_desligamento_substituicao")
+            logging.error(str(e))
 
 
 @app.route("/substituirIndicacao/<id_indicacao>", methods=['GET', 'POST'])
@@ -2645,7 +2665,11 @@ def enviar_email_avaliadores():
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
             msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
-                mail.send(msg)
+                try:
+                    mail.send(msg)
+                except Exception as e:
+                    logging.error("Erro ao enviar e-mail. enviar_email_avaliadores")
+                    logging.error(str(e))
                 consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
                 atualizar(consulta)    
             except:

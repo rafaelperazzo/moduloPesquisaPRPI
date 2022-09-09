@@ -682,7 +682,13 @@ def cadastrarProjeto():
 def getScoreLattesFromFile():
     area_capes = unicode(request.form['area_capes'])
     idlattes = unicode(request.form['idlattes'])
-    salvarCV(idlattes)
+    try:
+        salvarCV(idlattes)
+    except Exception as e:
+        logging.error(str(e))
+        logging.error("Nao foi possivel baixar o curriculo. IDlattes de um membro da UFCA ?")
+        logging.error(idlattes)
+        return("Este IDLattes e de um servidor/discente da UFCA ? Nao foi possivel calcular a pontuacao!")
     arquivo = XML_DIR + idlattes + ".xml"
     try:
         from datetime import date
@@ -1434,9 +1440,23 @@ def meusProjetos():
         consulta = """SELECT id,nome_do_coordenador,orientador_lotacao,titulo_do_projeto,DATE_FORMAT(inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(termino,'%d/%m/%Y') as fim,estudante_nome_completo,token FROM cadastro_geral WHERE siape='""" + str(session['username']) + """' ORDER BY inicio,titulo_do_projeto"""
         projetos,total = executarSelect(consulta)
 
-        consulta_outros = """SELECT editalProjeto.id,editais.nome,editalProjeto.nome,ua,titulo,DATE_FORMAT(inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(fim,'%d/%m/%Y') as fim,categoria,arquivo_projeto,
+        consulta_outros = """SELECT 
+        editalProjeto.id,
+        editais.nome,
+        editalProjeto.nome,
+        ua,
+        titulo,
+        DATE_FORMAT(inicio,'%d/%m/%Y') as inicio,
+        DATE_FORMAT(fim,'%d/%m/%Y') as fim,
+        categoria,
+        arquivo_projeto,
         (SELECT COUNT(recomendacao) FROM `avaliacoes` WHERE finalizado=1 AND recomendacao=1 AND idProjeto=editalProjeto.id) as aprovados,
-        (SELECT COUNT(recomendacao) FROM `avaliacoes` WHERE finalizado=1 AND recomendacao=0 AND idProjeto=editalProjeto.id) as reprovados,bolsas,bolsas_concedidas,categoria,editais.situacao,editais.id,
+        (SELECT COUNT(recomendacao) FROM `avaliacoes` WHERE finalizado=1 AND recomendacao=0 AND idProjeto=editalProjeto.id) as reprovados,
+        bolsas,
+        bolsas_concedidas,
+        categoria,
+        editais.situacao,
+        editais.id,
         (SELECT GROUP_CONCAT(CONCAT('(',id,') - ',nome,' (',IF(tipo_de_vaga=0,'VOLUNTARIO(A)','BOLSISTA'),')',' (',IF(situacao=0,'OK',IF(situacao=1,'DESLIGADO(A)','SUBSTITUIDO(A)')), ')') ORDER BY nome SEPARATOR '<BR><BR>') FROM indicacoes WHERE idProjeto=editalProjeto.id GROUP BY idProjeto) as orientandos
          FROM editalProjeto,editais WHERE valendo=1 AND editalProjeto.tipo=editais.id AND siape=""" + str(session['username']) + """ ORDER BY editalProjeto.data """
         projetos2019,total2019 = executarSelect(consulta_outros)

@@ -34,7 +34,7 @@ p.ufca {
     <h1>Lista de indicações</h1>
     <h2>{{descricao}}</h2>
     <table>
-    <th>Edital</th><th>Id da indicação</th><th>idProjeto</th><th>Orientador</th><th>Bolsista</th><th>Modalidade</th><th>Tipo de vaga</th><th>Banco</th><th>Agência</th><th>Conta</th>
+    <th>Edital</th><th>Id da indicação</th><th>idProjeto</th><th>Orientador</th><th>Bolsista</th><th>Fomento</th><th>Modalidade</th><th>Tipo de vaga</th><th>Banco</th><th>Agência</th><th>Conta</th>
     <th>CPF/RG</th><th>Comprovante bancário</th><th>Histórico</th><th>Termo</th><th>Início</th><th>Fim</th><th>Obs</th>
 
     <p>{% for linha in listaIndicacoes %}</p>
@@ -51,6 +51,7 @@ p.ufca {
       </td>
       <td>{{linha[14]}}</td>
       <td>{{linha[2]}}</td>
+      <td>{{linha[17]}}</td>
       <td>{{linha[3]}}</td>
       <td>{{linha[4]}}</td>
       <td>{{linha[5]}}</td>

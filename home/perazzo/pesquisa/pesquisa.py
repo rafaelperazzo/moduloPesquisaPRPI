@@ -2224,16 +2224,30 @@ def indicacoes():
             descricao_edital = obterColunaUnica('editais','nome','id',codigoEdital)
             if 'tipo' in request.args:
                 tipo_de_vaga = str(request.args.get('tipo'))
-                consulta = """SELECT indicacoes.id,indicacoes.idProjeto, indicacoes.nome,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
-                IF(tipo_de_vaga=1, 'BOLSISTA','VOLUNTÁRIO(A)'), nome_banco,agencia,conta, arquivo_cpf_rg,arquivo_extrato,
-                arquivo_historico,arquivo_termo,DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'), editalProjeto.nome,editalProjeto.obs,
-                editalProjeto.tipo
+                consulta = """SELECT indicacoes.id,
+                indicacoes.idProjeto, 
+                indicacoes.nome,
+                IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
+                IF(tipo_de_vaga=1, 'BOLSISTA','VOLUNTÁRIO(A)'), 
+                nome_banco,
+                agencia,
+                conta, 
+                arquivo_cpf_rg,
+                arquivo_extrato,
+                arquivo_historico,
+                arquivo_termo,
+                DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),
+                DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'), 
+                editalProjeto.nome,
+                editalProjeto.obs,
+                editalProjeto.tipo,
+                IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPQ','FUNCAP'))
                 FROM indicacoes,editalProjeto WHERE indicacoes.tipo_de_vaga=""" + tipo_de_vaga + """ AND indicacoes.idProjeto=editalProjeto.id AND tipo=""" + codigoEdital + """ ORDER BY editalProjeto.tipo,editalProjeto.nome,indicacoes.id """
             else:
                 consulta = """SELECT indicacoes.id,indicacoes.idProjeto, indicacoes.nome,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
                 IF(tipo_de_vaga=1, 'BOLSISTA','VOLUNTÁRIO(A)'), nome_banco,agencia,conta, arquivo_cpf_rg,arquivo_extrato,
                 arquivo_historico,arquivo_termo,DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'), editalProjeto.nome,editalProjeto.obs,
-                editalProjeto.tipo
+                editalProjeto.tipo,IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPQ','FUNCAP'))
                 FROM indicacoes,editalProjeto WHERE indicacoes.idProjeto=editalProjeto.id AND tipo=""" + codigoEdital + """ ORDER BY editalProjeto.tipo,editalProjeto.nome,indicacoes.id """
             linhas,total = executarSelect(consulta)
             return(render_template('listar_indicacoes.html',listaIndicacoes=linhas,total=total,descricao=descricao_edital))

@@ -2178,6 +2178,9 @@ def efetivarIndicacao():
                     inicio = timestamp()
                 else:
                     inicio = obterColunaUnica('editais','discente_inicio','id',str(codigoEdital))
+                    agora = timestamp()
+                    if agora>inicio:
+                        inicio=agora
                 fim = obterColunaUnica('editais','discente_fim','id',str(codigoEdital))
 
                 consulta = """INSERT INTO indicacoes (idProjeto,nome,nascimento,estado_civil,sexo,rg,orgao_emissor,uf,

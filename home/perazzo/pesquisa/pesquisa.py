@@ -1507,7 +1507,7 @@ def minhaDeclaracao():
                 if 'id' in request.args:
                     idProjeto = str(request.args.get('id'))
                     consulta = """SELECT DISTINCT editalProjeto.nome,editalProjeto.siape,editalProjeto.titulo,
-                    editalProjeto.inicio,editalProjeto.fim,
+                    DATE_FORMAT(editalProjeto.inicio,'%d/%m/%Y'),DATE_FORMAT(editalProjeto.fim,'%d/%m/%Y'),
                     (SELECT GROUP_CONCAT(indicacoes.nome ORDER BY indicacoes.nome SEPARATOR ', ') from indicacoes WHERE indicacoes.idProjeto=editalProjeto.id GROUP BY indicacoes.idProjeto) as indicados,
                     editalProjeto.id,if(editalProjeto.fim<NOW(),"exerceu","exerce") as verbo
                     FROM editalProjeto,indicacoes

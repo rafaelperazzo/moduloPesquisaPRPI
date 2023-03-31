@@ -523,6 +523,7 @@ def cadastrarProjeto():
     grande_area = unicode(request.form['grande_area'])
     grupo = unicode(request.form['grupo'])
     ods_projeto = unicode(request.form['ods_projeto'])
+    inovacao = int(request.form['inovacao'])
     cpf = unicode(request.form['cpf'])
     #CONEXÃO COM BD
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
@@ -531,7 +532,7 @@ def cadastrarProjeto():
     cursor  = conn.cursor()
 
     #DADOS PESSOAIS E BÁSICOS DO PROJETO
-    consulta = "INSERT INTO editalProjeto (categoria,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,data,ods) VALUES (" + str(categoria_projeto) + "," + str(tipo) + "," +  "\"" + nome + "\"," + str(siape) + "," + "\"" + email + "\"," + "\"" + ua + "\"," + "\"" + area_capes + "\"," + "\"" + grande_area + "\"," + "\"" + grupo + "\"," + "CURRENT_TIMESTAMP()," + ods_projeto + ")"
+    consulta = "INSERT INTO editalProjeto (categoria,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,data,ods,inovacao) VALUES (" + str(categoria_projeto) + "," + str(tipo) + "," +  "\"" + nome + "\"," + str(siape) + "," + "\"" + email + "\"," + "\"" + ua + "\"," + "\"" + area_capes + "\"," + "\"" + grande_area + "\"," + "\"" + grupo + "\"," + "CURRENT_TIMESTAMP()," + ods_projeto + ", " + str(inovacao) + ")"
     #atualizar(consulta)
     try:
         cursor.execute(consulta)

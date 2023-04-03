@@ -163,9 +163,9 @@ def calcularScoreLattes(tipo,area,since,until,arquivo):
     #Tipo = 0: Apenas pontuacao; Tipo = 1: Sumário
     pasta = WORKING_DIR + "modules/"
     if tipo==1:
-        command = "python " + pasta + "scorerun.py -v -p 2016 -s " +  since + " -u " + until + " \"" + area + "\" " +  arquivo
+        command = "python " + pasta + "scorerun.py -v -p 2017 -s " +  since + " -u " + until + " \"" + area + "\" " +  arquivo
     else:
-        command = "python " + pasta + "scorerun.py -p 2016 -s " +  since + " -u " + until + " \"" + area + "\" " +  arquivo
+        command = "python " + pasta + "scorerun.py -p 2017 -s " +  since + " -u " + until + " \"" + area + "\" " +  arquivo
     s = os.popen(command).read()
     return (s)
 

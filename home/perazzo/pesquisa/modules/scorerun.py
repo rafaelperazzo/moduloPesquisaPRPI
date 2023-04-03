@@ -38,7 +38,7 @@ weights = {
     'PROJETO-DE-PESQUISA' : {'PESQUISA': 2, 'DESENVOLVIMENTO': 2, 'ENSINO': 1,'EXTENSAO':1},
     'PROJETO-DE-PESQUISA-SEM-FOMENTO' : {'PESQUISA': 1, 'DESENVOLVIMENTO': 1,'ENSINO': 1,'EXTENSAO':1},
     'PRODUCAO-BIBLIOGRAFICA' : {
-        'ARTIGOS-PUBLICADOS': {'A1': 11, 'A2': 11, 'B1': 8, 'B2': 8, 'B3': 6, 'B4': 2, 'B5': 2, 'C': 0.5, 'NAO-ENCONTRADO': 0.5},
+        'ARTIGOS-PUBLICADOS': {'A1': 12, 'A2': 12, 'A3': 8, 'A4': 8, 'B1': 6, 'B2': 6, 'B3': 3, 'B4': 3, 'C': 0.5, 'NAO-ENCONTRADO': 0.5},
         'TRABALHOS-EM-EVENTOS': {
             'INTERNACIONAL': { 'COMPLETO': 2, 'RESUMO_EXPANDIDO': 2, 'RESUMO': 0.3 },
             'NACIONAL': { 'COMPLETO': 1, 'RESUMO_EXPANDIDO': 1, 'RESUMO': 0.2 },
@@ -116,7 +116,7 @@ bounds = {
     'PROJETO-DE-PESQUISA' : {'PESQUISA': 8, 'DESENVOLVIMENTO': 8,'ENSINO': 3,'EXTENSAO':3},
     'PROJETO-DE-PESQUISA-SEM-FOMENTO' : {'PESQUISA': 4, 'DESENVOLVIMENTO': 4,'ENSINO': 3,'EXTENSAO':3},
     'PRODUCAO-BIBLIOGRAFICA' : {
-        'ARTIGOS-PUBLICADOS': {'A1': 'inf', 'A2': 'inf', 'B1': 'inf', 'B2': 'inf', 'B3': 'inf', 'B4': 'inf', 'B5': 'inf', 'C': 'inf', 'NAO-ENCONTRADO': 'inf'},
+        'ARTIGOS-PUBLICADOS': {'A1': 'inf', 'A2': 'inf', 'A3': 'inf', 'A4': 'inf', 'B1': 'inf', 'B2': 'inf', 'B3': 'inf', 'B4': 'inf', 'C': 'inf', 'NAO-ENCONTRADO': 'inf'},
         'TRABALHOS-EM-EVENTOS': {
             'INTERNACIONAL': { 'COMPLETO': 10, 'RESUMO_EXPANDIDO': 10, 'RESUMO': 1.5 },
             'NACIONAL': { 'COMPLETO': 5, 'RESUMO_EXPANDIDO': 5, 'RESUMO': 5 },
@@ -210,7 +210,7 @@ class Score(object):
             'PROJETO-DE-PESQUISA' : {'PESQUISA': 0, 'DESENVOLVIMENTO': 0,'ENSINO': 0,'EXTENSAO':0},
             'PROJETO-DE-PESQUISA-SEM-FOMENTO' : {'PESQUISA': 0, 'DESENVOLVIMENTO': 0,'ENSINO': 0,'EXTENSAO':0},
             'PRODUCAO-BIBLIOGRAFICA' : {
-                'ARTIGOS-PUBLICADOS': {'A1': 0, 'A2': 0, 'B1': 0, 'B2': 0, 'B3': 0, 'B4': 0, 'B5': 0, 'C': 0, 'NAO-ENCONTRADO': 0},
+                'ARTIGOS-PUBLICADOS': {'A1': 0, 'A2': 0, 'A3': 0, 'A4': 0, 'B1': 0, 'B2': 0, 'B3': 0, 'B4': 0, 'C': 0, 'NAO-ENCONTRADO': 0},
                 'TRABALHOS-EM-EVENTOS': {
                     'INTERNACIONAL': { 'COMPLETO': 0, 'RESUMO_EXPANDIDO': 0, 'RESUMO': 0 },
                     'NACIONAL': { 'COMPLETO': 0, 'RESUMO_EXPANDIDO': 0, 'RESUMO': 0 },
@@ -498,7 +498,7 @@ class Score(object):
     def __get_qualis_periodicos_from_title(self, title):
         if title != "" and title != None:
             if self.__debug == 1:
-                print '[' + title + ']'
+                print ('[' + title + ']')
             if title in self.__qualis_periodicos_issn:
                 return self.__qualis_periodicos[ self.__qualis_periodicos_issn[title] ]
         return 'NAO-ENCONTRADO'
@@ -513,7 +513,7 @@ class Score(object):
         # If you reach here, the issn is not available in Qualis Periodicos.
         # Try to fetch issns from DOI, alternatively.
         if self.__debug == 1:
-            print 'ISSN ' + issn + ' not found. Trying to fetch ISSNs from DOI'
+            print ('ISSN ' + issn + ' not found. Trying to fetch ISSNs from DOI')
         #print self.__nome_completo
         #print self.__numero_identificador
         #print issn
@@ -557,14 +557,14 @@ class Score(object):
                 done = True
             estrato = min(estratos)
         else:
-            print 'DOI does not exist.'
+            print ('DOI does not exist.')
 
         # Last try.
         # We will search the article by the journal title.
         estratos = ['NAO-ENCONTRADO']
         if estrato == 'NAO-ENCONTRADO':
             if self.__debug == 1:
-                print 'Trying to find Qualis by title...'
+                print ('Trying to find Qualis by title...')
             title = unidecode( (artigo.find('DETALHAMENTO-DO-ARTIGO').attrib['TITULO-DO-PERIODICO-OU-REVISTA']).decode("utf-8") ).split('(')[0]
             title = title.strip().upper()
             estratos.append( self.__get_qualis_periodicos_from_title(title) )
@@ -574,9 +574,9 @@ class Score(object):
 
             if self.__debug == 1:
                 if estrato == 'NAO-ENCONTRADO':
-                    print 'Title not found: ' + title + '\n'
+                    print ('Title not found: ' + title + '\n')
                 else:
-                    print 'Success. Qualis = ' + estrato + '\n'
+                    print ('Success. Qualis = ' + estrato + '\n')
 
         return estrato
 
@@ -1115,11 +1115,12 @@ class Score(object):
         resultado = resultado + "<h2>4.1 - PRODUÇÃO BIBLIOGRÁFICA (ARTIGOS EM PERIÓDICOS)</h2><BR>\n"
         resultado = resultado +  "ARTIGOS-PUBLICADOS-QUALIS-A1:        "  + str(self.__tabela_de_qualificacao['PRODUCAO-BIBLIOGRAFICA']['ARTIGOS-PUBLICADOS']['A1'])  + "<BR>\n"
         resultado = resultado +  "ARTIGOS-PUBLICADOS-QUALIS-A2:        "  + str(self.__tabela_de_qualificacao['PRODUCAO-BIBLIOGRAFICA']['ARTIGOS-PUBLICADOS']['A2'])  + "<BR>\n"
+        resultado = resultado +  "ARTIGOS-PUBLICADOS-QUALIS-A3:        "  + str(self.__tabela_de_qualificacao['PRODUCAO-BIBLIOGRAFICA']['ARTIGOS-PUBLICADOS']['A3'])  + "<BR>\n"
+        resultado = resultado +  "ARTIGOS-PUBLICADOS-QUALIS-A4:        "  + str(self.__tabela_de_qualificacao['PRODUCAO-BIBLIOGRAFICA']['ARTIGOS-PUBLICADOS']['A4'])  + "<BR>\n"
         resultado = resultado +  "ARTIGOS-PUBLICADOS-QUALIS-B1:        "  + str(self.__tabela_de_qualificacao['PRODUCAO-BIBLIOGRAFICA']['ARTIGOS-PUBLICADOS']['B1'])  + "<BR>\n"
         resultado = resultado +  "ARTIGOS-PUBLICADOS-QUALIS-B2:        "  + str(self.__tabela_de_qualificacao['PRODUCAO-BIBLIOGRAFICA']['ARTIGOS-PUBLICADOS']['B2'])  + "<BR>\n"
         resultado = resultado +  "ARTIGOS-PUBLICADOS-QUALIS-B3:        "  + str(self.__tabela_de_qualificacao['PRODUCAO-BIBLIOGRAFICA']['ARTIGOS-PUBLICADOS']['B3'])  + "<BR>\n"
         resultado = resultado +  "ARTIGOS-PUBLICADOS-QUALIS-B4:        "  + str(self.__tabela_de_qualificacao['PRODUCAO-BIBLIOGRAFICA']['ARTIGOS-PUBLICADOS']['B4'])  + "<BR>\n"
-        resultado = resultado +  "ARTIGOS-PUBLICADOS-QUALIS-B5:        "  + str(self.__tabela_de_qualificacao['PRODUCAO-BIBLIOGRAFICA']['ARTIGOS-PUBLICADOS']['B5'])  + "<BR>\n"
         resultado = resultado +  "ARTIGOS-PUBLICADOS-QUALIS-C:         "  + str(self.__tabela_de_qualificacao['PRODUCAO-BIBLIOGRAFICA']['ARTIGOS-PUBLICADOS']['C'])  + "<BR>\n"
         resultado = resultado +  "ARTIGOS-PUBLICADOS-SEM-QUALIS:       "  + str(self.__tabela_de_qualificacao['PRODUCAO-BIBLIOGRAFICA']['ARTIGOS-PUBLICADOS']['NAO-ENCONTRADO']) + "<BR>\n"
         subtotal = self.__tabela_de_qualificacao['PRODUCAO-BIBLIOGRAFICA']['ARTIGOS-PUBLICADOS']['A1']

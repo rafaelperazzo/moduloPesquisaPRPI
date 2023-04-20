@@ -337,14 +337,18 @@ class Score(object):
             return
 
         for key,value in weights['FORMACAO-ACADEMICA-TITULACAO'].items():
-            result = formacao.find(key)
-            if result is None:
-                continue
-
-            if key == 'LIVRE-DOCENCIA': # neste caso, não há STATUS-DO-CURSO
-                self.__tabela_de_qualificacao['FORMACAO-ACADEMICA-TITULACAO'][key] = value
-            elif result.attrib['STATUS-DO-CURSO'] == 'CONCLUIDO':
-                self.__tabela_de_qualificacao['FORMACAO-ACADEMICA-TITULACAO'][key] = value
+            results = formacao.findall(key)
+            for result in results:
+                if result is None:
+                    continue
+                if key == 'LIVRE-DOCENCIA': # neste caso, não há STATUS-DO-CURSO
+                    self.__tabela_de_qualificacao['FORMACAO-ACADEMICA-TITULACAO'][key] = value
+                elif result.attrib['STATUS-DO-CURSO'] == 'CONCLUIDO':
+                    current = self.__tabela_de_qualificacao['FORMACAO-ACADEMICA-TITULACAO'][key]
+                    weight = weights['FORMACAO-ACADEMICA-TITULACAO'][key]
+                    bound = bounds['FORMACAO-ACADEMICA-TITULACAO'][key]
+                    self.__tabela_de_qualificacao['FORMACAO-ACADEMICA-TITULACAO'][key] = self.__clamp(current+weight, bound)
+                    #self.__tabela_de_qualificacao['FORMACAO-ACADEMICA-TITULACAO'][key] = value
 
         # Handle master of professional studies
         result = formacao.find('MESTRADO-PROFISSIONALIZANTE')

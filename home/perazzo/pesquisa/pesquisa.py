@@ -68,8 +68,7 @@ app.config['CURRICULOS_FOLDER'] = CURRICULOS_DIR
 app.config['DECLARACOES_FOLDER'] = DECLARACOES_DIR
 app.config['TEMP_FOLDER'] = DECLARACOES_DIR
 
-## TODO: Preparar o log geral
-logging.basicConfig(filename=WORKING_DIR + 'app.log', filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',level=logging.ERROR)
+logging.basicConfig(filename=WORKING_DIR + 'app.log', filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',level=logging.ERROR)
 logging.getLogger('waitress')
 #Obtendo senhas
 lines = [line.rstrip('\n') for line in open(WORKING_DIR + 'senhas.pass')]
@@ -677,7 +676,7 @@ def cadastrarProjeto():
     t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
     t.start()
     #processarPontuacaoLattes(cpf,area_capes,ultimo_id,dados)
-    return("Verifique a confirmação de sua submissão no e-mail, em alguns minutos. ESTA PÁGINA JÁ PODE SER FECHADA COM SEGURANÇA.")
+    return("Submissão realizada com sucesso. ESTA PÁGINA JÁ PODE SER FECHADA COM SEGURANÇA.")
 
 @app.route("/score", methods=['GET', 'POST'])
 def getScoreLattesFromFile():

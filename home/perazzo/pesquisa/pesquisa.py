@@ -2449,6 +2449,7 @@ def listaNegra():
                     msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisa.prpi@ufca.edu.br','dic.prpi@ufca.edu.br'],bcc=lista_emails,html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     try:
                         mail.send(msg)
+                        return("E-mails enviados!")
                     except Exception as e:
                         logging.error("Erro ao enviar e-mail. /listaNegra")
                         logging.error(str(e))

@@ -1433,8 +1433,6 @@ def declaracaoEvento():
 @app.route("/meusProjetos", methods=['GET', 'POST'])
 def meusProjetos():
     if autenticado():
-        gravando = "INSERT INTO acessos (username) VALUES ('" + str(session['username']) + "')"
-        atualizar(gravando)
         ## TODO: CORRIGIR LISTA DE ORIENTANDO. TEM Q USAR GROUP CONCAT
         #consulta = """SELECT id,nome_do_coordenador,orientador_lotacao,titulo_do_projeto,DATE_FORMAT(inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(termino,'%d/%m/%Y') as fim,GROUP_CONCAT(estudante_nome_completo SEPARATOR '<BR><BR>\n') as estudantes,token FROM cadastro_geral WHERE siape='""" + str(session['username']) + """' GROUP BY titulo_do_projeto ORDER BY inicio"""
         consulta = """SELECT id,nome_do_coordenador,orientador_lotacao,titulo_do_projeto,DATE_FORMAT(inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(termino,'%d/%m/%Y') as fim,estudante_nome_completo,token FROM cadastro_geral WHERE siape='""" + str(session['username']) + """' ORDER BY inicio,titulo_do_projeto"""
@@ -1766,6 +1764,16 @@ def usuario():
     else:
         return(render_template('login.html',mensagem=''))
 
+def registrar_acesso(ip,usuario):
+    try:
+        consulta = """
+        INSERT INTO acessos(ip,username) VALUES (%s,%s)
+        """
+        valores = (str(ip),str(usuario))
+        inserir(consulta,valores)
+    except Exception as e:
+        logging.error("Erro ao registrar acesso: " + str(e))
+
 '''
 Método que ativa a sessão com os dados do usuário
 '''
@@ -1776,6 +1784,7 @@ def login():
             siape = str(request.form['siape'])
             senha = str(request.form['senha'])
             if verify_password(siape,senha):
+                registrar_acesso(request.remote_addr,siape)
                 return(redirect(url_for('usuario')))
             else:
                 return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
@@ -2793,6 +2802,5 @@ def substituir(id_indicacao):
     action = url_for('substituirIndicacao',id_indicacao=id_indicacao)
     return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao=u"SUBSTITUIÇÃO",action=action))
 
-
 if __name__ == "__main__":
-    serve(app, host='0.0.0.0', port=80, url_prefix='/pesquisa')
+    serve(app, host='0.0.0.0', port=80, url_prefix='/pesquisa',trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')

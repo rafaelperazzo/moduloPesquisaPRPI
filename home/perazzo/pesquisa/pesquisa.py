@@ -1766,6 +1766,16 @@ def usuario():
     else:
         return(render_template('login.html',mensagem=''))
 
+def registrar_acesso(ip,usuario):
+    try:
+        consulta = """
+        INSERT INTO acessos(ip,username) VALUES (%s,%s)
+        """
+        valores = (str(ip),str(usuario))
+        inserir(consulta,valores)
+    except Exception as e:
+        logging.error("Erro ao registrar acesso: " + str(e))
+
 '''
 Método que ativa a sessão com os dados do usuário
 '''
@@ -1776,6 +1786,7 @@ def login():
             siape = str(request.form['siape'])
             senha = str(request.form['senha'])
             if verify_password(siape,senha):
+                registrar_acesso(request.remote_addr,siape)
                 return(redirect(url_for('usuario')))
             else:
                 return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
@@ -2793,6 +2804,5 @@ def substituir(id_indicacao):
     action = url_for('substituirIndicacao',id_indicacao=id_indicacao)
     return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao=u"SUBSTITUIÇÃO",action=action))
 
-
 if __name__ == "__main__":
-    serve(app, host='0.0.0.0', port=80, url_prefix='/pesquisa')
+    serve(app, host='0.0.0.0', port=80, url_prefix='/pesquisa',trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')

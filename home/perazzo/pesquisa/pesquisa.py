@@ -2421,44 +2421,40 @@ def cadastrarFrequencia():
     else:
         return("OK")
 
-@app.route("/listaNegra", methods=['GET', 'POST'])
+@app.route("/listaNegra/<email>", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
-def listaNegra():
-    if request.method == "GET":
-        if ('mes' in request.args) and ('ano' in request.args):
-            mes = str(request.args.get('mes'))
-            ano = str(request.args.get('ano'))
-            consulta = """SELECT indicacoes.id,indicacoes.nome,editalProjeto.nome,editalProjeto.email,indicacoes.email FROM indicacoes,editalProjeto WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.fim>NOW() ORDER BY editalProjeto.nome,indicacoes.id"""
-            linhas,total = executarSelect(consulta)
-            lista = []
-            lista_emails = ['pesquisa.prpi@ufca.edu.br']
-            lista_emails_discentes = []
-            for linha in linhas:
-                idIndicacao = str(linha[0])
-                subconsulta = """SELECT id FROM frequencias WHERE mes=""" + mes + """ AND ano=""" + ano + """ AND idIndicacao=""" + idIndicacao
-                frequencias,totalFrequencias = executarSelect(subconsulta)
-                dados = [str(linha[0]),unicode(linha[1]),unicode(linha[2])]
-                if totalFrequencias==0:
-                    lista.append(dados)
-                    lista_emails.append(str(linha[3]))
-                    lista_emails_discentes.append(linha[4])
-            if ('email' in request.args):
-                enviarEmail = str(request.args.get('email'))
-                if enviarEmail=="1":
-                    texto_email = render_template('lembrete_frequencia.html')
-                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisa.prpi@ufca.edu.br','dic.prpi@ufca.edu.br'],bcc=lista_emails,html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
-                    try:
-                        mail.send(msg)
-                        return("E-mails enviados!")
-                    except Exception as e:
-                        logging.error("Erro ao enviar e-mail. /listaNegra")
-                        logging.error(str(e))
+def listaNegra(email):
+    import datetime
+    ano = datetime.date.today().year
+    mes = datetime.date.today().month
+    if mes==1:
+        ano = ano - 1
+    consulta = """SELECT indicacoes.id,indicacoes.nome,editalProjeto.nome,editalProjeto.email,indicacoes.email FROM indicacoes,editalProjeto WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.fim>NOW() ORDER BY editalProjeto.nome,indicacoes.id"""
+    linhas,total = executarSelect(consulta)
+    lista = []
+    lista_emails = ['pesquisa.prpi@ufca.edu.br']
+    lista_emails_discentes = []
+    for linha in linhas:
+        idIndicacao = str(linha[0])
+        subconsulta = """SELECT id FROM frequencias WHERE mes=""" + mes + """ AND ano=""" + ano + """ AND idIndicacao=""" + idIndicacao
+        frequencias,totalFrequencias = executarSelect(subconsulta)
+        dados = [str(linha[0]),unicode(linha[1]),unicode(linha[2])]
+        if totalFrequencias==0:
+            lista.append(dados)
+            lista_emails.append(str(linha[3]))
+            lista_emails_discentes.append(linha[4])
+    
+    if email=="1":
+        texto_email = render_template('lembrete_frequencia.html')
+        msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisa.prpi@ufca.edu.br','dic.prpi@ufca.edu.br'],bcc=lista_emails,html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+        try:
+            mail.send(msg)
+            return("E-mails enviados!")
+        except Exception as e:
+            logging.error("Erro ao enviar e-mail. /listaNegra")
+            logging.error(str(e))
 
-            return(render_template('listaNegra.html',lista=tuple(lista),mes=mes,ano=ano,total=len(lista)))
-        else:
-            return("Mes e ano nao informado...")
-    else:
-        return("OK")
+    return(render_template('listaNegra.html',lista=tuple(lista),mes=mes,ano=ano,total=len(lista)))
 
 def agora():
     from datetime import datetime as dt

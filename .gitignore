@@ -19,3 +19,4 @@ home/perazzo/teste.py
 *.bak
 *.pyc
 home/perazzo/pesquisa/static/plots/*.png
+cron.frequencia.sh

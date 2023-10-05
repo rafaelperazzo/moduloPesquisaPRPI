@@ -2433,8 +2433,8 @@ def thread_enviar_email(msg,erro):
 @auth.login_required(role=['admin'])
 def listaNegra(email):
     import datetime
-    ano = datetime.date.today().year
-    mes = datetime.date.today().month
+    ano = str(datetime.date.today().year)
+    mes = str(datetime.date.today().month)
     if mes==1:
         ano = ano - 1
     consulta = """SELECT indicacoes.id,indicacoes.nome,editalProjeto.nome,editalProjeto.email,indicacoes.email FROM indicacoes,editalProjeto WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.fim>NOW() ORDER BY editalProjeto.nome,indicacoes.id"""

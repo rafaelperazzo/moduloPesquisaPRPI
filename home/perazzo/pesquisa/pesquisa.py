@@ -68,7 +68,7 @@ app.config['CURRICULOS_FOLDER'] = CURRICULOS_DIR
 app.config['DECLARACOES_FOLDER'] = DECLARACOES_DIR
 app.config['TEMP_FOLDER'] = DECLARACOES_DIR
 
-logging.basicConfig(filename=WORKING_DIR + 'app.log', filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',level=logging.ERROR)
+logging.basicConfig(filename=WORKING_DIR + 'app.log', filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',level=logging.DEBUG)
 logging.getLogger('waitress')
 #Obtendo senhas
 lines = [line.rstrip('\n') for line in open(WORKING_DIR + 'senhas.pass')]
@@ -2435,7 +2435,7 @@ def listaNegra(email):
     import datetime
     #Mes e ano atual
     ano = str(datetime.date.today().year)
-    mes = str(datetime.date.today().month)
+    mes = str(datetime.date.today().month-1)
     if mes==1:
         ano = ano - 1
     consulta = """SELECT indicacoes.id,indicacoes.nome,editalProjeto.nome,editalProjeto.email,indicacoes.email FROM indicacoes,editalProjeto WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.fim>NOW() ORDER BY editalProjeto.nome,indicacoes.id"""
@@ -2448,24 +2448,22 @@ def listaNegra(email):
         subconsulta = """SELECT id FROM frequencias WHERE mes=""" + mes + """ AND ano=""" + ano + """ AND idIndicacao=""" + idIndicacao
         frequencias,totalFrequencias = executarSelect(subconsulta)
         dados = [str(linha[0]),unicode(linha[1]),unicode(linha[2])]
+        if PRODUCAO!=1:
+            logging.debug(unicode(linha[2]))
+            logging.debug(str(totalFrequencias))
         if totalFrequencias==0:
             lista.append(dados)
             lista_emails.append(str(linha[3]))
             lista_emails_discentes.append(linha[4])
     
     if email=="1":
-        texto_email = render_template('lembrete_frequencia.html')
-        msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisa.prpi@ufca.edu.br','dic.prpi@ufca.edu.br'],bcc=lista_emails,html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
-        '''
-        try:
-            mail.send(msg)
-            return("E-mails enviados!")
-        except Exception as e:
-            logging.error("Erro ao enviar e-mail. /listaNegra")
-            logging.error(str(e))
-        '''
-        thread_enviar_email(msg,"Erro ao enviar e-mail com lembrete de frequência")
-        return("200")
+        if PRODUCAO==1:
+            texto_email = render_template('lembrete_frequencia.html')
+            msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisa.prpi@ufca.edu.br','dic.prpi@ufca.edu.br'],bcc=lista_emails,html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+            t = threading.Thread(target=thread_enviar_email,args=(msg,"Erro ao enviar e-mail com lembrete de frequência",))
+            t.start()
+            #thread_enviar_email(msg,"Erro ao enviar e-mail com lembrete de frequência")
+            return("200")
 
     return(render_template('listaNegra.html',lista=tuple(lista),mes=mes,ano=ano,total=len(lista)))
 

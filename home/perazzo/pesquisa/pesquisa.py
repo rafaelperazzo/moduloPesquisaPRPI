@@ -2433,6 +2433,7 @@ def thread_enviar_email(msg,erro):
 @auth.login_required(role=['admin'])
 def listaNegra(email):
     import datetime
+    #Mes e ano atual
     ano = str(datetime.date.today().year)
     mes = str(datetime.date.today().month)
     if mes==1:

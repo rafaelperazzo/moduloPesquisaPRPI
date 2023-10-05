@@ -2421,6 +2421,14 @@ def cadastrarFrequencia():
     else:
         return("OK")
 
+def thread_enviar_email(msg,erro):
+    with app.app_context():
+        try:
+            mail.send(msg)
+        except Exception as e:
+            logging.error(erro)
+            logging.error(str(e))
+
 @app.route("/listaNegra/<email>", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
 def listaNegra(email):
@@ -2447,12 +2455,16 @@ def listaNegra(email):
     if email=="1":
         texto_email = render_template('lembrete_frequencia.html')
         msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisa.prpi@ufca.edu.br','dic.prpi@ufca.edu.br'],bcc=lista_emails,html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+        '''
         try:
             mail.send(msg)
             return("E-mails enviados!")
         except Exception as e:
             logging.error("Erro ao enviar e-mail. /listaNegra")
             logging.error(str(e))
+        '''
+        thread_enviar_email(msg,"Erro ao enviar e-mail com lembrete de frequência")
+        return("200")
 
     return(render_template('listaNegra.html',lista=tuple(lista),mes=mes,ano=ano,total=len(lista)))
 

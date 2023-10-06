@@ -68,7 +68,7 @@ app.config['CURRICULOS_FOLDER'] = CURRICULOS_DIR
 app.config['DECLARACOES_FOLDER'] = DECLARACOES_DIR
 app.config['TEMP_FOLDER'] = DECLARACOES_DIR
 
-logging.basicConfig(filename=WORKING_DIR + 'app.log', filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',level=logging.DEBUG)
+logging.basicConfig(filename=WORKING_DIR + 'app.log', filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',level=logging.ERROR)
 logging.getLogger('waitress')
 #Obtendo senhas
 lines = [line.rstrip('\n') for line in open(WORKING_DIR + 'senhas.pass')]
@@ -2429,6 +2429,69 @@ def thread_enviar_email(msg,erro):
             logging.error(erro)
             logging.error(str(e))
 
+def enviar_lembrete_frequencia():
+    import datetime
+    #Mes e ano atual
+    ano = str(datetime.date.today().year)
+    mes = str(datetime.date.today().month-1)
+    if mes==1:
+        ano = ano - 1
+    nome_mes = {
+            '1': 'janeiro',
+            '2': 'fevereiro',
+            '3': 'março',
+            '4': 'abril',
+            '5': 'maio',
+            '6': 'junho',
+            '7': 'julho',
+            '8': 'agosto',
+            '9': 'setembro',
+            '10': 'outubro',
+            '11': 'novembro',
+            '12': 'dezembro'        
+        }
+    with app.app_context():
+        consulta = """SELECT 
+        GROUP_CONCAT(editalProjeto.id ORDER BY editalProjeto.id),
+        editalProjeto.nome,
+        GROUP_CONCAT(editalProjeto.titulo), 
+        GROUP_CONCAT(indicacoes.id ORDER BY indicacoes.idProjeto,indicacoes.id),
+        editalProjeto.email,
+        editalProjeto.siape
+        from editalProjeto
+        INNER JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
+        WHERE indicacoes.fim>NOW() 
+        GROUP BY editalProjeto.nome"""
+        linhas,total = executarSelect(consulta)
+        for linha in linhas:
+            id_projetos = str(linha[0]).split(',')
+            orientador = unicode(linha[1])
+            siape = str(linha[5])
+            senha = obterColunaUnica('users','password','username',siape)
+            titulos = unicode(linha[2]).split(',')
+            indicacoes = str(linha[3]).split(',')
+            nao_enviados = []
+            for indicacao in indicacoes:
+                subconsulta = """SELECT 
+                idIndicacao 
+                FROM frequencias 
+                WHERE mes=%s AND ano=%s AND idIndicacao=%s 
+                LIMIT 1
+                """ % (mes,ano,indicacao)
+                frequencias,totalFrequencias = executarSelect(subconsulta)
+                if totalFrequencias==0: #Não foi enviada a frequência para este discente
+                    nome_indicado = obterColunaUnica('indicacoes','nome','id',indicacao)
+                    nao_enviados.append(nome_indicado)
+            if (len(nao_enviados)!=0):
+                texto_email = render_template('lembrete_frequencia.html',mes=nome_mes[str(mes)],ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
+                if PRODUCAO==1:
+                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                    mail.send(msg)            
+                else:
+                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['rafael.mota@ufca.edu.br'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                    mail.send(msg)                   
+                    break
+                    
 @app.route("/listaNegra/<email>", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
 def listaNegra(email):
@@ -2438,7 +2501,17 @@ def listaNegra(email):
     mes = str(datetime.date.today().month-1)
     if mes==1:
         ano = ano - 1
-    consulta = """SELECT indicacoes.id,indicacoes.nome,editalProjeto.nome,editalProjeto.email,indicacoes.email FROM indicacoes,editalProjeto WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.fim>NOW() ORDER BY editalProjeto.nome,indicacoes.id"""
+    consulta = """SELECT 
+    indicacoes.id,
+    indicacoes.nome,
+    editalProjeto.nome,
+    editalProjeto.email,
+    indicacoes.email,
+    editalProjeto.titulo,
+    editalProjeto.id 
+    FROM indicacoes,editalProjeto 
+    WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.fim>NOW() 
+    ORDER BY editalProjeto.nome,indicacoes.id"""
     linhas,total = executarSelect(consulta)
     lista = []
     lista_emails = ['pesquisa.prpi@ufca.edu.br']
@@ -2448,22 +2521,16 @@ def listaNegra(email):
         subconsulta = """SELECT id FROM frequencias WHERE mes=""" + mes + """ AND ano=""" + ano + """ AND idIndicacao=""" + idIndicacao
         frequencias,totalFrequencias = executarSelect(subconsulta)
         dados = [str(linha[0]),unicode(linha[1]),unicode(linha[2])]
-        if PRODUCAO!=1:
-            logging.debug(unicode(linha[2]))
-            logging.debug(str(totalFrequencias))
         if totalFrequencias==0:
             lista.append(dados)
             lista_emails.append(str(linha[3]))
             lista_emails_discentes.append(linha[4])
     
     if email=="1":
-        if PRODUCAO==1:
-            texto_email = render_template('lembrete_frequencia.html')
-            msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisa.prpi@ufca.edu.br','dic.prpi@ufca.edu.br'],bcc=lista_emails,html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
-            t = threading.Thread(target=thread_enviar_email,args=(msg,"Erro ao enviar e-mail com lembrete de frequência",))
-            t.start()
-            #thread_enviar_email(msg,"Erro ao enviar e-mail com lembrete de frequência")
-            return("200")
+        t = threading.Thread(target=enviar_lembrete_frequencia)
+        t.start()
+        #enviar_lembrete_frequencia()
+        return("200")
 
     return(render_template('listaNegra.html',lista=tuple(lista),mes=mes,ano=ano,total=len(lista)))
 

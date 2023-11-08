@@ -1432,6 +1432,11 @@ def declaracaoEvento():
 
 @app.route("/meusProjetos", methods=['GET', 'POST'])
 def meusProjetos():
+    if 'siape' in request.args and 'senha' in request.args:
+            siape = str(request.args.get('siape'))
+            senha = str(request.args.get('senha'))
+            if verify_password(siape,senha):
+                registrar_acesso(request.remote_addr,siape)
     if autenticado():
         ## TODO: CORRIGIR LISTA DE ORIENTANDO. TEM Q USAR GROUP CONCAT
         #consulta = """SELECT id,nome_do_coordenador,orientador_lotacao,titulo_do_projeto,DATE_FORMAT(inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(termino,'%d/%m/%Y') as fim,GROUP_CONCAT(estudante_nome_completo SEPARATOR '<BR><BR>\n') as estudantes,token FROM cadastro_geral WHERE siape='""" + str(session['username']) + """' GROUP BY titulo_do_projeto ORDER BY inicio"""
@@ -1470,8 +1475,6 @@ def meusProjetos():
         FROM indicacoes,editalProjeto
         WHERE editalProjeto.id=indicacoes.idProjeto AND indicacoes.fim<NOW() AND editalProjeto.siape=""" + str(session['username']) + """ ORDER BY indicacoes.tipo_de_vaga,editalProjeto.titulo,indicacoes.nome """
         orientandos_antigos,totalOrientandosAntigos = executarSelect(consulta_orientandos_antigos)
-
-        consulta_frequencias = ""
 
         return(render_template('meusProjetos.html',projetos=projetos,total=total,projetos2019=projetos2019,total2019=total2019,permissao=session['permissao'],orientandos=orientandos_atuais,orientandos_antigos=orientandos_antigos))
     else:
@@ -1777,7 +1780,7 @@ def registrar_acesso(ip,usuario):
 '''
 Método que ativa a sessão com os dados do usuário
 '''
-@app.route("/login", methods=['POST'])
+@app.route("/login", methods=['POST','GET'])
 def login():
     if request.method == "POST":
         if (('siape' in request.form) and ('senha' in request.form)):
@@ -1790,8 +1793,17 @@ def login():
                 return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
         else:
             return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
-    else:
-        return(render_template('login.html',mensagem=''))
+    else: #GET
+        if 'siape' in request.args and 'senha' in request.args:
+            siape = str(request.args.get('siape'))
+            senha = str(request.args.get('senha'))
+            if verify_password(siape,senha):
+                registrar_acesso(request.remote_addr,siape)
+                return(redirect(url_for('usuario')))
+            else:
+                return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
+        else:
+            return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
 
 @app.route("/esqueciMinhaSenha", methods=['GET', 'POST'])
 def esqueciMinhaSenha():
@@ -2460,7 +2472,7 @@ def enviar_lembrete_frequencia():
         editalProjeto.siape
         from editalProjeto
         INNER JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
-        WHERE indicacoes.fim>NOW() 
+        WHERE indicacoes.fim>NOW() AND indicacoes.situacao=0
         GROUP BY editalProjeto.nome"""
         linhas,total = executarSelect(consulta)
         for linha in linhas:

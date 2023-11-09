@@ -1,0 +1,10 @@
+#!/bin/sh
+git fetch origin
+# See if there are any incoming changes
+OUTPUT=$(git log HEAD..origin/master --oneline)
+if [ -z "$OUTPUT" ]
+then
+	echo "ATUALIZADO" > /dev/null
+else
+	git pull origin master
+fi

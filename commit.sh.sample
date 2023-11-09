@@ -1,0 +1,4 @@
+git log --pretty="- %s" > CHANGELOG.md
+git add .
+git commit -m "$1"
+git push origin develop

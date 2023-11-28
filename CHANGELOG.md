@@ -1,3 +1,4 @@
+- chore: Adicionar scripts de cicd e commit
 - Corrigidos problemas no lembrete de frequencia
 - email de lembrete de frequência corrigido!
 - listaNegra enviando emails corretamente

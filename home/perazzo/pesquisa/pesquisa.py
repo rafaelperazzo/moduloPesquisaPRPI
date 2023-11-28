@@ -2472,7 +2472,7 @@ def enviar_lembrete_frequencia():
         editalProjeto.siape
         from editalProjeto
         INNER JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
-        WHERE indicacoes.fim>NOW() AND indicacoes.situacao=0
+        WHERE indicacoes.fim>NOW() AND indicacoes.situacao=0 and MONTH(indicacoes.inicio)!=Month(now())
         GROUP BY editalProjeto.nome"""
         linhas,total = executarSelect(consulta)
         for linha in linhas:

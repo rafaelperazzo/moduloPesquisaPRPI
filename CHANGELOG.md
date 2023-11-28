@@ -1,0 +1,71 @@
+- chore: Adicionar scripts de cicd e commit
+- Corrigidos problemas no lembrete de frequencia
+- email de lembrete de frequência corrigido!
+- listaNegra enviando emails corretamente
+- ajustes
+- corrigida rota listaNegra
+- atualizado o gitignore
+- enviar email com thread na rota listaNegra
+- ajustada rota listaNegra
+- frequencias - lembretes
+- email de frequencia modificado
+- atualizado o registro de acessos
+- modificado o registro de acessos
+- assinaturas de clarice e claudener
+- assinaturas atualizadas
+- Validacao do CPF
+- Corrigido scorerun para varias formacoes academicas
+- corrigido pontuação de a3 e a4
+- qualis 2017 - barema
+- atualizado para qualis 2017
+- incluido campo de inovação
+- ajustada data na declaração
+- ajustada data na declaração
+- Ajustado inicio da indicacao
+- incluída coluna fomento na lista de indicações
+- Corrigido bug do /score
+- try-except nos envios de e-mail
+- Incluída modalidade AF em meusProjetos
+- Possibilidade de envio da frequencia até 30 dias após o termino da bolsa
+- Ajustes finais antes da versão
+- Incluído formulário de motivos de substituição
+- Justificativa de desligamento no README
+- Implementação do motivo do desligamento
+- Bootstrap em algumas páginas
+- Correção da declaração do orientador
+- Pronto para producao
+- E-mail com cobrança de frequencias ajustado
+- Cobrança de frequencia reativada
+- Remoção de imports desnecessários
+- Corrigidas algumas identações
+- Preparando para gerar qrcodes
+- Incluido arquivo license
+- Ajustada página pública do scorelattes
+- Calculo do scorelattes separado foi modificado
+- Curriculo xml baixado automaticamente
+- Corrigido Dockerfile
+- Corrigido captcha
+- Removidos pyc
+- Ajustado envio de e-mail para avaliadores
+- Adicionado schema do banco de dados
+- Incluído sample do docker-compose
+- Envio de e-mail para consultores OK
+- Incluída função para envio imediato ao avaliador
+- Incluido script merge
+- Primeiro commit - develop
+- Merge branch 'master' of github.com:rafaelperazzo/moduloPesquisaPRPI
+- Adicionado configparser
+- Certificado 2018 corrigido
+- Incluido configparser
+- correção do certificado 2018
+- Organizado gitignore
+- 15/06/2022 - 08:04
+- 15/06/2022
+- Certificados 2018 pronto
+- ajustado requirements
+- requirements.txt
+- Iniciando certificados antes de 2018
+- Adicionado certificado discente
+- Segundo commit...
+- Segundo commit...
+- Primeiro commit

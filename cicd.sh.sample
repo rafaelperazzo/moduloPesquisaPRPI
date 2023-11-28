@@ -1,4 +1,5 @@
 #!/bin/sh
+#SCRIPT CICD PARA ATUALIZAÇÕES AUTOMÁTICAS
 now=$(date)
 cd /backup/pesquisa
 git fetch origin

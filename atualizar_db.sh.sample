@@ -1,0 +1,10 @@
+#!/bin/bash
+cd /home/perazzo/docker/projetos/pesquisa
+dir="/backup/pesquisa/share"
+server="perazzo@sci01-ter-jne.ufca.edu.br"
+arquivo=$(ssh sci01-ter-jne.ufca.edu.br 'ls -t /backup/pesquisa/share | head -1')
+scp $server:$dir/$arquivo share/
+gunzip share/$arquivo
+arquivo=$(ls -t share | head -1)
+/usr/local/bin/docker-compose -f /home/perazzo/docker/projetos/pesquisa/docker-compose.yml exec -T db_pesquisa bash -c "mysql -u root -pSENHA < /share/$arquivo"
+rm share/$arquivo

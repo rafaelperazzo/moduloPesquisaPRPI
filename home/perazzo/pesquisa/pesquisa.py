@@ -27,6 +27,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import zeep
 import zipfile
+from flask import Response
+import json
 
 WORKING_DIR='/home/perazzo/pesquisa/'
 config = configparser.ConfigParser()
@@ -2888,6 +2890,27 @@ def desligar(id_indicacao):
 def substituir(id_indicacao):
     action = url_for('substituirIndicacao',id_indicacao=id_indicacao)
     return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao=u"SUBSTITUIÇÃO",action=action))
+
+@app.route("/get_bib/<siapes>", methods=['GET'])
+@auth.login_required(role=['user'])
+def get_bib(siapes):
+    consulta = """
+    SELECT editalProjeto.nome,area_capes,titulo, YEAR(editalProjeto.inicio) as ano,
+    GROUP_CONCAT(IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')) LIMIT 1) as modalidade,
+    palavras
+    FROM `editalProjeto` 
+    LEFT JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
+    where valendo=1 
+    and siape in (%s) 
+    group by editalProjeto.id
+    order by year(editalProjeto.inicio),editalProjeto.id
+    """ % (siapes)
+    linhas,total = executarSelect(consulta)
+    dados = []
+    for linha in linhas:
+        dado = {'nome': linha[0],'area_capes': linha[1],'titulo': linha[2],'ano': linha[3],'modalidade': linha[4],'palavras': linha[5]}
+        dados.append(dado)
+    return Response(json.dumps(dados),  mimetype='application/json')
 
 if __name__ == "__main__":
     serve(app, host='0.0.0.0', port=80, url_prefix='/pesquisa',trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')

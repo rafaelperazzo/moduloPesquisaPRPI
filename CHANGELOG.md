@@ -1,3 +1,5 @@
+	2023-11-29 10:27:53 -0300	chore: Script de atualizar_db funcionando
+	2023-11-28 15:38:58 -0300	chore: script de cicd atualizado
 	2023-11-28 15:32:52 -0300	1.2.5 Merge branch 'develop'
 	2023-11-28 15:32:16 -0300	chore: modificado scripts cicd e commit para ajustes ao projeto
 	2023-11-28 15:10:59 -0300	1.2.4 Merge branch 'develop'

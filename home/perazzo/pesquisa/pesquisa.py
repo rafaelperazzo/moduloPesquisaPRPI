@@ -2897,10 +2897,13 @@ def get_bib(siapes):
     consulta = """
     SELECT editalProjeto.nome,area_capes,titulo, YEAR(editalProjeto.inicio) as ano,
     GROUP_CONCAT(IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')) LIMIT 1) as modalidade,
-    palavras
+    palavras,bolsas as solicitadas,bolsas_concedidas as concedidas,
+    (SELECT count(id) FROM indicacoes WHERE indicacoes.idProjeto=editalProjeto.id and indicacoes.tipo_de_vaga=1 and situacao=0) as bolsistas,
+    (SELECT count(id) FROM indicacoes WHERE indicacoes.idProjeto=editalProjeto.id and indicacoes.tipo_de_vaga=0 and situacao=0) as voluntarios,
+    (SELECT count(id)*400*12 FROM indicacoes WHERE indicacoes.idProjeto=editalProjeto.id and indicacoes.tipo_de_vaga=1 and situacao=0) as valores
     FROM `editalProjeto` 
     LEFT JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
-    where valendo=1 
+    where valendo=1 and indicacoes.situacao=0
     and siape in (%s) 
     group by editalProjeto.id
     order by year(editalProjeto.inicio),editalProjeto.id
@@ -2908,7 +2911,7 @@ def get_bib(siapes):
     linhas,total = executarSelect(consulta)
     dados = []
     for linha in linhas:
-        dado = {'nome': linha[0],'area_capes': linha[1],'titulo': linha[2],'ano': linha[3],'modalidade': linha[4],'palavras': linha[5]}
+        dado = {'nome': linha[0],'area_capes': linha[1],'titulo': linha[2],'ano': linha[3],'modalidade': linha[4],'palavras': linha[5],'solicitadas': linha[6],'concedidas': linha[7],'bolsistas': linha[8],'voluntarios': linha[9],'valores': linha[10]}
         dados.append(dado)
     return Response(json.dumps(dados),  mimetype='application/json')
 

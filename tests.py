@@ -59,7 +59,14 @@ def test_get_bib_json_content():
 
 def test_login(app):
     '''
-    Testa se o login está funcionando
+    Testa se o login funcionou para acessar uma página
     '''
     r = app.get(URL + 'meusProjetos', timeout=5)
+    assert r.status_code == 200
+
+def test_editalProjeto(app):
+    '''
+    Testa se a página de editalProjeto está respondendo
+    '''
+    r = app.get(URL + 'editalProjeto?edital=29', timeout=5)
     assert r.status_code == 200

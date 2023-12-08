@@ -1,3 +1,4 @@
+.env
 cicd.sh
 cron
 *.conf

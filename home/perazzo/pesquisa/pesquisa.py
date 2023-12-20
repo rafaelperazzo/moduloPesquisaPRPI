@@ -2895,7 +2895,7 @@ def substituir(id_indicacao):
 @auth.login_required(role=['user'])
 def get_bib(siapes):
     consulta = """
-    SELECT editalProjeto.nome,area_capes,titulo, YEAR(editalProjeto.inicio) as ano,
+    SELECT UPPER(editalProjeto.nome),area_capes,UPPER(titulo), YEAR(editalProjeto.inicio) as ano,
     GROUP_CONCAT(IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')) LIMIT 1) as modalidade,
     palavras,bolsas as solicitadas,bolsas_concedidas as concedidas,
     (SELECT count(id) FROM indicacoes WHERE indicacoes.idProjeto=editalProjeto.id and indicacoes.tipo_de_vaga=1 and situacao=0) as bolsistas,
@@ -2908,6 +2908,38 @@ def get_bib(siapes):
     group by editalProjeto.id
     order by year(editalProjeto.inicio),editalProjeto.id
     """ % (siapes)
+    consulta = u"""
+    (SELECT UPPER(editalProjeto.nome),area_capes,UPPER(titulo), YEAR(editalProjeto.inicio) as ano,
+    GROUP_CONCAT(IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')) LIMIT 1) as modalidade,
+    palavras,bolsas as solicitadas,bolsas_concedidas as concedidas,
+    (SELECT count(id) FROM indicacoes WHERE indicacoes.idProjeto=editalProjeto.id and indicacoes.tipo_de_vaga=1 and situacao=0) as bolsistas,
+    (SELECT count(id) FROM indicacoes WHERE indicacoes.idProjeto=editalProjeto.id and indicacoes.tipo_de_vaga=0 and situacao=0) as voluntarios,
+    (SELECT count(id)*400*12 FROM indicacoes WHERE indicacoes.idProjeto=editalProjeto.id and indicacoes.tipo_de_vaga=1 and situacao=0) as valores
+    FROM `editalProjeto` 
+    LEFT JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
+    where valendo=1 and indicacoes.situacao=0
+    and siape in (%s) 
+    group by editalProjeto.id
+    order by year(editalProjeto.inicio),editalProjeto.id)
+
+    UNION
+
+    (SELECT nome_do_coordenador as nome,
+    "INDISPONÍVEL" as area_capes, 
+    titulo_do_projeto as titulo, 
+    YEAR(inicio) as ano, 
+    estudante_modalidade as modalidade, 
+    "INDISPONÍVEL" as palavras, 
+    "INDISPONÍVEL" as solicitadas, 
+    "INDISPONÍVEL" as concedidas, 
+    count(id) as bolsistas, 
+    "INDISPONÍVEL" as voluntarios, 
+    count(id)*400*12 as valores 
+    FROM cadastro_geral 
+    WHERE siape in (%s) and estudante_tipo_de_vaga='BOLSISTA'
+    GROUP BY titulo_do_projeto,ano 
+    ORDER BY ano,nome_do_coordenador)
+    """ % (siapes,siapes)
     linhas,total = executarSelect(consulta)
     dados = []
     for linha in linhas:

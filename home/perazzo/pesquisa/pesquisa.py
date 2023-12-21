@@ -2924,9 +2924,9 @@ def get_bib(siapes):
 
     UNION
 
-    (SELECT nome_do_coordenador as nome,
+    (SELECT UPPER(nome_do_coordenador) as nome,
     "INDISPONÍVEL" as area_capes, 
-    titulo_do_projeto as titulo, 
+    UPPER(titulo_do_projeto) as titulo, 
     YEAR(inicio) as ano, 
     estudante_modalidade as modalidade, 
     "INDISPONÍVEL" as palavras, 

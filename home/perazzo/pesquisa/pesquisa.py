@@ -684,6 +684,7 @@ def cadastrarProjeto():
 def getScoreLattesFromFile():
     area_capes = unicode(request.form['area_capes'])
     idlattes = unicode(request.form['idlattes'])
+    periodo = int(unicode(request.form['periodo']))
     try:
         salvarCV(idlattes)
     except Exception as e:
@@ -695,7 +696,7 @@ def getScoreLattesFromFile():
     try:
         from datetime import date
         ano_fim = date.today().year
-        ano_inicio = ano_fim - 5
+        ano_inicio = ano_fim - periodo
         s = calcularScoreLattes(1,area_capes,str(ano_inicio),str(ano_fim),arquivo)
         return(s)
     except:

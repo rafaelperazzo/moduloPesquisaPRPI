@@ -1512,7 +1512,7 @@ def minhaDeclaracao():
                     idProjeto = str(request.args.get('id'))
                     consulta = """SELECT DISTINCT editalProjeto.nome,editalProjeto.siape,editalProjeto.titulo,
                     DATE_FORMAT(editalProjeto.inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(editalProjeto.fim,'%d/%m/%Y') as fim,
-                    (SELECT GROUP_CONCAT(indicacoes.nome ORDER BY indicacoes.nome SEPARATOR ', ') from indicacoes WHERE indicacoes.idProjeto=editalProjeto.id GROUP BY indicacoes.idProjeto) as indicados,
+                    (SELECT GROUP_CONCAT(indicacoes.nome,' (',year(indicacoes.inicio),'/',year(indicacoes.fim),') ' ORDER BY indicacoes.nome SEPARATOR ', ') from indicacoes WHERE indicacoes.idProjeto=editalProjeto.id GROUP BY indicacoes.idProjeto) as indicados,
                     editalProjeto.id,if(editalProjeto.fim<NOW(),"exerceu","exerce") as verbo
                     FROM editalProjeto,indicacoes
                     WHERE editalProjeto.id=indicacoes.idProjeto AND editalProjeto.id=""" + idProjeto + """ ORDER BY fim DESC"""

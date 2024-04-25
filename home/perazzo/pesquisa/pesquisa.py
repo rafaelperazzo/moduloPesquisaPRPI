@@ -2479,12 +2479,12 @@ def enviar_lembrete_frequencia():
         GROUP BY editalProjeto.nome"""
         linhas,total = executarSelect(consulta)
         for linha in linhas:
-            id_projetos = str(linha[0]).split(',')
+            id_projetos = unicode(linha[0]).split(',')
             orientador = unicode(linha[1])
-            siape = str(linha[5])
+            siape = unicode(linha[5])
             senha = obterColunaUnica('users','password','username',siape)
             titulos = unicode(linha[2]).split(',')
-            indicacoes = str(linha[3]).split(',')
+            indicacoes = unicode(linha[3]).split(',')
             nao_enviados = []
             for indicacao in indicacoes:
                 subconsulta = """SELECT 
@@ -2498,12 +2498,12 @@ def enviar_lembrete_frequencia():
                     nome_indicado = obterColunaUnica('indicacoes','nome','id',indicacao)
                     nao_enviados.append(nome_indicado)
             if (len(nao_enviados)!=0):
-                texto_email = render_template('lembrete_frequencia.html',mes=nome_mes[str(mes)],ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
+                texto_email = render_template('lembrete_frequencia.html',mes=unicode(nome_mes[unicode(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
                 if PRODUCAO==1:
-                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                    msg = Message(subject = u"Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[unicode(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     mail.send(msg)            
                 else:
-                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['rafael.mota@ufca.edu.br'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                    msg = Message(subject = u"Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['rafael.mota@ufca.edu.br'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     mail.send(msg)                   
                     break
                     

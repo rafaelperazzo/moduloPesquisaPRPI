@@ -2447,14 +2447,14 @@ def thread_enviar_email(msg,erro):
 def enviar_lembrete_frequencia():
     import datetime
     #Mes e ano atual
-    ano = str(datetime.date.today().year)
-    mes = str(datetime.date.today().month-1)
+    ano = unicode(datetime.date.today().year)
+    mes = unicode(datetime.date.today().month-1)
     if mes==1:
         ano = ano - 1
     nome_mes = {
             '1': 'janeiro',
             '2': 'fevereiro',
-            '3': 'março',
+            '3': 'marco',
             '4': 'abril',
             '5': 'maio',
             '6': 'junho',
@@ -2498,6 +2498,7 @@ def enviar_lembrete_frequencia():
                     nome_indicado = obterColunaUnica('indicacoes','nome','id',indicacao)
                     nao_enviados.append(nome_indicado)
             if (len(nao_enviados)!=0):
+                
                 texto_email = render_template('lembrete_frequencia.html',mes=unicode(nome_mes[unicode(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
                 if PRODUCAO==1:
                     msg = Message(subject = u"Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[unicode(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")

@@ -779,7 +779,11 @@ def getPaginaAvaliacao():
             if naoEstaFinalizado(tokenAvaliacao):
                 consulta = "UPDATE avaliacoes SET aceitou=1 WHERE token=\"" + tokenAvaliacao + "\""
                 atualizar(consulta)
-                return render_template('avaliacao.html',arquivos=links)
+                idProjeto = obterColunaUnica_str("avaliacoes","idProjeto","token",tokenAvaliacao)
+                edital = obterColunaUnica("editalProjeto","tipo","id",idProjeto)
+                modalidade = int(obterColunaUnica("editais","modalidade","id",edital))
+                logging.error(str(modalidade))
+                return render_template('avaliacao.html',arquivos=links,modalidade=modalidade)
             else:
                 logging.debug("[AVALIACAO] Tentativa de reavaliar projeto")
                 return("Projeto já foi avaliado! Não é possível modificar a avaliação!")
@@ -793,6 +797,9 @@ def enviarAvaliacao():
         recomendacao = str(request.form['txtRecomendacao'])
         nome_avaliador = unicode(request.form['txtNome'])
         token = str(request.form['token'])
+        idProjeto = obterColunaUnica_str("avaliacoes","idProjeto","token",token)
+        edital = obterColunaUnica("editalProjeto","tipo","id",idProjeto)
+        modalidade = int(obterColunaUnica("editais","modalidade","id",edital))
         c1 = str(request.form['c1'])
         c2 = str(request.form['c2'])
         c3 = str(request.form['c3'])
@@ -830,6 +837,10 @@ def enviarAvaliacao():
             atualizar(consulta)
             consulta = "UPDATE avaliacoes SET cepa=" + comite + " WHERE token=\"" + token + "\""
             atualizar(consulta)
+            if modalidade==2:
+                inovacao = str(request.form['inovacao'])
+                consulta = "UPDATE avaliacoes SET inovacao=" + inovacao + " WHERE token=\"" + token + "\""
+                atualizar(consulta)
         except:
             e = sys.exc_info()[0]
             logging.error(e)
@@ -1216,6 +1227,27 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
     finally:
         cursor.close()
         conn.close()
+        
+def obterColunaUnica_str(tabela,coluna,colunaId,valorId):
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn.select_db('pesquisa')
+    cursor  = conn.cursor()
+    consulta = "SELECT " + coluna + " FROM " + tabela + " WHERE " + colunaId + "=\"" + valorId + "\""
+    resultado = "0"
+    try:
+        cursor.execute(consulta)
+        linhas = cursor.fetchall()
+        for linha in linhas:
+            resultado = unicode(linha[0])
+        return(resultado)
+    except:
+        e = sys.exc_info()[0]
+        logging.error(e)
+        logging.error("ERRO Na função obtercolunaUnica. Ver consulta abaixo.")
+        logging.error(consulta)
+    finally:
+        cursor.close()
+        conn.close()
 
 def gerarGraficos(demandas,grafico1,grafico2,rotacao=0):
     #import matplotlib
@@ -1278,17 +1310,30 @@ def editalProjeto():
                     consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs FROM editalProjeto WHERE tipo=" + codigoEdital + " AND valendo=1 ORDER BY ua,produtividade,scorelattes DESC,nome"
                 else:
                     consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs FROM editalProjeto WHERE tipo=" + codigoEdital + " AND valendo=1 ORDER BY produtividade,scorelattes DESC,nome"
-                consulta_novos = """SELECT editalProjeto.id,nome,ua,titulo,arquivo_projeto,
+                
+                consulta_novos = """
+                SELECT editalProjeto.id,
+                nome,
+                ua,
+                titulo,
+                arquivo_projeto,
                 GROUP_CONCAT(avaliacoes.avaliador ORDER BY avaliador SEPARATOR '<BR>') as avaliadores,
                 GROUP_CONCAT(IF(avaliacoes.recomendacao=1,'RECOMENDADO',IF(avaliacoes.recomendacao=0,'***NÃO RECOMENDADO***','EM AVALIAÇÃO')) ORDER BY avaliador SEPARATOR '<BR>') as recomendacoes, 
                 GROUP_CONCAT(avaliacoes.enviado ORDER BY avaliador SEPARATOR '<BR>') as enviado,
                 GROUP_CONCAT(IF(avaliacoes.aceitou=1,'ACEITOU',IF(avaliacoes.aceitou=0,'REJEITOU','NÃO RESPONDEU')) ORDER BY avaliador SEPARATOR '<BR>') as aceitou,
-                sum(avaliacoes.finalizado) as finalizados,sum(if(recomendacao=-1,1,0)), 
-                sum(if(recomendacao=0,1,0)),sum(if(recomendacao=1,1,0)),palavras"""
-                consulta_novos = consulta_novos + """ FROM editalProjeto,avaliacoes WHERE tipo=""" + codigoEdital + """ 
+                sum(avaliacoes.finalizado) as finalizados,
+                sum(if(recomendacao=-1,1,0)), 
+                sum(if(recomendacao=0,1,0)),
+                sum(if(recomendacao=1,1,0)),palavras,
+                sum(avaliacoes.inovacao) as inovacao
+                FROM editalProjeto
+                LEFT JOIN avaliacoes ON editalProjeto.id=avaliacoes.idProjeto
+                WHERE tipo=%s
                 AND valendo=1 AND categoria=1 
-                AND editalProjeto.id=avaliacoes.idProjeto GROUP BY editalProjeto.id 
-                ORDER BY finalizados,editalProjeto.ua,editalProjeto.id"""
+                GROUP BY editalProjeto.id 
+                ORDER BY finalizados,editalProjeto.ua,editalProjeto.id
+                """ % (codigoEdital)
+                modalidade = int(obterColunaUnica("editais","modalidade","id",codigoEdital))
                 demanda = """SELECT ua,count(id) FROM editalProjeto WHERE valendo=1 and tipo=""" + codigoEdital + """ GROUP BY ua 
                 ORDER BY ua"""
                 demanda_bolsas = """SELECT ua,sum(bolsas) FROM editalProjeto 
@@ -1348,15 +1393,15 @@ def editalProjeto():
                     if 'resultado' in request.args:
                         if 'pdf' in request.args:
                             mensagem = unicode(obterColunaUnica("editais","mensagem","id",codigoEdital))
-                            gerarPDF(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=1,mensagem=mensagem))
+                            gerarPDF(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=1,mensagem=mensagem,modalidade=modalidade))
                             return(send_from_directory(app.config['TEMP_FOLDER'], 'resultados.pdf'))
 
                         else:
                             mensagem = unicode(obterColunaUnica("editais","mensagem","id",codigoEdital))
-                            return(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=1,mensagem=mensagem))
+                            return(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=1,mensagem=mensagem,modalidade=modalidade))
                     else:
                         mensagem = ""
-                        return(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=0))
+                        return(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=0,modalidade=modalidade))
                 except:
                     e = sys.exc_info()[0]
                     logging.error(e)

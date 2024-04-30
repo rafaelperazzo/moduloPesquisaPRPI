@@ -273,6 +273,10 @@
                 <tr>
                   <td><a href="/pesquisa/arquivar/{{linha[0]}}" onclick="return confirm('Tem certeza que deseja arquivar o id {{linha[0]}}?')">ARQUIVAR</a></td>
                   <td>
+                    {% if (linha[9] is none) %}
+                      <img src="{{ url_for('static', filename='interrogacao_vermelha.png')}}?rnd={{ range(1, 10000) | random }}" style="width:50%" alt="" align="center">
+                      SEM AVALIADORES!
+                    {% endif %}
                     {% if (linha[9]==0) %}
                       <img src="{{ url_for('static', filename='interrogacao_vermelha.png')}}?rnd={{ range(1, 10000) | random }}" style="width:50%" alt="" align="center">
                       SEM AVALIAÇÕES!
@@ -294,7 +298,12 @@
                       {% endif %}
                     {% endif %}
                   </td>
-                  <td><a href="/pesquisa/meusPareceres?id={{linha[0]}}&todos=1">{{linha[0]}}</a></td><td>{{linha[1]}}</td><td>{{linha[2]}}</td>
+                  {% if ((modalidade==2) and (linha[14]==0)) %}
+                    <td style="background-color:#EBEE1F">
+                  {% else %}
+                    <td>
+                  {% endif %}
+                    <a href="/pesquisa/meusPareceres?id={{linha[0]}}&todos=1">{{linha[0]}}</a></td><td>{{linha[1]}}</td><td>{{linha[2]}}</td>
                   <td>
                     <a href="/pesquisa/static/files/{{ linha[4] }}">{{linha[3]}}</a></td>
                   <td>{{linha[13]}}<td>{{linha[9]}}</td></td><td><a href="/pesquisa/avaliacoesNegadas?edital={{codigoEdital}}&id={{linha[0]}}">Adicionar consultor</a></td><td>{{linha[5]|safe}}</td><td>{{linha[6]|safe}}</td>

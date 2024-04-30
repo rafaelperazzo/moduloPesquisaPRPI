@@ -779,7 +779,9 @@ def getPaginaAvaliacao():
             if naoEstaFinalizado(tokenAvaliacao):
                 consulta = "UPDATE avaliacoes SET aceitou=1 WHERE token=\"" + tokenAvaliacao + "\""
                 atualizar(consulta)
-                return render_template('avaliacao.html',arquivos=links)
+                idProjeto = obterColunaUnica("avaliacoes","idProjeto","token",tokenAvaliacao)
+                modalidade = obterColunaUnica("editalProjeto","modalidade","id",idProjeto)
+                return render_template('avaliacao.html',arquivos=links,modalidade=modalidade)
             else:
                 logging.debug("[AVALIACAO] Tentativa de reavaliar projeto")
                 return("Projeto já foi avaliado! Não é possível modificar a avaliação!")
@@ -793,6 +795,8 @@ def enviarAvaliacao():
         recomendacao = str(request.form['txtRecomendacao'])
         nome_avaliador = unicode(request.form['txtNome'])
         token = str(request.form['token'])
+        idProjeto = obterColunaUnica("avaliacoes","idProjeto","token",token)
+        modalidade = obterColunaUnica("editalProjeto","modalidade","id",idProjeto)
         c1 = str(request.form['c1'])
         c2 = str(request.form['c2'])
         c3 = str(request.form['c3'])
@@ -1294,7 +1298,8 @@ def editalProjeto():
                 GROUP BY editalProjeto.id 
                 ORDER BY finalizados,editalProjeto.ua,editalProjeto.id
                 """ % (codigoEdital)
-                
+                demanda = """SELECT ua,count(id) FROM editalProjeto WHERE valendo=1 and tipo=""" + codigoEdital + """ GROUP BY ua 
+                ORDER BY ua"""
                 demanda_bolsas = """SELECT ua,sum(bolsas) FROM editalProjeto 
                 WHERE valendo=1 and tipo=""" + codigoEdital + """ GROUP BY ua ORDER BY ua"""
                 bolsas_ufca = int(obterColunaUnica("editais","quantidade_bolsas","id",codigoEdital))

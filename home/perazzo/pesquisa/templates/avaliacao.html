@@ -242,6 +242,15 @@ projeto em relação à fronteira do conhecimento <b>(Máximo 15 pontos)</b></td
         <option value="1">Sim</option>
         <option value="2">Não sei responder</option>
       </select><br>
+      <b>Projeto com potencial de inovação tecnológica ?  </b>
+      {% if modalidade==2 %}
+          <select name="pibiti" required="required">
+            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+            <option value="0">Não</option>
+            <option value="1">Sim</option>
+            <option value="2">Não sei responder</option>
+          </select><br>
+      {% endif %}
       <b>Comentários:<br>
         <textarea name="txtComentarios" cols="120" rows="40" required="required" onfocus="recomendacao()"></textarea><br>
 

@@ -1278,19 +1278,23 @@ def editalProjeto():
                     consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs FROM editalProjeto WHERE tipo=" + codigoEdital + " AND valendo=1 ORDER BY ua,produtividade,scorelattes DESC,nome"
                 else:
                     consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs FROM editalProjeto WHERE tipo=" + codigoEdital + " AND valendo=1 ORDER BY produtividade,scorelattes DESC,nome"
-                consulta_novos = """SELECT editalProjeto.id,nome,ua,titulo,arquivo_projeto,
+                
+                consulta_novos = """
+                SELECT editalProjeto.id,nome,ua,titulo,arquivo_projeto,
                 GROUP_CONCAT(avaliacoes.avaliador ORDER BY avaliador SEPARATOR '<BR>') as avaliadores,
                 GROUP_CONCAT(IF(avaliacoes.recomendacao=1,'RECOMENDADO',IF(avaliacoes.recomendacao=0,'***NÃO RECOMENDADO***','EM AVALIAÇÃO')) ORDER BY avaliador SEPARATOR '<BR>') as recomendacoes, 
                 GROUP_CONCAT(avaliacoes.enviado ORDER BY avaliador SEPARATOR '<BR>') as enviado,
                 GROUP_CONCAT(IF(avaliacoes.aceitou=1,'ACEITOU',IF(avaliacoes.aceitou=0,'REJEITOU','NÃO RESPONDEU')) ORDER BY avaliador SEPARATOR '<BR>') as aceitou,
                 sum(avaliacoes.finalizado) as finalizados,sum(if(recomendacao=-1,1,0)), 
-                sum(if(recomendacao=0,1,0)),sum(if(recomendacao=1,1,0)),palavras"""
-                consulta_novos = consulta_novos + """ FROM editalProjeto,avaliacoes WHERE tipo=""" + codigoEdital + """ 
+                sum(if(recomendacao=0,1,0)),sum(if(recomendacao=1,1,0)),palavras
+                FROM editalProjeto
+                LEFT JOIN avaliacoes ON editalProjeto.id=avaliacoes.idProjeto
+                WHERE tipo=%s
                 AND valendo=1 AND categoria=1 
-                AND editalProjeto.id=avaliacoes.idProjeto GROUP BY editalProjeto.id 
-                ORDER BY finalizados,editalProjeto.ua,editalProjeto.id"""
-                demanda = """SELECT ua,count(id) FROM editalProjeto WHERE valendo=1 and tipo=""" + codigoEdital + """ GROUP BY ua 
-                ORDER BY ua"""
+                GROUP BY editalProjeto.id 
+                ORDER BY finalizados,editalProjeto.ua,editalProjeto.id
+                """ % (codigoEdital)
+                
                 demanda_bolsas = """SELECT ua,sum(bolsas) FROM editalProjeto 
                 WHERE valendo=1 and tipo=""" + codigoEdital + """ GROUP BY ua ORDER BY ua"""
                 bolsas_ufca = int(obterColunaUnica("editais","quantidade_bolsas","id",codigoEdital))

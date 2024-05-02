@@ -1,3 +1,15 @@
+- fix: removida mensagem de log para registrar a modalidade do projeto
+- feat: formulários de avaliação pibiti agora tem opção para o avaliador dizer se o projeto tem potencial de inovação
+- fix: /editalProjeto demanda foi apagada acidentalmente
+- fix: corrigido problema do editalProjeto que so mostrava projetos com algum avaliador atribuido
+- fix: unicode error em enviar_frequencia
+- fix: unicode error no lembrete de frequencia
+- fix: ajustado texto da declaração do orientador
+- fix: adicionado <br> no scorelattes
+- fix: incluido período no score lattes static
+- refactor: Colunas da API em UPPERcase
+- feat: Adicionados projetos anteriores a 2019 na API
+- test: Incluído teste de resposta da rota editalProjeto
 - test: Incluído arquivo inicial de testes
 - fix: corrigida consulta da rota get_bib
 - feat: Extração de dados de projetos de pesquisa a partir de uma lista de siapes

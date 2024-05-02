@@ -2546,11 +2546,20 @@ def enviar_lembrete_frequencia():
                 texto_email = render_template('lembrete_frequencia.html',mes=unicode(nome_mes[unicode(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
                 if PRODUCAO==1:
                     msg = Message(subject = u"Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[unicode(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
-                    mail.send(msg)            
+                    try:
+                        mail.send(msg)            
+                    except Exception as e:
+                        logging.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
+                        logging.error(str(e))
                 else:
                     msg = Message(subject = u"Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['rafael.mota@ufca.edu.br'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
-                    mail.send(msg)                   
-                    break
+                    try:
+                        mail.send(msg)
+                    except Exception as e:
+                        logging.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
+                        logging.error(str(e))
+                    finally:
+                        break
                     
 @app.route("/listaNegra/<email>", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])

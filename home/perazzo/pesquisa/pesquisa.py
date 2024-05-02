@@ -782,7 +782,6 @@ def getPaginaAvaliacao():
                 idProjeto = obterColunaUnica_str("avaliacoes","idProjeto","token",tokenAvaliacao)
                 edital = obterColunaUnica("editalProjeto","tipo","id",idProjeto)
                 modalidade = int(obterColunaUnica("editais","modalidade","id",edital))
-                logging.error(str(modalidade))
                 return render_template('avaliacao.html',arquivos=links,modalidade=modalidade)
             else:
                 logging.debug("[AVALIACAO] Tentativa de reavaliar projeto")

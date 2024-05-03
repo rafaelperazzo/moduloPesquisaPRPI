@@ -77,6 +77,12 @@ projeto em relação à fronteira do conhecimento <b>(Máximo 15 pontos)</b></td
       {% else %}
       Não foi recomendado envio para comitê de ética <br>
       {% endif %}
+      <b>Projeto com potencial de desenvolvimento tecnológico e/ou processos de inovação?</b>
+      {% if linha[13]==1 %}
+      Sim <br>
+      {% else %}
+      Não<br>
+      {% endif %}
       <b>Data da avaliação:</b> {{linha[12]}}<br>
       <hr>
     {% endfor %}

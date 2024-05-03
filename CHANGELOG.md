@@ -1,3 +1,4 @@
+- fix: Calculo da Licença maternidade funcionando corretamente - 2 anos para cada licença nos últimos 5 anos.
 - feat: Considerar licença maternidade na pontuação do lattes
 - fix: Corrigido texto do formulário de avaliação de projetos
 - fix: removida mensagem de log para registrar a modalidade do projeto

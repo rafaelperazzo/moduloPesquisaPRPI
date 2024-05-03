@@ -1267,9 +1267,9 @@ def main():
     score = Score(root, args.since[0], args.until[0], args.area[0], args.ano_qualis_periodicos[0], args.verbose, args.debug)
 
     if args.verbose == 1:
-        print score.sumario()
+        print (score.sumario())
     else:
-        print "%.1f" % (score.get_score())
+        print ("%.1f" % (score.get_score()))
 
 # Main
 if __name__ == "__main__":

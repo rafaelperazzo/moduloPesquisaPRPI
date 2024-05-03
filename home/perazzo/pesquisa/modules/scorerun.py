@@ -26,7 +26,7 @@ import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 from unidecode import unidecode
 from datetime import date
-
+from datetime import datetime
 from Weights import weights
 from Bounds import bounds
 
@@ -196,6 +196,7 @@ class Score(object):
         self.__numero_identificador = ''
         self.__nome_completo = ''
         self.__score = 0
+        self.__ultima_licenca = 0
         self.__verbose = verbose
         self.__debug = debug
         self.__ano_inicio = int(inicio)
@@ -328,6 +329,19 @@ class Score(object):
 
         dados = self.__curriculo.find('DADOS-GERAIS')
         self.__nome_completo = dados.attrib['NOME-COMPLETO']
+        licencas = dados.find('LICENCAS')
+        if licencas is not None:
+            for licenca in licencas.findall('LICENCA'):
+                if licenca.attrib['TIPO-LICENCA'] == 'MATERNIDADE':
+                    try:
+                        data_licenca = licenca.attrib['DATA-FIM-LICENCA']
+                        ano_licenca = datetime.strptime(data_licenca, "%d%m%Y").year
+                        self.__ultima_licenca = ano_licenca
+                        #Se a licença for de até 5 anos atrás, considerar tempo adicional
+                        if datetime.now().year - ano_licenca <=5:
+                            self.__ano_inicio = self.__ano_inicio - 2
+                    except Exception as e:
+                        self.__ultima_licenca = 0
 
     def __formacao_academica_titulacao(self):
         dados = self.__curriculo.find('DADOS-GERAIS')

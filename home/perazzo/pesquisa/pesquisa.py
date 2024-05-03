@@ -1335,28 +1335,10 @@ def editalProjeto():
                 modalidade = int(obterColunaUnica("editais","modalidade","id",codigoEdital))
                 demanda = """SELECT ua,count(id) FROM editalProjeto WHERE valendo=1 and tipo=""" + codigoEdital + """ GROUP BY ua 
                 ORDER BY ua"""
-                '''
-                demanda_bolsas = """SELECT ua,sum(bolsas) FROM editalProjeto 
-                WHERE valendo=1 and tipo=""" + codigoEdital + """ GROUP BY ua ORDER BY ua"""
-                '''
+                
                 bolsas_ufca = int(obterColunaUnica("editais","quantidade_bolsas","id",codigoEdital))
                 bolsas_cnpq = int(obterColunaUnica("editais","quantidade_bolsas_cnpq","id",codigoEdital))
-                '''
-                situacaoProjetosNovos = """SELECT if(situacao=1,"APROVADO",if(situacao=-1,"INDEFINIDO","NÃO APROVADO")) as situacaoD,count(id) FROM resumoProjetosNovos WHERE
-                tipo=""" + codigoEdital + """ GROUP BY situacao ORDER BY situacao"""
-                respostaAvaliadores = """ SELECT if(aceitou=1,"ACEITOU AVALIAR",if(aceitou=-1,"NÃO RESPONDEU","NÃO ACEITOU AVALIAR")) as resposta,count(avaliacoes.id) FROM avaliacoes,editalProjeto WHERE editalProjeto.id=avaliacoes.idProjeto AND
-                tipo=""" + codigoEdital + """ AND valendo=1 AND categoria=1 GROUP BY aceitou"""
-                dadosAvaliacoes = """SELECT if(finalizado=1,"FINALIZADO","EM AVALIAÇÃO/NÃO SINALIZOU") as finalizados,count(avaliacoes.id) FROM avaliacoes,editalProjeto WHERE editalProjeto.id=avaliacoes.idProjeto AND
-                tipo=""" + codigoEdital + """ AND valendo=1 and categoria=1 AND aceitou!=0 GROUP BY finalizado"""
-                dadosScoreLattes = """SELECT ua, ROUND(AVG(scorelattes)) as media FROM editalProjeto WHERE valendo=1 AND
-                tipo=""" + codigoEdital + """ GROUP BY ua ORDER BY media"""
-                dadosScoreLattesArea = """SELECT SUBSTRING(area_capes,1,30) as area, ROUND(AVG(scorelattes)) as media FROM editalProjeto WHERE valendo=1 AND
-                tipo=""" + codigoEdital + """ GROUP BY area_capes ORDER BY area"""
-                tempoAvaliacao = """SELECT TIMESTAMPDIFF(DAY,data_envio,data_avaliacao) as tempo,count(avaliacoes.id) total FROM avaliacoes,editalProjeto WHERE editalProjeto.id=avaliacoes.idProjeto AND valendo=1 and
-                tipo=""" + codigoEdital + """ and finalizado=1 GROUP BY TIMESTAMPDIFF(DAY,data_envio,data_avaliacao)"""
-                oferta_demanda = """(select "OFERTA", sum(quantidade_bolsas)+sum(quantidade_bolsas_cnpq) AS C2 FROM editais WHERE
-                id=""" + codigoEdital + """) UNION (SELECT "DEMANDA", sum(bolsas) FROM editalProjeto WHERE valendo=1 and tipo=""" + codigoEdital + """)"""
-                '''
+                
                 try:
                     cursor.execute(consulta)
                     total = cursor.rowcount
@@ -1367,35 +1349,7 @@ def editalProjeto():
                     linhas_novos = cursor.fetchall()
                     cursor.execute(demanda)
                     linhas_demanda = cursor.fetchall()
-                    '''
-                    cursor.execute(demanda_bolsas)
-                    linhas_demanda_bolsas = cursor.fetchall()
-                    cursor.execute(situacaoProjetosNovos)
-                    dadosProjetosNovos = cursor.fetchall()
-                    cursor.execute(respostaAvaliadores)
-                    linhasRespostasAvaliadores = cursor.fetchall()
-                    cursor.execute(dadosAvaliacoes)
-                    linhasAvaliacoes = cursor.fetchall()
-                    cursor.execute(dadosScoreLattes)
-                    linhasScoreLattes = cursor.fetchall()
-                    cursor.execute(dadosScoreLattesArea)
-                    linhasScoreLattesArea = cursor.fetchall()
-                    cursor.execute(tempoAvaliacao)
-                    linhasTempoAvaliacao = cursor.fetchall()
-                    cursor.execute(oferta_demanda)
-                    linhas_oferta_demanda = cursor.fetchall()
                     
-                    if 'resultado' not in request.args:
-                        gerarGraficos(linhas_demanda,"grafico-demanda.png","grafico-demanda-2.png")
-                        gerarGraficos(linhas_oferta_demanda,"grafico-oferta-demanda.png","grafico-oferta-demanda-2.png")
-                        gerarGraficos(linhas_demanda_bolsas,"grafico-demanda-bolsas-1.png","grafico-demanda-bolsas-2.png")
-                        gerarGraficos(dadosProjetosNovos,"grafico-novos1.png","grafico-novos2.png")
-                        gerarGraficos(linhasRespostasAvaliadores,"grafico-avaliadores1.png","grafico-avaliadores2.png")
-                        gerarGraficos(linhasAvaliacoes,"grafico-avaliacoes1.png","grafico-avaliacoes2.png")
-                        gerarGraficos(linhasScoreLattes,"grafico-score1.png","grafico-score2.png")
-                        gerarGraficos(linhasScoreLattesArea,"grafico-scoreArea1.png","grafico-scoreArea2.png",90)
-                        gerarGraficos(linhasTempoAvaliacao,"grafico-tempoAvaliacao1.png","grafico-tempoAvaliacao2.png")
-                    '''
                     if 'resultado' in request.args:
                         if 'pdf' in request.args:
                             mensagem = unicode(obterColunaUnica("editais","mensagem","id",codigoEdital))
@@ -1491,9 +1445,7 @@ def meusProjetos():
             senha = str(request.args.get('senha'))
             if verify_password(siape,senha):
                 registrar_acesso(request.remote_addr,siape)
-    if autenticado():
-        ## TODO: CORRIGIR LISTA DE ORIENTANDO. TEM Q USAR GROUP CONCAT
-        #consulta = """SELECT id,nome_do_coordenador,orientador_lotacao,titulo_do_projeto,DATE_FORMAT(inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(termino,'%d/%m/%Y') as fim,GROUP_CONCAT(estudante_nome_completo SEPARATOR '<BR><BR>\n') as estudantes,token FROM cadastro_geral WHERE siape='""" + str(session['username']) + """' GROUP BY titulo_do_projeto ORDER BY inicio"""
+    if autenticado():        
         consulta = """SELECT id,nome_do_coordenador,orientador_lotacao,titulo_do_projeto,DATE_FORMAT(inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(termino,'%d/%m/%Y') as fim,estudante_nome_completo,token FROM cadastro_geral WHERE siape='""" + str(session['username']) + """' ORDER BY inicio,titulo_do_projeto"""
         projetos,total = executarSelect(consulta)
 
@@ -1607,7 +1559,6 @@ def minhaDeclaracao():
                         return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
                     else:
                         return("declaracao inexistente...")
-                    return("Em construcao...")
                 else:
 
                     return("id nao informado")
@@ -1799,9 +1750,9 @@ def meusPareceres():
             if autenticado():
                 tituloProjeto = unicode(obterColunaUnica("editalProjeto","titulo","id",idProjeto))
                 if ('todos' in request.args) and (session['permissao']==0):
-                    consulta = """SELECT avaliacoes.id,c1,c2,c3,c4,c5,c6,c7,(c1+c2+c3+c4+c5+c6+c7) as pontuacaoTotal, comentario, if(recomendacao=1,'RECOMENDADO','NÃO RECOMENDADO') as recomendacao, cepa,DATE_FORMAT(data_avaliacao,'%d/%m/%Y') FROM avaliacoes WHERE finalizado=1 AND idProjeto=""" + idProjeto + """ ORDER BY data_avaliacao"""
+                    consulta = """SELECT avaliacoes.id,c1,c2,c3,c4,c5,c6,c7,(c1+c2+c3+c4+c5+c6+c7) as pontuacaoTotal, comentario, if(recomendacao=1,'RECOMENDADO','NÃO RECOMENDADO') as recomendacao, cepa,DATE_FORMAT(data_avaliacao,'%d/%m/%Y'),inovacao FROM avaliacoes WHERE finalizado=1 AND idProjeto=""" + idProjeto + """ ORDER BY data_avaliacao"""
                 else:
-                    consulta = """SELECT avaliacoes.id,c1,c2,c3,c4,c5,c6,c7,(c1+c2+c3+c4+c5+c6+c7) as pontuacaoTotal, comentario, if(recomendacao=1,'RECOMENDADO','NÃO RECOMENDADO') as recomendacao, cepa,DATE_FORMAT(data_avaliacao,'%d/%m/%Y') FROM avaliacoes,editalProjeto WHERE editalProjeto.id=avaliacoes.idProjeto AND finalizado=1 AND idProjeto=""" + idProjeto + """ AND siape=""" + str(session['username']) + """ ORDER BY data_avaliacao"""
+                    consulta = """SELECT avaliacoes.id,c1,c2,c3,c4,c5,c6,c7,(c1+c2+c3+c4+c5+c6+c7) as pontuacaoTotal, comentario, if(recomendacao=1,'RECOMENDADO','NÃO RECOMENDADO') as recomendacao, cepa,DATE_FORMAT(data_avaliacao,'%d/%m/%Y'),inovacao FROM avaliacoes,editalProjeto WHERE editalProjeto.id=avaliacoes.idProjeto AND finalizado=1 AND idProjeto=""" + idProjeto + """ AND siape=""" + str(session['username']) + """ ORDER BY data_avaliacao"""
                 pareceres,total = executarSelect(consulta)
                 return(render_template('meusPareceres.html',linhas=pareceres,total=total,titulo=tituloProjeto))
             else:

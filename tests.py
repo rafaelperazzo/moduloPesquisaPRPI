@@ -68,5 +68,14 @@ def test_editalProjeto(app):
     '''
     Testa se a página de editalProjeto está respondendo
     '''
-    r = app.get(URL + 'editalProjeto?edital=29', timeout=5)
+    r = app.get(URL + 'editalProjeto?edital=33', timeout=15)
+    assert r.status_code == 200
+    
+    r = app.get(URL + 'editalProjeto?edital=32', timeout=15)
+    assert r.status_code == 200
+    
+    r = app.get(URL + 'editalProjeto?edital=31', timeout=15)
+    assert r.status_code == 200
+    
+    r = app.get(URL + 'editalProjeto?edital=30', timeout=15)
     assert r.status_code == 200

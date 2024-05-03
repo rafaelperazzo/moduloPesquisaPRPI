@@ -1,3 +1,4 @@
+- feat: Considerar licença maternidade na pontuação do lattes
 - fix: Corrigido texto do formulário de avaliação de projetos
 - fix: removida mensagem de log para registrar a modalidade do projeto
 - feat: formulários de avaliação pibiti agora tem opção para o avaliador dizer se o projeto tem potencial de inovação

@@ -196,7 +196,7 @@ class Score(object):
         self.__numero_identificador = ''
         self.__nome_completo = ''
         self.__score = 0
-        self.__ultima_licenca = 0
+        self.__licencas_maternidade = 0
         self.__verbose = verbose
         self.__debug = debug
         self.__ano_inicio = int(inicio)
@@ -336,12 +336,12 @@ class Score(object):
                     try:
                         data_licenca = licenca.attrib['DATA-FIM-LICENCA']
                         ano_licenca = datetime.strptime(data_licenca, "%d%m%Y").year
-                        self.__ultima_licenca = ano_licenca
                         #Se a licença for de até 5 anos atrás, considerar tempo adicional
                         if datetime.now().year - ano_licenca <=5:
+                            self.__licencas_maternidade += 1
                             self.__ano_inicio = self.__ano_inicio - 2
                     except Exception as e:
-                        self.__ultima_licenca = 0
+                        self.__licencas_maternidade += 0
 
     def __formacao_academica_titulacao(self):
         dados = self.__curriculo.find('DADOS-GERAIS')
@@ -1102,7 +1102,12 @@ class Score(object):
         resultado = resultado +  self.__nome_completo.encode("utf-8") + "<BR>\n"
         resultado = resultado +  "ID Lattes: " + self.__numero_identificador + "<BR>\n"
         resultado = resultado +  "Area de avaliacao: " + self.__area + "<BR>\n"
-
+        resultado = resultado +  "Ano de inicio: " + str(self.__ano_inicio) + "<BR>\n"
+        resultado = resultado +  "Ano de fim: " + str(self.__ano_fim) + "<BR>\n"
+        if (self.__licencas_maternidade!=0):
+            resultado = resultado + "Quantidade de Licenças (maternidade) nos últimos 5 anos: " + str(self.__licencas_maternidade) + "<BR>\n"
+            resultado = resultado + "Tempo adicional: " + str(self.__licencas_maternidade*2) + " anos <BR>\n"
+        
         resultado = resultado + "<h2>1 - FORMAÇÃO ACADEMICA</h2><BR>\n"
         resultado = resultado +  "POS-DOUTORADO:                       " + str(self.__tabela_de_qualificacao['FORMACAO-ACADEMICA-TITULACAO']['POS-DOUTORADO']) + "<BR>\n"
         resultado = resultado +  "LIVRE-DOCENCIA:                      "  + str(self.__tabela_de_qualificacao['FORMACAO-ACADEMICA-TITULACAO']['LIVRE-DOCENCIA'])  + "<BR>\n"

@@ -1,3 +1,4 @@
+- fix: Ajustado test da rota editalProjeto com timeout de 15s
 - fix: Removida a opção (não sei responder) do formulário de avaliação pibiti
 - fix: Calculo da Licença maternidade funcionando corretamente - 2 anos para cada licença nos últimos 5 anos.
 - feat: Considerar licença maternidade na pontuação do lattes

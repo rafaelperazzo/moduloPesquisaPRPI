@@ -1335,10 +1335,13 @@ def editalProjeto():
                 modalidade = int(obterColunaUnica("editais","modalidade","id",codigoEdital))
                 demanda = """SELECT ua,count(id) FROM editalProjeto WHERE valendo=1 and tipo=""" + codigoEdital + """ GROUP BY ua 
                 ORDER BY ua"""
+                '''
                 demanda_bolsas = """SELECT ua,sum(bolsas) FROM editalProjeto 
                 WHERE valendo=1 and tipo=""" + codigoEdital + """ GROUP BY ua ORDER BY ua"""
+                '''
                 bolsas_ufca = int(obterColunaUnica("editais","quantidade_bolsas","id",codigoEdital))
                 bolsas_cnpq = int(obterColunaUnica("editais","quantidade_bolsas_cnpq","id",codigoEdital))
+                '''
                 situacaoProjetosNovos = """SELECT if(situacao=1,"APROVADO",if(situacao=-1,"INDEFINIDO","NÃO APROVADO")) as situacaoD,count(id) FROM resumoProjetosNovos WHERE
                 tipo=""" + codigoEdital + """ GROUP BY situacao ORDER BY situacao"""
                 respostaAvaliadores = """ SELECT if(aceitou=1,"ACEITOU AVALIAR",if(aceitou=-1,"NÃO RESPONDEU","NÃO ACEITOU AVALIAR")) as resposta,count(avaliacoes.id) FROM avaliacoes,editalProjeto WHERE editalProjeto.id=avaliacoes.idProjeto AND
@@ -1353,6 +1356,7 @@ def editalProjeto():
                 tipo=""" + codigoEdital + """ and finalizado=1 GROUP BY TIMESTAMPDIFF(DAY,data_envio,data_avaliacao)"""
                 oferta_demanda = """(select "OFERTA", sum(quantidade_bolsas)+sum(quantidade_bolsas_cnpq) AS C2 FROM editais WHERE
                 id=""" + codigoEdital + """) UNION (SELECT "DEMANDA", sum(bolsas) FROM editalProjeto WHERE valendo=1 and tipo=""" + codigoEdital + """)"""
+                '''
                 try:
                     cursor.execute(consulta)
                     total = cursor.rowcount
@@ -1363,6 +1367,7 @@ def editalProjeto():
                     linhas_novos = cursor.fetchall()
                     cursor.execute(demanda)
                     linhas_demanda = cursor.fetchall()
+                    '''
                     cursor.execute(demanda_bolsas)
                     linhas_demanda_bolsas = cursor.fetchall()
                     cursor.execute(situacaoProjetosNovos)
@@ -1379,6 +1384,7 @@ def editalProjeto():
                     linhasTempoAvaliacao = cursor.fetchall()
                     cursor.execute(oferta_demanda)
                     linhas_oferta_demanda = cursor.fetchall()
+                    
                     if 'resultado' not in request.args:
                         gerarGraficos(linhas_demanda,"grafico-demanda.png","grafico-demanda-2.png")
                         gerarGraficos(linhas_oferta_demanda,"grafico-oferta-demanda.png","grafico-oferta-demanda-2.png")
@@ -1389,6 +1395,7 @@ def editalProjeto():
                         gerarGraficos(linhasScoreLattes,"grafico-score1.png","grafico-score2.png")
                         gerarGraficos(linhasScoreLattesArea,"grafico-scoreArea1.png","grafico-scoreArea2.png",90)
                         gerarGraficos(linhasTempoAvaliacao,"grafico-tempoAvaliacao1.png","grafico-tempoAvaliacao2.png")
+                    '''
                     if 'resultado' in request.args:
                         if 'pdf' in request.args:
                             mensagem = unicode(obterColunaUnica("editais","mensagem","id",codigoEdital))

@@ -1753,8 +1753,13 @@ def meusPareceres():
                     consulta = """SELECT avaliacoes.id,c1,c2,c3,c4,c5,c6,c7,(c1+c2+c3+c4+c5+c6+c7) as pontuacaoTotal, comentario, if(recomendacao=1,'RECOMENDADO','NÃO RECOMENDADO') as recomendacao, cepa,DATE_FORMAT(data_avaliacao,'%d/%m/%Y'),inovacao FROM avaliacoes WHERE finalizado=1 AND idProjeto=""" + idProjeto + """ ORDER BY data_avaliacao"""
                 else:
                     consulta = """SELECT avaliacoes.id,c1,c2,c3,c4,c5,c6,c7,(c1+c2+c3+c4+c5+c6+c7) as pontuacaoTotal, comentario, if(recomendacao=1,'RECOMENDADO','NÃO RECOMENDADO') as recomendacao, cepa,DATE_FORMAT(data_avaliacao,'%d/%m/%Y'),inovacao FROM avaliacoes,editalProjeto WHERE editalProjeto.id=avaliacoes.idProjeto AND finalizado=1 AND idProjeto=""" + idProjeto + """ AND siape=""" + str(session['username']) + """ ORDER BY data_avaliacao"""
-                pareceres,total = executarSelect(consulta)
-                return(render_template('meusPareceres.html',linhas=pareceres,total=total,titulo=tituloProjeto))
+                try:        
+                    pareceres,total = executarSelect(consulta)
+                    return(render_template('meusPareceres.html',linhas=pareceres,total=total,titulo=tituloProjeto))
+                except Exception as e:
+                    logging.error("Erro na função /meusPareceres")
+                    logging.error(str(e))
+                    return("ERRO!")
             else:
                 return(render_template('login.html',mensagem=u"É necessário autenticação para acessar a página solicitada"))
         else:

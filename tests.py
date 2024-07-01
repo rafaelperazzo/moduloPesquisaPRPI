@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 '''
 Teste básico do app
 '''
@@ -64,7 +65,7 @@ def test_login(app):
     r = app.get(URL + 'meusProjetos', timeout=5)
     assert r.status_code == 200
 
-def test_editalProjeto(app):
+def test_edital_projeto(app):
     '''
     Testa se a página de editalProjeto está respondendo
     '''
@@ -79,3 +80,11 @@ def test_editalProjeto(app):
     
     r = app.get(URL + 'editalProjeto?edital=30', timeout=15)
     assert r.status_code == 200
+
+def test_meus_pareceres(app):
+    '''
+    Testa se a página de meusPareceres está respondendo
+    '''
+    r = app.get(URL + 'meusPareceres?id=825', timeout=15)
+    assert r.status_code == 200
+    assert r.text.find('Erro') == -1

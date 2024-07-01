@@ -1,3 +1,4 @@
+- fix: Consulta nos /meusPareceres estava com uma coluna ambigua: inovacao
 - fix: try-except nos meus pareceres
 - fix: rota meusPareceres com campo de inovação para projetos pibiti
 - fix: Removidos gráficos da rota editalProjeto

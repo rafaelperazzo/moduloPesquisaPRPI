@@ -1,3 +1,4 @@
+- fix: try-except nos meus pareceres
 - fix: rota meusPareceres com campo de inovação para projetos pibiti
 - fix: Removidos gráficos da rota editalProjeto
 - fix: Ajustado test da rota editalProjeto com timeout de 15s

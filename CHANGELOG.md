@@ -1,3 +1,4 @@
+- fix: rota resultados
 - chore: adicionado teste da rota /meusPareceres
 - fix: Consulta nos /meusPareceres estava com uma coluna ambigua: inovacao
 - fix: try-except nos meus pareceres

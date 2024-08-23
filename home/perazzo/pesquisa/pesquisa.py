@@ -1057,7 +1057,10 @@ def distribuir_bolsas(demanda,consulta):
                         consulta = "UPDATE editalProjeto SET obs=\"BOLSA NÃO CONCEDIDA. ORIENTADOR NÃO PODE ULTRASSAR A COTA DE 2 BOLSISTAS POR MODALIDADE (Anexo XIV da Res. 01/2014/CONSUP, Art. 7 Inciso I)\" WHERE id=" + str(idProjeto)
                         atualizar(consulta)
             else: # se a unidade não tem mais bolsas disponíveis em sua cota
-                consulta = "UPDATE editalProjeto SET obs=\"BOLSA NÃO CONCEDIDA. COTA DA UNIDADE ZERADA (Anexo XIV da Res. 01/2014/CONSUP, Art. 7 Inciso II)\" WHERE id=" + str(idProjeto)
+                if concedidas>0: #Se o projeto já foi contemplado com bolsas
+                    consulta = "UPDATE editalProjeto SET obs=\"CONCESSÃO PARCIAL. COTA DA UNIDADE ZERADA (Anexo XIV da Res. 01/2014/CONSUP, Art. 7 Inciso II)\" WHERE id=" + str(idProjeto)
+                else: #Se o projeto não foi contemplado com bolsas
+                    consulta = "UPDATE editalProjeto SET obs=\"BOLSA NÃO CONCEDIDA. COTA DA UNIDADE ZERADA (Anexo XIV da Res. 01/2014/CONSUP, Art. 7 Inciso II)\" WHERE id=" + str(idProjeto)
                 atualizar(consulta)
         
 def executarSelect(consulta,tipo=0):

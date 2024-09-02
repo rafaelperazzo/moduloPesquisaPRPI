@@ -70,7 +70,7 @@ app.config['CURRICULOS_FOLDER'] = CURRICULOS_DIR
 app.config['DECLARACOES_FOLDER'] = DECLARACOES_DIR
 app.config['TEMP_FOLDER'] = DECLARACOES_DIR
 
-logging.basicConfig(filename=WORKING_DIR + 'app.log', filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',level=logging.ERROR)
+logging.basicConfig(filename=WORKING_DIR + 'app.log', filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',level=logging.DEBUG)
 logging.getLogger('waitress')
 #Obtendo senhas
 lines = [line.rstrip('\n') for line in open(WORKING_DIR + 'senhas.pass')]
@@ -204,8 +204,8 @@ def atualizar(consulta):
         conn.commit()
     except MySQLdb.Error as e:
         #e = sys.exc_info()[0]
-        logging.debug(e)
-        logging.debug(consulta)
+        logging.error(e)
+        logging.error(consulta)
         #conn.rollback()
     finally:
         cursor.close()
@@ -1017,7 +1017,7 @@ def cotaEstourada(codigoEdital,siape):
 demanda: Quantidade de bolsas por unidade academica
 dados: projetos ordenados por Unidade Academica e Lattes
 '''
-def distribuir_bolsas(demanda,dados):
+def distribuir_bolsas(demanda,consulta):
     ## TODO: Incluir condição de cruzamento de dados
     '''
     Lista de quem tem 2 bolsas PIBIC, e não pode ganhar mais nenhuma bolsa!
@@ -1030,9 +1030,13 @@ def distribuir_bolsas(demanda,dados):
     SELECT id,ua,nome,siape FROM resumoGeralClassificacao WHERE tipo=1 AND bolsas_concedidas>=1 AND siape IN (SELECT siape FROM resumoGeralClassificacao WHERE resumoGeralClassificacao.tipo=1 AND resumoGeralClassificacao.siape IN (SELECT siape FROM edital02_2018 WHERE situacao="ATIVO" and modalidade="PIBIC" GROUP BY siape HAVING count(id)=2 ORDER BY ua,orientador)) ORDER BY ua,nome
 
     '''
-    #Iniciando a distribuição
-    continua = True
-    while (continua):
+    #Iniciando a distribuição de bolsas
+    linhas,total = executarSelect(consulta)
+    linhas = list(linhas)
+    dados = []
+    for linha in linhas:
+        dados.append(list(linha))
+    for i in (0,1):
         for linha in dados:
             ua = str(linha[3]) #Unidade Academica
             idProjeto = linha[1] #ID do projeto
@@ -1046,18 +1050,19 @@ def distribuir_bolsas(demanda,dados):
                         consulta = "UPDATE editalProjeto SET bolsas_concedidas=bolsas_concedidas+1 WHERE id=" + str(idProjeto)
                         atualizar(consulta)
                         demanda[ua] = demanda[ua] - 1
+                        linha[11] = str(int(linha[11]) + 1)
                         consulta = "UPDATE editalProjeto SET obs=\"BOLSA CONCEDIDA\" WHERE id=" + str(idProjeto)
                         atualizar(consulta)
                     else: #Se o orientador estiver com a cota estourada
                         consulta = "UPDATE editalProjeto SET obs=\"BOLSA NÃO CONCEDIDA. ORIENTADOR NÃO PODE ULTRASSAR A COTA DE 2 BOLSISTAS POR MODALIDADE (Anexo XIV da Res. 01/2014/CONSUP, Art. 7 Inciso I)\" WHERE id=" + str(idProjeto)
                         atualizar(consulta)
             else: # se a unidade não tem mais bolsas disponíveis em sua cota
-                consulta = "UPDATE editalProjeto SET obs=\"BOLSA NÃO CONCEDIDA. COTA DA UNIDADE ZERADA (Anexo XIV da Res. 01/2014/CONSUP, Art. 7 Inciso II)\" WHERE id=" + str(idProjeto)
+                if concedidas>0: #Se o projeto já foi contemplado com bolsas
+                    consulta = "UPDATE editalProjeto SET obs=\"CONCESSÃO PARCIAL. COTA DA UNIDADE ZERADA (Anexo XIV da Res. 01/2014/CONSUP, Art. 7 Inciso II)\" WHERE id=" + str(idProjeto)
+                else: #Se o projeto não foi contemplado com bolsas
+                    consulta = "UPDATE editalProjeto SET obs=\"BOLSA NÃO CONCEDIDA. COTA DA UNIDADE ZERADA (Anexo XIV da Res. 01/2014/CONSUP, Art. 7 Inciso II)\" WHERE id=" + str(idProjeto)
                 atualizar(consulta)
-        ## TODO: Ver abaixo
-        #Verificar se ainda tem bolsas disponíveis para redistribuir dentro das unidades
-        continua = False
-
+        
 def executarSelect(consulta,tipo=0):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
     conn.select_db('pesquisa')
@@ -1123,20 +1128,20 @@ def resultados():
         link = ""
         if cursor.rowcount==1:
             for linha in nomeEdital:
-                edital = str(linha[0])
+                edital = unicode(linha[0])
                 data_final_avaliacoes = str(linha[1])
                 logging.debug(data_final_avaliacoes)
                 qtde_bolsas = int(linha[2])
                 mensagem = unicode(linha[3])
-                recursos = str(linha[4])
-                link = str(linha[5])
+                recursos = unicode(linha[4])
+                link = unicode(linha[5])
         else:
             edital=u"CÓDIGO DE EDITAL INVÁLIDO"
         qtde_bolsas = str(qtde_bolsas)
 
         #Recuperando total de projetos: total_projetos e calculando total de bolsas por unidade
         total_projetos = str(quantidades("SELECT id FROM resumoGeralClassificacao WHERE tipo=" + codigoEdital))
-        bolsas_disponiveis = "round((count(id)/" + total_projetos + ")*" + qtde_bolsas + ") "
+        bolsas_disponiveis = "floor((count(id)/" + total_projetos + ")*" + qtde_bolsas + ") "
 
         #Recuperando a demanda e oferta de Bolsas
         consulta = "SELECT ua,count(id)," + bolsas_disponiveis +  "as total_bolsas FROM editalProjeto WHERE valendo=1 AND tipo=" + codigoEdital +  " GROUP BY ua"
@@ -1155,7 +1160,7 @@ def resultados():
         unidades = {}
         for linha in demanda:
             unidades[str(linha[0])] = int(linha[2])
-        distribuir_bolsas(unidades,resumoGeral)
+        distribuir_bolsas(unidades,consulta)
 
         ## TODO: Redistribuir bolsas remanescentes baseado na classificação geral pelo lattes
 

@@ -2401,7 +2401,7 @@ def enviarFrequencia():
                 titulo_projeto = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
                 codigoEdital = obterColunaUnica('editalProjeto','tipo','id',idProjeto)
                 descricaoEdital = obterColunaUnica('editais','nome','id',codigoEdital)
-                data_final = obterColunaUnica('indicacoes','ADDDATE(DATE(fim),INTERVAL 30 DAY)','id',idAluno)
+                data_final = obterColunaUnica('indicacoes','ADDDATE(DATE(fim),INTERVAL 90 DAY)','id',idAluno)
                 data_hoje = obterColunaUnica('indicacoes','DATE(NOW())','id',idAluno)
                 if data_hoje>data_final:
                     return("Prazo para envio de frequencias expirado (%s)!" %(data_final))

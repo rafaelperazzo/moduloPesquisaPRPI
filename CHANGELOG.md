@@ -1,3 +1,4 @@
+- fix: ajustado prazo para envio das frequencias para 90 dias apos o termino
 - fix: Distribuição de bolsas com mensagem de concessão parcial
 - fix: rota resultados
 - chore: adicionado teste da rota /meusPareceres

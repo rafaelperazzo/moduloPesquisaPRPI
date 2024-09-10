@@ -2970,5 +2970,23 @@ def get_bib(siapes):
         dados.append(dado)
     return Response(json.dumps(dados),  mimetype='application/json')
 
+@app.route("/indicacao/<cpf>", methods=['GET'])
+def get_dados_indicacao(cpf):
+    consulta = """
+    SELECT upper(nome) as nome,email,IF(indicacoes.modalidade=1,'PIBIC',
+    IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')) as modalidade,
+    IF(tipo_de_vaga=0,'VOLUNTARIO(A)','BOLSISTA') AS tipo_vinculo,
+    IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPq','FUNCAP')) as fomento 
+    FROM indicacoes
+    WHERE cpf="%s"
+    ORDER BY id DESC
+    """ % (cpf)
+    linhas,total = executarSelect(consulta)
+    dados = []
+    for linha in linhas:
+        dado = {'nome': linha[0],'email': linha[1],'modalidade': linha[2],'tipo_vinculo': linha[3],'fomento': linha[4]}
+        dados.append(dado)
+    return Response(json.dumps(dados),  mimetype='application/json')
+
 if __name__ == "__main__":
     serve(app, host='0.0.0.0', port=80, url_prefix='/pesquisa',trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')

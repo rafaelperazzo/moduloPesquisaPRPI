@@ -1,3 +1,4 @@
+- chore: incluída api para obtenção de dados de um indicado a partir do cpf
 - chore: api de cpf para dados do indicado
 - fix: ajustado prazo para envio das frequencias para 90 dias apos o termino
 - fix: Distribuição de bolsas com mensagem de concessão parcial

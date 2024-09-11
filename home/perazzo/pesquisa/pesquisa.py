@@ -2996,7 +2996,10 @@ def get_dados_indicacao(cpf):
     for linha in linhas:
         dado = {'nome': linha[0],'email': linha[1],'modalidade': linha[2],'tipo_vinculo': linha[3],'fomento': linha[4],'idProjeto': linha[5],'dados': linha[6]}
         dados.append(dado)
-    return Response(json.dumps(dados),  mimetype='application/json')
+    resp = Response(json.dumps(dados),  mimetype='application/json')
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    #return Response(json.dumps(dados),  mimetype='application/json')
+    return resp
 
 if __name__ == "__main__":
     serve(app, host='0.0.0.0', port=80, url_prefix='/pesquisa',trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')

@@ -2983,7 +2983,7 @@ def get_dados_indicacao(cpf):
     tipo_de_vaga,
     fomento,
     idProjeto,
-    CONCAT(editalProjeto.titulo,'(',upper(editalProjeto.nome),')') as dados
+    CONCAT('(',YEAR(editalProjeto.data),') ',editalProjeto.titulo,' (',upper(editalProjeto.nome),')') as dados
     FROM indicacoes
     INNER JOIN editalProjeto
     ON indicacoes.idProjeto=editalProjeto.id

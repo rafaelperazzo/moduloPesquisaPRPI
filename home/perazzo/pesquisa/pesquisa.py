@@ -2970,5 +2970,33 @@ def get_bib(siapes):
         dados.append(dado)
     return Response(json.dumps(dados),  mimetype='application/json')
 
+@app.route("/indicacao/<cpf>", methods=['GET'])
+def get_dados_indicacao(cpf):
+    cpf_corrigido = cpf
+    cpf_corrigido = cpf_corrigido[:3] + '.' + cpf_corrigido[3:]
+    cpf_corrigido = cpf_corrigido[:7] + '.' + cpf_corrigido[7:]
+    cpf_corrigido = cpf_corrigido[:11] + '-' + cpf_corrigido[11:]
+    consulta = """
+    SELECT upper(indicacoes.nome),
+    indicacoes.email,
+    IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')) as modalidade,
+    tipo_de_vaga,
+    fomento,
+    idProjeto,
+    CONCAT(editalProjeto.titulo,'(',upper(editalProjeto.nome),')') as dados
+    FROM indicacoes
+    INNER JOIN editalProjeto
+    ON indicacoes.idProjeto=editalProjeto.id
+    WHERE editalProjeto.valendo=1 AND
+    cpf="%s"
+    ORDER BY indicacoes.id DESC
+    """ % (cpf_corrigido)
+    linhas,total = executarSelect(consulta)
+    dados = []
+    for linha in linhas:
+        dado = {'nome': linha[0],'email': linha[1],'modalidade': linha[2],'tipo_vinculo': linha[3],'fomento': linha[4],'idProjeto': linha[5],'dados': linha[6]}
+        dados.append(dado)
+    return Response(json.dumps(dados),  mimetype='application/json')
+
 if __name__ == "__main__":
     serve(app, host='0.0.0.0', port=80, url_prefix='/pesquisa',trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')

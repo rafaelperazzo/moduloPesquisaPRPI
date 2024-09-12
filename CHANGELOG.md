@@ -1,3 +1,4 @@
+- fix: incluida a data na api indicacao
 - fix: adicionado CORS na api indicacao
 - chore: incluída api para obtenção de dados de um indicado a partir do cpf
 - chore: api de cpf para dados do indicado

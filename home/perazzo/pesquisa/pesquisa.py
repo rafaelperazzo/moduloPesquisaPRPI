@@ -2970,6 +2970,26 @@ def get_bib(siapes):
         dados.append(dado)
     return Response(json.dumps(dados),  mimetype='application/json')
 
+@app.route("/auditoria_indicacoes", methods=['GET'])
+def auditoria_indicacoes(edital):
+    consulta = """
+    SELECT GROUP_CONCAT(editalProjeto.tipo SEPARATOR ' - ') as editais,
+    GROUP_CONCAT(indicacoes.idProjeto SEPARATOR ' - ') as ids_projetos,
+    GROUP_CONCAT(IF(indicacoes.tipo_de_vaga=0,'VOLUNTARIO','BOLSISTA') SEPARATOR ' - ') as tipo_vaga,
+    GROUP_CONCAT(IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPq','FUNCAP')) SEPARATOR ' - ') as fomento,
+    COUNT(indicacoes.id) as total,
+    indicacoes.nome as indicado,
+    GROUP_CONCAT(indicacoes.id SEPARATOR ' - ') as ids_indicados,
+    GROUP_CONCAT(editalProjeto.titulo SEPARATOR ' - ')
+    FROM `indicacoes`
+    INNER JOIN editalProjeto ON indicacoes.idProjeto=editalProjeto.id
+    WHERE editalProjeto.tipo=%s and editalProjeto.valendo=1
+    GROUP BY indicacoes.nome
+    HAVING total>1
+    """ % (str(edital))
+    #TODO: FINALIZAR
+    return("OK")
+
 @app.route("/indicacao/<cpf>", methods=['GET'])
 def get_dados_indicacao(cpf):
     cpf_corrigido = cpf

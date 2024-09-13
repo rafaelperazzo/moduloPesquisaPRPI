@@ -2137,6 +2137,19 @@ def indicacao():
     else:
         return("OK")
 
+def podeSerIndicado(matricula):
+    '''
+    Verifica se o indicado já está indicado em outro projeto
+    '''
+    consulta = """
+        SELECT * FROM `indicacoes` WHERE fim>now() and matricula=%s
+    """ %(matricula)
+    linhas,total = executarSelect(consulta)
+    if total>0:
+        return (False)
+    else:
+        return (True)
+
 @app.route("/efetivarIndicacao", methods=['GET', 'POST'])
 def efetivarIndicacao():
     if request.method == "POST":
@@ -2164,6 +2177,9 @@ def efetivarIndicacao():
                 banco = ""
                 agencia = ""
                 conta = ""
+                if podeSerIndicado(matricula)==False:
+                    return("Indicado ja esta em outro projeto. Nao foi possivel efetivar a indicacao.") 
+
                 if vaga==0:
                     banco = "N/A"
                     agencia = "N/A"

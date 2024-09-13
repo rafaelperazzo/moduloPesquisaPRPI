@@ -2971,6 +2971,7 @@ def get_bib(siapes):
     return Response(json.dumps(dados),  mimetype='application/json')
 
 @app.route("/auditoria_indicacoes", methods=['GET'])
+@auth.login_required(role=['admin'])
 def auditoria_indicacoes():
     
     from datetime import datetime

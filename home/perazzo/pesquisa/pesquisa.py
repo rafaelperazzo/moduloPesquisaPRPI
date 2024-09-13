@@ -2970,6 +2970,38 @@ def get_bib(siapes):
         dados.append(dado)
     return Response(json.dumps(dados),  mimetype='application/json')
 
+@app.route("/auditoria_indicacoes", methods=['GET'])
+def auditoria_indicacoes():
+    
+    from datetime import datetime
+    ano_atual = str(datetime.now().year)
+    consulta = """
+        SELECT min(id) FROM `editais` WHERE year(deadline)=%s
+    """ % (ano_atual)
+    
+    linha,total = executarSelect(consulta)
+    edital = str(linha[0][0])
+    
+    consulta = """
+    SELECT GROUP_CONCAT(editalProjeto.tipo SEPARATOR ' - ') as editais,
+    GROUP_CONCAT(indicacoes.idProjeto SEPARATOR ' - ') as ids_projetos,
+    GROUP_CONCAT(IF(indicacoes.tipo_de_vaga=0,'VOLUNTARIO','BOLSISTA') SEPARATOR ' - ') as tipo_vaga,
+    GROUP_CONCAT(IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPq','FUNCAP')) SEPARATOR ' - ') as fomento,
+    COUNT(indicacoes.id) as total,
+    indicacoes.nome as indicado,
+    GROUP_CONCAT(indicacoes.id SEPARATOR ' - ') as ids_indicados,
+    GROUP_CONCAT(editalProjeto.titulo SEPARATOR ' - ') as titulos,
+    GROUP_CONCAT(editalProjeto.nome SEPARATOR ' - ') as proponentes
+    FROM `indicacoes`
+    INNER JOIN editalProjeto ON indicacoes.idProjeto=editalProjeto.id
+    WHERE editalProjeto.tipo>=%s and editalProjeto.valendo=1
+    GROUP BY indicacoes.nome
+    HAVING total>1
+    """ % (str(edital))
+    linhas,total = executarSelect(consulta)
+    
+    return(render_template('indicacoes_duplicadas.html',linhas=linhas,total=total,edital=edital,ano=ano_atual))
+
 @app.route("/indicacao/<cpf>", methods=['GET'])
 def get_dados_indicacao(cpf):
     cpf_corrigido = cpf

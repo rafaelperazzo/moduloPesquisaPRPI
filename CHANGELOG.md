@@ -1,3 +1,4 @@
+- feat: Incluído o impedimento da indicação de um discente que já está em outro projeto.
 - fix: rota auditoria_indicacoes protegida
 - fix: ajustado a rota de auditoria_indicacoes
 - feat: inicio da implementação da rota /auditoria_indicacoes para identificar indicações em mais de um projeto em um mesmo ano

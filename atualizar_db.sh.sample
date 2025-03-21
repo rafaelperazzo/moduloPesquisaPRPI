@@ -1,10 +1,15 @@
 #!/bin/bash
-cd /home/perazzo/docker/projetos/pesquisa
+cd /home/perazzo/UFRPE/docker/projetos/pesquisa
+docker compose down
+docker compose up -d
+ssh sci01-ter-jne.ufca.edu.br '/backup/pesquisa/./backup.mysql.sh'
+rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa/home/perazzo/pesquisa/static/files/ /home/perazzo/UFRPE/docker/projetos/pesquisa/home/perazzo/pesquisa/static/files/
+rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa/home/perazzo/pesquisa/docs_indicacoes/ /home/perazzo/UFRPE/docker/projetos/pesquisa/home/perazzo/pesquisa/docs_indicacoes/
 dir="/backup/pesquisa/share"
 server="perazzo@sci01-ter-jne.ufca.edu.br"
 arquivo=$(ssh sci01-ter-jne.ufca.edu.br 'ls -t /backup/pesquisa/share | head -1')
 scp $server:$dir/$arquivo share/
 gunzip -f share/$arquivo
 arquivo=$(ls -t share | head -1)
-/usr/local/bin/docker-compose -f /home/perazzo/docker/projetos/pesquisa/docker-compose.yml exec -T db_pesquisa bash -c "mysql -u root -pSENHA < /share/$arquivo"
+/usr/bin/docker compose -f /home/perazzo/UFRPE/docker/projetos/pesquisa/docker-compose.yml exec -T db_pesquisa bash -c "mysql -u root -pSENHA < /share/$arquivo"
 rm share/$arquivo

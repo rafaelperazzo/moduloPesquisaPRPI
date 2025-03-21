@@ -311,7 +311,14 @@ textarea {
             <option value="0">Não<br>
           </select>
         </label><br>
-      <h2> Dados pessoais</h2>
+        <b>A proposta que solicitar bolsa(s) na modalidade PIBITI deve visar, 
+          obrigatoriamente, desenvolvimento tecnológico e processos de inovação, 
+          ficando sujeita à desclassificação no caso de não cumprimento dessa 
+          condição. Pesquisador, justifique o enquadramento da sua proposta nesta modalidade caso este seja o seu caso. Caso contrário deixar em branco.</b><br>
+        <textarea id="justificativa" name="justificativa" cols="130" rows="20"
+        maxlength="15000"></textarea><br>
+      
+        <h2> Dados pessoais</h2>
       <br>
       <label><b>Nome</b>: <input name="nome" required="required" size="80" type="text"><br>
         <b>SIAPE</b>: <input name="siape" required="required" size="10" type="text"><br>
@@ -447,6 +454,7 @@ maxlength="15000"></textarea><br>
         <b>Plano de Trabalho 1 (pdf)</b>: <input name="arquivo_plano1" onchange="ValidateSingleInput(this);"
           type="file"><br>
         <b>Plano de Trabalho 2 (pdf)</b>: <input name="arquivo_plano2"  onchange="ValidateSingleInput(this);" type="file"><br>
+        <b>Plano de Trabalho 3 (voluntário adicional) (pdf)</b>: <input name="arquivo_plano3"  onchange="ValidateSingleInput(this);" type="file"><br>
         <br>
         <b>O projeto precisa de transporte da UFCA ? Quantos dias aproximadamente ? (se não precisa, marque 0)</b> <br>
         <select name="transporte" required="required">
@@ -463,10 +471,10 @@ maxlength="15000"></textarea><br>
       </label>
       <hr>
       <h2>Comprovantes</h2>
-      <b>Comprovantes (Docente permanente/colaborador de pós-graduação, Submissão a Comitê de Ética (Plataforma Brasil) - se aplicável, etc... - Todos juntos em um único PDF)</b>
+      <b>Comprovantes (Anexe os documentos complementares necessários em um único arquivo PDF - Veja item 5.7 do Edital)</b>
       <BR> <input name="arquivo_comprovantes" type="file"><br>
       <hr>
-      <h2>Avaliadores externos a UFCA sugeridos para avaliação do projeto (indique 3 - sujeito a aprovação da Coordenadoria de Pesquisa)</h2>
+      <h2>Avaliadores externos a UFCA sugeridos para avaliação do projeto (indique 3 e-mails de avaliadores distintos que não sejam colaboradores no projeto - sujeito a aprovação da Coordenadoria de Pesquisa)</h2>
       <h4><i>Com título de doutor, preferencialmente bolsista de produtividade e/ou membro de programa de Pós-Graduação Stricto sensu. </i></h4>
         <br><h4>Informe preferencialmente o e-mail institucional do avaliador.</h4>
       <label>

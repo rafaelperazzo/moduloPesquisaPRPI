@@ -525,6 +525,11 @@ def cadastrarProjeto():
     grupo = unicode(request.form['grupo'])
     ods_projeto = unicode(request.form['ods_projeto'])
     inovacao = int(request.form['inovacao'])
+    justificativa = ""
+    if 'justificativa' in request.form:
+        justificativa = unicode(request.form['justificativa'])
+    else:
+        justificativa = ""
     cpf = unicode(request.form['cpf'])
     #CONEXÃO COM BD
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
@@ -533,7 +538,7 @@ def cadastrarProjeto():
     cursor  = conn.cursor()
 
     #DADOS PESSOAIS E BÁSICOS DO PROJETO
-    consulta = "INSERT INTO editalProjeto (categoria,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,data,ods,inovacao) VALUES (" + str(categoria_projeto) + "," + str(tipo) + "," +  "\"" + nome + "\"," + str(siape) + "," + "\"" + email + "\"," + "\"" + ua + "\"," + "\"" + area_capes + "\"," + "\"" + grande_area + "\"," + "\"" + grupo + "\"," + "CURRENT_TIMESTAMP()," + ods_projeto + ", " + str(inovacao) + ")"
+    consulta = "INSERT INTO editalProjeto (categoria,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,data,ods,inovacao,justificativa) VALUES (" + str(categoria_projeto) + "," + str(tipo) + "," +  "\"" + nome + "\"," + str(siape) + "," + "\"" + email + "\"," + "\"" + ua + "\"," + "\"" + area_capes + "\"," + "\"" + grande_area + "\"," + "\"" + grupo + "\"," + "CURRENT_TIMESTAMP()," + ods_projeto + ", " + str(inovacao) + ", " + justificativa + ")"
     #atualizar(consulta)
     try:
         cursor.execute(consulta)
@@ -635,6 +640,21 @@ def cadastrarProjeto():
     else:
         logging.debug("Não foi incluído um arquivo de plano 2")
 
+    if ('arquivo_plano3' in request.files):
+        arquivo_plano3 = request.files['arquivo_plano3']
+        if arquivo_plano3 and allowed_file(arquivo_plano3.filename):
+            arquivo_plano3.filename = "plano3_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
+            filename = secure_filename(arquivo_plano3.filename)
+            arquivo_plano3.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            consulta = "UPDATE editalProjeto SET arquivo_plano3=\"" + filename + "\" WHERE id=" + str(ultimo_id)
+            atualizar(consulta)
+            logging.debug("Arquivo Plano 3 cadastrado.")
+        elif not allowed_file(arquivo_plano3.filename):
+    		return ("Arquivo de plano 3 de trabalho não permitido")
+    else:
+        logging.debug("Não foi incluído um arquivo de plano 3")
+
     #ARQUIVO DE COMPROVANTES
     if ('arquivo_comprovantes' in request.files):
         arquivo_comprovantes = request.files['arquivo_comprovantes']
@@ -676,7 +696,8 @@ def cadastrarProjeto():
     #CALCULANDO scorelattes
     dados = [email,nome,titulo,descricao_resumida]
     t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
-    t.start()
+    if PRODUCAO==1:
+        t.start()
     #processarPontuacaoLattes(cpf,area_capes,ultimo_id,dados)
     return("Submissão realizada com sucesso. ESTA PÁGINA JÁ PODE SER FECHADA COM SEGURANÇA.")
 

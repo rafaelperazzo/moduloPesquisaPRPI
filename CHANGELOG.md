@@ -1,3 +1,4 @@
+- feat: inseridos novos campos no formulário de cadastrar projeto: justificativa PIBITI e arquivo_plano3
 - fix: versão do matplotlib corrigida
 - feat: Incluído o impedimento da indicação de um discente que já está em outro projeto.
 - fix: rota auditoria_indicacoes protegida

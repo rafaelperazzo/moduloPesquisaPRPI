@@ -252,6 +252,7 @@ textarea {
   <body onload="iniciar()"><br>
     <form name="frmCadastroProjeto" action="/pesquisa/cadastrarProjeto" onsubmit="return humano()" method="POST"
       enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <center><img src="{{ url_for('static', filename='brasao.jpg')}}" width="8%" alt="" align="center"></center>
       <br><center>
       Ministério da Educação<BR>

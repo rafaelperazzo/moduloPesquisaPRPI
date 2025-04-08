@@ -120,6 +120,7 @@ textarea {
 
 
     <form name="frmAvaliacao" action="/pesquisa/avaliar" method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <hr>
       <h3>Arquivos do projeto</h3>
       {{ arquivos|safe }} <br>

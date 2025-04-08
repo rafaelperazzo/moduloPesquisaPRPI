@@ -85,7 +85,8 @@
 {% block body %}
 	
     <form action="{{action}}" method="post">
-		<fieldset class="fieldset  font-24">
+		<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <fieldset class="fieldset  font-24">
             <h2><i>Formulário obrigatório de {{operacao}}</i></h2><hr><br>
 			<br><input type="checkbox" name="op1" value="Desempenho insatisfatório"> Desempenho insatisfatório
 			<br><input type="checkbox" name="op2" value="Ausência frequente"> Ausência frequente

@@ -127,7 +127,8 @@
         <div class="main_parent">
                 <div class="maindiv">
                   <form name="frmIndicacao" action="/pesquisa/efetivarIndicacao" method="POST" enctype="multipart/form-data">
-                        <label>Nome completo do(a) estudante: <span class="obr">*</span></label>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>    
+                    <label>Nome completo do(a) estudante: <span class="obr">*</span></label>
                         <br>
                         <input required="required" name="nome" type="name">
                         <br>

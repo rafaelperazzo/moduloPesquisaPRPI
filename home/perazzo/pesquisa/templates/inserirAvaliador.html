@@ -7,6 +7,7 @@
   <body>
     <i>Total de Projetos: {{ totalDeLinhas }}</i>
     <form name="frmEnviar" action="/pesquisa/inserirAvaliador" method="POST"><br>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <b>Projeto</b>:
       <select name="txtProjeto" required="required">
         {% for linha in listaProjetos %}

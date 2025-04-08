@@ -84,7 +84,7 @@ function humano() {
 <h2>Autenticação</h2>
 {{mensagem}}
 <form action="/pesquisa/login" METHOD="POST" onsubmit="return humano()">
-
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
   <div class="container">
     <label for="uname"><b>Usuário (siape)</b></label>
     <input type="text" placeholder="SIAPE: " name="siape" required>

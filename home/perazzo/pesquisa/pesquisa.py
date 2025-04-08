@@ -29,6 +29,7 @@ import zeep
 import zipfile
 from flask import Response
 import json
+from flask_wtf.csrf import CSRFProtect
 
 WORKING_DIR='/home/perazzo/pesquisa/'
 config = configparser.ConfigParser()
@@ -57,6 +58,7 @@ MYSQL_DB = os.getenv("MYSQL_HOST", "db_pesquisa")
 LINK_AVALIACAO = ROOT_SITE + "/pesquisa/avaliacao"
 app = Flask(__name__)
 auth = HTTPBasicAuth()
+csrf = CSRFProtect(app)
 mail = Mail(app)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465

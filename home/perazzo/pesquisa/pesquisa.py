@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from flask import Flask
 from flask import render_template
-from flask import request,url_for,send_from_directory,redirect,Markup,session,flash
+from flask import request,url_for,send_from_directory,redirect,session,flash
 from flask_httpauth import HTTPBasicAuth
 from waitress import serve
-import MySQLdb
+import mariadb as MySQLdb
 from werkzeug.utils import secure_filename
 import os
 import string
@@ -18,7 +18,7 @@ import numpy as np
 import pdfkit
 from flask_mail import Mail
 from flask_mail import Message
-from flask_uploads import *
+from flask_uploads import UploadSet, configure_uploads, ALL, DOCUMENTS
 import pandas as pd
 import configparser
 import threading
@@ -33,13 +33,12 @@ import json
 WORKING_DIR='/home/perazzo/pesquisa/'
 config = configparser.ConfigParser()
 config.read(WORKING_DIR + 'config.ini')
-SERVER_URL = config['DEFAULT']['server']
-PRODUCAO = 1
+SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
+PRODUCAO=0
 try:
-    PRODUCAO = config['DEFAULT']['producao']
-    PRODUCAO = int(PRODUCAO)
-except:
-    PRODUCAO = 1
+    PRODUCAO = int(os.getenv("PRODUCAO", "0"))
+except ValueError as e:
+    PRODUCAO = 0
 
 UPLOAD_FOLDER = '/home/perazzo/pesquisa/static/files'
 ALLOWED_EXTENSIONS = set(['pdf','xml'])
@@ -53,7 +52,8 @@ DECLARACOES_DIR = '/home/perazzo/pesquisa/pdfs/'
 ROOT_SITE = SERVER_URL
 USUARIO_SITE = ROOT_SITE + "/pesquisa/usuario"
 ATTACHMENTS_DIR = '/home/perazzo/pesquisa/docs_indicacoes/'
-MYSQL_DB = "db_pesquisa"
+SUBMISSOES_DIR = '/home/perazzo/pesquisa/submissoes/'
+MYSQL_DB = os.getenv("MYSQL_HOST", "db_pesquisa")
 LINK_AVALIACAO = ROOT_SITE + "/pesquisa/avaliacao"
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -73,24 +73,26 @@ app.config['TEMP_FOLDER'] = DECLARACOES_DIR
 logging.basicConfig(filename=WORKING_DIR + 'app.log', filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',level=logging.DEBUG)
 logging.getLogger('waitress')
 #Obtendo senhas
-lines = [line.rstrip('\n') for line in open(WORKING_DIR + 'senhas.pass')]
-PASSWORD = lines[0]
-GMAIL_PASSWORD = lines[1]
-SESSION_SECRET_KEY = lines[2]
-app.config['SECRET_KEY'] = SESSION_SECRET_KEY
+PASSWORD = os.getenv("DB_PASSWORD", "World")
+GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD", "World")
+SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "World")
+app.config['SECRET_KEY'] = os.urandom(24)
 app.config['MAIL_PASSWORD'] = GMAIL_PASSWORD
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
+
 mail = Mail(app)
 
 #Flask-flask_uploads
 app.config['UPLOADED_DOCUMENTS_DEST'] = ATTACHMENTS_DIR
 app.config['UPLOADS_DEFAULT_DEST'] = ATTACHMENTS_DIR
 anexos = UploadSet('documents',ALL)
-configure_uploads(app, anexos)
-patch_request_class(app)
+app.config['UPLOADED_SUBMISSOES_DEST'] = SUBMISSOES_DIR
+submissoes = UploadSet("submissoes", DOCUMENTS, default_dest=SUBMISSOES_DIR)
 
-@app.before_first_request
-def prepararInicializacao():
-    session['PRODUCAO'] = PRODUCAO
+configure_uploads(app, anexos)
+configure_uploads(app, submissoes)
+#patch_request_class(app)
+    
 
 def removerAspas(texto):
     resultado = texto.replace('"',' ')
@@ -195,8 +197,8 @@ def enviarEmail(to,subject,body):
         return (False)
 
 def atualizar(consulta):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
-    conn.autocommit(True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
+    
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     try:
@@ -212,8 +214,8 @@ def atualizar(consulta):
         conn.close()
 
 def inserir(consulta,valores):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
-    conn.autocommit(True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
+    
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     try:
@@ -240,20 +242,20 @@ def allowed_file(filename):
 
 def getData():
     import datetime
-    Meses=('janeiro','fevereiro',u'março','abril','maio','junho',
+    Meses=('janeiro','fevereiro','março','abril','maio','junho',
        'julho','agosto','setembro','outubro','novembro','dezembro')
-    agora = datetime.date.today()
-    dia = agora.day
-    mes=(agora.month-1)
+    agora1 = datetime.date.today()
+    dia = agora1.day
+    mes=agora1.month-1
     mesExtenso = Meses[mes]
-    ano = agora.year
+    ano = agora1.year
     resultado = str(dia) + " de " + mesExtenso + " de " + str(ano) + "."
     return resultado
 
 
 def gerarDeclaracao(identificador):
     #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     consulta = "SELECT nome,cpf,modalidade,orientador,projeto,inicio,fim,id,ch FROM alunos WHERE id=" + str(identificador)
@@ -281,7 +283,7 @@ def gerarDeclaracao(identificador):
 
 def gerarDeclaracaoOrientador(identificador):
     #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     consulta = "SELECT id,coordenador,siape,titulo,inicio,fim FROM projetos WHERE id=" + identificador
@@ -295,18 +297,18 @@ def gerarDeclaracaoOrientador(identificador):
     i = 0
     frase_bolsistas = ""
     for bolsista in bolsistas:
-	if i==total_bolsistas: #Se for o ultimo bolsista
-		frase_bolsistas = frase_bolsistas + unicode(bolsista[0])
-	else: #Se nao for o ultimo bolsista
-		frase_bolsistas = frase_bolsistas + unicode(bolsista[0]) + ", "
-	i = i + 1
+        if i==total_bolsistas: #Se for o ultimo bolsista
+            frase_bolsistas = frase_bolsistas + str(bolsista[0])
+        else: #Se nao for o ultimo bolsista
+            frase_bolsistas = frase_bolsistas + str(bolsista[0]) + ", "
+        i = i + 1
     conn.close()
     return (linha,frase_bolsistas)
 
 
 def gerarProjetosPorAluno(cpf):
     try:
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
         conn.select_db('pesquisa')
         cursor  = conn.cursor()
         consulta = """SELECT estudante_nome_completo,cpf,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,estudante_inicio,estudante_fim,token FROM cadastro_geral WHERE cpf = '""" + cpf + """'"""
@@ -330,7 +332,7 @@ def gerarProjetosPorAluno(cpf):
 
 def gerarProjetosPorOrientador(identificador):
     #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     consulta = "SELECT id,coordenador,titulo,inicio,fim FROM projetos WHERE SIAPE=" + str(identificador)
@@ -342,7 +344,7 @@ def gerarProjetosPorOrientador(identificador):
 
 def gerarAutenticacao(identificador):
     #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     consulta = "SELECT a.nome,a.cpf,a.modalidade,a.orientador,a.projeto,a.inicio,a.fim,b.codigo FROM alunos a, autenticacao b WHERE a.id=b.idAluno and b.codigo=" + identificador + " ORDER BY b.data DESC LIMIT 1"
@@ -352,7 +354,7 @@ def gerarAutenticacao(identificador):
     return (linha)
 
 def getEditaisAbertos():
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     consulta = """SELECT id,nome,DATE_FORMAT(deadline,'%d/%m/%Y - %H:%i') FROM editais WHERE now()<deadline ORDER BY id DESC"""
@@ -372,7 +374,7 @@ def verify_password(username, password):
     password combination is valid.
     """
     try:
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
         conn.select_db('pesquisa')
         cursor  = conn.cursor()
         consulta = """SELECT id,username,permission,roles FROM users WHERE username='""" + username + """' AND password=('""" + password + """')"""
@@ -477,7 +479,7 @@ def declaracao():
 @app.route("/projetosAluno", methods=['GET', 'POST'])
 def projetos():
     try:
-        projetosAluno,projetosAluno2019 = gerarProjetosPorAluno(unicode(request.form['txtNome']))
+        projetosAluno,projetosAluno2019 = gerarProjetosPorAluno(str(request.form['txtNome']))
         return render_template('alunos.html',listaProjetos=projetosAluno,lista2019=projetosAluno2019)
     except:
         e = sys.exc_info()[0]
@@ -515,25 +517,25 @@ def cadastrarProjeto():
 
     #CADASTRAR DADOS DO PROPONENTE
     tipo = int(request.form['tipo'])
-    nome = unicode(request.form['nome'])
+    nome = str(request.form['nome'])
     categoria_projeto = int(request.form['categoria_projeto'])
     siape = int(request.form['siape'])
-    email = unicode(request.form['email'])
-    ua = unicode(request.form['ua'])
-    area_capes = unicode(request.form['area_capes'])
-    grande_area = unicode(request.form['grande_area'])
-    grupo = unicode(request.form['grupo'])
-    ods_projeto = unicode(request.form['ods_projeto'])
+    email = str(request.form['email'])
+    ua = str(request.form['ua'])
+    area_capes = str(request.form['area_capes'])
+    grande_area = str(request.form['grande_area'])
+    grupo = str(request.form['grupo'])
+    ods_projeto = str(request.form['ods_projeto'])
     inovacao = int(request.form['inovacao'])
     justificativa = ""
     if 'justificativa' in request.form:
-        justificativa = unicode(request.form['justificativa'])
+        justificativa = str(request.form['justificativa'])
     else:
         justificativa = ""
-    cpf = unicode(request.form['cpf'])
+    cpf = str(request.form['cpf'])
     #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
-    conn.autocommit(True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
+    
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
 
@@ -566,25 +568,25 @@ def cadastrarProjeto():
     logging.debug("Projeto [" + tipo_str + "] [" + categoria_str + "] com ID: " + ultimo_id_str + " cadastrado. Proponente: " + nome)
     #CADASTRAR DADOS DO PROJETO
 
-    titulo = unicode(request.form['titulo'])
+    titulo = str(request.form['titulo'])
     titulo = removerAspas(titulo)
     validade = int(request.form['validade'])
-    palavras_chave = unicode(request.form['palavras_chave'])
+    palavras_chave = str(request.form['palavras_chave'])
     palavras_chave = removerAspas(palavras_chave)
-    descricao_resumida = unicode(request.form['descricao_resumida'])
+    descricao_resumida = str(request.form['descricao_resumida'])
     descricao_resumida = removerAspas(descricao_resumida)
     if 'numero_bolsas' in request.form:
         bolsas = int(request.form['numero_bolsas'])
     else:
         bolsas = 0
-    transporte = unicode(request.form['transporte'])
+    transporte = str(request.form['transporte'])
     consulta = "UPDATE editalProjeto SET titulo=\"" + titulo + "\", validade=" + str(validade) + ", palavras=\"" + palavras_chave + "\", resumo=\"" + descricao_resumida + "\", bolsas=" + str(bolsas) +  " WHERE id=" + str(ultimo_id)
     logging.debug("Preparando para atualizar dados do projeto.")
     atualizar(consulta)
     consulta = "UPDATE editalProjeto SET transporte=" + transporte + " WHERE id=" + str(ultimo_id)
     atualizar(consulta)
-    inicio = unicode(request.form['inicio'])
-    fim = unicode(request.form['fim'])
+    inicio = str(request.form['inicio'])
+    fim = str(request.form['fim'])
     consulta = "UPDATE editalProjeto SET inicio=\"" + inicio + "\" WHERE id=" + str(ultimo_id)
     atualizar(consulta)
     consulta = "UPDATE editalProjeto SET fim=\"" + fim + "\" WHERE id=" + str(ultimo_id)
@@ -597,16 +599,16 @@ def cadastrarProjeto():
         if arquivo_projeto and allowed_file(arquivo_projeto.filename) :
             arquivo_projeto.filename = "projeto_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_projeto.filename)
-            arquivo_projeto.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            submissoes.save(arquivo_projeto, name=filename)
+            #arquivo_projeto.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
             consulta = "UPDATE editalProjeto SET arquivo_projeto=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo de projeto cadastrado.")
         elif not allowed_file(arquivo_projeto.filename):
-    		return ("Arquivo de projeto não permitido")
+    	    return ("Arquivo de projeto não permitido")
     else:
         logging.debug("Não foi incluído um arquivo de projeto")
-
 
     if ('arquivo_plano1' in request.files):
 
@@ -614,13 +616,14 @@ def cadastrarProjeto():
         if arquivo_plano1 and allowed_file(arquivo_plano1.filename):
             arquivo_plano1.filename = "plano1_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_plano1.filename)
-            arquivo_plano1.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            submissoes.save(arquivo_plano1, name=filename)
+            #arquivo_plano1.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
             consulta = "UPDATE editalProjeto SET arquivo_plano1=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo Plano 1 cadastrado.")
         elif not allowed_file(arquivo_plano1.filename):
-    		return ("Arquivo de plano 1 de trabalho não permitido")
+    	    return ("Arquivo de plano 1 de trabalho não permitido")
     else:
         logging.debug("Não foi incluído um arquivo de plano 1")
 
@@ -630,28 +633,32 @@ def cadastrarProjeto():
         if arquivo_plano2 and allowed_file(arquivo_plano2.filename):
             arquivo_plano2.filename = "plano2_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_plano2.filename)
-            arquivo_plano2.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            submissoes.save(arquivo_plano2, name=filename)
+            #arquivo_plano2.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
             consulta = "UPDATE editalProjeto SET arquivo_plano2=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo Plano 2 cadastrado.")
         elif not allowed_file(arquivo_plano2.filename):
-    		return ("Arquivo de plano 2 de trabalho não permitido")
+    	    return ("Arquivo de plano 2 de trabalho não permitido")
     else:
         logging.debug("Não foi incluído um arquivo de plano 2")
 
     if ('arquivo_plano3' in request.files):
         arquivo_plano3 = request.files['arquivo_plano3']
-        if arquivo_plano3 and allowed_file(arquivo_plano3.filename):
+        if arquivo_plano3.filename=="":
+            logging.debug("Não foi incluído um arquivo de plano 3")
+        elif arquivo_plano3 and allowed_file(arquivo_plano3.filename):
             arquivo_plano3.filename = "plano3_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_plano3.filename)
-            arquivo_plano3.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            submissoes.save(arquivo_plano3, name=filename)
+            #arquivo_plano3.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
             consulta = "UPDATE editalProjeto SET arquivo_plano3=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo Plano 3 cadastrado.")
         elif not allowed_file(arquivo_plano3.filename):
-    		return ("Arquivo de plano 3 de trabalho não permitido")
+                return ("Arquivo de plano 3 de trabalho não permitido")
     else:
         logging.debug("Não foi incluído um arquivo de plano 3")
 
@@ -661,8 +668,9 @@ def cadastrarProjeto():
         if allowed_file(arquivo_comprovantes.filename):
             arquivo_comprovantes.filename = "Comprovantes_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_comprovantes.filename)
-            arquivo_comprovantes.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            submissoes.save(arquivo_comprovantes, name=filename)
+            #arquivo_comprovantes.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
             consulta = "UPDATE editalProjeto SET arquivo_comprovantes=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo COMPROVANTES cadastrado.")
@@ -672,21 +680,21 @@ def cadastrarProjeto():
         logging.debug("Não foi incluído um arquivo de COMPROVANTES")
 
     #CADASTRAR AVALIADORES SUGERIDOS
-    avaliador1_email = unicode(request.form['avaliador1_email'])
+    avaliador1_email = str(request.form['avaliador1_email'])
     if avaliador1_email!='':
         token = id_generator(40)
         consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador1_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
         atualizar(consulta)
         logging.debug("Avaliador 1 sugerido cadastrado.")
 
-    avaliador2_email = unicode(request.form['avaliador2_email'])
+    avaliador2_email = str(request.form['avaliador2_email'])
     if avaliador2_email!='':
         token = id_generator(40)
         consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador2_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
         atualizar(consulta)
         logging.debug("Avaliador 2 sugerido cadastrado.")
 
-    avaliador3_email = unicode(request.form['avaliador3_email'])
+    avaliador3_email = str(request.form['avaliador3_email'])
     if avaliador3_email!='':
         token = id_generator(40)
         consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador3_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
@@ -703,9 +711,9 @@ def cadastrarProjeto():
 
 @app.route("/score", methods=['GET', 'POST'])
 def getScoreLattesFromFile():
-    area_capes = unicode(request.form['area_capes'])
-    idlattes = unicode(request.form['idlattes'])
-    periodo = int(unicode(request.form['periodo']))
+    area_capes = str(request.form['area_capes'])
+    idlattes = str(request.form['idlattes'])
+    periodo = int(str(request.form['periodo']))
     try:
         salvarCV(idlattes)
     except Exception as e:
@@ -728,7 +736,7 @@ def getScoreLattesFromFile():
 
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam
 def getFiles(idProjeto):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     consulta = "SELECT arquivo_projeto,arquivo_plano1,arquivo_plano2 FROM editalProjeto WHERE id=" + idProjeto
@@ -738,7 +746,7 @@ def getFiles(idProjeto):
     return(linha)
 
 def naoEstaFinalizado(token):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     consulta = "SELECT finalizado FROM avaliacoes WHERE token=\"" + token + "\""
@@ -752,7 +760,7 @@ def naoEstaFinalizado(token):
         return (False)
 
 def podeAvaliar(idProjeto):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     #consulta = "SELECT deadline_avaliacao,CURRENT_TIMESTAMP() FROM editais WHERE CURRENT_TIMESTAMP()<deadline_avaliacao AND id=" + codigoEdital
@@ -783,11 +791,11 @@ def getPaginaAvaliacao():
             tokenAvaliacao = str(request.args.get('token'))
             arquivos = getFiles(idProjeto)
             if str(arquivos[0])!="0":
-                link_projeto = SITE + str(arquivos[0])
+                link_projeto = url_for('verArquivosProjeto',filename=str(arquivos[0]))
             if str(arquivos[1])!="0":
-                link_plano1 = SITE + str(arquivos[1])
+                link_plano1 = link_projeto = url_for('verArquivosProjeto',filename=str(arquivos[1]))
             if str(arquivos[2])!="0":
-                link_plano2 = SITE + str(arquivos[2])
+                link_plano2 = link_projeto = url_for('verArquivosProjeto',filename=str(arquivos[2]))
             links = ""
             if 'link_projeto' in locals():
                 links = links + "<a href=\"" + link_projeto + "\">PROJETO</a><BR>"
@@ -796,7 +804,7 @@ def getPaginaAvaliacao():
             if 'link_plano2' in locals():
                 links = links + "<a href=\"" + link_plano2 + "\">PLANO DE TRABALHO 2</a><BR>"
             links = links + "<input type=\"hidden\" id=\"token\" name=\"token\" value=\"" + tokenAvaliacao + "\">"
-            links = Markup(links)
+            #links = Markup(links)
             if naoEstaFinalizado(tokenAvaliacao):
                 consulta = "UPDATE avaliacoes SET aceitou=1 WHERE token=\"" + tokenAvaliacao + "\""
                 atualizar(consulta)
@@ -813,9 +821,9 @@ def getPaginaAvaliacao():
 @app.route("/avaliar", methods=['GET', 'POST'])
 def enviarAvaliacao():
     if request.method == "POST":
-        comentarios = unicode(request.form['txtComentarios'])
+        comentarios = str(request.form['txtComentarios'])
         recomendacao = str(request.form['txtRecomendacao'])
-        nome_avaliador = unicode(request.form['txtNome'])
+        nome_avaliador = str(request.form['txtNome'])
         token = str(request.form['token'])
         idProjeto = obterColunaUnica_str("avaliacoes","idProjeto","token",token)
         edital = obterColunaUnica("editalProjeto","tipo","id",idProjeto)
@@ -870,14 +878,14 @@ def enviarAvaliacao():
         consulta = "SELECT editais.id,editais.nome FROM editais,avaliacoes,editalProjeto WHERE avaliacoes.idProjeto=editalProjeto.id AND editalProjeto.tipo=editais.id AND avaliacoes.token=\"" + token + "\""
         linhas = consultar(consulta)
         for linha in linhas:
-            descricaoEdital = unicode(linha[1])
+            descricaoEdital = str(linha[1])
         return(render_template('declaracao_avaliador.html',nome=nome_avaliador,data=data_agora,edital=descricaoEdital))
     else:
         return("OK")
 
 ## TODO: Revisar função abaixo
 def descricaoEdital(codigoEdital):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     consulta = "SELECT id,nome FROM editais WHERE id=" + codigoEdital
@@ -885,7 +893,7 @@ def descricaoEdital(codigoEdital):
     linhas = cursor.fetchall()
     nomeEdital = "EDITAL NAO DEFINIDO"
     for linha in linhas:
-        nomeEdital = unicode(linha[1])
+        nomeEdital = str(linha[1])
     conn.close()
     return (nomeEdital)
 
@@ -898,19 +906,19 @@ def getDeclaracaoAvaliador():
         linhas = consultar(consulta)
         nome_avaliador = "NAO INFORMADO"
         for linha in linhas:
-            nome_avaliador = unicode(linha[0])
+            nome_avaliador = str(linha[0])
         data_agora = getData()
         #Recuperando descrição do edital
         consulta = "SELECT editais.id,editais.nome FROM editais,avaliacoes,editalProjeto WHERE avaliacoes.idProjeto=editalProjeto.id AND editalProjeto.tipo=editais.id AND avaliacoes.token=\"" + tokenAvaliacao + "\""
         linhas = consultar(consulta)
         for linha in linhas:
-            descricaoEdital = unicode(linha[1])
+            descricaoEdital = str(linha[1])
         return(render_template('declaracao_avaliador.html',nome=nome_avaliador,data=data_agora,edital=descricaoEdital))
     else:
         return("OK")
 
 def consultar(consulta):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     cursor.execute(consulta)
@@ -934,7 +942,7 @@ def recusarConvite():
 @app.route("/avaliacoesNegadas", methods=['GET', 'POST'])
 def avaliacoesNegadas():
     if request.method == "GET":
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
         conn.select_db('pesquisa')
         cursor  = conn.cursor()
         if 'edital' in request.args:
@@ -977,7 +985,7 @@ def inserirAvaliador():
 
 #Retorna a quantidade de linhas da consulta
 def quantidades(consulta):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     cursor.execute(consulta)
@@ -992,7 +1000,7 @@ def estatisticas():
         codigoEdital = str(request.args.get('edital'))
         #Resumo Geral
         consulta = "SELECT * FROM resumoGeralAvaliacoes WHERE tipo=" + codigoEdital + " ORDER BY ua, score DESC"
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
         conn.select_db('pesquisa')
         cursor  = conn.cursor()
         cursor.execute(consulta)
@@ -1085,7 +1093,7 @@ def distribuir_bolsas(demanda,consulta):
                 atualizar(consulta)
         
 def executarSelect(consulta,tipo=0):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     try:
@@ -1107,7 +1115,7 @@ def executarSelect(consulta,tipo=0):
 
 
 def avaliacoesEncerradas(codigoEdital):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     consulta = "SELECT deadline_avaliacao,CURRENT_TIMESTAMP() FROM editais WHERE CURRENT_TIMESTAMP()<deadline_avaliacao AND id=" + codigoEdital
@@ -1130,7 +1138,7 @@ def resultados():
 
         #Recuperando o Resumo Geral
         consulta = "SELECT * FROM resumoGeralClassificacao WHERE tipo=" + codigoEdital + " ORDER BY ua, score DESC"
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
         conn.select_db('pesquisa')
         cursor  = conn.cursor()
         cursor.execute(consulta)
@@ -1149,13 +1157,13 @@ def resultados():
         link = ""
         if cursor.rowcount==1:
             for linha in nomeEdital:
-                edital = unicode(linha[0])
+                edital = str(linha[0])
                 data_final_avaliacoes = str(linha[1])
                 logging.debug(data_final_avaliacoes)
                 qtde_bolsas = int(linha[2])
-                mensagem = unicode(linha[3])
-                recursos = unicode(linha[4])
-                link = unicode(linha[5])
+                mensagem = str(linha[3])
+                recursos = str(linha[4])
+                link = str(linha[5])
         else:
             edital=u"CÓDIGO DE EDITAL INVÁLIDO"
         qtde_bolsas = str(qtde_bolsas)
@@ -1233,7 +1241,7 @@ def resultados():
 Retorna uma coluna de uma linha única dado uma chave primária
 '''
 def obterColunaUnica(tabela,coluna,colunaId,valorId):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     consulta = "SELECT " + coluna + " FROM " + tabela + " WHERE " + colunaId + "=" + valorId
@@ -1242,7 +1250,7 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
         cursor.execute(consulta)
         linhas = cursor.fetchall()
         for linha in linhas:
-            resultado = unicode(linha[0])
+            resultado = str(linha[0])
         return(resultado)
     except:
         e = sys.exc_info()[0]
@@ -1254,7 +1262,7 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
         conn.close()
         
 def obterColunaUnica_str(tabela,coluna,colunaId,valorId):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
     conn.select_db('pesquisa')
     cursor  = conn.cursor()
     consulta = "SELECT " + coluna + " FROM " + tabela + " WHERE " + colunaId + "=\"" + valorId + "\""
@@ -1263,7 +1271,7 @@ def obterColunaUnica_str(tabela,coluna,colunaId,valorId):
         cursor.execute(consulta)
         linhas = cursor.fetchall()
         for linha in linhas:
-            resultado = unicode(linha[0])
+            resultado = str(linha[0])
         return(resultado)
     except:
         e = sys.exc_info()[0]
@@ -1281,7 +1289,7 @@ def gerarGraficos(demandas,grafico1,grafico2,rotacao=0):
     unidades = []
     fatias = []
     for linha in demandas:
-        unidades.append(unicode(linha[0]))
+        unidades.append(str(linha[0]))
         fatias.append(float(linha[1]))
 
     fig1,ax1 = plt.subplots()
@@ -1326,7 +1334,7 @@ def editalProjeto():
             if 'edital' in request.args:
                 codigoEdital = str(request.args.get('edital'))
                 session['edital'] = codigoEdital
-                conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+                conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
                 conn.select_db('pesquisa')
                 cursor  = conn.cursor()
                 tipo_classificacao = int(obterColunaUnica("editais","classificacao","id",codigoEdital))
@@ -1378,19 +1386,19 @@ def editalProjeto():
                     
                     if 'resultado' in request.args:
                         if 'pdf' in request.args:
-                            mensagem = unicode(obterColunaUnica("editais","mensagem","id",codigoEdital))
+                            mensagem = str(obterColunaUnica("editais","mensagem","id",codigoEdital))
                             gerarPDF(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=1,mensagem=mensagem,modalidade=modalidade))
                             return(send_from_directory(app.config['TEMP_FOLDER'], 'resultados.pdf'))
 
                         else:
-                            mensagem = unicode(obterColunaUnica("editais","mensagem","id",codigoEdital))
+                            mensagem = str(obterColunaUnica("editais","mensagem","id",codigoEdital))
                             return(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=1,mensagem=mensagem,modalidade=modalidade))
                     else:
                         mensagem = ""
+                        logging.debug("antes de renderizar o editalProjeto")
                         return(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=0,modalidade=modalidade))
-                except:
-                    e = sys.exc_info()[0]
-                    logging.error(e)
+                except Exception as e:
+                    logging.error(str(e))
                     logging.error("ERRO Na função /editalProjeto. Ver consulta abaixo.")
                     logging.error(consulta)
                     return("ERRO!")
@@ -1409,7 +1417,7 @@ def lattesDetalhado():
         #Recuperando o código do projeto
         if 'id' in request.args:
             idProjeto = str(request.args.get('id'))
-            conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa", charset="utf8", use_unicode=True)
+            conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db="pesquisa")
             conn.select_db('pesquisa')
             cursor  = conn.cursor()
             consulta = "SELECT id,scorelattes_detalhado FROM editalProjeto WHERE id=" + idProjeto + " AND valendo=1"
@@ -1417,7 +1425,7 @@ def lattesDetalhado():
             linhas = cursor.fetchall()
             texto = "INDISPONIVEL"
             for linha in linhas:
-                lattes_detalhado = unicode(linha[1])
+                lattes_detalhado = str(linha[1])
                 if lattes_detalhado!="":
                     texto = lattes_detalhado
             conn.close()
@@ -1774,7 +1782,7 @@ def meusPareceres():
         if 'id' in request.args:
             idProjeto = str(request.args.get('id'))
             if autenticado():
-                tituloProjeto = unicode(obterColunaUnica("editalProjeto","titulo","id",idProjeto))
+                tituloProjeto = str(obterColunaUnica("editalProjeto","titulo","id",idProjeto))
                 if ('todos' in request.args) and (session['permissao']==0):
                     consulta = """SELECT avaliacoes.id,c1,c2,c3,c4,c5,c6,c7,(c1+c2+c3+c4+c5+c6+c7) as pontuacaoTotal, comentario, if(recomendacao=1,'RECOMENDADO','NÃO RECOMENDADO') as recomendacao, cepa,DATE_FORMAT(data_avaliacao,'%d/%m/%Y'),avaliacoes.inovacao FROM avaliacoes WHERE finalizado=1 AND idProjeto=""" + idProjeto + """ ORDER BY data_avaliacao"""
                 else:
@@ -1849,14 +1857,14 @@ def esqueciMinhaSenha():
 def enviarMinhaSenha():
     if request.method == "POST":
         if ('email' in request.form):
-            email = unicode(request.form['email'])
+            email = str(request.form['email'])
             #ENVIAR E-MAIL
             consulta = """SELECT username,password FROM users WHERE email='""" + email + """' """
             linhas,total = executarSelect(consulta,1)
 
             if (total>0):
-                usuario = unicode(linhas[0])
-                senha = unicode(linhas[1])
+                usuario = str(linhas[0])
+                senha = str(linhas[1])
 
                 #logging.debug(senha)
                 #logging.debug(usuario)
@@ -1869,7 +1877,7 @@ def enviarMinhaSenha():
                     logging.error(str(e))
                 return(render_template('login.html',mensagem='Senha enviada para o email: ' + email))
             else:
-                return(render_template('login.html',mensagem=u'E-mail não cadastrado. Envie e-mail para atendimento.prpi@ufca.edu.br para solicitar sua senha.'))
+                return(render_template('login.html',mensagem='E-mail não cadastrado. Envie e-mail para atendimento.prpi@ufca.edu.br para solicitar sua senha.'))
         else:
             return("OK")
     else:
@@ -1931,7 +1939,7 @@ def prepararResultados():
                 cnpqUnidade = {}
                 ufcaUnidade = {}
                 for linha in demandaQualificada:
-                    ua = unicode(linha[0])
+                    ua = str(linha[0])
                     totalDeProjetosDaUnidade = int(linha[1])
                     bolsasCnpqParaUnidade = round((totalDeProjetosDaUnidade/total)*bolsas_cnpq)
                     bolsasUFCAParaUnidade = round((totalDeProjetosDaUnidade/total)*bolsas_ufca)
@@ -2180,21 +2188,21 @@ def efetivarIndicacao():
             substituicao = int(request.form['substituicao'])
             substituido = int(request.form['substituido'])
             if ( ( (vaga==1)  and (podeIndicarBolsistas(idProjeto)) ) or ( (vaga==0)  and (podeIndicarVoluntarios(idProjeto)) ) or ( (vaga==0)  and (podeIndicarVoluntariosAdicionais(idProjeto)) ) ) or (substituicao==1):
-                nome = unicode(request.form['nome'])
+                nome = str(request.form['nome'])
                 fomento = int(request.form['fomento'])
                 nascimento = str(request.form['nasc'])
                 estado_civil = int(request.form['estado_civil'])
                 sexo = int(request.form['sexo'])
-                rg = unicode(request.form['rg'])
-                orgao = unicode(request.form['orgao'])
-                uf = unicode(request.form['uf'])
-                cpf = unicode(request.form['cpf'])
+                rg = str(request.form['rg'])
+                orgao = str(request.form['orgao'])
+                uf = str(request.form['uf'])
+                cpf = str(request.form['cpf'])
                 vaga = int(request.form['vaga'])
                 modalidade = int(request.form['modalidade'])
-                curso = unicode(request.form['curso'])
-                matricula = unicode(request.form['matricula'])
+                curso = str(request.form['curso'])
+                matricula = str(request.form['matricula'])
                 ingresso = int(request.form['ingresso'])
-                lattes = unicode(request.form['lattes'])
+                lattes = str(request.form['lattes'])
                 banco = ""
                 agencia = ""
                 conta = ""
@@ -2206,14 +2214,14 @@ def efetivarIndicacao():
                     agencia = "N/A"
                     conta = "N/A"
                 else:
-                    banco = unicode(request.form['banco'])
-                    agencia = unicode(request.form['agencia'])
-                    conta = unicode(request.form['conta'])
-                telefone = unicode(request.form['tel_fixo'])
-                celular = unicode(request.form['tel_cel'])
-                email = unicode(request.form['email'])
-                endereco = unicode(request.form['endereco'])
-                escola = unicode(request.form['escola'])
+                    banco = str(request.form['banco'])
+                    agencia = str(request.form['agencia'])
+                    conta = str(request.form['conta'])
+                telefone = str(request.form['tel_fixo'])
+                celular = str(request.form['tel_cel'])
+                email = str(request.form['email'])
+                endereco = str(request.form['endereco'])
+                escola = str(request.form['escola'])
                 conclusao = int(request.form['conclusao'])
 
                 nomeDoArquivoTermo = ""
@@ -2346,6 +2354,14 @@ def verArquivo():
             return("OK")
     else:
         return("OK")
+    
+@app.route("/verArquivosProjeto/<filename>", methods=['GET', 'POST'])
+def verArquivosProjeto(filename):
+    
+    if os.path.isfile(SUBMISSOES_DIR + filename):
+        return(send_from_directory(app.config['UPLOADED_SUBMISSOES_DEST'], filename))
+    else:
+        return("Arquivo não encontrado!")
 
 @app.route("/situacaoIndicacoes", methods=['GET', 'POST'])
 def situacaoIndicacoes():
@@ -2464,14 +2480,14 @@ def enviarFrequencia():
 @app.route("/cadastrarFrequencia", methods=['GET', 'POST'])
 def cadastrarFrequencia():
     if request.method == "POST":
-        s1 = unicode(request.form['s1'])
-        s2 = unicode(request.form['s2'])
-        s3 = unicode(request.form['s3'])
-        s4 = unicode(request.form['s4'])
+        s1 = str(request.form['s1'])
+        s2 = str(request.form['s2'])
+        s3 = str(request.form['s3'])
+        s4 = str(request.form['s4'])
         mes = str(request.form['mes'])
         ano = str(request.form['ano'])
         idAluno = str(request.form['idAluno'])
-        obs = unicode(request.form['obs'])
+        obs = str(request.form['obs'])
         consulta_verificacao = """
         SELECT id FROM frequencias WHERE idIndicacao=%s AND mes=%s AND ano=%s
         """ %(idAluno,mes,ano)
@@ -2496,8 +2512,8 @@ def thread_enviar_email(msg,erro):
 def enviar_lembrete_frequencia():
     import datetime
     #Mes e ano atual
-    ano = unicode(datetime.date.today().year)
-    mes = unicode(datetime.date.today().month-1)
+    ano = str(datetime.date.today().year)
+    mes = str(datetime.date.today().month-1)
     if mes==1:
         ano = ano - 1
     nome_mes = {
@@ -2528,12 +2544,12 @@ def enviar_lembrete_frequencia():
         GROUP BY editalProjeto.nome"""
         linhas,total = executarSelect(consulta)
         for linha in linhas:
-            id_projetos = unicode(linha[0]).split(',')
-            orientador = unicode(linha[1])
-            siape = unicode(linha[5])
+            id_projetos = str(linha[0]).split(',')
+            orientador = str(linha[1])
+            siape = str(linha[5])
             senha = obterColunaUnica('users','password','username',siape)
-            titulos = unicode(linha[2]).split(',')
-            indicacoes = unicode(linha[3]).split(',')
+            titulos = str(linha[2]).split(',')
+            indicacoes = str(linha[3]).split(',')
             nao_enviados = []
             for indicacao in indicacoes:
                 subconsulta = """SELECT 
@@ -2548,9 +2564,9 @@ def enviar_lembrete_frequencia():
                     nao_enviados.append(nome_indicado)
             if (len(nao_enviados)!=0):
                 
-                texto_email = render_template('lembrete_frequencia.html',mes=unicode(nome_mes[unicode(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
+                texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
                 if PRODUCAO==1:
-                    msg = Message(subject = u"Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[unicode(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                    msg = Message(subject = u"Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     try:
                         mail.send(msg)            
                     except Exception as e:
@@ -2594,7 +2610,7 @@ def listaNegra(email):
         idIndicacao = str(linha[0])
         subconsulta = """SELECT id FROM frequencias WHERE mes=""" + mes + """ AND ano=""" + ano + """ AND idIndicacao=""" + idIndicacao
         frequencias,totalFrequencias = executarSelect(subconsulta)
-        dados = [str(linha[0]),unicode(linha[1]),unicode(linha[2])]
+        dados = [str(linha[0]),str(linha[1]),str(linha[2])]
         if totalFrequencias==0:
             lista.append(dados)
             lista_emails.append(str(linha[3]))
@@ -2628,7 +2644,7 @@ def desligarIndicacao(id_indicacao):
             motivos = []
             for motivo in request.form:
                 if 'op' in motivo:
-                    motivos.append(unicode(request.form[motivo]))
+                    motivos.append(str(request.form[motivo]))
             lista_motivos = ''
             for i in range(0,len(motivos),1):
                 if motivos[i]!='' and motivos[i]!=' ':
@@ -2688,7 +2704,7 @@ def substituirIndicacao(id_indicacao):
             motivos = []
             for motivo in request.form:
                 if 'op' in motivo:
-                    motivos.append(unicode(request.form[motivo]))
+                    motivos.append(str(request.form[motivo]))
             lista_motivos = ''
             for i in range(0,len(motivos),1):
                 if motivos[i]!='' and motivos[i]!=' ':
@@ -2848,14 +2864,14 @@ def enviar_email_avaliadores():
     """
     linhas,total = executarSelect(consulta)
     for linha in linhas:
-        titulo = unicode(linha[1])
-        resumo = unicode(linha[2])
-        link = unicode(linha[4])
-        token = unicode(linha[7])
-        email_avaliador = unicode(linha[3])
+        titulo = str(linha[1])
+        resumo = str(linha[2])
+        link = str(linha[4])
+        token = str(linha[7])
+        email_avaliador = str(linha[3])
         link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
         deadline = str(linha[11])
-        nome_longo = unicode(linha[12])
+        nome_longo = str(linha[12])
         with app.app_context():
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
             msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
@@ -2890,11 +2906,11 @@ def enviarPedidoAvaliacao(id):
     logging.debug("Enviado pedido de avaliacao para: " + str(total))
     
     for linha in linhas:
-        titulo = unicode(linha[1])
-        resumo = unicode(linha[2])
-        link = unicode(linha[4])
-        token = unicode(linha[7])
-        email_avaliador = unicode(linha[3])
+        titulo = str(linha[1])
+        resumo = str(linha[2])
+        link = str(linha[4])
+        token = str(linha[7])
+        email_avaliador = str(linha[3])
         link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
         deadline = obterColunaUnica('editais',"DATE_FORMAT(deadline_avaliacao,'%d/%m/%Y')",'id',str(linha[9]))
         nome_longo = obterColunaUnica('editais','nome','id',str(linha[9]))

@@ -122,7 +122,7 @@ textarea {
     <form name="frmAvaliacao" action="/pesquisa/avaliar" method="POST">
       <hr>
       <h3>Arquivos do projeto</h3>
-      {{ arquivos }} <br>
+      {{ arquivos|safe }} <br>
 
       <hr>
       <h2>FORMULÁRIO DE AVALIAÇÃO</h2>

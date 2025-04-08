@@ -1,0 +1,45 @@
+services:
+  db_pesquisa:
+     image: mariadb:11
+     restart: no
+     command: mariadbd --sql_mode=""
+     ports:
+      - "3306:3306"
+     environment:
+       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+       MYSQL_DATABASE: ${MYSQL_DATABASE}
+       MYSQL_USER: ${MYSQL_USER}
+       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+       TZ: America/Fortaleza
+     volumes:
+       - pesquisa-data:/var/lib/mysql
+       - ./share:/share
+     networks:
+       - web  
+  pesquisa:
+    image: pesquisa:latest
+    depends_on:
+      - db_pesquisa
+    build: .
+    volumes:
+      - ./home:/home
+      - ./share:/share
+    environment:
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      GMAIL_PASSWORD: ${GMAIL_PASSWORD}
+      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY}
+      MYSQL_HOST: ${MYSQL_HOST}
+      SERVER_URL: ${SERVER_URL}
+      PRODUCAO: ${PRODUCAO}
+    restart: no
+    ports:
+      - "9008:80"
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
+
+volumes:
+  pesquisa-data:

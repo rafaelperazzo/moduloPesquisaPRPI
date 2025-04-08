@@ -1,3 +1,4 @@
+env/
 .env
 cicd.sh
 cron
@@ -12,7 +13,6 @@ cron.avaliacao.sh
 *.zip
 *.pass
 *.sql
-*.yml
 *.sh
 *.pdf
 *.xml

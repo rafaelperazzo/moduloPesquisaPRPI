@@ -1,15 +1,16 @@
 #!/bin/sh
-#SCRIPT CICD PARA ATUALIZAÇÕES AUTOMÁTICAS
 now=$(date)
 cd /backup/pesquisa
 git fetch origin
 # See if there are any incoming changes
-OUTPUT=$(git log HEAD..origin/master --oneline)
+OUTPUT=$(git log HEAD..origin/python3 --oneline)
 if [ -z "$OUTPUT" ]
 then
         echo "ATUALIZADO" > /dev/null
 else
         git pull origin master
         echo "appPesquisa atualizado e testado com sucesso! ($now)" >> cicd.log
-        docker-compose restart pesquisa
+        docker-compose down
+        docker-compose up -d
+        enviar_email.sh "[YOKO PESQUISA] ATUALIZAÇÃO" "rafaelperazzo@gmail.com" "Yoko-Pesquisa atualizado com sucesso!"
 fi

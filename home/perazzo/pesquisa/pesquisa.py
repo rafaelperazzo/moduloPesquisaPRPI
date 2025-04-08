@@ -1395,7 +1395,6 @@ def editalProjeto():
                             return(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=1,mensagem=mensagem,modalidade=modalidade))
                     else:
                         mensagem = ""
-                        logging.debug("antes de renderizar o editalProjeto")
                         return(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=0,modalidade=modalidade))
                 except Exception as e:
                     logging.error(str(e))

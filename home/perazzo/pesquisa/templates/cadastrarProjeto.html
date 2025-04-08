@@ -88,17 +88,17 @@ function ValidateSingleInputPDF(oInput) {
        if (x == "0") { //Em andamento
           document.forms["frmCadastroProjeto"]["arquivo_projeto"].disabled = true;
           document.forms["frmCadastroProjeto"]["arquivo_projeto"].required = false;
-          document.forms["frmCadastroProjeto"]["avaliador1_email"].required = false;
-          document.forms["frmCadastroProjeto"]["avaliador2_email"].required = false;
-          document.forms["frmCadastroProjeto"]["avaliador3_email"].required = false;
+          //document.forms["frmCadastroProjeto"]["avaliador1_email"].required = false;
+          //document.forms["frmCadastroProjeto"]["avaliador2_email"].required = false;
+          //document.forms["frmCadastroProjeto"]["avaliador3_email"].required = false;
 
 		}
 		else { //Projeto Novo
 			document.forms["frmCadastroProjeto"]["arquivo_projeto"].disabled = false;
       document.forms["frmCadastroProjeto"]["arquivo_projeto"].required = true;
-      document.forms["frmCadastroProjeto"]["avaliador1_email"].required = true;
-      document.forms["frmCadastroProjeto"]["avaliador2_email"].required = true;
-      document.forms["frmCadastroProjeto"]["avaliador3_email"].required = true;
+      //document.forms["frmCadastroProjeto"]["avaliador1_email"].required = true;
+      //document.forms["frmCadastroProjeto"]["avaliador2_email"].required = true;
+      //document.forms["frmCadastroProjeto"]["avaliador3_email"].required = true;
 
 		}
 	}

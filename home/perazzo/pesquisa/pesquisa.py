@@ -99,7 +99,7 @@ configure_uploads(app, submissoes)
 def removerAspas(texto):
     resultado = texto.replace('"',' ')
     resultado = resultado.replace("'"," ")
-    return(resultado)
+    return resultado
 
 def getID(cpf):
     wsdl = 'https://sci01-ter-jne.ufca.edu.br/cnpq'

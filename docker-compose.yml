@@ -3,8 +3,8 @@ services:
      image: mariadb:11
      restart: no
      command: mariadbd --sql_mode=""
-     ports:
-      - "3306:3306"
+     #ports:
+     # - "3306:3306"
      environment:
        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
        MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -24,6 +24,12 @@ services:
     volumes:
       - ./home:/home
       - ./share:/share
+    labels:
+       - "traefik.enable=true"
+       - "traefik.http.routers.pesquisa.rule=PathPrefix(`/pesquisa3`)&&Host(`sci01-ter-jne.ufca.edu.br`)"
+       - "traefik.http.routers.pesquisa.tls=true"
+       - "traefik.http.routers.pesquisa.tls.certresolver=certificado"
+       - "traefik.http.routers.pesquisa.entrypoints=websecure"
     environment:
       DB_PASSWORD: ${MYSQL_PASSWORD}
       GMAIL_PASSWORD: ${GMAIL_PASSWORD}
@@ -31,6 +37,7 @@ services:
       MYSQL_HOST: ${MYSQL_HOST}
       SERVER_URL: ${SERVER_URL}
       PRODUCAO: ${PRODUCAO}
+      URL_PREFIX: ${URL_PREFIX}
     restart: no
     ports:
       - "9008:80"

@@ -3089,4 +3089,5 @@ def get_dados_indicacao(cpf):
     return resp
 
 if __name__ == "__main__":
-    serve(app, host='0.0.0.0', port=80, url_prefix='/pesquisa',trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')
+    prefixo = os.getenv('URL_PREFIX','/pesquisa3')
+    serve(app, host='0.0.0.0', port=80, url_prefix=prefixo,trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')

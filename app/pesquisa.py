@@ -77,7 +77,12 @@ app.config['CURRICULOS_FOLDER'] = CURRICULOS_DIR
 app.config['DECLARACOES_FOLDER'] = DECLARACOES_DIR
 app.config['TEMP_FOLDER'] = DECLARACOES_DIR
 
-logging.basicConfig(filename=WORKING_DIR + 'app.log',
+if PRODUCAO==1:
+    logging.basicConfig(filename=WORKING_DIR + 'app.log',
+                    filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
+                    level=logging.ERROR)
+else:
+    logging.basicConfig(filename=WORKING_DIR + 'app.log',
                     filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
 logging.getLogger('waitress')
@@ -211,7 +216,7 @@ def enviarEmail(to,subject,body):
 def atualizar(consulta):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
     
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
         cursor.execute(consulta)
@@ -228,7 +233,7 @@ def atualizar(consulta):
 def inserir(consulta,valores):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
     
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
         cursor.execute(consulta,valores)
@@ -268,7 +273,7 @@ def getData():
 def gerarDeclaracao(identificador):
     #CONEXÃO COM BD
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT nome,cpf,modalidade,orientador,projeto,inicio,fim,id,ch FROM alunos WHERE id=" + str(identificador)
     cursor.execute(consulta)
@@ -296,7 +301,7 @@ def gerarDeclaracao(identificador):
 def gerarDeclaracaoOrientador(identificador):
     #CONEXÃO COM BD
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT id,coordenador,siape,titulo,inicio,fim FROM projetos WHERE id=" + identificador
     cursor.execute(consulta)
@@ -321,7 +326,7 @@ def gerarDeclaracaoOrientador(identificador):
 def gerarProjetosPorAluno(cpf):
     try:
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-        conn.select_db('pesquisa')
+        conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
         consulta = """SELECT estudante_nome_completo,cpf,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,estudante_inicio,estudante_fim,token FROM cadastro_geral WHERE cpf = '""" + cpf + """'"""
         cursor.execute(consulta)
@@ -345,7 +350,7 @@ def gerarProjetosPorAluno(cpf):
 def gerarProjetosPorOrientador(identificador):
     #CONEXÃO COM BD
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT id,coordenador,titulo,inicio,fim FROM projetos WHERE SIAPE=" + str(identificador)
     cursor.execute(consulta)
@@ -357,7 +362,7 @@ def gerarProjetosPorOrientador(identificador):
 def gerarAutenticacao(identificador):
     #CONEXÃO COM BD
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT a.nome,a.cpf,a.modalidade,a.orientador,a.projeto,a.inicio,a.fim,b.codigo FROM alunos a, autenticacao b WHERE a.id=b.idAluno and b.codigo=" + identificador + " ORDER BY b.data DESC LIMIT 1"
     cursor.execute(consulta)
@@ -367,7 +372,7 @@ def gerarAutenticacao(identificador):
 
 def getEditaisAbertos():
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = """SELECT id,nome,DATE_FORMAT(deadline,'%d/%m/%Y - %H:%i') FROM editais WHERE now()<deadline ORDER BY id DESC"""
     cursor.execute(consulta)
@@ -387,7 +392,7 @@ def verify_password(username, password):
     """
     try:
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-        conn.select_db('pesquisa')
+        conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
         consulta = """SELECT id,username,permission,roles FROM users WHERE username='""" + username + """' AND password=('""" + password + """')"""
         cursor.execute(consulta)
@@ -547,7 +552,7 @@ def cadastrarProjeto():
     #CONEXÃO COM BD
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
     
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
 
     #DADOS PESSOAIS E BÁSICOS DO PROJETO
@@ -691,27 +696,34 @@ def cadastrarProjeto():
         logging.debug("Não foi incluído um arquivo de COMPROVANTES")
 
     #CADASTRAR AVALIADORES SUGERIDOS
-    avaliador1_email = str(request.form['avaliador1_email'])
-    if avaliador1_email!='':
-        token = id_generator(40)
-        consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador1_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-        atualizar(consulta)
-        logging.debug("Avaliador 1 sugerido cadastrado.")
+    if 'avaliador1_email' in request.form:
+        avaliador1_email = str(request.form['avaliador1_email'])
+        if avaliador1_email!='':
+            token = id_generator(40)
+            consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador1_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
+            atualizar(consulta)
+            logging.debug("Avaliador 1 sugerido cadastrado.")
 
-    avaliador2_email = str(request.form['avaliador2_email'])
-    if avaliador2_email!='':
-        token = id_generator(40)
-        consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador2_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-        atualizar(consulta)
-        logging.debug("Avaliador 2 sugerido cadastrado.")
+    if 'avaliador2_email' in request.form:
+        avaliador2_email = str(request.form['avaliador2_email'])
+        if avaliador2_email!='':
+            token = id_generator(40)
+            consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador2_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
+            atualizar(consulta)
+            logging.debug("Avaliador 2 sugerido cadastrado.")
 
-    avaliador3_email = str(request.form['avaliador3_email'])
-    if avaliador3_email!='':
+    if 'avaliador3_email' in request.form:
+        avaliador3_email = str(request.form['avaliador3_email'])
+        if avaliador3_email!='':
+            token = id_generator(40)
+            consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador3_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
+            atualizar(consulta)
+            logging.debug("Avaliador 3 sugerido cadastrado.")
+    if 'avaliador1_email' not in request.form and 'avaliador2_email' not in request.form and 'avaliador3_email' not in request.form:
         token = id_generator(40)
-        consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador3_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
+        consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + "TESTE@IGNORAR.COM" + "\", \"" + token + "\", " + str(ultimo_id) + ")"
         atualizar(consulta)
-        logging.debug("Avaliador 3 sugerido cadastrado.")
-
+        logging.debug("Avaliador TESTE sugerido cadastrado.")
     #CALCULANDO scorelattes
     dados = [email,nome,titulo,descricao_resumida]
     t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
@@ -747,7 +759,7 @@ def getScoreLattesFromFile():
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam
 def getFiles(idProjeto):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT arquivo_projeto,arquivo_plano1,arquivo_plano2 FROM editalProjeto WHERE id=" + idProjeto
     cursor.execute(consulta)
@@ -757,7 +769,7 @@ def getFiles(idProjeto):
 
 def naoEstaFinalizado(token):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT finalizado FROM avaliacoes WHERE token=\"" + token + "\""
     cursor.execute(consulta)
@@ -771,7 +783,7 @@ def naoEstaFinalizado(token):
 
 def podeAvaliar(idProjeto):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     #consulta = "SELECT deadline_avaliacao,CURRENT_TIMESTAMP() FROM editais WHERE CURRENT_TIMESTAMP()<deadline_avaliacao AND id=" + codigoEdital
     consulta = "SELECT e.id as codigoEdital,e.deadline_avaliacao,p.id FROM editais e, editalProjeto p WHERE p.tipo=e.id and deadline_avaliacao>CURRENT_TIMESTAMP() AND p.id=" + idProjeto
@@ -896,7 +908,7 @@ def enviarAvaliacao():
 ## TODO: Revisar função abaixo
 def descricaoEdital(codigoEdital):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT id,nome FROM editais WHERE id=" + codigoEdital
     cursor.execute(consulta)
@@ -929,7 +941,7 @@ def getDeclaracaoAvaliador():
 
 def consultar(consulta):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     cursor.execute(consulta)
     linhas = cursor.fetchall()
@@ -953,7 +965,7 @@ def recusarConvite():
 def avaliacoesNegadas():
     if request.method == "GET":
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-        conn.select_db('pesquisa')
+        conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
         if 'edital' in request.args:
             codigoEdital = str(request.args.get('edital'))
@@ -996,7 +1008,7 @@ def inserirAvaliador():
 #Retorna a quantidade de linhas da consulta
 def quantidades(consulta):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     cursor.execute(consulta)
     total = cursor.rowcount
@@ -1011,7 +1023,7 @@ def estatisticas():
         #Resumo Geral
         consulta = "SELECT * FROM resumoGeralAvaliacoes WHERE tipo=" + codigoEdital + " ORDER BY ua, score DESC"
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-        conn.select_db('pesquisa')
+        conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
         cursor.execute(consulta)
         resumoGeral = cursor.fetchall()
@@ -1104,7 +1116,7 @@ def distribuir_bolsas(demanda,consulta):
         
 def executarSelect(consulta,tipo=0):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
         cursor.execute(consulta)
@@ -1126,7 +1138,7 @@ def executarSelect(consulta,tipo=0):
 
 def avaliacoesEncerradas(codigoEdital):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT deadline_avaliacao,CURRENT_TIMESTAMP() FROM editais WHERE CURRENT_TIMESTAMP()<deadline_avaliacao AND id=" + codigoEdital
     cursor.execute(consulta)
@@ -1149,7 +1161,7 @@ def resultados():
         #Recuperando o Resumo Geral
         consulta = "SELECT * FROM resumoGeralClassificacao WHERE tipo=" + codigoEdital + " ORDER BY ua, score DESC"
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-        conn.select_db('pesquisa')
+        conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
         cursor.execute(consulta)
         total = cursor.rowcount
@@ -1252,7 +1264,7 @@ Retorna uma coluna de uma linha única dado uma chave primária
 '''
 def obterColunaUnica(tabela,coluna,colunaId,valorId):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT " + coluna + " FROM " + tabela + " WHERE " + colunaId + "=" + valorId
     resultado = "0"
@@ -1273,7 +1285,7 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
         
 def obterColunaUnica_str(tabela,coluna,colunaId,valorId):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    conn.select_db('pesquisa')
+    conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT " + coluna + " FROM " + tabela + " WHERE " + colunaId + "=\"" + valorId + "\""
     resultado = "0"
@@ -1345,7 +1357,7 @@ def editalProjeto():
                 codigoEdital = str(request.args.get('edital'))
                 session['edital'] = codigoEdital
                 conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-                conn.select_db('pesquisa')
+                conn.select_db(MYSQL_DATABASE)
                 cursor  = conn.cursor()
                 tipo_classificacao = int(obterColunaUnica("editais","classificacao","id",codigoEdital))
                 #ORDENA DE ACORDO COM O TIPO DE CLASSIFICAÇÃO: 1 - POR UA; 2 - POR LATTES
@@ -1427,7 +1439,7 @@ def lattesDetalhado():
         if 'id' in request.args:
             idProjeto = str(request.args.get('id'))
             conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-            conn.select_db('pesquisa')
+            conn.select_db(MYSQL_DATABASE)
             cursor  = conn.cursor()
             consulta = "SELECT id,scorelattes_detalhado FROM editalProjeto WHERE id=" + idProjeto + " AND valendo=1"
             cursor.execute(consulta)
@@ -2878,6 +2890,8 @@ def enviar_email_avaliadores():
         link = str(linha[4])
         token = str(linha[7])
         email_avaliador = str(linha[3])
+        if 'TESTE' in email_avaliador:
+            continue
         link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
         deadline = str(linha[11])
         nome_longo = str(linha[12])

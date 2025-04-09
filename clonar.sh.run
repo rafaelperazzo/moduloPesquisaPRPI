@@ -1,1 +1,1 @@
-docker compose exec db_pesquisa3 bash -c "/share/./clonar.sh.run"
+docker compose exec db_pesquisa bash -c "/share/./clonar.sh.run"

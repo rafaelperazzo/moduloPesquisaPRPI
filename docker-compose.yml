@@ -1,5 +1,5 @@
 services:
-  db_pesquisa3:
+  db_pesquisa:
      image: mariadb:11
      restart: "no"
      command: mariadbd --sql_mode=""
@@ -16,10 +16,10 @@ services:
        - ./share:/share
      networks:
        - web  
-  pesquisa3:
+  pesquisa:
     image: pesquisa3:latest
     depends_on:
-      - db_pesquisa3
+      - db_pesquisa
     build: .
     volumes:
       - ./app:/app

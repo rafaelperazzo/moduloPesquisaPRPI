@@ -1,1 +1,1 @@
-docker compose exec pesquisa3 bash -c "pytest -rx /app/tests.py"
+docker compose exec pesquisa bash -c "pytest -rx /app/tests.py"

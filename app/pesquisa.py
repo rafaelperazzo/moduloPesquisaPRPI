@@ -719,7 +719,13 @@ def cadastrarProjeto():
             consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador3_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
             atualizar(consulta)
             logging.debug("Avaliador 3 sugerido cadastrado.")
-    if 'avaliador1_email' not in request.form and 'avaliador2_email' not in request.form and 'avaliador3_email' not in request.form:
+    #Incluir avaliador teste em caso de não inclusão
+    if ('avaliador1_email' not in request.form and 'avaliador2_email' not in request.form and 'avaliador3_email' not in request.form):
+        token = id_generator(40)
+        consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + "TESTE@IGNORAR.COM" + "\", \"" + token + "\", " + str(ultimo_id) + ")"
+        atualizar(consulta)
+        logging.debug("Avaliador TESTE sugerido cadastrado.")
+    elif avaliador1_email=="" and avaliador2_email=="" and avaliador3_email=="":
         token = id_generator(40)
         consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + "TESTE@IGNORAR.COM" + "\", \"" + token + "\", " + str(ultimo_id) + ")"
         atualizar(consulta)

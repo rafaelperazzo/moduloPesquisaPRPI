@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	  <style>
+table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background-color: #dddddd;
+}
+
+p.cnpq {
+  color: green;
+}
+
+p.ufca {
+  color: orange;
+}
+
+</style>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Lista de orientadores que não enviaram a frequência</title>
+  </head>
+  <body>
+    <h1>Lista de orientadores que não enviaram a frequência</h1>
+    <h2>Mês: {{mes}}</h2>
+    <h2>Ano: {{ano}}</h2>
+    <h2>Total: {{total}}</h2>
+    <table>
+    <th>Id Indicação</th><th>Orientador</th><th>Nome do discente</th>
+
+    <p>{% for linha in lista %}</p>
+
+          <tr>
+            <td>{{linha[0]}}</td>
+            <td>{{linha[2]}}</td>
+            <td>{{linha[1]}}</td>
+          </tr>
+    {% endfor %}
+
+    </table>
+
+  </body>
+</html>

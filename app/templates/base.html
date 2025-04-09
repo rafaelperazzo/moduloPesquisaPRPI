@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{% block title %}{% endblock %} - Plataforma Yoko</title>
+  {% block html_head %}
+
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+  <script>
+
+  var _validFileExtensions = [".pdf"];
+  function ValidateSingleInput(oInput) {
+      if (oInput.type == "file") {
+          var sFileName = oInput.value;
+           if (sFileName.length > 0) {
+              var blnValid = false;
+              for (var j = 0; j < _validFileExtensions.length; j++) {
+                  var sCurExtension = _validFileExtensions[j];
+                  if (sFileName.substr(sFileName.length - sCurExtension.length, sCurExtension.length).toLowerCase() == sCurExtension.toLowerCase()) {
+                      blnValid = true;
+                      break;
+                  }
+              }
+
+              if (!blnValid) {
+                  alert("Arquivo inválido! Tipo de arquivo permitido: " + _validFileExtensions.join(", "));
+                  oInput.value = "";
+                  return false;
+              }
+          }
+      }
+      return true;
+  }
+
+  var _validFileExtensionsPDF = [".pdf"];
+  function ValidateSingleInputPDF(oInput) {
+      if (oInput.type == "file") {
+          var sFileName = oInput.value;
+           if (sFileName.length > 0) {
+              var blnValid = false;
+              for (var j = 0; j < _validFileExtensionsPDF.length; j++) {
+                  var sCurExtension = _validFileExtensionsPDF[j];
+                  if (sFileName.substr(sFileName.length - sCurExtension.length, sCurExtension.length).toLowerCase() == sCurExtension.toLowerCase()) {
+                      blnValid = true;
+                      break;
+                  }
+              }
+
+              if (!blnValid) {
+                  alert("Arquivo inválido! Tipo de arquivo permitido: " + _validFileExtensionsPDF.join(", "));
+                  oInput.value = "";
+                  return false;
+              }
+          }
+      }
+      return true;
+  }
+
+
+    function humano() {
+       if (grecaptcha.getResponse() == ""){
+  	    alert("Marque a caixa abaixo para continuar...");
+  	    return (false);
+       } else {
+              //alert("Thank you");
+  	    return (true);
+         }
+    }
+
+      </script>
+
+  <style>
+input[type=text], select {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+input[type=email], select {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+input[type=submit] {
+
+  background-color: #808080;
+  color: black;
+  padding: 14px 20px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+input[type=submit]:hover {
+  background-color: #45a049;
+}
+
+div {
+  border-radius: 5px;
+  background-color: #FFFFFF;
+  padding: 20px;
+}
+
+textarea {
+  width: 100%;
+  height: 150px;
+  padding: 12px 20px;
+  box-sizing: border-box;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  background-color: #FFFFFF;
+  resize: none;
+}
+
+</style>
+
+  {% endblock %}
+</head>
+<body>
+  <div id="header">
+  {% block header %}
+  <center><img src="{{ url_for('static', filename='brasao_uniao.png')}}" width="8%" alt="" align="center"></center>
+  <br><center>
+  Ministério da Educação<BR>
+  Universidade Federal do Cariri<BR>
+  Pró-reitoria de Pesquisa, Pós-graduação e Inovação<BR></center>
+    <hr>
+  {% endblock %}
+ </div>
+
+  <div id="content">
+    {% block content %}{% endblock %}
+  </div>
+
+  <div id="footer">
+    {% block footer %}
+     <center><a href="http://cppgi.ufca.edu.br">Congresso de Pesquisa, Pós-Graduação e Inovação - PRPI</a>.</center>
+    {% endblock %}
+  </div>
+</body>
+</html>

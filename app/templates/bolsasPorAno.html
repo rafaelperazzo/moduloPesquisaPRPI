@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+	  <style>
+table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+td, th {
+    border: 1px solid #dddddd;
+    text-align: center;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background-color: #dddddd;
+}
+
+table.novos {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 50%;
+}
+
+td.novos, th.novos {
+    border: 1px solid #dddddd;
+    text-align: center;
+    padding: 8px;
+}
+
+tr.novos:nth-child(even) {
+    background-color: #CCFFCC;
+}
+
+p.aprovado {
+  color: green;
+}
+
+p.indefinido {
+  color: orange;
+}
+
+p.reprovado {
+  color: red;
+}
+
+.column {
+  float: left;
+  width: 45%;
+  padding: 5px;
+}
+
+/* Clearfix (clear floats) */
+.row::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+<script>
+$(document).ready(function(){
+ $("#myInput").on("keyup", function() {
+   var value = $(this).val().toLowerCase();
+   $("#myTable tr").filter(function() {
+     $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+   });
+ });
+});
+</script>
+
+<script>
+$(document).ready(function(){
+ $("#txtNovos").on("keyup", function() {
+   var value = $(this).val().toLowerCase();
+   $("#tabelaNovos tr").filter(function() {
+     $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+   });
+ });
+});
+</script>
+
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Distribuição de bolsas por ano</title>
+  </head>
+  <body>
+    <center><img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" width="120" height="130" alt=""></center>
+    <center>
+    MINISTÉRIO DA EDUCAÇÃO<br>
+    UNIVERSIDADE FEDERAL DO CARIRI<br>
+    PRÓ-REITORIA DE PESQUISA, INOVAÇÃO E PÓS-GRADUAÇÃO<br>
+    COORDENADORIA DE PESQUISA <br>
+    </center>
+    <hr>
+    <h1><b>Distribuição de bolsas por ano</b></h1>
+    <h1><center>{{ ano }}</center></h1>
+
+    <h1>Propostas ordenadas por proponente</h1>
+    <input id="myInput" type="text" placeholder="Procurar.."><BR>
+    <table>
+      <thead>
+        <th>SIAPE</th><th>PROPONENTE</th><th>Bolsas concedidas</th><th>Editais</th><th>Modalidades<br>(1 - PIBIC; 2- PIBITI; 3- PIBIC-EM)</th>
+      </thead>
+    <tbody id="myTable">
+    {% for linha in linhas %}
+    <tr>
+    <td>{{ linha[0] }}</td>
+    <td>{{ linha[1] }}</td>
+    <td>
+      {% if linha[2]>2 %}
+          <p class="reprovado">{{ linha[2] }}</p>
+      {% else %}
+          <p class="aprovado">{{ linha[2] }}</p>
+      {% endif %}
+    </td>
+    <td>{{ linha[3]|safe }}</td>
+    <td>{{ linha[4]|safe }}</td>
+    {% endfor %}
+    </tbody>
+    </table>
+
+    Total: {{total}} de proponentes distintos.
+
+
+  </body>
+</html>

@@ -1,1 +1,0 @@
-curriculos xml

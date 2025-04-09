@@ -18,3 +18,4 @@ pypng
 python-dotenv
 Flask-WTF
 brseclabcripto
+beautifulsoup4

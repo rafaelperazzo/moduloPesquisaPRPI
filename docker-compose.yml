@@ -22,7 +22,7 @@ services:
       - db_pesquisa3
     build: .
     volumes:
-      - ./home:/home
+      - ./app:/app
       - ./share:/share
     labels:
        - "traefik.enable=true"

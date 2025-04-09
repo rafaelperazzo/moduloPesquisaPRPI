@@ -6,7 +6,7 @@ name: Atualizar sistema de Pesquisa
 on:
   push:
     branches:
-      - python3
+      - master
 
 permissions:
   contents: read

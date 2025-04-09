@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta name="robots" content="noindex">    
+<title>Scorelattes</title>
+<style>
+* {
+  box-sizing: border-box;
+}
+
+input[type=text], select, textarea {
+  width: 50%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+label {
+  padding: 12px 12px 12px 0;
+  display: inline-block;
+}
+
+input[type=submit] {
+  background-color: #4CAF50;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  float: left;
+}
+
+input[type=submit]:hover {
+  background-color: #45a049;
+}
+
+.container {
+  border-radius: 5px;
+  background-color: #f2f2f2;
+  padding: 20px;
+}
+
+.col-25 {
+  float: left;
+  width: 25%;
+  margin-top: 6px;
+}
+
+.col-75 {
+  float: left;
+  width: 75%;
+  margin-top: 6px;
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* Responsive layout - when the screen is less than 600px wide, make the two columns stack on top of each other instead of next to each other */
+@media screen and (max-width: 600px) {
+  .col-25, .col-75, input[type=submit] {
+    width: 100%;
+    margin-top: 0;
+  }
+}
+</style>
+</head>
+  <body>
+    <form name="frmLattes" action="/pesquisa/score" method="POST" enctype="multipart/form-data"><br>
+      <b>Período</b>:
+      <select name="periodo">
+        <option value="5">Últimos 5 anos</option>
+        <option value="7">Últimos 7 anos</option>
+      </select><br>
+      <b>ID Lattes:</b> <input name="idlattes" required="required"
+        type="text"><br>
+        <b>Área CAPES</b>:
+        <select name="area_capes">
+          <option value="ADMINISTRACAO_PUBLICA_E_DE_EMPRESAS_CIENCIAS_CONTABEIS_E_TURISMO">ADMINISTRACAO_PUBLICA_E_DE_EMPRESAS_CIENCIAS_CONTABEIS_E_TURISMO</option>
+          <option value="ANTROPOLOGIA_ARQUEOLOGIA">ANTROPOLOGIA_ARQUEOLOGIA</option>
+          <option value="ARQUITETURA_URBANISMO_E_DESIGN">ARQUITETURA_URBANISMO_E_DESIGN</option>
+          <option value="ARTES">ARTES</option>
+          <option value="ASTRONOMIA_FISICA">ASTRONOMIA_FISICA</option>
+          <option value="BIODIVERSIDADE">BIODIVERSIDADE</option>
+          <option value="BIOTECNOLOGIA">BIOTECNOLOGIA</option>
+          <option value="CIENCIAS_AGRARIAS_I">CIENCIAS_AGRARIAS_I</option>
+          <option value="CIENCIAS_AMBIENTAIS">CIENCIAS_AMBIENTAIS</option>
+          <option value="CIENCIAS_BIOLOGICAS_I">CIENCIAS_BIOLOGICAS_I</option>
+          <option value="CIENCIAS_BIOLOGICAS_II">CIENCIAS_BIOLOGICAS_II</option>
+          <option value="CIENCIAS_BIOLOGICAS_III">CIENCIAS_BIOLOGICAS_III</option>
+          <option value="CIENCIAS_DA_RELIGIAO_E_TEOLOGIA">CIENCIAS_DA_RELIGIAO_E_TEOLOGIA</option>
+          <option value="CIENCIA_DA_COMPUTACAO">CIENCIA_DA_COMPUTACAO</option>
+          <option value="CIENCIA_DE_ALIMENTOS">CIENCIA_DE_ALIMENTOS</option>
+          <option value="CIENCIA_POLITICA_E_RELACOES_INTERNACIONAIS">CIENCIA_POLITICA_E_RELACOES_INTERNACIONAIS</option>
+          <option value="COMUNICACAO_E_INFORMACAO">COMUNICACAO_E_INFORMACAO</option>
+          <option value="DIREITO">DIREITO</option>
+          <option value="ECONOMIA">ECONOMIA</option>
+          <option value="EDUCACAO">EDUCACAO</option>
+          <option value="EDUCACAO_FISICA">EDUCACAO_FISICA</option>
+          <option value="ENFERMAGEM">ENFERMAGEM</option>
+          <option value="ENGENHARIAS_I">ENGENHARIAS_I</option>
+          <option value="ENGENHARIAS_II">ENGENHARIAS_II</option>
+          <option value="ENGENHARIAS_III">ENGENHARIAS_III</option>
+          <option value="ENGENHARIAS_IV">ENGENHARIAS_IV</option>
+          <option value="ENSINO">ENSINO</option>
+          <option value="FARMACIA">FARMACIA</option>
+          <option value="FILOSOFIA">FILOSOFIA</option>
+          <option value="GEOCIENCIAS">GEOCIENCIAS</option>
+          <option value="GEOGRAFIA">GEOGRAFIA</option>
+          <option value="HISTORIA">HISTORIA</option>
+          <option value="INTERDISCIPLINAR">INTERDISCIPLINAR</option>
+          <option value="LINGUISTICA_E_LITERATURA">LINGUISTICA_E_LITERATURA</option>
+          <option value="MATEMATICA_PROBABILIDADE_E_ESTATISTICA">MATEMATICA_PROBABILIDADE_E_ESTATISTICA</option>
+          <option value="MATERIAIS">MATERIAIS</option>
+          <option value="MEDICINA_I">MEDICINA_I</option>
+          <option value="MEDICINA_II">MEDICINA_II</option>
+          <option value="MEDICINA_III">MEDICINA_III</option>
+          <option value="MEDICINA_VETERINARIA">MEDICINA_VETERINARIA</option>
+          <option value="NUTRICAO">NUTRICAO</option>
+          <option value="ODONTOLOGIA">ODONTOLOGIA</option>
+          <option value="PLANEJAMENTO_URBANO_E_REGIONAL_DEMOGRAFIA">PLANEJAMENTO_URBANO_E_REGIONAL_DEMOGRAFIA</option>
+          <option value="PSICOLOGIA">PSICOLOGIA</option>
+          <option value="QUIMICA">QUIMICA</option>
+          <option value="SAUDE_COLETIVA">SAUDE_COLETIVA</option>
+          <option value="SERVICO_SOCIAL">SERVICO_SOCIAL</option>
+          <option value="SOCIOLOGIA">SOCIOLOGIA</option>
+          <option value="ZOOTECNIA_RECURSOS_PESQUEIROS">ZOOTECNIA_RECURSOS_PESQUEIROS</option>
+        </select>
+        <br>
+        <h4>Clique em "Calcular" apenas uma vez e aguarde a conclusão do processo (o processo pode demorar alguns minutos)!</h4>
+        <input name="btnEnviar" value="Calcular" type="submit"><br>
+      <br>
+    </form>
+    <p style="text-align: center;"><br>
+    </p>
+  </body>
+</html>

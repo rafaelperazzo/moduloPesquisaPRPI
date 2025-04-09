@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	  <style>
+table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background-color: #dddddd;
+}
+
+p.cnpq {
+  color: green;
+}
+
+p.ufca {
+  color: orange;
+}
+
+</style>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Lista de indicações</title>
+  </head>
+  <body>
+    <h1>Lista de indicações</h1>
+    <h2>{{descricao}}</h2>
+    <table>
+    <th>Edital</th><th>Id da indicação</th><th>idProjeto</th><th>Orientador</th><th>Bolsista</th><th>Fomento</th><th>Modalidade</th><th>Tipo de vaga</th><th>Banco</th><th>Agência</th><th>Conta</th>
+    <th>CPF/RG</th><th>Comprovante bancário</th><th>Histórico</th><th>Termo</th><th>Início</th><th>Fim</th><th>Obs</th>
+
+    <p>{% for linha in listaIndicacoes %}</p>
+
+    <tr>
+      <td>{{linha[16]}}</td>
+      <td>{{linha[0]}}</td>
+      <td>
+        {% if 'CNPq' in linha[15] %}
+          <p class="cnpq">{{linha[1]}}</p>
+        {% else %}
+          {{linha[1]}}
+        {% endif %}
+      </td>
+      <td>{{linha[14]}}</td>
+      <td>{{linha[2]}}</td>
+      <td>{{linha[17]}}</td>
+      <td>{{linha[3]}}</td>
+      <td>{{linha[4]}}</td>
+      <td>{{linha[5]}}</td>
+      <td>{{linha[6]}}</td>
+      <td>{{linha[7]}}</td>
+      <td><a href='/pesquisa/verArquivo?file={{linha[8]}}'>{{linha[8]}}</a></td> <!--RG e CPF -->
+      <td><a href='/pesquisa/verArquivo?file={{linha[9]}}'>{{linha[9]}}</a></td> <!--Comprovante -->
+      <td><a href='/pesquisa/verArquivo?file={{linha[10]}}'>{{linha[10]}}</a></td> <!--HISTÓRICO -->
+      <td><a href='/pesquisa/verArquivo?file={{linha[11]}}'>{{linha[11]}}</a></td> <!--TERMO -->
+      <td>{{linha[12]}}</td>
+      <td>{{linha[13]}}</td>
+      <td>{{linha[15]|safe}}</td>
+    </tr>
+
+    {% endfor %}
+
+    </table>
+    Total de indicações: {{total}}
+  </body>
+</html>

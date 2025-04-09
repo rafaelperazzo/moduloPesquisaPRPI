@@ -1,11 +1,18 @@
 import pytest
 from pesquisa import app
-
+import os
 
 @pytest.fixture
 def client():
     """A test client for the app."""
+    TEST_USER = os.getenv("TEST_USER", "")
+    TEST_PASSWORD = os.getenv("TEST_PASSWORD", "")
     with app.test_client() as client:
+        data = {
+            "siape": TEST_USER,
+            "senha": TEST_PASSWORD,
+        }
+        client.post("/login", data=data)
         yield client
 
 def test_home(client):
@@ -29,7 +36,7 @@ def test_cadastrar_projeto(client):
             "inovacao": "1",
             "justificativa": "Justificativa",
             "cpf": "02675287440",
-            "titulo": "Título do projeto",
+            "titulo": "O TITULO DO PROJETO PARA TESTES AUTOMATIZADOS",
             "validade": "3",
             "palavras_chave": "palavras chave",
             "descricao_resumida": "Descrição resumida",
@@ -48,16 +55,16 @@ def test_cadastrar_projeto(client):
     }
     response = client.post("/cadastrarProjeto", 
                            data=data,follow_redirects=True,content_type='multipart/form-data')
-    print(response.data)
     assert response.status_code == 200
-
-def test_edital_projeto(client):
-    #data = {
-    #    "siape": "",
-    #    "senha": "",
-    #}
-    #client.post("/login", data=data)
+    assert b"FECHADA COM SEGU" in response.data
     response = client.get("/editalProjeto?edital=40")
     assert response.status_code == 200
-    assert b"Esqueci" in response.data
-    assert b"ERRO!" not in response.data
+    assert b"Propostas submetidas" in response.data
+    assert b"O TITULO DO PROJETO PARA TESTES AUTOMATIZADOS" in response.data
+    assert b"teste@123.com" in response.data
+
+def test_edital_projeto(client):
+    response = client.get("/editalProjeto?edital=40")
+    assert response.status_code == 200
+    assert b"Propostas submetidas" in response.data
+    

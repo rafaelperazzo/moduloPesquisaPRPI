@@ -1,5 +1,8 @@
+app/docs_indicacoes/*.gpg
+app/docs_indicacoes/*EXTRATO*
+app/docs_indicacoes/*RG_CPF*
+app/static/files
 app/teste_cnpq.py
-docker-compose.yml
 env/
 .env
 cicd.sh

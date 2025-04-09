@@ -6,7 +6,7 @@ name: Atualizar sistema de Pesquisa
 on:
   push:
     branches:
-      - master
+      - python3
 
 permissions:
   contents: read
@@ -24,6 +24,4 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             cd /backup/pesquisa3
-            docker-compose down
             git pull origin python3
-            docker-compose up -d

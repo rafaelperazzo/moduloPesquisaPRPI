@@ -1,0 +1,8 @@
+#!/bin/bash
+
+mariadb-dump pesquisa -u root -p$MYSQL_ROOT_PASSWORD > /share/producao.sql
+mariadb -u root -p$MYSQL_ROOT_PASSWORD -e"DROP DATABASE pesquisa_test"
+mariadb -u root -p$MYSQL_ROOT_PASSWORD -e"CREATE DATABASE pesquisa_test"
+mariadb pesquisa_test -u root -p$MYSQL_ROOT_PASSWORD < /share/producao.sql
+mariadb -u root -p$MYSQL_ROOT_PASSWORD -e"GRANT ALL PRIVILEGES ON \`pesquisa_test\`.* TO 'pesquisa'@'%'"
+mariadb -u root -p$MYSQL_ROOT_PASSWORD -e"FLUSH PRIVILEGES"

@@ -26,10 +26,10 @@ services:
       - ./share:/share
     labels:
        - "traefik.enable=true"
-       - "traefik.http.routers.pesquisa3.rule=PathPrefix(`/pesquisa`)&&Host(`sci01-ter-jne.ufca.edu.br`)"
-       - "traefik.http.routers.pesquisa3.tls=true"
-       - "traefik.http.routers.pesquisa3.tls.certresolver=certificado"
-       - "traefik.http.routers.pesquisa3.entrypoints=websecure"
+       - "traefik.http.routers.pesquisarule=PathPrefix(`/pesquisa`)&&Host(`sci01-ter-jne.ufca.edu.br`)"
+       - "traefik.http.routers.pesquisa.tls=true"
+       - "traefik.http.routers.pesquisa.tls.certresolver=certificado"
+       - "traefik.http.routers.pesquisa.entrypoints=websecure"
     environment:
       DB_PASSWORD: ${MYSQL_PASSWORD}
       GMAIL_PASSWORD: ${GMAIL_PASSWORD}

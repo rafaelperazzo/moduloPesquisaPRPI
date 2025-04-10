@@ -1,1 +1,2 @@
-docker compose exec pesquisa bash -c "pytest -rx /app/tests.py"
+./clonar.sh.run
+docker compose exec pesquisa bash -c "pytest -rx"

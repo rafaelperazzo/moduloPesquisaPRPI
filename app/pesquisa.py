@@ -56,6 +56,7 @@ if PRODUCAO==1:
     MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "pesquisa")
 else: 
     MYSQL_DATABASE = os.getenv("MYSQL_TEST_DATABASE", "pesquisa_test")
+EMAIL_TESTES = os.getenv("EMAIL_TESTES","test@123.com")
 LINK_AVALIACAO = ROOT_SITE + URL_PREFIX + "/avaliacao"
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -1003,6 +1004,12 @@ def inserirAvaliador():
         token = id_generator(40)
         idProjeto = int(request.form['txtProjeto'])
         avaliador1_email = str(request.form['txtEmail'])
+        consulta_verificacao = """
+            SELECT avaliador from avaliacoes WHERE idProjeto = %s AND avaliador = "%s"
+        """ % (idProjeto, avaliador1_email)
+        linhas, total = executarSelect(consulta_verificacao)
+        if total > 0: #Já existe este avaliador para este projeto
+            return("Avaliador já cadastrado para este projeto.")
         consulta = "INSERT INTO avaliacoes (aceitou,avaliador,token,idProjeto) VALUES (-1,\"" + avaliador1_email + "\", \"" + token + "\", " + str(idProjeto) + ")"
         atualizar(consulta)
         t = threading.Thread(target=enviarPedidoAvaliacao,args=(idProjeto,))
@@ -2945,7 +2952,10 @@ def enviarPedidoAvaliacao(id):
         nome_longo = obterColunaUnica('editais','nome','id',str(linha[9]))
         with app.app_context():
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
-            msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+            if PRODUCAO==1:
+                msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+            else:
+                msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[EMAIL_TESTES],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 mail.send(msg)
                 logging.debug("E-MAIL ENVIADO COM SUCESSO.")    

@@ -146,4 +146,18 @@ def test_edital_projeto(client):
     response = client.get("/editalProjeto?edital=40")
     assert response.status_code == 200
     assert b"Propostas submetidas" in response.data
+
+def test_cadastrar_avaliador(client):
+    data = {
+        "txtProjeto": "1560",
+        "txtEmail": "TESTE@INSERIDO.AVALIADOR",
+    }
+    response = client.post("/inserirAvaliador", data=data, follow_redirects=True)
+    assert response.status_code == 200
+    response = client.post("/inserirAvaliador", data=data, follow_redirects=True)
+    assert response.status_code == 200
+    assert b"cadastrado para este projeto" in response.data
+    response = client.get("/editalProjeto?edital=40")
+    assert response.status_code == 200
+    assert b"INSERIDO.AVALIADOR" in response.data
     

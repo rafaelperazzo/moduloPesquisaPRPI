@@ -42,6 +42,7 @@ services:
       URL_PREFIX: ${URL_PREFIX}
       TEST_USER: ${TEST_USER}
       TEST_PASSWORD: ${TEST_PASSWORD}
+      EMAIL_TESTES: ${EMAIL_TESTES}
     restart: "no"
     ports:
       - "9008:80"

@@ -2,6 +2,8 @@ import pytest
 from pesquisa import app
 import os
 
+EMAIL_TESTES = os.getenv("EMAIL_TESTES", "")
+
 @pytest.fixture
 def client():
     """A test client for the app."""
@@ -27,7 +29,7 @@ def test_cadastrar_projeto(client):
             "nome": "nome",
             "categoria_projeto": "1",
             "siape": "1570709123",
-            "email": "rafaelperazzo@gmail.com",
+            "email": EMAIL_TESTES,
             "ua": "CCT",
             "area_capes": "CIENCIA_DA_COMPUTACAO",
             "grande_area": "Engenharias",
@@ -68,7 +70,7 @@ def test_cadastrar_projeto_sem_avaliadores(client):
             "nome": "nome",
             "categoria_projeto": "1",
             "siape": "1570709123",
-            "email": "rafaelperazzo@gmail.com",
+            "email": EMAIL_TESTES,
             "ua": "CCT",
             "area_capes": "CIENCIA_DA_COMPUTACAO",
             "grande_area": "Engenharias",
@@ -107,7 +109,7 @@ def test_cadastrar_projeto_sem_avaliadores_vazio(client):
             "nome": "nome",
             "categoria_projeto": "1",
             "siape": "1570709123",
-            "email": "rafaelperazzo@gmail.com",
+            "email": EMAIL_TESTES,
             "ua": "CCT",
             "area_capes": "CIENCIA_DA_COMPUTACAO",
             "grande_area": "Engenharias",

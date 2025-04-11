@@ -743,6 +743,10 @@ def cadastrarProjeto():
     t.start()
     return("Submissão realizada com sucesso. ESTA PÁGINA JÁ PODE SER FECHADA COM SEGURANÇA.")
 
+@app.route("/scorelattes", methods=['GET'])
+def calcularScorelattesFromID():
+    return (render_template('scorelattes.html'))
+
 @app.route("/score", methods=['GET', 'POST'])
 def getScoreLattesFromFile():
     area_capes = str(request.form['area_capes'])
@@ -760,13 +764,14 @@ def getScoreLattesFromFile():
         from datetime import date
         ano_fim = date.today().year
         ano_inicio = ano_fim - periodo
-        s = calcularScoreLattes(1,area_capes,str(ano_inicio),str(ano_fim),arquivo)
-        return(s)
+        score = scorerun.Score(arquivo, ano_inicio, ano_fim, area_capes,2017,0,False)
+        sumario = str(score.sumario())
+        return(sumario)
     except:
         e = sys.exc_info()[0]
         logging.error("[SCORELATTES] Erro ao calcular o scorelattes.")
         logging.error(e)
-        return("Erro ao calcular pontuacao! Favor, comunicar para o e-mail: atendimento.prpi@ufca.edu.br")
+        return("Erro ao calcular pontuacao!")
 
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam
 def getFiles(idProjeto):

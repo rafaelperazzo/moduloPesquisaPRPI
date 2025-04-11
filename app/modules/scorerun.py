@@ -22,12 +22,12 @@
 #
 
 from datetime import date
-import sys, time, argparse, csv, requests
 from datetime import datetime
 import xml.etree.ElementTree as ET
+import sys, time, argparse, csv, requests
 from bs4 import BeautifulSoup
 
-WORKING_DIR='/home/perazzo/pesquisa/modules/'
+WORKING_DIR='/app/modules/'
 
 weights = {
     'FORMACAO-ACADEMICA-TITULACAO' : {'POS-DOUTORADO': 4, 'LIVRE-DOCENCIA': 4, 'DOUTORADO': 7, 'MESTRADO': 3, 'ESPECIALIZACAO': 1},
@@ -187,8 +187,10 @@ bounds = {
 
 class Score(object):
     """Pontuação do Currículo Lattes"""
-    def __init__(self, root, inicio, fim, area, ano_qualis_periodicos, verbose = 0, debug = False):
+    def __init__(self, xml_file, inicio, fim, area, ano_qualis_periodicos, verbose = 0, debug = False):
         # Período considerado para avaliação
+        tree = ET.parse(xml_file)
+        root = tree.getroot()
         self.__curriculo = root
         self.__numero_identificador = ''
         self.__nome_completo = ''
@@ -1246,7 +1248,7 @@ def main():
     parser.add_argument('-d', '--debug', action='count',
         help="show debug messages")
     parser.add_argument('--version', action='version', version='%(prog)s 0.1')
-    parser.add_argument('-p', '--qualis-periodicos', dest='ano_qualis_periodicos', default=[2015], metavar='YYYY', type=int, nargs=1,
+    parser.add_argument('-p', '--qualis-periodicos', dest='ano_qualis_periodicos', default=[2017], metavar='YYYY', type=int, nargs=1,
         help="employ Qualis Periodicos from year YYYY")
     parser.add_argument('-s', '--since-year', dest='since', default=-1, metavar='YYYY', type=int, nargs=1,
         help="consider academic productivity since year YYYY")
@@ -1255,9 +1257,10 @@ def main():
 
     # Process arguments
     args = parser.parse_args()
-    tree = ET.parse(args.istream.name)
-    root = tree.getroot()
-    score = Score(root, args.since[0], args.until[0], args.area[0], 
+    #tree = ET.parse(args.istream.name)
+    #root = tree.getroot()
+    xml_file = args.istream.name
+    score = Score(xml_file, args.since[0], args.until[0], args.area[0], 
                   args.ano_qualis_periodicos[0], args.verbose, args.debug)
 
     if args.verbose == 1:

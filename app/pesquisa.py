@@ -29,6 +29,7 @@ import zipfile
 from flask import Response
 import json
 from flask_wtf.csrf import CSRFProtect
+from modules import scorerun
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -129,37 +130,43 @@ def salvarCV(id):
     if os.path.exists(id + '.zip'):
         os.remove(id + '.zip')
 
-def processarPontuacaoLattes(cpf,area,idProjeto,dados):
+def processarPontuacaoLattes(cpf,area,idProjeto,dados,app):
+    processou_scoreLattes = False
     try:
         idlattes = getID(cpf)
         salvarCV(idlattes)
         arquivo = XML_DIR + idlattes + ".xml"
         pontuacao = -100
         sumario = "---"
+        app.logger.debug(arquivo)
+        app.logger.debug(pontuacao)
+        processou_scoreLattes = True
     except Exception as e:
         logging.error(str(e))
-        return
+        processou_scoreLattes = False
     try:
-        from datetime import date
-        ano_fim = date.today().year
-        ano_inicio = ano_fim - 5
-        s = calcularScoreLattes(0,area,str(ano_inicio),str(ano_fim),arquivo)
-        pontuacao = float(s)
-        sumario = calcularScoreLattes(1,area,str(ano_inicio),str(ano_fim),arquivo)
-        sumario = sumario.decode('utf-8')
-    except:
-        e = sys.exc_info()[0]
-        logging.error(e)
+        if processou_scoreLattes:
+            from datetime import date
+            ano_fim = date.today().year
+            ano_inicio = ano_fim - 5
+            score = scorerun.Score(arquivo, ano_inicio, ano_fim, area,2017,0,False)
+            pontuacao = float(score.get_score())
+            sumario = str(score.sumario())
+        else:
+            pontuacao = -1
+            sumario = "ERRO AO PROCESSAR O SCORELATTES"
+    except Exception as e:
+        logging.error(str(e))
         logging.error(XML_DIR + arquivo)
         pontuacao = -1
+        sumario = "ERRO AO PROCESSAR O SCORELATTES"
         logging.error("Nao foi possivel calcular o scorelattes: " + str(e))
 
     try:
         consulta = "UPDATE editalProjeto SET scorelattes=" + str(pontuacao) + " WHERE id=" + str(idProjeto)
         atualizar(consulta)
-    except:
-        e = sys.exc_info()[0]
-        logging.error(e)
+    except Exception as e:
+        logging.error(str(e))
         logging.error("Procedimento para o ID: " + str(idProjeto) + " finalizado. Erros ocorreram ao tentar atualizar o scorelattes.")
         logging.error(str(e))
     with app.app_context():
@@ -169,15 +176,14 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
             if PRODUCAO==1:
                 msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=[dados[0]],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
             else:
-                msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")                
+                msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
             try:
                 mail.send(msg)
             except Exception as e:
                 logging.error("Erro ao enviar e-mail. processarPontuacaoLattes")
                 logging.error(str(e))
-        except:
-            e = sys.exc_info()[0]
-            logging.error(e)
+        except Exception as e:
+            logging.error(str(e))
             logging.error("Procedimento para o ID: " + str(idProjeto) + " finalizado. Erros ocorreram ao enviar e-mail.")        
 
 def calcularScoreLattes(tipo,area,since,until,arquivo):
@@ -733,9 +739,8 @@ def cadastrarProjeto():
         logging.debug("Avaliador TESTE sugerido cadastrado.")
     #CALCULANDO scorelattes
     dados = [email,nome,titulo,descricao_resumida]
-    t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
-    if PRODUCAO==1:
-        t.start()
+    t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,app,))
+    t.start()
     return("Submissão realizada com sucesso. ESTA PÁGINA JÁ PODE SER FECHADA COM SEGURANÇA.")
 
 @app.route("/score", methods=['GET', 'POST'])

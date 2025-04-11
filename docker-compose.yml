@@ -43,6 +43,7 @@ services:
       TEST_USER: ${TEST_USER}
       TEST_PASSWORD: ${TEST_PASSWORD}
       EMAIL_TESTES: ${EMAIL_TESTES}
+      CPF_TESTES: ${CPF_TESTES}
     restart: "no"
     ports:
       - "9008:80"

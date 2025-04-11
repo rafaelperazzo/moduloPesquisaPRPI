@@ -1,8 +1,12 @@
+'''
+TESTES AUTOMATIZADOS
+'''
+import os
 import pytest
 from pesquisa import app
-import os
 
 EMAIL_TESTES = os.getenv("EMAIL_TESTES", "")
+CPF_TESTES = os.getenv("CPF_TESTES", "00000000000")
 
 @pytest.fixture
 def client():
@@ -37,7 +41,7 @@ def test_cadastrar_projeto(client):
             "ods_projeto": "01",
             "inovacao": "1",
             "justificativa": "Justificativa",
-            "cpf": "02675287440",
+            "cpf": CPF_TESTES,
             "titulo": "(1)O TITULO DO PROJETO PARA TESTES AUTOMATIZADOS",
             "validade": "3",
             "palavras_chave": "palavras chave",
@@ -78,7 +82,7 @@ def test_cadastrar_projeto_sem_avaliadores(client):
             "ods_projeto": "01",
             "inovacao": "1",
             "justificativa": "Justificativa",
-            "cpf": "02675287440",
+            "cpf": CPF_TESTES,
             "titulo": "(2)O TITULO DO PROJETO PARA TESTES AUTOMATIZADOS",
             "validade": "3",
             "palavras_chave": "palavras chave",
@@ -117,7 +121,7 @@ def test_cadastrar_projeto_sem_avaliadores_vazio(client):
             "ods_projeto": "01",
             "inovacao": "1",
             "justificativa": "Justificativa",
-            "cpf": "02675287440",
+            "cpf": CPF_TESTES,
             "titulo": "(3)O TITULO DO PROJETO PARA TESTES AUTOMATIZADOS",
             "validade": "3",
             "palavras_chave": "palavras chave",

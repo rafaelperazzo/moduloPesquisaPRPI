@@ -1257,8 +1257,6 @@ def main():
 
     # Process arguments
     args = parser.parse_args()
-    #tree = ET.parse(args.istream.name)
-    #root = tree.getroot()
     xml_file = args.istream.name
     score = Score(xml_file, args.since[0], args.until[0], args.area[0], 
                   args.ano_qualis_periodicos[0], args.verbose, args.debug)

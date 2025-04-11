@@ -116,19 +116,22 @@ def getID(cpf):
     wsdl = 'https://sci01-ter-jne.ufca.edu.br/cnpq'
     client = zeep.Client(wsdl=wsdl)
     idlattes = client.service.getIdentificadorCNPq(cpf,"","")
+    if idlattes is None:
+        idlattes = "0000000000000000"
     return str(idlattes)
 
 def salvarCV(id):
     wsdl = 'https://sci01-ter-jne.ufca.edu.br/cnpq'
     client = zeep.Client(wsdl=wsdl)
     resultado = client.service.getCurriculoCompactado(id)
-    arquivo = open(id + '.zip','wb')
-    arquivo.write(resultado)
-    arquivo.close()
-    with zipfile.ZipFile(id + '.zip','r') as zip_ref:
-        zip_ref.extractall(XML_DIR)
-    if os.path.exists(id + '.zip'):
-        os.remove(id + '.zip')
+    if resultado is not None:
+        arquivo = open(id + '.zip','wb')
+        arquivo.write(resultado)
+        arquivo.close()
+        with zipfile.ZipFile(id + '.zip','r') as zip_ref:
+            zip_ref.extractall(XML_DIR)
+        if os.path.exists(id + '.zip'):
+            os.remove(id + '.zip')
 
 def processarPontuacaoLattes(cpf,area,idProjeto,dados,app):
     processou_scoreLattes = False
@@ -149,9 +152,13 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados,app):
             from datetime import date
             ano_fim = date.today().year
             ano_inicio = ano_fim - 5
-            score = scorerun.Score(arquivo, ano_inicio, ano_fim, area,2017,0,False)
-            pontuacao = float(score.get_score())
-            sumario = str(score.sumario())
+            if os.path.exists(arquivo):  
+                score = scorerun.Score(arquivo, ano_inicio, ano_fim, area,2017,0,False)
+                pontuacao = float(score.get_score())
+                sumario = str(score.sumario())
+            else:
+                pontuacao = -1
+                sumario = "ERRO AO PROCESSAR O SCORELATTES. Erro ao digitar o CPF ?"
         else:
             pontuacao = -1
             sumario = "ERRO AO PROCESSAR O SCORELATTES"

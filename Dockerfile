@@ -11,6 +11,6 @@ RUN cd /opt/Python-3.13.3 && ./configure --enable-optimizations --with-ssl-defau
 COPY requirements.txt ./
 RUN pip3 install --upgrade pip
 RUN pip3 install --no-cache-dir -r requirements.txt
-RUN apt -y install wkhtmtopdf
+RUN apt -y install wkhtmltopdf
 EXPOSE 80
 CMD ["python3", "pesquisa.py"]

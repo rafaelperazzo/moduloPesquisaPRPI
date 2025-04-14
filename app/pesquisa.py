@@ -112,6 +112,10 @@ def removerAspas(texto):
     resultado = resultado.replace("'"," ")
     return resultado
 
+def removerTravessao(texto):
+    resultado = texto.replace("-","")
+    return resultado
+
 def getID(cpf):
     wsdl = 'https://sci01-ter-jne.ufca.edu.br/cnpq'
     client = zeep.Client(wsdl=wsdl)
@@ -549,12 +553,13 @@ def cadastrarProjeto():
     tipo = int(request.form['tipo'])
     nome = str(request.form['nome'])
     categoria_projeto = int(request.form['categoria_projeto'])
-    siape = int(request.form['siape'])
+    siape = int(removerTravessao(request.form['siape']))
     email = str(request.form['email'])
     ua = str(request.form['ua'])
     area_capes = str(request.form['area_capes'])
     grande_area = str(request.form['grande_area'])
     grupo = str(request.form['grupo'])
+    grupo = removerAspas(grupo)
     ods_projeto = str(request.form['ods_projeto'])
     inovacao = int(request.form['inovacao'])
     justificativa = ""

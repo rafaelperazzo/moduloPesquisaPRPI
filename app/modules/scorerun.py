@@ -490,6 +490,7 @@ class Score(object):
         return area.replace('Ç', 'C')
 
     def __carrega_qualis_periodicos(self):
+        WORKING_DIR='/app/modules/'
         QUALIS_FILENAME = WORKING_DIR + 'qualis-periodicos-'+str(self.__ano_qualis_periodicos)+'.csv'
         with open(QUALIS_FILENAME, 'r') as csvfile:
             reader = csv.reader(csvfile, delimiter=',', quotechar='"')

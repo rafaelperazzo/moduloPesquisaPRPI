@@ -9,7 +9,7 @@ import pytest
 ID_LATTES = "3078288668202994"
 XML_DIR = "xml/"
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True,scope="session")
 def setup():
     """
     Configuração do ambiente de teste.

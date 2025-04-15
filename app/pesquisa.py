@@ -74,6 +74,11 @@ app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 app.config['MAIL_DEFAULT_SENDER'] = 'pesquisa.prpi@ufca.edu.br'
 
+if PRODUCAO==1:
+    app.config['MAIL_SUPPRESS_SEND'] = False
+else:
+    app.config['MAIL_SUPPRESS_SEND'] = True
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['CURRICULOS_FOLDER'] = CURRICULOS_DIR
 app.config['DECLARACOES_FOLDER'] = DECLARACOES_DIR
@@ -156,7 +161,7 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados,app):
             from datetime import date
             ano_fim = date.today().year
             ano_inicio = ano_fim - 5
-            if os.path.exists(arquivo):  
+            if os.path.exists(arquivo):
                 score = scorerun.Score(arquivo, ano_inicio, ano_fim, area,2017,0,False)
                 pontuacao = float(score.get_score())
                 sumario = str(score.sumario())

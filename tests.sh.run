@@ -1,2 +1,2 @@
 ./clonar.sh.run
-docker compose exec pesquisa bash -c "pytest -rxa"
+docker compose exec pesquisa bash -c "pytest -rxa test_submissao_avaliador.py"

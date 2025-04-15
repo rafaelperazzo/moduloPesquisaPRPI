@@ -123,31 +123,31 @@
     {% if resultado==0 %}
           <td>
             {% if linha[8]!="0" %}
-            <a href="/pesquisa/static/files/{{ linha[8] }}">PROJETO</a>
+            <a href="/pesquisa/verArquivosProjeto/{{ linha[8] }}">PROJETO</a>
             {% else %}
             -
             {% endif %}
           </td>
           <td>
             {% if linha[9]!="0" %}
-            <a href="/pesquisa/static/files/{{ linha[9] }}">PLANO1</a>
+            <a href="/pesquisa/verArquivosProjeto/{{ linha[9] }}">PLANO1</a>
             {% else %}
             -
             {% endif %}
           </td>
           <td>
             {% if linha[10]!="0" %}
-            <a href="/pesquisa/static/files/{{ linha[10] }}">PLANO2</a>
+            <a href="/pesquisa/verArquivosProjeto/{{ linha[10] }}">PLANO2</a>
             {% else %}
             -
             {% endif %}
           </td>
     {% endif %}
-    <td><a href="/pesquisa/static/files/{{ linha[11] }}">LATTES</a></td>
+    <td><a href="/pesquisa/verArquivosProjeto/{{ linha[11] }}">LATTES</a></td>
     {% if resultado==0 %}
     <td>
       {% if linha[12]!="0" %}
-      <a href="/pesquisa/static/files/{{ linha[12] }}">COMPROVANTES</a>
+      <a href="/pesquisa/verArquivosProjeto/{{ linha[12] }}">COMPROVANTES</a>
       {% else %}
       -
       {% endif %}
@@ -223,7 +223,7 @@
                   {% endif %}
                     <a href="/pesquisa/meusPareceres?id={{linha[0]}}&todos=1">{{linha[0]}}</a></td><td>{{linha[1]}}</td><td>{{linha[2]}}</td>
                   <td>
-                    <a href="/pesquisa/static/files/{{ linha[4] }}">{{linha[3]}}</a></td>
+                    <a href="/pesquisa/verArquivosProjeto/{{ linha[4] }}">{{linha[3]}}</a></td>
                   <td>{{linha[13]}}<td>{{linha[9]}}</td></td><td><a href="/pesquisa/avaliacoesNegadas?edital={{codigoEdital}}&id={{linha[0]}}">Adicionar consultor</a></td><td>{{linha[5]|safe}}</td><td>{{linha[6]|safe}}</td>
                   <td>{{linha[7]|safe}}</td>
 		  <td>

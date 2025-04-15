@@ -538,7 +538,7 @@ class Score(object):
         doi_title = str()
         if 'DOI' in artigo.find('DADOS-BASICOS-DO-ARTIGO').attrib:
             doi = artigo.find('DADOS-BASICOS-DO-ARTIGO').attrib['DOI']
-            url = 'http://dx.doi.org/' + doi
+            url = 'https://dx.doi.org/' + doi
             estratos = ['NAO-ENCONTRADO']
             tries = 0
             done = False
@@ -546,7 +546,7 @@ class Score(object):
                 tries += 1
                 r = None
                 try:
-                    r = requests.get(url, timeout=3)
+                    r = requests.get(url, timeout=20,allow_redirects=True)
                 except requests.exceptions.RequestException as e:
                     if self.__debug == 1:
                         print('Oops... there\'s a missing Qualis.')

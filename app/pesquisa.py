@@ -2362,8 +2362,8 @@ def efetivarIndicacao():
     else:
         return("OK")
 
-@auth.login_required(role=['admin'])
 @app.route("/indicacoes", methods=['GET', 'POST'])
+@auth.login_required(role=['admin'])
 def indicacoes():
     if request.method == "GET":
         #Recuperando código do edital

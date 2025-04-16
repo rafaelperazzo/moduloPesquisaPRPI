@@ -2,7 +2,7 @@ services:
   db_pesquisa:
      image: mariadb:11
      restart: "no"
-     command: mariadbd --sql_mode=""
+     command: mariadbd --sql_mode="" --block-encryption-mode=aes-256-cbc
      #ports:
      # - "3306:3306"
      environment:
@@ -44,6 +44,7 @@ services:
       TEST_PASSWORD: ${TEST_PASSWORD}
       EMAIL_TESTES: ${EMAIL_TESTES}
       CPF_TESTES: ${CPF_TESTES}
+      AES_KEY: ${AES_KEY}
     restart: "no"
     ports:
       - "9008:80"

@@ -84,6 +84,8 @@ app.config['CURRICULOS_FOLDER'] = CURRICULOS_DIR
 app.config['DECLARACOES_FOLDER'] = DECLARACOES_DIR
 app.config['TEMP_FOLDER'] = DECLARACOES_DIR
 
+AES_KEY = os.getenv("AES_KEY", "000000")
+
 if PRODUCAO==1:
     logging.basicConfig(filename=WORKING_DIR + 'app.log',
                     filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
@@ -2360,6 +2362,7 @@ def efetivarIndicacao():
     else:
         return("OK")
 
+@auth.login_required(role=['admin'])
 @app.route("/indicacoes", methods=['GET', 'POST'])
 def indicacoes():
     if request.method == "GET":

@@ -1,3 +1,5 @@
+app/submissoes/*.gpg
+app/submissoes/*.pdf
 app/docs_indicacoes/*.gpg
 app/docs_indicacoes/*EXTRATO*
 app/docs_indicacoes/*RG_CPF*

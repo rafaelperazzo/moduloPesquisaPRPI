@@ -23,6 +23,7 @@
 
 from datetime import date
 from datetime import datetime
+import sqlite3
 import xml.etree.ElementTree as ET
 import sys, time, argparse, csv, requests
 from bs4 import BeautifulSoup
@@ -468,7 +469,7 @@ class Score(object):
         if artigos is None:
             return
 
-        self.__carrega_qualis_periodicos() # load Qualis Periodicos
+        #self.__carrega_qualis_periodicos() # load Qualis Periodicos
 
         for artigo in artigos.findall('ARTIGO-PUBLICADO'):
             dados = artigo.find('DADOS-BASICOS-DO-ARTIGO')
@@ -506,98 +507,61 @@ class Score(object):
                     self.__qualis_periodicos[issn] = estrato
                     self.__qualis_periodicos_issn[title] = issn
 
-    # Important: number-only ISSN, i.e., without hyphen.
-    def __get_qualis_periodicos_from_issn(self, issn):
+    def __get_qualis_periodicos_from_issn_area(self, issn, area):
         if issn != "":
-            if issn in self.__qualis_periodicos:
-                return self.__qualis_periodicos[issn]
-        return 'NAO-ENCONTRADO'
-
-    def __get_qualis_periodicos_from_title(self, title):
-        if title != "" and title != None:
-            if self.__debug == 1:
-                print ('[' + title + ']')
-            if title in self.__qualis_periodicos_issn:
-                return self.__qualis_periodicos[ self.__qualis_periodicos_issn[title] ]
-        return 'NAO-ENCONTRADO'
-
+            issn = issn.replace('-', '')
+            area = self.__format_area_name(area)
+            conn = sqlite3.connect('/app/modules/qualis.sqlite3')
+            cursor = conn.cursor()
+            consulta = f"""
+            SELECT ESTRATO FROM qualis WHERE ISSN = "{issn}" AND AREA = "{area}"
+            """
+            cursor.execute(consulta)
+            rows = cursor.fetchall()
+            if len(rows) > 0:
+                for row in rows:
+                    if row[0] is not None:
+                        return row[0]
+                    else:
+                        return 'NAO-ENCONTRADO'
+        else:
+            print(issn,"NAO ENCONTRADO")
+            return 'NAO-ENCONTRADO'
+    
+    def __get_qualis_periodicos_from_titulo_area(self, titulo, area):
+        if titulo != "":
+            titulo = titulo.upper()
+            titulo = titulo.strip()
+            area = self.__format_area_name(area)
+            conn = sqlite3.connect('/app/modules/qualis.sqlite3')
+            cursor = conn.cursor()
+            consulta = f"""
+            SELECT ESTRATO FROM qualis WHERE TITULO = "{titulo}" AND AREA = "{area}"
+            """
+            cursor.execute(consulta)
+            rows = cursor.fetchall()
+            if len(rows) > 0:
+                for row in rows:
+                    if row[0] is not None:
+                        return row[0]
+                    else:
+                        return 'NAO-ENCONTRADO'
+        else:
+            print(titulo,"NAO ENCONTRADO")
+            return 'NAO-ENCONTRADO'
+    
     def __get_qualis_periodicos(self, artigo):
         # first, try to extract qualis using the issn from xlm data
         issn = artigo.find('DETALHAMENTO-DO-ARTIGO').attrib['ISSN']
-        estrato = self.__get_qualis_periodicos_from_issn(issn[0:4] + '-' + issn[4:])
-        if estrato != 'NAO-ENCONTRADO':
-            return estrato
-
-        # If you reach here, the issn is not available in Qualis Periodicos.
-        # Try to fetch issns from DOI, alternatively.
-        if self.__debug == 1:
-            print ('ISSN ' + issn + ' not found. Trying to fetch ISSNs from DOI')
-        #print self.__nome_completo
-        #print self.__numero_identificador
-        #print issn
-        doi_title = str()
-        if 'DOI' in artigo.find('DADOS-BASICOS-DO-ARTIGO').attrib:
-            doi = artigo.find('DADOS-BASICOS-DO-ARTIGO').attrib['DOI']
-            url = 'https://dx.doi.org/' + doi
-            estratos = ['NAO-ENCONTRADO']
-            tries = 0
-            done = False
-            while not done and tries <= 5:
-                tries += 1
-                r = None
-                try:
-                    r = requests.get(url, timeout=20,allow_redirects=True)
-                except requests.exceptions.RequestException as e:
-                    if self.__debug == 1:
-                        print('Oops... there\'s a missing Qualis.')
-
-                if r == None:
-                    continue
-
-                if r.status_code != 200: # if we've got a error, try again, at most 5 times
-                    time.sleep(3.0)
-                    continue
-
-                soup = BeautifulSoup(r.text, "html.parser")
-                metas = soup.find_all('meta')
-                issns = [ meta.attrs['content'] for meta in metas if 'name' in meta.attrs and meta.attrs['name'].upper() == 'CITATION_ISSN' ]
-                if self.__debug == 1:
-                    print('ISSNs found: ', issns)
-
-                for issn in issns:
-                    estratos.append(self.__get_qualis_periodicos_from_issn(issn))
-
-                titles = [ meta.attrs['content'] for meta in metas if 'name' in meta.attrs and meta.attrs['name'].upper() == 'CITATION_JOURNAL_TITLE' ]
-                if len(titles) > 0:
-                    doi_title = titles[0]
-                    doi_title = str( doi_title )
-                    doi_title = doi_title.strip().upper()
-                done = True
-            estrato = min(estratos)
-        else:
-            print ('DOI does not exist.')
-
-        # Last try.
-        # We will search the article by the journal title.
-        estratos = ['NAO-ENCONTRADO']
-        if estrato == 'NAO-ENCONTRADO':
-            if self.__debug == 1:
-                print ('Trying to find Qualis by title...')
-            title = str( (artigo.find('DETALHAMENTO-DO-ARTIGO').attrib['TITULO-DO-PERIODICO-OU-REVISTA']) ).split('(')[0]
-            title = title.strip().upper()
-            estratos.append( self.__get_qualis_periodicos_from_title(title) )
-            estratos.append( self.__get_qualis_periodicos_from_title(doi_title) )
-            estrato = min(estratos)
-
-
-            if self.__debug == 1:
-                if estrato == 'NAO-ENCONTRADO':
-                    print ('Title not found: ' + title + '\n')
-                else:
-                    print ('Success. Qualis = ' + estrato + '\n')
-
+        titulo = artigo.find('DETALHAMENTO-DO-ARTIGO').attrib['TITULO-DO-PERIODICO-OU-REVISTA']
+        titulo = titulo.upper()
+        estrato = self.__get_qualis_periodicos_from_issn_area(issn, self.__area)
+        if estrato is None:
+            estrato = self.__get_qualis_periodicos_from_titulo_area(titulo, self.__area)
+        if estrato is None:
+            return 'NAO-ENCONTRADO'
         return estrato
-
+        
     def __clamp(self,x,upper):
         return max(min(float(upper),x), 0)
 

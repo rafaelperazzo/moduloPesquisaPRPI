@@ -2,11 +2,12 @@
 Testes automatizados para o módulo scorerun.
 """
 import os
+import pytest
+import time
 from modules import scorerun
 from pesquisa import salvarCV
-import pytest
 
-ID_LATTES = "3078288668202994"
+ID_LATTES = "0728801046272432"
 XML_DIR = "xml/"
 
 @pytest.fixture(autouse=True,scope="session")
@@ -34,13 +35,15 @@ def test_scorelattes(setup):
     """
     Teste da função scorelattes.
     """
+    inicio = time.time()
     salvarCV(ID_LATTES)
+    print("Tempo de execução do salvarCV:", time.time() - inicio)
     xml_file = XML_DIR + ID_LATTES + ".xml"
-    score = scorerun.Score(xml_file, 2020, 2025, "CIENCIA_DA_COMPUTACAO",
+    inicio = time.time()
+    score = scorerun.Score(xml_file, 2020, 2025, "CIENCIAS_BIOLOGICAS_I",
                   2017, 0,False)
+    print("Tempo de execução do scorerun:", time.time() - inicio)
     pontuacao = float(score.get_score())
     sumario = str(score.sumario())
-    print(sumario)
-    print(pontuacao)
-    assert pontuacao >= 0
-    assert "3078288668202994" in sumario
+    assert pontuacao >= 500
+    assert "0728801046272432" in sumario

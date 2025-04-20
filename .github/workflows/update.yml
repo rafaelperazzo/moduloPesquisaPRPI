@@ -6,7 +6,7 @@ name: Atualizar sistema de Pesquisa
 on:
   push:
     tags:
-      - v*.*.0
+      - v*.*.*
 
 permissions:
   contents: read

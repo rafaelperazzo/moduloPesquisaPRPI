@@ -134,7 +134,7 @@ def getID(cpf):
 def salvarCV(idlattes):
     wsdl = 'https://sci01-ter-jne.ufca.edu.br/cnpq'
     client = zeep.Client(wsdl=wsdl)
-    resultado = client.service.getCurriculoCompactado(id)
+    resultado = client.service.getCurriculoCompactado(idlattes)
     if resultado is not None:
         arquivo = open(idlattes + '.zip','wb')
         arquivo.write(resultado)

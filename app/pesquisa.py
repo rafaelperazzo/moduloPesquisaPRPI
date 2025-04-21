@@ -572,8 +572,8 @@ def cadastrarProjeto():
         #conn.rollback()
         return(str(e))
 
-    getID = "SELECT LAST_INSERT_ID()"
-    cursor.execute(getID)
+    lastID = "SELECT LAST_INSERT_ID()"
+    cursor.execute(lastID)
     ultimo_id = int(cursor.fetchone()[0])
     ultimo_id_str = "%03d" % (ultimo_id)
     if tipo==0:
@@ -2308,8 +2308,8 @@ def efetivarIndicacao():
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) """
                 valores = (int(idProjeto),nome,nascimento,estado_civil,sexo,rg,orgao,uf,cpf,vaga,modalidade,curso,matricula,ingresso,lattes,banco,agencia,conta,telefone,celular,email,endereco,escola,conclusao,nomeDoArquivoRg,nomeDoArquivoExtrato,nomeDoArquivoHistorico,nomeDoArquivoTermo,inicio,fim,nomeDoArquivoPlano,substituido,fomento)
                 inserir(consulta,valores)
-                getID = "SELECT id FROM indicacoes WHERE idProjeto=" + idProjeto + " ORDER BY id DESC LIMIT 1"
-                ultimo_id,total = executarSelect(getID,1)
+                lastID = "SELECT id FROM indicacoes WHERE idProjeto=" + idProjeto + " ORDER BY id DESC LIMIT 1"
+                ultimo_id,total = executarSelect(lastID,1)
                 idIndicacao = int(ultimo_id[0])
                 titulo_projeto = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
                 orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)

@@ -490,23 +490,6 @@ class Score(object):
         area = area.replace(' ', '_')
         return area.replace('Ç', 'C')
 
-    def __carrega_qualis_periodicos(self):
-        WORKING_DIR='/app/modules/'
-        QUALIS_FILENAME = WORKING_DIR + 'qualis-periodicos-'+str(self.__ano_qualis_periodicos)+'.csv'
-        with open(QUALIS_FILENAME, 'r') as csvfile:
-            reader = csv.reader(csvfile, delimiter=',', quotechar='"')
-            next(reader) # skip headers
-
-            for row in reader:
-                issn = row[0]
-                title = str(row[1]).split('(')[0]
-                title = title.strip().upper()
-                area = row[2]
-                estrato = row[3]
-                if self.__format_area_name(area) == self.__area:
-                    self.__qualis_periodicos[issn] = estrato
-                    self.__qualis_periodicos_issn[title] = issn
-
     def __get_qualis_periodicos_from_issn_area(self, issn, area):
         if issn != "":
             issn = issn.replace('-', '')

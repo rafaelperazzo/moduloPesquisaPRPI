@@ -1,25 +1,35 @@
 services:
   db_pesquisa:
-     image: mariadb:11
-     restart: "no"
-     command: mariadbd --sql_mode="" --block-encryption-mode=aes-256-cbc
-     #ports:
-     # - "3306:3306"
-     environment:
-       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-       MYSQL_DATABASE: ${MYSQL_DATABASE}
-       MYSQL_USER: ${MYSQL_USER}
-       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-       TZ: America/Fortaleza
-     volumes:
-       - pesquisa-data:/var/lib/mysql
-       - ./share:/share
-     networks:
-       - web  
+    image: mariadb:11
+    restart: "no"
+    command: mariadbd --sql_mode="" --block-encryption-mode=aes-256-cbc
+    #ports:
+    # - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: America/Fortaleza
+  
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    
+    volumes:
+      - pesquisa-data:/var/lib/mysql
+      - ./share:/share
+    networks:
+      - web  
   pesquisa:
     image: pesquisa3:latest
     depends_on:
-      - db_pesquisa
+      db_pesquisa:
+        condition: service_healthy
+    #ports:
     build: .
     volumes:
       - ./app:/app
@@ -45,6 +55,7 @@ services:
       EMAIL_TESTES: ${EMAIL_TESTES}
       CPF_TESTES: ${CPF_TESTES}
       AES_KEY: ${AES_KEY}
+    
     restart: "no"
     ports:
       - "9008:80"

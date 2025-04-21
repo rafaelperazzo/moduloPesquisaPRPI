@@ -25,5 +25,5 @@ jobs:
           script: |
             cd /backup/pesquisa3
             docker-compose down
-            git pull origin python3
+            git pull origin python3 --tags
             docker-compose up -d

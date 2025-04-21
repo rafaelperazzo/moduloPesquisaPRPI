@@ -19,3 +19,4 @@ python-dotenv
 Flask-WTF
 brseclabcripto
 beautifulsoup4
+apprise

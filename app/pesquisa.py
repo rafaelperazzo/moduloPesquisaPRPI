@@ -131,20 +131,20 @@ def getID(cpf):
         idlattes = "0000000000000000"
     return str(idlattes)
 
-def salvarCV(id):
+def salvarCV(idlattes):
     wsdl = 'https://sci01-ter-jne.ufca.edu.br/cnpq'
     client = zeep.Client(wsdl=wsdl)
     resultado = client.service.getCurriculoCompactado(id)
     if resultado is not None:
-        arquivo = open(id + '.zip','wb')
+        arquivo = open(idlattes + '.zip','wb')
         arquivo.write(resultado)
         arquivo.close()
-        with zipfile.ZipFile(id + '.zip','r') as zip_ref:
+        with zipfile.ZipFile(idlattes + '.zip','r') as zip_ref:
             zip_ref.extractall(XML_DIR)
-        if os.path.exists(id + '.zip'):
-            os.remove(id + '.zip')
+        if os.path.exists(idlattes + '.zip'):
+            os.remove(idlattes + '.zip')
 
-def processarPontuacaoLattes(cpf,area,idProjeto,dados,app):
+def processarPontuacaoLattes(cpf,area,idProjeto,dados):
     processou_scoreLattes = False
     try:
         idlattes = getID(cpf)
@@ -152,11 +152,13 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados,app):
         arquivo = XML_DIR + idlattes + ".xml"
         pontuacao = -100
         sumario = "---"
-        app.logger.debug(arquivo)
-        app.logger.debug(pontuacao)
+        with app.app_context():
+            logging.debug("Tentativa de BAIXAR o XML com o CPF: %s", cpf)
         processou_scoreLattes = True
     except Exception as e:
-        logging.error(str(e))
+        with app.app_context():
+            logging.error("Erro ao BAIXAR O XML: %s", e)
+            logging.error("Tentativa de BAIXAR o XML com o CPF: %s", cpf)
         processou_scoreLattes = False
     try:
         if processou_scoreLattes:
@@ -174,19 +176,19 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados,app):
             pontuacao = -1
             sumario = "ERRO AO PROCESSAR O SCORELATTES"
     except Exception as e:
-        logging.error(str(e))
-        logging.error(XML_DIR + arquivo)
+        with app.app_context():
+            logging.error("Erro ao processar o scorelattes: %s", e)
+            logging.error("Tentativa de processar o scorelattes com CPF: %s", cpf)
         pontuacao = -1
         sumario = "ERRO AO PROCESSAR O SCORELATTES"
-        logging.error("Nao foi possivel calcular o scorelattes: " + str(e))
 
     try:
         consulta = "UPDATE editalProjeto SET scorelattes=" + str(pontuacao) + " WHERE id=" + str(idProjeto)
         atualizar(consulta)
     except Exception as e:
-        logging.error(str(e))
-        logging.error("Procedimento para o ID: " + str(idProjeto) + " finalizado. Erros ocorreram ao tentar atualizar o scorelattes.")
-        logging.error(str(e))
+        with app.app_context():
+            logging.error("Erro ao atualizar o scorelattes: %s", str(e))
+            logging.error("Tentativa de atualizar o scorelattes com CPF: %s", str(cpf))
     with app.app_context():
         try:
             #ENVIAR E-MAIL DE CONFIRMAÇÃO
@@ -197,6 +199,7 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados,app):
                 msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
             try:
                 mail.send(msg)
+                logging.debug("E-mail de submissão de projeto enviado com sucesso.")
             except Exception as e:
                 logging.error("Erro ao enviar e-mail. processarPontuacaoLattes")
                 logging.error(str(e))
@@ -758,7 +761,7 @@ def cadastrarProjeto():
         logging.debug("Avaliador TESTE sugerido cadastrado.")
     #CALCULANDO scorelattes
     dados = [email,nome,titulo,descricao_resumida]
-    t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,app,))
+    t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
     t.start()
     return("Submissão realizada com sucesso. ESTA PÁGINA JÁ PODE SER FECHADA COM SEGURANÇA.")
 
@@ -775,9 +778,9 @@ def getScoreLattesFromFile():
         salvarCV(idlattes)
     except Exception as e:
         logging.error(str(e))
-        logging.error("Nao foi possivel baixar o curriculo. IDlattes de um membro da UFCA ?")
+        logging.error("[/SCORE] Nao foi possivel baixar o curriculo. IDlattes de um membro da UFCA ?")
         logging.error(idlattes)
-        return("Este IDLattes e de um servidor/discente da UFCA ? Nao foi possivel calcular a pontuacao!")
+        return("[/SCORE] Este IDLattes e de um servidor/discente da UFCA ? Nao foi possivel calcular a pontuacao!")
     arquivo = XML_DIR + idlattes + ".xml"
     try:
         from datetime import date

@@ -539,7 +539,12 @@ def cadastrarProjeto():
     tipo = int(request.form['tipo'])
     nome = str(request.form['nome'])
     categoria_projeto = int(request.form['categoria_projeto'])
-    siape = int(removerTravessao(request.form['siape']))
+    try:
+        siape = int(removerTravessao(request.form['siape']))
+    except ValueError as e:
+        logging.error("Erro ao converter SIAPE para inteiro.")
+        logging.error(e)
+        siape = 0
     email = str(request.form['email'])
     ua = str(request.form['ua'])
     area_capes = str(request.form['area_capes'])

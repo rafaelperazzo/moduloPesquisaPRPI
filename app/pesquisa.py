@@ -778,7 +778,7 @@ def getScoreLattesFromFile():
         salvarCV(idlattes)
     except Exception as e:
         logging.error(str(e))
-        logging.error("[/SCORE] Nao foi possivel baixar o curriculo. IDlattes de um membro da UFCA ?")
+        logging.error("[/SCORE] Nao foi possivel baixar o curriculo. IDlattes de um servidor/discente da UFCA ?")
         logging.error(idlattes)
         return("[/SCORE] Este IDLattes e de um servidor/discente da UFCA ? Nao foi possivel calcular a pontuacao!")
     arquivo = XML_DIR + idlattes + ".xml"

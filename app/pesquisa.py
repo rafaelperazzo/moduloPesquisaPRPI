@@ -217,30 +217,6 @@ def calcularScoreLattes(tipo,area,since,until,arquivo):
     s = os.popen(command).read()
     return (s)
 
-def enviarEmail(to,subject,body):
-    gmail_user = 'pesquisa.prpi@ufca.edu.br'
-    gmail_password = GMAIL_PASSWORD
-    sent_from = gmail_user
-    para = [to]
-    #msg = MIMEMultipart()
-    msg = MIMEText(body,'plain','utf-8')
-    msg['From'] = gmail_user
-    msg['To'] = to
-    msg['Subject'] = Header(subject, "utf-8")
-    msg['Cc'] = "pesquisapython3.display999@passmail.net"
-    try:
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        server.ehlo()
-        server.login(gmail_user, gmail_password)
-        server.sendmail(sent_from, to, msg.as_string())
-        server.close()
-        logging.debug("E-Mail enviado com sucesso.")
-        return (True)
-    except:
-        e = sys.exc_info()[0]
-        logging.debug("Erro ao enviar e-mail: " + str(e))
-        return (False)
-
 def atualizar(consulta):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
     
@@ -789,8 +765,7 @@ def getScoreLattesFromFile():
         score = scorerun.Score(arquivo, ano_inicio, ano_fim, area_capes,2017,0,False)
         sumario = str(score.sumario())
         return(sumario)
-    except:
-        e = sys.exc_info()[0]
+    except Exception as e:
         logging.error("[SCORELATTES] Erro ao calcular o scorelattes.")
         logging.error(e)
         return("Erro ao calcular pontuacao!")
@@ -993,9 +968,6 @@ def recusarConvite():
         tokenAvaliacao = str(request.args.get('token'))
         consulta = "UPDATE avaliacoes SET aceitou=0 WHERE token=\"" + tokenAvaliacao + "\""
         atualizar(consulta)
-        #SELECT editalProjeto.titulo,editalProjeto.nome FROM editalProjeto,avaliacoes WHERE editalProjeto.id=avaliacoes.idProjeto AND avaliacoes.token="DL7tueygfszlgqVc2V6HTgN7fSaDjsIPq7O2LpWT"
-        #body = "O avaliador de token " + tokenAvaliacao + " recusou o convite de avaliacao."
-        #enviarEmail("pesquisa.prpi@ufca.edu.br","[PIICT - RECUSA] Recusa de convite para avaliacao",body)
         return("Avaliação cancelada com sucesso. Agradecemos a atenção.")
     else:
         return("OK")

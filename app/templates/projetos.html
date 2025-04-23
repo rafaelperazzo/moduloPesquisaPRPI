@@ -2,7 +2,6 @@
 <html>
   <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <meta http-equiv="refresh" content="0; url=https://sci01-ter-jne.ufca.edu.br/pesquisa/projetos_discente" />
     <title>Consulta de Projetos</title>
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <script>
@@ -43,9 +42,12 @@ function humano() {
   <body>
     <h1>Buscar projetos - Discentes</h1>
     <form name="frmDados" action="/pesquisa/projetosAluno" onsubmit="return humano()" method="POST"><b>CPF: </b>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <input name="txtNome" id="txtNome" size="40" type="text" placeholder="CPF" maxlength="14" OnBlur="ValidaCPF();"><br>
       <input name="btnEnviar" value="Consultar" formmethod="post" type="submit"><br>
-<div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div>
+      {% if session['PRODUCAO']==1 %}
+        <div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div>
+      {% endif %}
 </form>
     <p style="text-align: center;"><br>
     </p>

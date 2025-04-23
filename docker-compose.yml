@@ -27,12 +27,13 @@ services:
     networks:
       - web  
   pesquisa:
-    image: pesquisa3:latest
+    image: ghcr.io/rafaelperazzo/python3:v1.0.1
+    command: python3 pesquisa.py
     depends_on:
       db_pesquisa:
         condition: service_healthy
     
-    build: .
+    #build: .
     volumes:
       - ./app:/app
       - ./share:/share
@@ -58,6 +59,7 @@ services:
       EMAIL_TESTES: ${EMAIL_TESTES}
       CPF_TESTES: ${CPF_TESTES}
       AES_KEY: ${AES_KEY}
+      GPG_KEY: ${GPG_KEY}
     
     healthcheck:
       test: ["CMD", "curl", "-f", "http://ip.me"]

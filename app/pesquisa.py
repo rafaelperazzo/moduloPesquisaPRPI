@@ -9,9 +9,6 @@ from werkzeug.utils import secure_filename
 import os
 import string
 import random
-import smtplib
-from email.mime.text import MIMEText
-from email.header import Header
 import logging
 import sys
 import numpy as np
@@ -26,10 +23,12 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import zeep
 import zipfile
+import time
 from flask import Response
 import json
 from flask_wtf.csrf import CSRFProtect
 from modules import scorerun
+from brseclabcripto.cripto3 import SecCripto
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -85,6 +84,8 @@ app.config['DECLARACOES_FOLDER'] = DECLARACOES_DIR
 app.config['TEMP_FOLDER'] = DECLARACOES_DIR
 
 AES_KEY = os.getenv("AES_KEY", "000000")
+GPG_KEY = os.getenv("GPG_KEY", "000000")
+cripto = SecCripto(AES_KEY)
 
 if PRODUCAO==1:
     logging.basicConfig(filename=WORKING_DIR + 'app.log',
@@ -558,6 +559,7 @@ def cadastrarProjeto():
         justificativa = str(request.form['justificativa'])
     else:
         justificativa = ""
+    justificativa = removerAspas(justificativa)
     cpf = str(request.form['cpf'])
     #CONEXÃO COM BD
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
@@ -2384,14 +2386,31 @@ def indicacoes():
     else:
         return("OK")
 
+def esperar(arquivo):
+    # Espera o tempo definido em segundos
+    time.sleep(3)
+    #check if file exists
+    if os.path.exists(arquivo):
+        #remove file
+        try:
+            os.remove(arquivo)
+        except FileNotFoundError as e:
+            logging.error("Erro ao remover arquivo temporário (função esperar(arquivo)).")
+            logging.error(str(e))
+
 @app.route("/verArquivo", methods=['GET', 'POST'])
+@auth.login_required(role=['admin'])
 def verArquivo():
     if request.method == "GET":
         #Recuperando arquivo
         if 'file' in request.args:
             arquivo = str(request.args['file'])
+            arquivo = secure_filename(arquivo) + ".gpg"
             if os.path.isfile(ATTACHMENTS_DIR + arquivo):
-                return(send_from_directory(app.config['UPLOADED_DOCUMENTS_DEST'], arquivo))
+                cripto.aes_gpg_decrypt_file(GPG_KEY,ATTACHMENTS_DIR + arquivo, ATTACHMENTS_DIR + arquivo.replace(".gpg",""))
+                thread = threading.Thread(target=esperar,args=(ATTACHMENTS_DIR + arquivo.replace(".gpg",""),))
+                thread.start()
+                return(send_from_directory(app.config['UPLOADED_DOCUMENTS_DEST'], arquivo.replace(".gpg","")))
             else:
                 return("Arquivo não encontrado!")
         else:
@@ -3135,6 +3154,19 @@ def get_dados_indicacao(cpf):
     resp.headers['Access-Control-Allow-Origin'] = '*'
     #return Response(json.dumps(dados),  mimetype='application/json')
     return resp
+
+@app.route("/projetos_discente", methods=['GET','POST'])
+def get_projetos_discente():
+    if request.method == "GET":
+        return (render_template('projetos.html'))
+    else:
+        try:
+            projetosAluno,projetosAluno2019 = gerarProjetosPorAluno(str(request.form['txtNome']))
+            return render_template('alunos.html',listaProjetos=projetosAluno,lista2019=projetosAluno2019)
+        except Exception as e:
+            logging.error("Erro ao gerar projetos por aluno")
+            logging.error(str(e))
+            return render_template("Erro ao gerar projetos por aluno (/projetos_discente)")
 
 if __name__ == "__main__":
     prefixo = os.getenv('URL_PREFIX','/pesquisa')

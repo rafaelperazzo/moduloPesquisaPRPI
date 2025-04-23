@@ -2224,6 +2224,13 @@ def podeSerIndicado(matricula):
     else:
         return (True)
 
+def encripta_e_apaga(arquivo):
+    """
+    Encripta e apaga o arquivo
+    """
+    cripto.aes_gpg_encrypt_file(GPG_KEY,arquivo, arquivo + ".gpg")
+    os.remove(arquivo)
+
 @app.route("/efetivarIndicacao", methods=['GET', 'POST'])
 def efetivarIndicacao():
     if request.method == "POST":
@@ -2274,31 +2281,31 @@ def efetivarIndicacao():
                     token = id_generator()
                     nomeDoArquivoTermo = "TERMO." + idProjeto + "." + token + ".pdf"
                     filename = anexos.save(request.files['termo'],name=nomeDoArquivoTermo)
-
+                    encripta_e_apaga(ATTACHMENTS_DIR + nomeDoArquivoTermo)
                 nomeDoArquivoRg = ""
                 if 'rg_cpf' in request.files:
                     token = id_generator()
                     nomeDoArquivoRg = "RG_CPF." + idProjeto + "." + token + ".pdf"
                     filename = anexos.save(request.files['rg_cpf'],name=nomeDoArquivoRg)
-
+                    #encripta_e_apaga(ATTACHMENTS_DIR + nomeDoArquivoRg)
                 nomeDoArquivoExtrato = ""
                 if 'extrato' in request.files:
                     token = id_generator()
                     nomeDoArquivoExtrato = "EXTRATO." + idProjeto + "." + token + ".pdf"
                     filename = anexos.save(request.files['extrato'],name=nomeDoArquivoExtrato)
-
+                    encripta_e_apaga(ATTACHMENTS_DIR + nomeDoArquivoExtrato)
                 nomeDoArquivoHistorico = ""
                 if 'historico' in request.files:
                     token = id_generator()
                     nomeDoArquivoHistorico = "HISTORICO." + idProjeto + "." + token + ".pdf"
                     filename = anexos.save(request.files['historico'],name=nomeDoArquivoHistorico)
-
+                    encripta_e_apaga(ATTACHMENTS_DIR + nomeDoArquivoHistorico)
                 nomeDoArquivoPlano = "N/A"
                 if 'plano' in request.files:
                     token = id_generator()
                     nomeDoArquivoPlano = "PLANO." + idProjeto + "." + token + ".pdf"
                     filename = anexos.save(request.files['plano'],name=nomeDoArquivoPlano)
-
+                    encripta_e_apaga(ATTACHMENTS_DIR + nomeDoArquivoPlano)
                 codigoEdital = obterColunaUnica('editalProjeto','tipo','id',idProjeto)
                 if (substituicao==1):
                     inicio = timestamp()

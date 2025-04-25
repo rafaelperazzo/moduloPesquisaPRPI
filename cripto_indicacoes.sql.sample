@@ -1,0 +1,12 @@
+#START TRANSACTION;
+#UPDATE indicacoes SET rg=TO_BASE64(AES_ENCRYPT(rg,'',iv));
+#UPDATE indicacoes SET nascimento=TO_BASE64(AES_ENCRYPT(nascimento,'',iv));
+#UPDATE indicacoes SET telefone=TO_BASE64(AES_ENCRYPT(telefone,'',iv));
+#UPDATE indicacoes SET celular=TO_BASE64(AES_ENCRYPT(celular,'',iv));
+#UPDATE indicacoes SET endereco=TO_BASE64(AES_ENCRYPT(endereco,'',iv));
+#COMMIT;
+#SELECT AES_DECRYPT(FROM_BASE64(rg),'',iv) FROM indicacoes;
+#SELECT AES_DECRYPT(FROM_BASE64(nascimento),'',iv) FROM indicacoes;
+#SELECT AES_DECRYPT(FROM_BASE64(telefone),'',iv) FROM indicacoes;
+#SELECT AES_DECRYPT(FROM_BASE64(celular),'',iv) FROM indicacoes;
+#SELECT AES_DECRYPT(FROM_BASE64(endereco),'',iv) FROM indicacoes;

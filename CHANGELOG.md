@@ -1,3 +1,59 @@
+- feat: Gitpython incluído nos requirements
+- fix: requirements.txt atualizado e corrigido
+- fix: docker compose do autoheal
+- fix: Numero siape conferido se é numérico
+- feat: docker compose com healthcheck
+- feat: Incluído healthcheck no compose
+- chore: apagando arquivos desnecessários
+- fix: qualis.sqlite3
+- fix: salvarCV - id
+- fix: pull do actions
+- fix: mensagem de log do /score
+- fix: Logging da thread de processarPontuaçãoLattes
+- chore: Github actions agora atualiza o sistema a cada nova tag
+- fix: Corrigido scorelattes para consultar periodicos em base sqlite no lugar do csv, para deixar o processamento mais rápido! (modules)
+- fix: Corrigido scorelattes para consultar periodicos em base sqlite no lugar do csv, para deixar o processamento mais rápido!
+- feat: Convertida tabela qualis para sqlite
+- fix: gitignore no gpg e pdf das submissoes
+- fix: corrigido login.required de indicacoes
+- fix: Proteção na rota /indicacoes e carregamento da chave aes
+- tests: Ajustados o setup dos testes submissão
+- fix: removida acentuação do qualis.csv
+- fix: carregamento do scorelattes
+- fix: adicionada pasta pdfs
+- fix: typo no Dockerfile
+- fix: Removendo aspas do grupo de pesquisa
+- fix: Incluido o scorelattes.html como rota
+- fix: Scorelattes testa se o arquivo do curriculo foi obtido com sucesso. Email é enviado independentemente.
+- fix: scorelattes.html virou rota
+- fix: scorelattes funcionando
+- fix: Dockerfile personalizado para permitir acessar a api do cnpq
+- fix: rule do docker-compose
+- fix: nome do router corrigido para pesquisa
+- docs: Atualizado README
+- fix: cron.frequencia atualizado
+- feat: Adicionado script de backup do mariadb
+- fix: Corrigido o atualizar_db.sh.sample
+- fix: cadastrarAvaliador: Impedido incluir os mesmos avaliadores para o mesmo projeto
+- fix: Modificado nome dos serviços no docker compose
+- fix: corrigido os testes para simular diferentes formas de incluir avaliadores
+- fix: cadastrarProjeto sem avaliadores, com string vazia
+- fix: a submissão agora aceita sem avaliadores
+- fix: Correção geral
+- fix: removida pasta home
+- fix: REORGANIZAÇÃO GERAL DO PROJETO
+- fix: docker-compose ajustado
+- fix: incluido docker-compose no gitignore
+- fix: Docker compose com servies alterados
+- feat: incluido arquivo do actions
+- fix: o prefixo agora é uma env var
+- fix: Corrigido o atualizar_db.sh
+- fix: incluída a env AES_KEY no .env
+- fix: removida obrigatoriedade de indicar avaliadores dos projetos
+- fix: Adicionada proteção de CSRF nos forms
+- fix: editalProjeto - removida linha de log
+- new: Migrando para Python 3
+- fix: /cadastrarProjeto - Corrigido INSERT
 - feat: inseridos novos campos no formulário de cadastrar projeto: justificativa PIBITI e arquivo_plano3
 - fix: versão do matplotlib corrigida
 - feat: Incluído o impedimento da indicação de um discente que já está em outro projeto.

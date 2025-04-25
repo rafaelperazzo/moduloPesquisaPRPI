@@ -1,0 +1,7 @@
+#!/bin/bash
+cd /backup/pesquisa3
+date=$(/usr/bin/date '+%Y-%m-%dT%H.%M')
+/usr/local/bin/docker-compose -f /backup/pesquisa3/docker-compose.yml exec -T db_pesquisa bash -c "mariadb-dump -u root -p$SENHA --add-drop-database --add-drop-table --databases pesquisa > /share/$date-pesquisa.sql"
+cd /backup/pesquisa3/share/
+gzip /backup/pesquisa3/share/$date-pesquisa.sql
+rm -f `ls -t *.gz| awk 'NR>21'`

@@ -1,0 +1,79 @@
+h1, p, span{
+    font-family: 'Alegreya Sans', sans-serif;
+    color: rgb(83,43,29)
+}
+
+.topdiv{
+    width: 100%;
+    text-align: center;
+}
+
+.main_parent{
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+    padding-top: 10px;
+}
+
+.maindiv{
+    width: 80%;
+    border-radius: 10px;
+    border: 2px solid rgb(80,189,202);
+    align-self: center;
+    padding: 15px;
+    font-family: 'Alegreya Sans', sans-serif;
+    text-align: center;
+}
+
+.obr{
+    color: rgb(240,141,96);
+    font-weight: 700;
+}
+
+input, select{
+    border: 0;
+    background: rgba(83,43,29, .1);
+    padding: 8px;
+    border-radius: 5px;
+    width: 80%;
+    font-family: 'Alegreya Sans', sans-serif;
+    text-align: center;
+    color: rgb(0,0,0);
+    font-weight: 500;
+}
+
+.check{
+    width: 4%;
+}
+
+.bold{
+    font-weight: 700;
+}
+
+.ex{
+    font-size: 11px;
+    margin: 0;
+}
+
+.button{
+    padding: 10px;
+    background-color: rgb(80,189,202);
+    border: 0;
+    border-radius: 5px;
+    padding-left: 10%;
+    padding-right: 10%;
+    cursor: pointer;
+    font-family: 'Alegreya Sans', sans-serif;
+    font-weight: 800;
+}
+
+.button:hover{
+    background-color: rgb(29, 162, 177);
+}
+
+.logo{
+    width:30%;
+}

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pt-br"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <meta charset="utf-8">
+        <title>
+            Indicação de bolsistas PRPI
+        </title>
+        <link href="{{ url_for('static', filename='indicacao_arquivos/css.css')}}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='indicacao_arquivos/style.css')}}" rel="stylesheet" type="text/css">
+
+        <style>
+        input[type=text], select {
+        width: 100%;
+        padding: 12px 20px;
+        margin: 8px 0;
+        display: inline-block;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        }
+        input[type=email], select {
+        width: 100%;
+        padding: 12px 20px;
+        margin: 8px 0;
+        display: inline-block;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        }
+
+        input[type=submit] {
+
+        background-color: #808080;
+        color: black;
+        padding: 14px 20px;
+        margin: 8px 0;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        }
+
+        input[type=submit]:hover {
+        background-color: #45a049;
+        }
+
+        div {
+        border-radius: 5px;
+        background-color: #f2f2f2;
+        padding: 20px;
+        }
+
+        textarea {
+        width: 100%;
+        height: 150px;
+        padding: 12px 20px;
+        box-sizing: border-box;
+        border: 2px solid #ccc;
+        border-radius: 4px;
+        background-color: #f8f8f8;
+        resize: none;
+        }
+
+        </style>
+
+        <script>
+
+          function ValidaCPF(){
+
+          var ao_cpf=document.forms.frmIndicacao.cpf.value;
+          var cpfValido = /^(([0-9]{3}.[0-9]{3}.[0-9]{3}-[0-9]{2}))$/;
+          if (cpfValido.test(ao_cpf) == false)    {
+
+             ao_cpf = ao_cpf.replace( /\D/g , ""); //Remove tudo o que não é dígito
+
+             if (ao_cpf.length==11){
+          	  ao_cpf = ao_cpf.replace( /(\d{3})(\d)/ , "$1.$2"); //Coloca um ponto entre o terceiro e o quarto dígitos
+          	  ao_cpf = ao_cpf.replace( /(\d{3})(\d)/ , "$1.$2"); //Coloca um ponto entre o terceiro e o quarto dígitos
+          	  //de novo (para o segundo bloco de números)
+          	  ao_cpf = ao_cpf.replace( /(\d{3})(\d{1,2})$/ , "$1-$2"); //Coloca um hífen entre o terceiro e o quarto dígitos
+
+          	  var valorValido = document.getElementById("cpf").value = ao_cpf;
+          	}else{
+          	  console.log("CPF invalido");
+          	}
+
+          }
+          }
+        </script>
+
+    </head>
+    <body>
+          <center><img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" width="120" height="130" alt=""></center>
+          <center>
+          MINISTÉRIO DA EDUCAÇÃO<br>
+          UNIVERSIDADE FEDERAL DO CARIRI<br>
+          PRÓ-REITORIA DE PESQUISA, INOVAÇÃO E PÓS-GRADUAÇÃO<br>
+          COORDENADORIA DE PESQUISA <br>
+          </center>
+          <hr>
+          {% if continua==0 %}
+          <h2>Não é possível prosseguir com a indicação. Verifique o prazo abaixo:</h2>
+          <h3>Início das indicações: {{inicio}} até {{fim}} </h3>
+          <hr>
+          {% endif %}
+        <div class="topdiv">
+            <h1>
+              {% if vaga==1 %}
+                  Indicação de bolsista
+              {% else %}
+                  {% if plano==1 %}
+                    Indicação de voluntário adicional (necessário anexar o plano de trabalho adicional)
+                  {% else %}
+                    Indicação de voluntário
+                  {% endif %}
+              {% endif %}
+
+            </h1>
+            <p>
+              {% if vaga==1 %}
+                Todas as informações solicitadas são necessárias para efetivação do cadastro do bolsista.
+              {% else %}
+                  Todas as informações solicitadas são necessárias para efetivação do cadastro do voluntário.
+              {% endif %}
+
+            </p>
+        </div>
+        <div class="main_parent">
+                <div class="maindiv">
+                  <form name="frmIndicacao" action="/pesquisa/efetivarIndicacao" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>    
+                    <label>Nome completo do(a) estudante: <span class="obr">*</span></label>
+                        <br>
+                        <input required="required" name="nome" type="name">
+                        <br>
+                        <label>Fonte pagadora da bolsa (escolha conforme publicado no resultado): <span class="obr">*</span></label>
+                        <br>
+                        <select name="fomento" required="required">
+                            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+                            <option value="0">UFCA</option>
+                            <option value="1">CNPq</option>
+                            <option value="2">FUNCAP</option>
+                        </select>
+                        <br>
+                        <br>
+                        <label>Data de nascimento: <span class="obr">*</span></label>
+                        <br>
+                        <input required="required" name="nasc" type="date">
+                        <br>
+                        <br>
+                        <label>Estado civil: <span class="obr">*</span></label>
+                        <br>
+                        <select name="estado_civil" required="required">
+                            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+                            <option value="0">Solteiro(a)</option>
+                            <option value="1">Casado(a)</option>
+                            <option value="2">Separado(a)</option>
+                            <option value="3">Divorciado(a)</option>
+                            <option value="4">Viúvo(a)</option>
+                            <option value="5">Outro</option>
+                        </select>
+                        <br>
+                        <br>
+                        <label>Sexo: <span class="obr">*</span></label>
+                        <br>
+                        <select name="sexo" required="required">
+                                <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+                                <option value="1">Masculino</option>
+                                <option value="2">Feminino</option>
+                        </select>
+                        <br>
+                        <br>
+                        <label>Número do RG: <span class="obr">*</span></label>
+                        <br>
+                        <input name="rg" required="required" type="name">
+                        <br>
+                        <br>
+                        <label>Órgão emissor do RG: <span class="obr">*</span></label>
+                        <br>
+                        <input name="orgao" required="required" type="name">
+                        <br>
+                        <br>
+                        <label>UF: <span class="obr">*</span></label>
+                        <br>
+                        <select name="uf" required="required">
+                            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+                            <option value="AC - Acre">AC - Acre</option>
+                            <option value="AL - Alagoas">AL - Alagoas</option>
+                            <option value="AM - Amazonas">AM - Amazonas</option>
+                            <option value="AP - Amapá">AP - Amapá</option>
+                            <option value="BA - Bahia">BA - Bahia</option>
+                            <option value="CE - Ceará">CE - Ceará</option>
+                            <option value="DF - Distrito Federal">DF - Distrito Federal</option>
+                            <option value="ES - Espírito Santo">ES - Espírito Santo</option>
+                            <option value="GO - Goiás">GO - Goiás</option>
+                            <option value="MA - Maranhão">MA - Maranhão</option>
+                            <option value="MG - Minas Gerais">MG - Minas Gerais</option>
+                            <option value="MS - Mato Grosso do Sul">MS - Mato Grosso do Sul</option>
+                            <option value="MT - Mato Grosso">MT - Mato Grosso</option>
+                            <option value="PA - Pará">PA - Pará</option>
+                            <option value="PE - Pernambuco">PE - Pernambuco</option>
+                            <option value="PB - Paraíba">PB - Paraíba</option>
+                            <option value="PI - Piauí">PI - Piauí</option>
+                            <option value="PR - Paraná">PR - Paraná</option>
+                            <option value="RJ - Rio de Janeiro">RJ - Rio de Janeiro</option>
+                            <option value="RN - Rio Grande do Norte">RN - Rio Grande do Norte</option>
+                            <option value="RO - Rondônia">RO - Rondônia</option>
+                            <option value="RS - Rio Grande do Sul">RS - Rio Grande do Sul</option>
+                            <option value="SC - Santa Catarina">SC - Santa Catarina</option>
+                            <option value="SE - Sergipe">SE - Sergipe</option>
+                            <option value="SP - São Paulo">SP - São Paulo</option>
+                            <option value="TO - Tocantins">TO - Tocantins</option>
+                        </select>
+                        <br>
+                        <br>
+                        <label>CPF: <span class="obr">*</span></label>
+                        <br>
+                        <input name="cpf" id="cpf" required="required" type="name" OnBlur="ValidaCPF();">
+                        <br>
+                        <br>
+                        <!--<label>Tipo de vaga: <span class="obr">*</span></label>
+                        <br>
+                        <select name="vaga" required="required">
+                            <option value="Bolsista" selected="selected">Bolsista</option>
+                            <option value="Voluntário">Voluntário</option>
+                        </select>
+                        <br>
+                        <br>-->
+                        <!--
+                        <label>Modalidade de bolsa: <span class="obr">*</span></label>
+                        <br>
+                        <select name="vaga" required="required">
+                            <option value="PIBIC" selected="selected">PIBIC</option>
+                            <option value="PIBITI">PIBITI</option>
+                        </select>
+                        <br>
+                        <br>-->
+                        <input type="hidden" id="vaga" name="vaga" value="{{vaga}}">
+                        <input type="hidden" id="modalidade" name="modalidade" value="{{modalidade}}">
+                        <input type="hidden" id="idProjeto" name="idProjeto" value="{{idProjeto}}">
+                        {% if substituicao==1 %}
+                            <input type="hidden" id="substituicao" name="substituicao" value="1">
+                            <input type="hidden" id="substituido" name="substituido" value="{{substituido}}">
+                        {% else %}
+                            <input type="hidden" id="substituicao" name="substituicao" value="0">
+                            <input type="hidden" id="substituido" name="substituido" value="0">
+                        {% endif %}
+                        <label>Curso: <span class="obr">*</span></label>
+                        <br>
+                        <select name="curso" required="required">
+                            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
+                            <option value="Administração">Administração</option>
+                            <option value="Administração Pública">Administração Pública</option>
+                            <option value="Agronomia">Agronomia</option>
+                            <option value="Biblioteconomia">Biblioteconomia</option>
+                            <option value="Ciência da Computação">Ciência da Computação</option>
+                            <option value="Ciências Contábeis">Ciências Contábeis</option>
+                            <option value="Design">Design</option>
+                            <option value="Engenharia Civil">Engenharia Civil</option>
+                            <option value="Engenharia de Materiais">Engenharia de Materiais</option>
+                            <option value="Filosofia - Bacharelado">Filosofia - Bacharelado</option>
+                            <option value="Filosofia - Licenciatura">Filosofia - Licenciatura</option>
+                            <option value="Interdisciplinar entre Ciências Naturais e Matemática">Interdisciplinar entre Ciências Naturais e Matemática</option>
+                            <option value="Jornalismo">Jornalismo</option>
+                            <option value="Letras - Libras">Letras - Libras</option>
+                            <option value="Licenciatura em Biologia">Licenciatura em Biologia</option>
+                            <option value="Licenciatura em Física">Licenciatura em Física</option>
+                            <option value="Licenciatura em Matemática">Licenciatura em Matemática</option>
+                            <option value="Licenciatura em Química">Licenciatura em Química</option>
+                            <option value="Matemática Computacional">Matemática Computacional</option>
+                            <option value="Medicina">Medicina</option>
+                            <option value="Medicina Veterinária">Medicina Veterinária</option>
+                            <option value="Música">Música</option>
+                            <option value="Pedagogia">Pedagogia</option>
+                        </select>
+                        <br>
+                        <br>
+                        <label>Número da matrícula: <span class="obr">*</span></label>
+                        <br>
+                        <input name="matricula" required="required" type="name">
+                        <br>
+                        <br>
+                        <label>Ano de ingresso na graduação: <span class="obr">*</span></label>
+                        <br>
+                        <input name="ingresso" required="required" type="name" pattern="^[12][0-9]{3}$">
+                        <br>
+                        <br>
+                        <label>Endereço do currículo Lattes: <span class="obr">*</span></label>
+                        <p class="ex">Exemplo: (<a href="http://lattes.cnpq.br/1230213213210123">http://lattes.cnpq.br/1230213213210123</a>)</p>
+                        <br>
+                        <input name="lattes" required="required" type="name">
+                        <br>
+                        <br>
+
+                        {% if vaga==1 %}
+                            <label>Nome do banco: <span class="obr">*</span></label>
+                            <br>
+                            <input name="banco" required="required" type="name">
+                        {% else %}
+                            <label>Nome do banco: </label>
+                            <br>
+                            <input name="banco" type="name">
+                        {% endif %}
+                        <br>
+                        <br>
+
+
+                        {% if vaga==1 %}
+                            <label>Número da agência (Número-DV): <span class="obr">*</span></label>
+                            <p class="ex">É obrigatório informar o dígito
+    verificador da agência bancária. Caso a informação não conste no cartão
+    ou extrato, oriente que o bolsista solicite a informação junto a
+    agência.)</p>  <br>
+                            <input name="agencia" required="required" type="name">
+                        {% else %}
+                            <label>Número da agência (Número-DV): </label>
+                            <p class="ex">É obrigatório informar o dígito
+    verificador da agência bancária. Caso a informação não conste no cartão
+    ou extrato, oriente que o bolsista solicite a informação junto a
+    agência.)</p>  <br>
+                            <input name="agencia" type="name">
+                        {% endif %}
+
+                        <br>
+                        <br>
+
+                        {% if vaga==1 %}
+                            <label>Número da conta corrente (Número-DV): <span class="obr">*</span></label>
+                            <br>
+                            <input name="conta" required="required" type="name">
+                        {% else %}
+                            <label>Número da conta corrente (Número-DV): </label>
+                            <br>
+                            <input name="conta" type="name">
+                        {% endif %}
+
+                        <br>
+                        <br>
+                        <label>Telefone fixo (XX)XXXX-XXXX: <span class="obr">*</span></label>
+                        <br>
+                        <input name="tel_fixo" required="required" type="name">
+                        <br>
+                        <br>
+                        <label>Telefone celular (XX)XXXXX-XXXX: <span class="obr">*</span></label>
+                        <br>
+                        <input name="tel_cel" required="required" type="name">
+                        <br>
+                        <br>
+                        <label>E-mail do estudante: <span class="obr">*</span></label>
+                        <p class="ex">A nossa comunicação com o estudante será realizada preferencialmente via e-mail.</p>
+                        <br>
+                        <input name="email" required="required" type="name">
+                        <br>
+                        <br>
+                        <label>Endereço do estudante: <span class="obr">*</span></label>
+                        <p class="ex">Rua; Número; Bairro; Cidade;
+Estado; CEP. (Av. Tenente Raimundo Rocha Nº 1639 - Bairro Cidade
+Universitária - Juazeiro do Norte - Ceará, CEP 63048-080)</p>
+                        <br>
+                        <input name="endereco" required="required" type="name">
+                        <br>
+                        <br>
+                        <label>Nome da escola onde concluiu o ensino médio: <span class="obr">*</span></label>
+                        <br>
+                        <input name="escola" required="required" type="name">
+                        <br>
+                        <br>
+                        <label>Ano de conclusão do ensino médio: <span class="obr">*</span></label>
+                        <br>
+                        <input name="conclusao" required="required" type="name" pattern="^[12][0-9]{3}$">
+                        <br>
+                        <br>
+                        {% if plano==1 %}
+                            <label>Plano de Trabalho: <span class="obr">*</span></label>
+                            <p class="ex">Anexar o plano de trabalho do bolsista.</p>
+                            <br>
+                            <input name="plano" required="required" type="file">
+                            <br>
+                            <br>
+                        {% endif %}
+                        <label>Cópia de RG e CPF: <span class="obr">*</span></label>
+                        
+                        <br>
+                        <input name="rg_cpf" required="required" type="file">
+                        <br>
+                        <br>
+                        <label>Cópia de extrato ou comprovante bancário: <span class="obr">*</span></label>
+                        <p class="ex">Entregar cópia desse documento na sala I302 - PRPI.</p>
+                        <br>
+                        {% if vaga==1 %}
+                            <input name="extrato" required="required" type="file">
+                        {% else %}
+                            <input name="extrato" type="file">
+                        {% endif %}
+                        <br>
+                        <br>
+                        <label>Histórico escolar atualizado: <span class="obr">*</span></label>
+                        <p class="ex">Entregar cópia na Sala I302 PRPI.</p>
+                        <br>
+                        <input name="historico" required="required" type="file">
+                        <br>
+                        <br>
+                        <label>Termo de compromisso: <span class="obr">*</span></label>
+                        <p class="ex">Entregar o termo de compromisso devidamente preenchido e assinado pelo bolsista/voluntário na sala I302 PRPI.</p>
+                        <br>
+                        <input name="termo" required="required" type="file">
+                        <br>
+                        <br>
+                        <label>Declaro, para os devidos fins, que as
+informações contidas na presente ficha são verdadeiras e assumo o
+compromisso de apresentar, quando solicitado, os comprovantes originais,
+ bem como as penalidades por quaisquer informações falsas.</label>
+                        <br>
+                        <input name="declara" class="check" required="required" type="checkbox">
+                        <label for="declara"><span class="bold">Declaro.<span class="obr">*</span></span></label>
+                        <br>
+                        <p class="ex">Os campos marcados com <span class="obr">*</span> são de <span class="obr">preenchimento obrigatório</span>.</p>
+                        <br>
+                        <p class="ex">Aperte em ENVIAR apenas UMA vez e aguarde a finalização da indicação. Uma página de confirmação será gerada.</p>
+                        <BR>
+                        {% if continua==0 %}
+                          <button type="submit" class="button" disabled>Enviar</button>
+                        {% else %}
+                          <button type="submit" class="button">Enviar</button>
+                        {% endif %}
+                    </form>
+                </div>
+
+
+        </div>
+</body></html>

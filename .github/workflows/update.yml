@@ -1,0 +1,29 @@
+# This workflow will update the system when a commit is pushed to the python3 branch.
+# The workflow is triggered on pushes to the python3 branch.
+
+name: Atualizar sistema de Pesquisa
+
+on:
+  push:
+    tags:
+      - v*.*.*
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: enviando comandos ssh
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            cd /backup/pesquisa3
+            docker-compose down
+            git pull origin python3 --tags
+            docker-compose up -d

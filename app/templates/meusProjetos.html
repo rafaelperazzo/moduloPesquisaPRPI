@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-164056633-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-164056633-1');
+    </script>
+    <style>
+    p.aprovado {
+      color: green;
+    }
+
+    p.indefinido {
+      color: orange;
+    }
+
+    p.reprovado {
+      color: red;
+    }
+
+    a.fixed {
+
+    position: fixed;
+
+    right: 0;
+
+    top: 0;
+
+    width: 260px;
+
+    border: 0px solid black;
+
+    }
+
+    a.editalProjeto {
+
+    position: fixed;
+
+    right: 0;
+
+    top: 5;
+
+    width: 260px;
+
+    border: 0px solid black;
+
+    }
+
+table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+td, th {
+    border: 1px solid #dddddd;
+    text-align: center;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background-color: #dddddd;
+}
+</style>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Meus Projetos</title>
+  </head>
+  <body>
+    <h1><b>Meus Projetos</b></h1>
+    *Caso seu projeto não esteja listado abaixo, favor entrar em contato com a Coordenadoria de Pesquisa/PRPI.
+    <table>
+    <th>Id</th><th>Orientador</th><th>Lotação</th><th>Titulo</th><th>Início</th><th>Fim</th><th>Discentes</th><th>Declaração</th>
+    <p>{% for linha in projetos %}</p>
+
+    <tr>
+    <td>{{ linha[0] }}</td>
+    <td>{{ linha[1] }}</td>
+    <td>{{ linha[2] }}</td>
+    <td>{{ linha[3] }}</td>
+    <td>{{ linha[4] }}</td>
+    <td>{{ linha[5] }}</td>
+    <td>{{ linha[6]|safe }}</td>
+    <td><pre><span class="cp"><a href="/pesquisa/minhaDeclaracaoOrientador?token={{ linha[7] }}"><img src="{{ url_for('static', filename='pdf.png')}}" style="width:25%" alt="" align="center"></a><br></span></pre></td>
+    </tr>
+    <p><span class="cp">{% endfor %}</span></p>
+
+    </table>
+
+    <hr>
+    <h2>Projetos submetidos a editais a partir de 2019</h2>
+    <table>
+
+      <th>Id</th><th>Declaração</th><th>Edital</th><th>Situação do Edital</th><th>Orientador</th><th>Lotação</th><th>Titulo</th><th>Início</th><th>Fim
+      </th><th>Situação do Projeto</th><th>Avaliações</th><th>Bolsas Solicitadas</th><th>Bolsas Concedidas</th>
+      <th>Indicações</th><th>Orientandos</th>
+      <p>{% for linha in projetos2019 %}</p>
+      <tr>
+        <td>{{linha[0]}}</td><td><a href="/pesquisa/minhaDeclaracaoOrientador?id={{ linha[0] }}"><img src="{{ url_for('static', filename='pdf.png')}}" style="width:50%" alt="" align="center"></a></td>
+        {% if permissao==1 %}
+            <td>{{linha[1]}}</td>
+        {% else %}
+            <td><a href="/pesquisa/editalProjeto?edital={{linha[15]}}">{{linha[1]}}</a></td>
+        {% endif %}
+        <td>{{linha[14]}}</td>
+        <td>{{linha[2]}}</td>
+        <td>{{linha[3]}}</td>
+        {% if linha[7]==1 %} <!--Projeto Novo -->
+          <td><a href="/pesquisa/static/files/{{linha[8]}}">{{linha[4]}}</a></td>
+        {%else %} <!--Projeto em andamento -->
+            <td>{{linha[4]}}</td>
+        {% endif %}
+        <td>
+          {% if linha[5] is not none %}
+            {{linha[5]}}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>
+          {% if linha[6] is not none %}
+            {{linha[6]}}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>
+          {% if linha[13]==1 %}
+              {% if linha[9]+linha[10]>1 %}
+                    {% if linha[9]-linha[10]>0 %}
+                        <p class="aprovado">APROVADO</p>
+                    {% elif linha[10]-linha[9]>0 %}
+                        <p class="reprovado">NÃO APROVADO</p>
+                    {% else %}
+                        <p class="indefinido">INDEFINIDO</p>
+                    {% endif %}
+              {% else %}
+                      <p class="indefinido">INDEFINIDO</p>
+              {% endif %}
+          {%else %}
+          <p class="aprovado">APROVADO</p>
+          {%endif %}
+        </td>
+        {% if linha[7]==1 %} <!--Projeto Novo -->
+          <td><a href="/pesquisa/meusPareceres?id={{linha[0]}}"><img src="{{ url_for('static', filename='avaliacao.png')}}" style="width:50%" alt="" align="center"></a></td>
+        {%else %} <!--Projeto em andamento -->
+          <td>-</td>
+        {% endif %}
+        <td>{{linha[11]}}</td>
+        <td>{{linha[12]}}</td>
+        <td>
+          
+          {% for i in range(1,linha[12]+1) %}
+            <a href="/pesquisa/indicacao?id={{linha[0]}}&b=1">INDICAR BOLSISTA {{ i }}</a> <BR><BR>
+          {% endfor %}
+          
+          {% for i in range(1,linha[11]-linha[12]+1) %}
+            <a href="/pesquisa/indicacao?id={{linha[0]}}&b=0">INDICAR VOLUNTÁRIO {{ i }}</a> <BR><BR>
+          {% endfor %}
+          <a href="/pesquisa/indicacao?id={{linha[0]}}&b=0">INDICAR VOLUNTÁRIO ADICIONAL</a> <BR><BR>
+
+        </td>
+        <td>
+          {% if linha[16] is not none %}
+            {{linha[16]|safe}}
+          {% else %}
+            Sem indicações até o momento
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <hr>
+    <h2>Meus orientandos atuais</h2>
+
+    <table>
+
+        <th>PROJETO</th><th>ID do orientando</th><th>Nome</th><th>Modalidade</th><th>Tipo</th><th>Inicio</th><th>Fim</th><th>Fomento</th><th>Frequência</th><th>Enviadas</th>
+        <th>Desligar discente</th><th>Substituir Discente <small>(é necessário preencher imediatamente o formulário de indicação com todas as informações do substituto)</small></th>
+
+      {% for linha in orientandos %}
+
+            <tr>
+                <td>{{linha[8]}} </td>
+                <td>{{linha[0]}} </td>
+                <td><a href="/pesquisa/minhaDeclaracaoOrientador?idAluno={{linha[0]}}">{{linha[1]}}</a> </td>
+                <td>{{linha[6]}} </td>
+                <td>{{linha[4]}} </td>
+                <td>{{linha[2]}} </td>
+                <td>{{linha[5]}} </td>
+                <td>{{linha[3]}} </td>
+                <td><a href="/pesquisa/enviarFrequencia?id={{linha[0]}}">Enviar Frequência</a></td>
+                <td> {% if linha[7] == None %}
+                          NENHUMA FREQUÊNCIA ENVIADA
+                     {% else %}
+                          {{linha[7]|safe}}
+                     {% endif %}
+                </td>
+                <td><a href="{{url_for('desligar',id_indicacao=linha[0])}}" onclick="return confirm('Tem certeza que deseja desligar o discente ?')">Desligar</a></td>
+                <td><a href="{{url_for('substituir',id_indicacao=linha[0])}}" onclick="return confirm('Tem certeza que deseja substituir o discente ?')">Substituir</a></td>
+            </tr>
+
+      {% endfor %}
+
+    </table>
+
+    <hr>
+    <h2>Meus orientandos substituídos/ desligados/ encerrados</h2>
+
+    <table>
+
+        <th>PROJETO</th><th>ID do orientando</th><th>Nome</th><th>Modalidade</th><th>Tipo</th><th>Inicio</th><th>Fim</th><th>Fomento</th><th>Frequência</th><th>Enviadas</th>
+        <th>Desligar discente</th><th>Substituir Discente <small>(é necessário preencher imediatamente o formulário de indicação com todas as informações do substituto)</small></th>
+
+      {% for linha in orientandos_antigos %}
+
+            <tr>
+                <td>{{linha[8]}} </td>
+                <td>{{linha[0]}} </td>
+                <td><a href="/pesquisa/minhaDeclaracaoOrientador?idAluno={{linha[0]}}">{{linha[1]}}</a> </td>
+                <td>{{linha[6]}} </td>
+                <td>{{linha[4]}} </td>
+                <td>{{linha[2]}} </td>
+                <td>{{linha[5]}} </td>
+                <td>{{linha[3]}} </td>
+                <td><a href="/pesquisa/enviarFrequencia?id={{linha[0]}}">Enviar Frequência</a></td>
+                <td> {% if linha[7] == None %}
+                          NENHUMA FREQUÊNCIA ENVIADA
+                     {% else %}
+                          {{linha[7]|safe}}
+                     {% endif %}
+                </td>
+                <td>-</td>
+                <td>-</td>
+            </tr>
+
+      {% endfor %}
+
+    </table>
+
+    <a class="fixed" href="/pesquisa/logout">Sair</a>
+  </body>
+</html>

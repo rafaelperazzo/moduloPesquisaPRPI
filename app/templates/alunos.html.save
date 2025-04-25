@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	  <style>
+table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background-color: #dddddd;
+}
+</style>
+
+
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Projetos - Alunos</title>
+  </head>
+  <body>
+    <h1><b>Projetos do aluno - iniciados até Agosto/2018</b></h1>
+    *Caso seu projeto não esteja listado abaixo, favor entrar em contato com a Coordenadoria de Pesquisa/PRPI (atendimento.prpi@ufca.edu.br).
+    <table>
+    <th>Aluno</th><th>Projeto</th><th>Declaração</th>
+    <p>{% for linha in listaProjetos %}</p>
+
+    <tr>
+    <td>{{ linha[0] }}</td>
+    <td>{{ linha[4] }}</td>
+    <td><a href="/pesquisa/discente/minhaDeclaracao?token={{ linha[7] }}"><img src="{{ url_for('static', filename='pdf.png')}}" style="width:15%" alt="" align="center"></a> </td>
+    </tr>
+
+    <p><span class="cp">{% endfor %}</span></p>
+
+
+    </table>
+
+    <hr>
+
+    <h1><b>Projetos do aluno - iniciados em 2019</b></h1>
+    *Caso seu projeto não esteja listado abaixo, favor entrar em contato com a Coordenadoria de Pesquisa/PRPI (atendimento.prpi@ufca.edu.br).
+    <table>
+    <th>Aluno</th><th>Projeto</th><th>Declaração</th><th>Certificado</th>
+    <p>{% for linha in lista2019 %}</p>
+
+    <tr>
+    <td>{{ linha[0] }}</td>
+    <td>{{ linha[4] }}</td>
+    <td><a href="/pesquisa/discente/minhaDeclaracao2019?id={{linha[7]}}">
+        <img src="{{ url_for('static', filename='pdf.png')}}" style="width:15%" alt="" align="center"></a>
+    </td>
+    <td><a href="/pesquisa/discente/minhaDeclaracao2019?id={{linha[7]}}">
+      <img src="{{ url_for('static', filename='pdf.png')}}" style="width:15%" alt="" align="center"></a>
+    </td>
+    </tr>
+
+    <p><span class="cp">{% endfor %}</span></p>
+
+
+    </table>
+
+  </body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Confirmação de envio de projeto</title>
+  </head>
+  <body>
+    <center><img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" width="120" height="130" alt=""></center>
+    <center>
+    MINISTÉRIO DA EDUCAÇÃO<br>
+    UNIVERSIDADE FEDERAL DO CARIRI<br>
+    PRÓ-REITORIA DE PESQUISA, INOVAÇÃO E PÓS-GRADUAÇÃO<br>
+    COORDENADORIA DE PESQUISA <br>
+    </center>
+    <hr>
+    <h1 style="text-align: center;"><b>CONFIRMAÇÃO DE SUBSTITUIÇÃO DE
+      {% if vaga==1 %}
+        BOLSISTA
+      {% else %}
+        VOLUNTÁRIO
+      {% endif %} EM PROJETO DE PESQUISA</b></h1>
+    <hr>
+    <p><b>ID do projeto: </b>{{id_projeto}}<b><br>
+      </b></p>
+    <p><b>Orientador(a)</b>: {{proponente}}</p>
+    <p><b>Titulo</b>: {{titulo}}</p>
+    <p><b>Indicado(a)</b>: {{indicado}}</p>
+    <p><b>Código do(a) Substituído(a)</b>: {{idIndicacao}}</p>
+    <p><b>Data e hora</b>: {{data}}</p>
+    <hr>
+    <p><br>
+    </p>
+    <p>Um e-mail de confirmação foi enviado para: {{email_proponente}}</p>
+    <p>Quaisquer dúvidas, enviar e-mail para atendimento.prpi@ufca.edu.br.</p>
+    <h2 style="text-align: center;"><a href="/pesquisa/meusProjetos">VOLTAR PARA MEUS PROJETOS</a></h2>
+    <p><br>
+    </p>
+    <p><br>
+    </p>
+  </body>
+</html>

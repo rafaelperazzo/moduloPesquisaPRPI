@@ -1,3 +1,0 @@
-def helloMundo():
-	pass
-

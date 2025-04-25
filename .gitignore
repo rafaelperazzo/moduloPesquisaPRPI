@@ -1,3 +1,11 @@
+app/submissoes/*.gpg
+app/submissoes/*.pdf
+app/docs_indicacoes/*.gpg
+app/docs_indicacoes/*EXTRATO*
+app/docs_indicacoes/*RG_CPF*
+app/static/files
+app/teste_cnpq.py
+env/
 .env
 cicd.sh
 cron
@@ -12,7 +20,6 @@ cron.avaliacao.sh
 *.zip
 *.pass
 *.sql
-*.yml
 *.sh
 *.pdf
 *.xml

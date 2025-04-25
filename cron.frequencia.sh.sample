@@ -1,10 +1,1 @@
-mes=$(($(date +'%m')-1))
-ano=$(date +'%Y')
-echo $mes
-if [ $mes -eq 1 ]
-then
-	ano=$(($ano-1))
-fi
-echo $ano
-#/usr/bin/docker run --rm curlimages/curl:latest -s -u usuario:senha https://URL/pesquisa/listaNegra?mes=$mes&ano=$ano&email=1 > emails.log
-
+/usr/bin/docker run --rm curlimages/curl:latest -s -u USUARIO:SENHA https://HOST/pesquisa/listaNegra/1

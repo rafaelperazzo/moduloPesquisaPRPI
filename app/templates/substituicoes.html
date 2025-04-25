@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	  <style>
+table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background-color: #dddddd;
+}
+
+p.cnpq {
+  color: green;
+}
+
+p.ufca {
+  color: orange;
+}
+
+</style>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>SUBSTITUIÇÕES/DESLIGAMENTOS</title>
+  </head>
+  <body>
+    <h1>SUBSTITUIÇÕES/DESLIGAMENTOS</h1>
+    <hr>
+    <h2>{{edital}}</h2>
+    <hr>
+    <h2>Total: {{total}}</h2>
+    <table>
+    <th>ID do aluno</th><th>ID do Projeto</th><th>Código do edital</th><th>Tipo de vaga</th><th>Ocorrência</th><th>Nome do aluno</th><th>Nome do banco</th><th>Agência</th>
+    <th>Conta</th><th>Início</th><th>Fim</th><th>Orientador</th>
+
+    <p>{% for linha in linhas %}</p>
+
+        <tr>
+          <td>{{linha[0]}}</td>
+          <td>{{linha[1]}}</td>
+          <td>{{linha[2]}}</td>
+          <td>{{linha[3]}}</td>
+          <td>{{linha[4]}}</td>
+          <td>{{linha[5]}}</td>
+          <td>{{linha[6]}}</td>
+          <td>{{linha[7]}}</td>
+          <td>{{linha[8]}}</td>
+          <td>{{linha[9]}}</td>
+          <td>{{linha[10]}}</td>
+          <td>{{linha[11]}}</td>
+        </tr>
+    {% endfor %}
+
+    </table>
+
+    <hr>
+    <h2>Bolsistas/Voluntários Substitutos(as)</h2>
+    <h2>Total: {{total2}}</h2>
+    <table>
+    <th>ID do aluno</th><th>ID do Projeto</th><th>Código do edital</th><th>Tipo de vaga</th><th>Ocorrência</th><th>Nome do aluno</th><th>Nome do banco</th><th>Agência</th>
+    <th>Conta</th><th>Início</th><th>Fim</th><th>Substituido</th><th>Orientador</th>
+
+    <p>{% for linha in linhas2 %}</p>
+
+          <tr>
+            <td>{{linha[0]}}</td>
+            <td>{{linha[1]}}</td>
+            <td>{{linha[2]}}</td>
+            <td>{{linha[3]}}</td>
+            <td>{{linha[4]}}</td>
+            <td>{{linha[5]}}</td>
+            <td>{{linha[6]}}</td>
+            <td>{{linha[7]}}</td>
+            <td>{{linha[8]}}</td>
+            <td>{{linha[9]}}</td>
+            <td>{{linha[10]}}</td>
+            <td>{{linha[11]}}</td>
+            <td>{{linha[12]}}</td>
+          </tr>
+    {% endfor %}
+
+    </table>
+
+  </body>
+</html>

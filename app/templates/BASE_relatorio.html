@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{% block title %}{% endblock %} - Plataforma Yoko</title>
+  {% block html_head %}
+
+  <style>
+  table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+  }
+
+  td, th {
+  border: 1px solid #dddddd;
+  text-align: center;
+  padding: 8px;
+  }
+
+  tr:nth-child(even) {
+  background-color: #dddddd;
+  }
+
+  table.novos {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 50%;
+  }
+
+  td.novos, th.novos {
+  border: 1px solid #dddddd;
+  text-align: center;
+  padding: 8px;
+  }
+
+  tr.novos:nth-child(even) {
+  background-color: #CCFFCC;
+  }
+
+  p.aprovado {
+  color: green;
+  }
+
+  p.indefinido {
+  color: orange;
+  }
+
+  p.reprovado {
+  color: red;
+  }
+
+  .column {
+  float: left;
+  width: 45%;
+  padding: 5px;
+  }
+
+  /* Clearfix (clear floats) */
+  .row::after {
+  content: "";
+  clear: both;
+  display: table;
+  }
+
+  a.fixed {
+
+  position: fixed;
+
+  right: 0;
+
+  top: 0;
+
+  width: 260px;
+
+  border: 0px solid black;
+
+  }
+
+  </style>
+
+  {% endblock %}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+</head>
+<body>
+  <div id="header">
+  {% block header %}
+  <center><img src="{{ url_for('static', filename='brasao_uniao.png')}}" width="8%" alt="" align="center"></center>
+  <br><center>
+  Ministério da Educação<BR>
+  Universidade Federal do Cariri<BR>
+  Pró-reitoria de Pesquisa, Pós-graduação e Inovação<BR>
+  <b>{{versao}}</b>
+  </center>
+    <hr>
+  {% endblock %}
+ </div>
+
+  <div id="content">
+    {% block content %}{% endblock %}
+  </div>
+
+  <div id="footer">
+    {% block footer %}
+    <hr>
+     <br><br><center>Plataforma Yoko - <a href="http://prpi.ufca.edu.br">Pró-reitoria de Pesquisa, Pós-graduação e Inovação - PRPI</a>.</center>
+     <br>{{ versao }}
+    {% endblock %}
+  </div>
+  <a class="fixed" href="/pesquisa/logout">Sair</a>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+</body>
+</html>

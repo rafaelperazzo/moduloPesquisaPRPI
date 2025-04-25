@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Envio de frequência</title>
+  <meta charset="UTF-8">
+</head>
+<style>
+input[type=text], select {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+input[type=submit] {
+  width: 100%;
+  background-color: #4CAF50;
+  color: white;
+  padding: 14px 20px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+input[type=submit]:hover {
+  background-color: #45a049;
+}
+
+div {
+  border-radius: 5px;
+  background-color: #f2f2f2;
+  padding: 20px;
+}
+
+textarea {
+  width: 100%;
+  height: 150px;
+  padding: 12px 20px;
+  box-sizing: border-box;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  background-color: #f8f8f8;
+  font-size: 16px;
+  resize: none;
+}
+</style>
+
+<body>
+  <center><img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" width="120" height="130" alt=""></center>
+  <center>
+  MINISTÉRIO DA EDUCAÇÃO<br>
+  UNIVERSIDADE FEDERAL DO CARIRI<br>
+  PRÓ-REITORIA DE PESQUISA, INOVAÇÃO E PÓS-GRADUAÇÃO<br>
+  COORDENADORIA DE PESQUISA <br>
+  </center>
+  <hr>
+
+<center><h1>Envio de Frequência Mensal</h1><br></center>
+<h3>Discente: {{nomeAluno}}</h3>
+<h3>Mês referência: {{referencia}}/{{ano}}</h3>
+<h3>Título do projeto: {{titulo}} </h3>
+<h3>Edital: {{edital}}</h3>
+
+<div>
+  <form name="frmFrequencia" method="POST" action="/pesquisa/cadastrarFrequencia">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <label for="mes">Mês</label>
+    <select name="mes" id="mes">
+      <option selected="selected" value="{{mes}}">{{referencia}}</option>
+      <option value="1">Janeiro</option>
+      <option value="2">Fevereiro</option>
+      <option value="3">Março</option>
+      <option value="4">Abril</option>
+      <option value="5">Maio</option>
+      <option value="6">Junho</option>
+      <option value="7">Julho</option>
+      <option value="8">Agosto</option>
+      <option value="9">Setembro</option>
+      <option value="10">Outubro</option>
+      <option value="11">Novembro</option>
+      <option value="12">Dezembro</option>
+    </select>
+    <label for="ano">Ano</label>
+    <select name="ano" id="ano">
+      <option value="{{ano-1}}">{{ano-1}}</option>
+      <option selected="selected" value="{{ano}}">{{ano}}</option>
+      <option value="{{ano+1}}">{{ano+1}}</option>
+    </select>
+    <label for="fs1">Atividades da Semana 1</label>
+    <textarea name="s1" cols="130" rows="5" required="required" maxlength="300"></textarea>
+
+    <label for="fs2">Atividades da Semana 2</label>
+    <textarea name="s2" cols="130" rows="5" required="required" maxlength="300"></textarea>
+
+    <label for="fs3">Atividades da Semana 3</label>
+    <textarea name="s3" cols="130" rows="5" required="required" maxlength="300"></textarea>
+
+    <label for="fs4">Atividades da Semana 4</label>
+    <textarea name="s4" cols="130" rows="5" required="required" maxlength="300"></textarea>
+
+    <label for="fobs">Observações e/ou justificativas (opcional)</label>
+    <textarea name="obs" cols="130" rows="5" maxlength="300"></textarea>
+    <input type="checkbox" name="confirmo" value="sim" required="required">Declaro que as informações contidas neste documento são verdadeiras e assumo o compromisso de apresentar, quando solicitado, os comprovantes originais, ficando ciente das penalidades previstas no edital de referência.<br>
+    <!--<input type="hidden" id="mes" name="mes" value="{{mes}}">
+    <input type="hidden" id="ano" name="ano" value="{{ano}}">-->
+    <input type="hidden" id="idAluno" name="idAluno" value="{{idAluno}}">
+    <input type="submit" value="Enviar">
+  </form>
+</div>
+
+</body>
+</html>

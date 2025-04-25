@@ -1,15 +1,16 @@
 #!/bin/bash
-cd /home/perazzo/UFRPE/docker/projetos/pesquisa
+folder=/home/perazzo/Projetos/docker/pesquisa 
+cd $folder
 docker compose down
 docker compose up -d
 ssh sci01-ter-jne.ufca.edu.br '/backup/pesquisa/./backup.mysql.sh'
-rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa/home/perazzo/pesquisa/static/files/ /home/perazzo/UFRPE/docker/projetos/pesquisa/home/perazzo/pesquisa/static/files/
-rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa/home/perazzo/pesquisa/docs_indicacoes/ /home/perazzo/UFRPE/docker/projetos/pesquisa/home/perazzo/pesquisa/docs_indicacoes/
+rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa/home/perazzo/pesquisa/static/files/ $folder/app/submissoes/
+rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa/home/perazzo/pesquisa/docs_indicacoes/ $folder/app/docs_indicacoes/
 dir="/backup/pesquisa/share"
 server="perazzo@sci01-ter-jne.ufca.edu.br"
 arquivo=$(ssh sci01-ter-jne.ufca.edu.br 'ls -t /backup/pesquisa/share | head -1')
 scp $server:$dir/$arquivo share/
 gunzip -f share/$arquivo
 arquivo=$(ls -t share | head -1)
-/usr/bin/docker compose -f /home/perazzo/UFRPE/docker/projetos/pesquisa/docker-compose.yml exec -T db_pesquisa bash -c "mysql -u root -pSENHA < /share/$arquivo"
+/usr/bin/docker compose -f /home/perazzo/Projetos/docker/pesquisa/docker-compose.yml exec -T db_pesquisa bash -c "mariadb -u root -pSENHA < /share/$arquivo"
 rm share/$arquivo

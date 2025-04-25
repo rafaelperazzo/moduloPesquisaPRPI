@@ -10,13 +10,14 @@
 - [x] Envio dos convites de avaliação para todos os editais em aberto
 - [x] Possibilidade de enviar frequências atrasadas
 - [x] Possibilidade de justificar o desligamento do bolsista/voluntário
+- [x] Cobrança de frequência por e-mail, para os editais vigentes
 
 ## TODO
 - [ ] Autenticação por QRCode
 - [ ] Cadastro de projetos com aproveitamento de dados já cadastrados em outros editais
-- [ ] Cobrança de frequência por e-mail, para os editais vigentes
+- [ ] Testes automatizados para a avaliação de um projeto
 
 
 ## Autor
 
-* Prof. Rafael Perazzo Barbosa Mota ( rafael.mota (at) ufca.edu.br )
+* Prof. Rafael Perazzo Barbosa Mota ( pesquisapython3.display999 (at) passmail.net )

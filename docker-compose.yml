@@ -1,0 +1,94 @@
+services:
+  db_pesquisa:
+    
+    image: mariadb:11
+    
+    restart: "always"
+    
+    command: mariadbd --sql_mode="" --block-encryption-mode=aes-256-cbc
+    
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: America/Fortaleza
+  
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 30s
+      interval: 60s
+      timeout: 15s
+      retries: 3
+    
+    volumes:
+      - pesquisa-data:/var/lib/mysql
+      - ./share:/share
+    networks:
+      - web  
+  pesquisa:
+    image: ghcr.io/rafaelperazzo/python3:v1.0.1
+    command: python3 pesquisa.py
+    depends_on:
+      db_pesquisa:
+        condition: service_healthy
+    
+    #build: .
+    volumes:
+      - ./app:/app
+      - ./share:/share
+      - .git:/git
+    labels:
+       - "traefik.enable=true"
+       - "traefik.http.routers.pesquisa.rule=PathPrefix(`/pesquisa`)&&Host(`sci01-ter-jne.ufca.edu.br`)"
+       - "traefik.http.routers.pesquisa.tls=true"
+       - "traefik.http.routers.pesquisa.tls.certresolver=certificado"
+       - "traefik.http.routers.pesquisa.entrypoints=websecure"
+    environment:
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      GMAIL_PASSWORD: ${GMAIL_PASSWORD}
+      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY}
+      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_TEST_DATABASE: ${MYSQL_TEST_DATABASE}
+      SERVER_URL: ${SERVER_URL}
+      PRODUCAO: ${PRODUCAO}
+      URL_PREFIX: ${URL_PREFIX}
+      TEST_USER: ${TEST_USER}
+      TEST_PASSWORD: ${TEST_PASSWORD}
+      EMAIL_TESTES: ${EMAIL_TESTES}
+      CPF_TESTES: ${CPF_TESTES}
+      AES_KEY: ${AES_KEY}
+      GPG_KEY: ${GPG_KEY}
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://ip.me"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+    restart: "always"
+    ports:
+      - "9008:80"
+    networks:
+      - web
+  
+  autoheal:
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: all
+      AUTOHEAL_INTERVAL: 30
+      AUTOHEAL_START_PERIOD: 15
+    image: willfarrell/autoheal:latest
+    tty: true
+    network_mode: none
+    restart: "always"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+
+networks:
+  web:
+    external: true
+
+volumes:
+  pesquisa-data:

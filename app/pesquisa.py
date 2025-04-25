@@ -29,6 +29,7 @@ import json
 from flask_wtf.csrf import CSRFProtect
 from modules import scorerun
 from brseclabcripto.cripto3 import SecCripto
+from git import Repo
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -65,6 +66,12 @@ if PRODUCAO==1:
     app.config['WTF_CSRF_CHECK_DEFAULT'] = True
 else:
     app.config['WTF_CSRF_CHECK_DEFAULT'] = False
+
+try:
+    __version__ = Repo('/git').tags[-1].name
+except Exception as e:
+    __version__ = "0.0.0"
+
 mail = Mail(app)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
@@ -465,7 +472,7 @@ def admin():
     if (autenticado() and int(session['permissao'])==0):
         consulta = """SELECT id,nome FROM editais ORDER BY id"""
         editais,total = executarSelect(consulta)
-        return (render_template('index.html',editais=editais))
+        return (render_template('index.html',editais=editais,versao=__version__))
     else:
         return(render_template('login.html',mensagem=u"É necessário autenticação para acessar a página solicitada"))
 

@@ -83,7 +83,10 @@
         <th>Categoria</th><th>Proponente</th>
         {% if resultado==0 %} <th>E-mail</th> {% endif %}
         <th>UA</th><th>Prioridade</th><th>ScoreLattes</th><th>Título</th>
-        {% if resultado==0 %} <th>Projeto</th><th>Plano1</th><th>Plano2</th> {% endif %}
+        {% if resultado==0 %} 
+          <th>Projeto</th><th>Plano1</th><th>Plano2</th> 
+          <th>Plano 3</th>
+        {% endif %}
         <th>Lattes</th>
         {% if resultado==0 %} <th>Comprovantes</th> {% endif %}
         {% if resultado==0 %}<th>Data</th><th>Início</th><th>Fim</th>{% endif %}
@@ -138,6 +141,13 @@
           <td>
             {% if linha[10]!="0" %}
             <a href="/pesquisa/verArquivosProjeto/{{ linha[10] }}">PLANO2</a>
+            {% else %}
+            -
+            {% endif %}
+          </td>
+          <td>
+            {% if linha[20]!="0" %}
+            <a href="/pesquisa/verArquivosProjeto/{{ linha[20] }}">PLANO3</a>
             {% else %}
             -
             {% endif %}

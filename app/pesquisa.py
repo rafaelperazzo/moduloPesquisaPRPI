@@ -467,6 +467,10 @@ def home():
     session['PRODUCAO'] = PRODUCAO
     return (render_template('cadastrarProjeto.html',abertos=editaisAbertos))
 
+@app.route("/version")
+def version():
+    return(__version__)
+
 @app.route("/admin")
 def admin():
     if (autenticado() and int(session['permissao'])==0):

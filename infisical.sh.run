@@ -1,0 +1,3 @@
+#Recuperando o .env do infisical
+#export INFISICAL_TOKEN=
+#infisical secrets --plain > .env

@@ -847,9 +847,9 @@ def getPaginaAvaliacao():
             if str(arquivos[0])!="0":
                 link_projeto = url_for('verArquivosProjeto',filename=str(arquivos[0]))
             if str(arquivos[1])!="0":
-                link_plano1 = link_projeto = url_for('verArquivosProjeto',filename=str(arquivos[1]))
+                link_plano1 = url_for('verArquivosProjeto',filename=str(arquivos[1]))
             if str(arquivos[2])!="0":
-                link_plano2 = link_projeto = url_for('verArquivosProjeto',filename=str(arquivos[2]))
+                link_plano2 = url_for('verArquivosProjeto',filename=str(arquivos[2]))
             links = ""
             if 'link_projeto' in locals():
                 links = links + "<a href=\"" + link_projeto + "\">PROJETO</a><BR>"

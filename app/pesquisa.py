@@ -132,7 +132,7 @@ def removerTravessao(texto):
     return resultado
 
 def getID(cpf):
-    wsdl = 'https://sci01-ter-jne.ufca.edu.br/cnpq'
+    wsdl = 'cnpq'
     client = zeep.Client(wsdl=wsdl)
     idlattes = client.service.getIdentificadorCNPq(cpf,"","")
     if idlattes is None:
@@ -140,7 +140,7 @@ def getID(cpf):
     return str(idlattes)
 
 def salvarCV(idlattes):
-    wsdl = 'https://sci01-ter-jne.ufca.edu.br/cnpq'
+    wsdl = 'cnpq'
     client = zeep.Client(wsdl=wsdl)
     resultado = client.service.getCurriculoCompactado(idlattes)
     if resultado is not None:

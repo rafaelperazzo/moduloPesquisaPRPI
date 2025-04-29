@@ -923,17 +923,16 @@ def enviarAvaliacao():
                 inovacao = str(request.form['inovacao'])
                 consulta = "UPDATE avaliacoes SET inovacao=" + inovacao + " WHERE token=\"" + token + "\""
                 atualizar(consulta)
-        except:
-            e = sys.exc_info()[0]
+        except Exception as e:
             logging.error(e)
             logging.error("[AVALIACAO] ERRO ao gravar a avaliação: " + token)
             return("Não foi possível gravar a avaliação. Favor entrar contactar pesquisa.prpi@ufca.edu.br.")
-        data_agora = getData()
-        consulta = "SELECT editais.id,editais.nome FROM editais,avaliacoes,editalProjeto WHERE avaliacoes.idProjeto=editalProjeto.id AND editalProjeto.tipo=editais.id AND avaliacoes.token=\"" + token + "\""
-        linhas = consultar(consulta)
-        for linha in linhas:
-            descricaoEdital = str(linha[1])
-        return(render_template('declaracao_avaliador.html',nome=nome_avaliador,data=data_agora,edital=descricaoEdital))
+        try:
+            return (redirect("/declaracaoAvaliador/" + token))
+        except Exception as e:
+            logging.error(e)
+            logging.error("[/avaliar] ERRO ao gerar a declaração: " + token)
+            return("Não foi possível gerar a declaração.")
     else:
         return("OK")
 
@@ -951,26 +950,52 @@ def descricaoEdital(codigoEdital):
     conn.close()
     return (nomeEdital)
 
-#Gerar declaração do avaliador
-@app.route("/declaracaoAvaliador", methods=['GET', 'POST'])
-def getDeclaracaoAvaliador():
-    if request.method == "GET":
-        tokenAvaliacao = str(request.args.get('token'))
-        consulta = "SELECT nome_avaliador FROM avaliacoes WHERE token=\"" + tokenAvaliacao + "\""
-        linhas = consultar(consulta)
-        nome_avaliador = "NAO INFORMADO"
-        for linha in linhas:
-            nome_avaliador = str(linha[0])
-        data_agora = getData()
-        #Recuperando descrição do edital
-        consulta = "SELECT editais.id,editais.nome FROM editais,avaliacoes,editalProjeto WHERE avaliacoes.idProjeto=editalProjeto.id AND editalProjeto.tipo=editais.id AND avaliacoes.token=\"" + tokenAvaliacao + "\""
-        linhas = consultar(consulta)
-        for linha in linhas:
-            descricaoEdital = str(linha[1])
-        return(render_template('declaracao_avaliador.html',nome=nome_avaliador,data=data_agora,edital=descricaoEdital))
-    else:
-        return("OK")
+def enviar_declaracao_avaliador(url,destinatario):
+    with app.app_context():
+        texto_email = render_template('email_declaracao_avaliador.html',url=url)
+        if PRODUCAO==1:
+            msg = Message(subject = "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=[destinatario],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+        else:
+            msg = Message(subject = "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+        try:
+            mail.send(msg)
+            logging.debug("E-mail de declaração de avaliação enviado com sucesso.")
+        except Exception as e:
+            logging.error("Erro ao enviar e-mail. processarPontuacaoLattes")
+            logging.error(str(e))
 
+@app.route("/declaracaoAvaliador/<tokenAvaliacao>", methods=['GET'])
+def getDeclaracaoAvaliador(tokenAvaliacao):
+    """
+    Gera a declaração de avaliação do avaliador.
+    """
+    consulta = f"""
+    SELECT nome_avaliador,idProjeto,avaliador FROM avaliacoes WHERE token="{tokenAvaliacao}" 
+    AND finalizado=1
+    """
+    logging.debug(consulta)
+    linhas = consultar(consulta)
+    nome_avaliador = "NAO INFORMADO"
+    idProjeto = 0
+    logging.debug(linhas)
+    for linha in linhas:
+        nome_avaliador = str(linha[0])
+        idProjeto = str(linha[1])
+        destinatario = str(linha[2])
+    logging.debug(idProjeto)
+    if idProjeto!=0:
+        titulo = str(obterColunaUnica("editalProjeto","titulo","id",idProjeto))
+        codigo_do_edital = str(obterColunaUnica("editalProjeto","tipo","id",idProjeto))
+        descricao_do_edital = str(obterColunaUnica("editais","nome","id",codigo_do_edital))
+        data_agora = getData()
+        url = url_for('getDeclaracaoAvaliador',tokenAvaliacao=tokenAvaliacao, _external=True)
+        thread = threading.Thread(target=enviar_declaracao_avaliador,args=(url,destinatario,))
+        thread.start()
+        return(render_template('declaracao_avaliador.html',nome=nome_avaliador,data=data_agora,edital=descricao_do_edital,titulo=titulo))
+    else:
+        titulo = "--- ERRO ---"
+        return ("PROJETO AINDA NÃO AVALIADO OU INEXISTENTE!")
+    
 def consultar(consulta):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
     conn.select_db(MYSQL_DATABASE)

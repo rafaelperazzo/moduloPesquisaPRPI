@@ -639,8 +639,7 @@ def cadastrarProjeto():
             arquivo_projeto.filename = "projeto_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_projeto.filename)
             submissoes.save(arquivo_projeto, name=filename)
-            #arquivo_projeto.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            encripta_e_apaga(SUBMISSOES_DIR + filename)
             consulta = "UPDATE editalProjeto SET arquivo_projeto=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo de projeto cadastrado.")
@@ -656,8 +655,7 @@ def cadastrarProjeto():
             arquivo_plano1.filename = "plano1_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_plano1.filename)
             submissoes.save(arquivo_plano1, name=filename)
-            #arquivo_plano1.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            encripta_e_apaga(SUBMISSOES_DIR + filename)
             consulta = "UPDATE editalProjeto SET arquivo_plano1=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo Plano 1 cadastrado.")
@@ -666,15 +664,13 @@ def cadastrarProjeto():
     else:
         logging.debug("Não foi incluído um arquivo de plano 1")
 
-
     if ('arquivo_plano2' in request.files):
         arquivo_plano2 = request.files['arquivo_plano2']
         if arquivo_plano2 and allowed_file(arquivo_plano2.filename):
             arquivo_plano2.filename = "plano2_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_plano2.filename)
             submissoes.save(arquivo_plano2, name=filename)
-            #arquivo_plano2.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            encripta_e_apaga(SUBMISSOES_DIR + filename)
             consulta = "UPDATE editalProjeto SET arquivo_plano2=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo Plano 2 cadastrado.")
@@ -691,8 +687,7 @@ def cadastrarProjeto():
             arquivo_plano3.filename = "plano3_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_plano3.filename)
             submissoes.save(arquivo_plano3, name=filename)
-            #arquivo_plano3.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            encripta_e_apaga(SUBMISSOES_DIR + filename)
             consulta = "UPDATE editalProjeto SET arquivo_plano3=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo Plano 3 cadastrado.")
@@ -708,13 +703,10 @@ def cadastrarProjeto():
             arquivo_comprovantes.filename = "Comprovantes_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_comprovantes.filename)
             submissoes.save(arquivo_comprovantes, name=filename)
-            #arquivo_comprovantes.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            encripta_e_apaga(SUBMISSOES_DIR + filename)
             consulta = "UPDATE editalProjeto SET arquivo_comprovantes=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo COMPROVANTES cadastrado.")
-        #elif not allowed_file(arquivo_comprovantes.filename):
-    	#	return ("Arquivo de COMPROVANTES não permitido")
     else:
         logging.debug("Não foi incluído um arquivo de COMPROVANTES")
 
@@ -2323,7 +2315,7 @@ def efetivarIndicacao():
                     token = id_generator()
                     nomeDoArquivoRg = "RG_CPF." + idProjeto + "." + token + ".pdf"
                     filename = anexos.save(request.files['rg_cpf'],name=nomeDoArquivoRg)
-                    #encripta_e_apaga(ATTACHMENTS_DIR + nomeDoArquivoRg)
+                    encripta_e_apaga(ATTACHMENTS_DIR + nomeDoArquivoRg)
                 nomeDoArquivoExtrato = ""
                 if 'extrato' in request.files:
                     token = id_generator()
@@ -2463,9 +2455,12 @@ def verArquivo():
     
 @app.route("/verArquivosProjeto/<filename>", methods=['GET', 'POST'])
 def verArquivosProjeto(filename):
-    
-    if os.path.isfile(SUBMISSOES_DIR + filename):
-        return(send_from_directory(app.config['UPLOADED_SUBMISSOES_DEST'], filename))
+    arquivo = secure_filename(filename) + ".gpg"
+    if os.path.isfile(SUBMISSOES_DIR + arquivo):
+        cripto.aes_gpg_decrypt_file(GPG_KEY,SUBMISSOES_DIR + arquivo, SUBMISSOES_DIR + arquivo.replace(".gpg",""))
+        thread = threading.Thread(target=esperar,args=(SUBMISSOES_DIR + arquivo.replace(".gpg",""),))
+        thread.start()
+        return(send_from_directory(app.config['UPLOADED_SUBMISSOES_DEST'], arquivo.replace(".gpg","")))
     else:
         return("Arquivo não encontrado!")
 
@@ -3019,6 +3014,8 @@ def enviarPedidoAvaliacao(id):
         link = str(linha[4])
         token = str(linha[7])
         email_avaliador = str(linha[3])
+        if "ufca.edu.br" in email_avaliador:
+            continue
         link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
         deadline = obterColunaUnica('editais',"DATE_FORMAT(deadline_avaliacao,'%d/%m/%Y')",'id',str(linha[9]))
         nome_longo = obterColunaUnica('editais','nome','id',str(linha[9]))

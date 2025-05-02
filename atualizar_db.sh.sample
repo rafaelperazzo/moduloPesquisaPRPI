@@ -9,7 +9,8 @@ folder=/home/perazzo/Projetos/docker/pesquisa
 cd $folder
 docker compose down
 docker compose up -d
-ssh sci01-ter-jne.ufca.edu.br '/backup/pesquisa3/./backup.mysql.sh'
+gh workflow run backup.yml
+#ssh sci01-ter-jne.ufca.edu.br '/backup/pesquisa3/./backup.mysql.sh'
 rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa3/app/submissoes/ $folder/app/submissoes/
 rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa3/app/docs_indicacoes/ $folder/app/docs_indicacoes/
 dir="/backup/pesquisa3/share"

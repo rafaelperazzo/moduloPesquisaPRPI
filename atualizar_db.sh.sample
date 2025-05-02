@@ -1,16 +1,22 @@
 #!/bin/bash
+clear
+if [ -z "$INFISICAL_TOKEN" ]; then
+echo "Error: INFISICAL_TOKEN environment variable is not set."
+exit 1
+fi
+MYSQL_ROOT_PASSWORD=$(infisical secrets get MYSQL_ROOT_PASSWORD --plain)
 folder=/home/perazzo/Projetos/docker/pesquisa 
 cd $folder
 docker compose down
 docker compose up -d
-ssh sci01-ter-jne.ufca.edu.br '/backup/pesquisa/./backup.mysql.sh'
-rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa/home/perazzo/pesquisa/static/files/ $folder/app/submissoes/
-rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa/home/perazzo/pesquisa/docs_indicacoes/ $folder/app/docs_indicacoes/
-dir="/backup/pesquisa/share"
+ssh sci01-ter-jne.ufca.edu.br '/backup/pesquisa3/./backup.mysql.sh'
+rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa3/app/submissoes/ $folder/app/submissoes/
+rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa3/app/docs_indicacoes/ $folder/app/docs_indicacoes/
+dir="/backup/pesquisa3/share"
 server="perazzo@sci01-ter-jne.ufca.edu.br"
-arquivo=$(ssh sci01-ter-jne.ufca.edu.br 'ls -t /backup/pesquisa/share | head -1')
+arquivo=$(ssh sci01-ter-jne.ufca.edu.br 'ls -t /backup/pesquisa3/share | head -1')
 scp $server:$dir/$arquivo share/
 gunzip -f share/$arquivo
 arquivo=$(ls -t share | head -1)
-/usr/bin/docker compose -f /home/perazzo/Projetos/docker/pesquisa/docker-compose.yml exec -T db_pesquisa bash -c "mariadb -u root -pSENHA < /share/$arquivo"
+/usr/bin/docker compose -f /home/perazzo/Projetos/docker/pesquisa/docker-compose.yml exec -T db_pesquisa bash -c "mariadb -u root -p$MYSQL_ROOT_PASSWORD < /share/$arquivo"
 rm share/$arquivo

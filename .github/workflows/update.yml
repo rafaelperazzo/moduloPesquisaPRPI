@@ -24,6 +24,8 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             cd /backup/pesquisa3
-            docker-compose down
+            export INFISICAL_TOKEN=${{ secrets.INFISICAL_TOKEN }}
+            infisical run -- docker compose down
             git pull origin python3 --tags
-            docker-compose up -d
+            infisical run -- docker compose up -d
+            history -c && history -w

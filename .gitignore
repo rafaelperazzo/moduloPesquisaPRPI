@@ -1,3 +1,5 @@
+*.enc
+*.key
 app/submissoes/*.gpg
 app/submissoes/*.pdf
 app/docs_indicacoes/*.gpg

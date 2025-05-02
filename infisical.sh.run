@@ -1,3 +1,7 @@
+#!/bin/bash
 #Recuperando o .env do infisical
 #export INFISICAL_TOKEN=
 #infisical secrets --plain > .env
+echo "Digite o INFISICAL_TOKEN: "
+read token
+export INFISICAL_TOKEN=$token

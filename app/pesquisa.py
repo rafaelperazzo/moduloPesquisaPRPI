@@ -132,7 +132,7 @@ def removerTravessao(texto):
     return resultado
 
 def getID(cpf):
-    wsdl = 'https://sci01-ter-jne.ufca.edu.br/cnpq'
+    wsdl = 'cnpq'
     client = zeep.Client(wsdl=wsdl)
     idlattes = client.service.getIdentificadorCNPq(cpf,"","")
     if idlattes is None:
@@ -140,7 +140,7 @@ def getID(cpf):
     return str(idlattes)
 
 def salvarCV(idlattes):
-    wsdl = 'https://sci01-ter-jne.ufca.edu.br/cnpq'
+    wsdl = 'cnpq'
     client = zeep.Client(wsdl=wsdl)
     resultado = client.service.getCurriculoCompactado(idlattes)
     if resultado is not None:
@@ -467,6 +467,10 @@ def home():
     session['PRODUCAO'] = PRODUCAO
     return (render_template('cadastrarProjeto.html',abertos=editaisAbertos))
 
+@app.route("/version")
+def version():
+    return(__version__)
+
 @app.route("/admin")
 def admin():
     if (autenticado() and int(session['permissao'])==0):
@@ -635,8 +639,7 @@ def cadastrarProjeto():
             arquivo_projeto.filename = "projeto_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_projeto.filename)
             submissoes.save(arquivo_projeto, name=filename)
-            #arquivo_projeto.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            encripta_e_apaga(SUBMISSOES_DIR + filename)
             consulta = "UPDATE editalProjeto SET arquivo_projeto=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo de projeto cadastrado.")
@@ -652,8 +655,7 @@ def cadastrarProjeto():
             arquivo_plano1.filename = "plano1_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_plano1.filename)
             submissoes.save(arquivo_plano1, name=filename)
-            #arquivo_plano1.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            encripta_e_apaga(SUBMISSOES_DIR + filename)
             consulta = "UPDATE editalProjeto SET arquivo_plano1=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo Plano 1 cadastrado.")
@@ -662,15 +664,13 @@ def cadastrarProjeto():
     else:
         logging.debug("Não foi incluído um arquivo de plano 1")
 
-
     if ('arquivo_plano2' in request.files):
         arquivo_plano2 = request.files['arquivo_plano2']
         if arquivo_plano2 and allowed_file(arquivo_plano2.filename):
             arquivo_plano2.filename = "plano2_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_plano2.filename)
             submissoes.save(arquivo_plano2, name=filename)
-            #arquivo_plano2.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            encripta_e_apaga(SUBMISSOES_DIR + filename)
             consulta = "UPDATE editalProjeto SET arquivo_plano2=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo Plano 2 cadastrado.")
@@ -687,8 +687,7 @@ def cadastrarProjeto():
             arquivo_plano3.filename = "plano3_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_plano3.filename)
             submissoes.save(arquivo_plano3, name=filename)
-            #arquivo_plano3.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            encripta_e_apaga(SUBMISSOES_DIR + filename)
             consulta = "UPDATE editalProjeto SET arquivo_plano3=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo Plano 3 cadastrado.")
@@ -704,13 +703,10 @@ def cadastrarProjeto():
             arquivo_comprovantes.filename = "Comprovantes_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
             filename = secure_filename(arquivo_comprovantes.filename)
             submissoes.save(arquivo_comprovantes, name=filename)
-            #arquivo_comprovantes.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            #caminho = str(app.config['UPLOAD_FOLDER'] + "/" + filename)
+            encripta_e_apaga(SUBMISSOES_DIR + filename)
             consulta = "UPDATE editalProjeto SET arquivo_comprovantes=\"" + filename + "\" WHERE id=" + str(ultimo_id)
             atualizar(consulta)
             logging.debug("Arquivo COMPROVANTES cadastrado.")
-        #elif not allowed_file(arquivo_comprovantes.filename):
-    	#	return ("Arquivo de COMPROVANTES não permitido")
     else:
         logging.debug("Não foi incluído um arquivo de COMPROVANTES")
 
@@ -843,9 +839,9 @@ def getPaginaAvaliacao():
             if str(arquivos[0])!="0":
                 link_projeto = url_for('verArquivosProjeto',filename=str(arquivos[0]))
             if str(arquivos[1])!="0":
-                link_plano1 = link_projeto = url_for('verArquivosProjeto',filename=str(arquivos[1]))
+                link_plano1 = url_for('verArquivosProjeto',filename=str(arquivos[1]))
             if str(arquivos[2])!="0":
-                link_plano2 = link_projeto = url_for('verArquivosProjeto',filename=str(arquivos[2]))
+                link_plano2 = url_for('verArquivosProjeto',filename=str(arquivos[2]))
             links = ""
             if 'link_projeto' in locals():
                 links = links + "<a href=\"" + link_projeto + "\">PROJETO</a><BR>"
@@ -919,17 +915,16 @@ def enviarAvaliacao():
                 inovacao = str(request.form['inovacao'])
                 consulta = "UPDATE avaliacoes SET inovacao=" + inovacao + " WHERE token=\"" + token + "\""
                 atualizar(consulta)
-        except:
-            e = sys.exc_info()[0]
+        except Exception as e:
             logging.error(e)
             logging.error("[AVALIACAO] ERRO ao gravar a avaliação: " + token)
             return("Não foi possível gravar a avaliação. Favor entrar contactar pesquisa.prpi@ufca.edu.br.")
-        data_agora = getData()
-        consulta = "SELECT editais.id,editais.nome FROM editais,avaliacoes,editalProjeto WHERE avaliacoes.idProjeto=editalProjeto.id AND editalProjeto.tipo=editais.id AND avaliacoes.token=\"" + token + "\""
-        linhas = consultar(consulta)
-        for linha in linhas:
-            descricaoEdital = str(linha[1])
-        return(render_template('declaracao_avaliador.html',nome=nome_avaliador,data=data_agora,edital=descricaoEdital))
+        try:
+            return (redirect("/declaracaoAvaliador/" + token))
+        except Exception as e:
+            logging.error(e)
+            logging.error("[/avaliar] ERRO ao gerar a declaração: " + token)
+            return("Não foi possível gerar a declaração.")
     else:
         return("OK")
 
@@ -947,26 +942,52 @@ def descricaoEdital(codigoEdital):
     conn.close()
     return (nomeEdital)
 
-#Gerar declaração do avaliador
-@app.route("/declaracaoAvaliador", methods=['GET', 'POST'])
-def getDeclaracaoAvaliador():
-    if request.method == "GET":
-        tokenAvaliacao = str(request.args.get('token'))
-        consulta = "SELECT nome_avaliador FROM avaliacoes WHERE token=\"" + tokenAvaliacao + "\""
-        linhas = consultar(consulta)
-        nome_avaliador = "NAO INFORMADO"
-        for linha in linhas:
-            nome_avaliador = str(linha[0])
-        data_agora = getData()
-        #Recuperando descrição do edital
-        consulta = "SELECT editais.id,editais.nome FROM editais,avaliacoes,editalProjeto WHERE avaliacoes.idProjeto=editalProjeto.id AND editalProjeto.tipo=editais.id AND avaliacoes.token=\"" + tokenAvaliacao + "\""
-        linhas = consultar(consulta)
-        for linha in linhas:
-            descricaoEdital = str(linha[1])
-        return(render_template('declaracao_avaliador.html',nome=nome_avaliador,data=data_agora,edital=descricaoEdital))
-    else:
-        return("OK")
+def enviar_declaracao_avaliador(url,destinatario):
+    with app.app_context():
+        texto_email = render_template('email_declaracao_avaliador.html',url=url)
+        if PRODUCAO==1:
+            msg = Message(subject = "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=[destinatario],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+        else:
+            msg = Message(subject = "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+        try:
+            mail.send(msg)
+            logging.debug("E-mail de declaração de avaliação enviado com sucesso.")
+        except Exception as e:
+            logging.error("Erro ao enviar e-mail. processarPontuacaoLattes")
+            logging.error(str(e))
 
+@app.route("/declaracaoAvaliador/<tokenAvaliacao>", methods=['GET'])
+def getDeclaracaoAvaliador(tokenAvaliacao):
+    """
+    Gera a declaração de avaliação do avaliador.
+    """
+    consulta = f"""
+    SELECT nome_avaliador,idProjeto,avaliador FROM avaliacoes WHERE token="{tokenAvaliacao}" 
+    AND finalizado=1
+    """
+    logging.debug(consulta)
+    linhas = consultar(consulta)
+    nome_avaliador = "NAO INFORMADO"
+    idProjeto = 0
+    logging.debug(linhas)
+    for linha in linhas:
+        nome_avaliador = str(linha[0])
+        idProjeto = str(linha[1])
+        destinatario = str(linha[2])
+    logging.debug(idProjeto)
+    if idProjeto!=0:
+        titulo = str(obterColunaUnica("editalProjeto","titulo","id",idProjeto))
+        codigo_do_edital = str(obterColunaUnica("editalProjeto","tipo","id",idProjeto))
+        descricao_do_edital = str(obterColunaUnica("editais","nome","id",codigo_do_edital))
+        data_agora = getData()
+        url = url_for('getDeclaracaoAvaliador',tokenAvaliacao=tokenAvaliacao, _external=True)
+        thread = threading.Thread(target=enviar_declaracao_avaliador,args=(url,destinatario,))
+        thread.start()
+        return(render_template('declaracao_avaliador.html',nome=nome_avaliador,data=data_agora,edital=descricao_do_edital,titulo=titulo))
+    else:
+        titulo = "--- ERRO ---"
+        return ("PROJETO AINDA NÃO AVALIADO OU INEXISTENTE!")
+    
 def consultar(consulta):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
     conn.select_db(MYSQL_DATABASE)
@@ -2294,7 +2315,7 @@ def efetivarIndicacao():
                     token = id_generator()
                     nomeDoArquivoRg = "RG_CPF." + idProjeto + "." + token + ".pdf"
                     filename = anexos.save(request.files['rg_cpf'],name=nomeDoArquivoRg)
-                    #encripta_e_apaga(ATTACHMENTS_DIR + nomeDoArquivoRg)
+                    encripta_e_apaga(ATTACHMENTS_DIR + nomeDoArquivoRg)
                 nomeDoArquivoExtrato = ""
                 if 'extrato' in request.files:
                     token = id_generator()
@@ -2434,9 +2455,12 @@ def verArquivo():
     
 @app.route("/verArquivosProjeto/<filename>", methods=['GET', 'POST'])
 def verArquivosProjeto(filename):
-    
-    if os.path.isfile(SUBMISSOES_DIR + filename):
-        return(send_from_directory(app.config['UPLOADED_SUBMISSOES_DEST'], filename))
+    arquivo = secure_filename(filename) + ".gpg"
+    if os.path.isfile(SUBMISSOES_DIR + arquivo):
+        cripto.aes_gpg_decrypt_file(GPG_KEY,SUBMISSOES_DIR + arquivo, SUBMISSOES_DIR + arquivo.replace(".gpg",""))
+        thread = threading.Thread(target=esperar,args=(SUBMISSOES_DIR + arquivo.replace(".gpg",""),))
+        thread.start()
+        return(send_from_directory(app.config['UPLOADED_SUBMISSOES_DEST'], arquivo.replace(".gpg","")))
     else:
         return("Arquivo não encontrado!")
 
@@ -2990,6 +3014,8 @@ def enviarPedidoAvaliacao(id):
         link = str(linha[4])
         token = str(linha[7])
         email_avaliador = str(linha[3])
+        if "ufca.edu.br" in email_avaliador:
+            continue
         link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
         deadline = obterColunaUnica('editais',"DATE_FORMAT(deadline_avaliacao,'%d/%m/%Y')",'id',str(linha[9]))
         nome_longo = obterColunaUnica('editais','nome','id',str(linha[9]))

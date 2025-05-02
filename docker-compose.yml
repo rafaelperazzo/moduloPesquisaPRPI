@@ -5,8 +5,22 @@ services:
     
     restart: "always"
     
-    command: mariadbd --sql_mode="" --block-encryption-mode=aes-256-cbc
-    
+    command: 
+      - --sql_mode=NO_ENGINE_SUBSTITUTION
+      - --block-encryption-mode=aes-256-cbc
+      - --plugin-load-add=file_key_management
+      - --loose_file_key_management_filename=/etc/mysql/encryption/keyfile.enc
+      - --loose_file_key_management_filekey=${MARIADB_REST_AES_KEY}
+      - --file_key_management_encryption_algorithm=aes_cbc
+      - --innodb_default_encryption_key_id=1
+      - --innodb_encryption_threads=4
+      - --innodb_encrypt_tables=FORCE
+      - --innodb_encrypt_log=ON
+      - --aria_encrypt_tables=ON
+      - --encrypt-tmp-disk-tables=1
+      - --encrypt-tmp-files=1
+      - --encrypt_binlog=ON
+
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -24,6 +38,7 @@ services:
     volumes:
       - pesquisa-data:/var/lib/mysql
       - ./share:/share
+      - ./aes_key.key.enc:/etc/mysql/encryption/keyfile.enc
     networks:
       - web  
   pesquisa:

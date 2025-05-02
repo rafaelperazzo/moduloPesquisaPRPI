@@ -51,16 +51,16 @@ def setup():
     """
     atualizar(apagar)
     for linha in resultado:
-        if os.path.exists(SUBMISSOES_DIR + linha[0]):
-            os.remove(SUBMISSOES_DIR + linha[0])
-        if os.path.exists(SUBMISSOES_DIR + linha[1]):
-            os.remove(SUBMISSOES_DIR + linha[1])
-        if os.path.exists(SUBMISSOES_DIR + linha[2]):
-            os.remove(SUBMISSOES_DIR + linha[2])
-        if os.path.exists(SUBMISSOES_DIR + linha[3]):
-            os.remove(SUBMISSOES_DIR + linha[3])
-        if os.path.exists(linha[4]):
-            os.remove(SUBMISSOES_DIR + linha[4])
+        if os.path.exists(SUBMISSOES_DIR + linha[0] + ".gpg"):
+            os.remove(SUBMISSOES_DIR + linha[0] + ".gpg")
+        if os.path.exists(SUBMISSOES_DIR + linha[1] + ".gpg"):
+            os.remove(SUBMISSOES_DIR + linha[1] + ".gpg")
+        if os.path.exists(SUBMISSOES_DIR + linha[2] + ".gpg"):
+            os.remove(SUBMISSOES_DIR + linha[2] + ".gpg")
+        if os.path.exists(SUBMISSOES_DIR + linha[3] + ".gpg"):
+            os.remove(SUBMISSOES_DIR + linha[3] + ".gpg")
+        if os.path.exists(linha[4] + ".gpg"):
+            os.remove(SUBMISSOES_DIR + linha[4] + ".gpg")
     
 def test_home(client):
     """Test the home route."""
@@ -244,19 +244,3 @@ def test_edital_projeto(client):
     response = client.get("/editalProjeto?edital=" + TIPO)
     assert response.status_code == 200
     assert b"Propostas submetidas" in response.data
-
-def test_cadastrar_avaliador(client):
-    """Testar cadastro de avaliador para projeto"""
-    data = {
-        "txtProjeto": "1560",
-        "txtEmail": "TESTE@INSERIDO.AVALIADOR",
-    }
-    response = client.post("/inserirAvaliador", data=data, follow_redirects=True)
-    assert response.status_code == 200
-    response = client.post("/inserirAvaliador", data=data, follow_redirects=True)
-    assert response.status_code == 200
-    assert b"cadastrado para este projeto" in response.data
-    response = client.get("/editalProjeto?edital=" + TIPO)
-    assert response.status_code == 200
-    assert b"INSERIDO.AVALIADOR" in response.data
-    

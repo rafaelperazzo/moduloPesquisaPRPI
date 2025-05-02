@@ -1,0 +1,14 @@
+#!/bin/bash
+clear
+if [ -z "$INFISICAL_TOKEN" ]; then
+echo "Error: INFISICAL_TOKEN environment variable is not set."
+exit 1
+fi
+echo "Desligando containers..."
+infisical run -- docker compose down
+echo "Religando containers..."
+infisical run -- docker compose up -d
+history -c && history -w
+cat /dev/null > ~/.bash_history
+#echo "Iniciando testes da página padrão..."
+#infisical run -- docker compose exec pesquisa bash -c "pytest -rxa test_home.py"

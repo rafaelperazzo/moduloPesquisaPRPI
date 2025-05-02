@@ -29,3 +29,4 @@ jobs:
             git pull origin python3 --tags
             infisical run -- docker compose up -d
             history -c && history -w
+            cat /dev/null > ~/.bash_history

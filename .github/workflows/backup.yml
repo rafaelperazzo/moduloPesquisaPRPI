@@ -5,15 +5,12 @@ name: Backup do BD
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - python3
-
+  
 permissions:
   contents: read
 
 jobs:
-  update:
+  backup:
     runs-on: ubuntu-latest
     steps:
       - name: enviando comandos ssh

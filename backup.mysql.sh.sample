@@ -1,7 +1,18 @@
 #!/bin/bash
+MYSQL_ROOT_PASSWORD=$(infisical secrets get MYSQL_ROOT_PASSWORD --plain)
+GPG_KEY=$(infisical secrets get GPG_KEY --plain)
+export RCLONE_CONFIG_PASS=$(infisical secrets get RCLONE_CONFIG_PASS --plain)
 cd /backup/pesquisa3
 date=$(/usr/bin/date '+%Y-%m-%dT%H.%M')
-/usr/local/bin/docker-compose -f /backup/pesquisa3/docker-compose.yml exec -T db_pesquisa bash -c "mariadb-dump -u root -p$SENHA --add-drop-database --add-drop-table --databases pesquisa > /share/$date-pesquisa.sql"
+echo "Dump do BD"
+docker-compose exec -T db_pesquisa bash -c "mariadb-dump -u root -p$MYSQL_ROOT_PASSWORD --add-drop-database --add-drop-table --databases pesquisa > /share/$date-pesquisa.sql"
 cd /backup/pesquisa3/share/
+echo "Gz"
 gzip /backup/pesquisa3/share/$date-pesquisa.sql
+echo "Encriptando..."
+gpg -o $date-pesquisa.sql.gz.gpg --symmetric --armor --cipher-algo AES256 --passphrase $GPG_KEY --batch --yes $date-pesquisa.sql.gz
+rm -f $date-pesquisa.sql.gz
 rm -f `ls -t *.gz| awk 'NR>21'`
+rm -f `ls -t *.gpg| awk 'NR>21'`
+echo "Backup para proton..."
+rclone sync --progress /backup/pesquisa3/share/ remote:SISTEMAS/PESQUISA/BACKUP/

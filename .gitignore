@@ -1,3 +1,4 @@
+*.gpg
 *.enc
 *.key
 app/submissoes/*.gpg

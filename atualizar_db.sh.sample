@@ -5,18 +5,22 @@ echo "Error: INFISICAL_TOKEN environment variable is not set."
 exit 1
 fi
 MYSQL_ROOT_PASSWORD=$(infisical secrets get MYSQL_ROOT_PASSWORD --plain)
+GPG_KEY=$(infisical secrets get GPG_KEY --plain)
 folder=/home/perazzo/Projetos/docker/pesquisa 
 cd $folder
-docker compose down
-docker compose up -d
-ssh sci01-ter-jne.ufca.edu.br '/backup/pesquisa3/./backup.mysql.sh'
+infisical run -- docker compose down
+infisical run -- docker compose up -d
+#gh workflow run backup.yml
+#ssh sci01-ter-jne.ufca.edu.br '/backup/pesquisa3/./backup.mysql.sh'
 rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa3/app/submissoes/ $folder/app/submissoes/
 rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa3/app/docs_indicacoes/ $folder/app/docs_indicacoes/
 dir="/backup/pesquisa3/share"
 server="perazzo@sci01-ter-jne.ufca.edu.br"
 arquivo=$(ssh sci01-ter-jne.ufca.edu.br 'ls -t /backup/pesquisa3/share | head -1')
 scp $server:$dir/$arquivo share/
-gunzip -f share/$arquivo
+gpg -o share/ultimo.sql.gz --decrypt --batch --yes --passphrase $GPG_KEY share/$arquivo
+gunzip -f share/ultimo.sql.gz
 arquivo=$(ls -t share | head -1)
-/usr/bin/docker compose -f /home/perazzo/Projetos/docker/pesquisa/docker-compose.yml exec -T db_pesquisa bash -c "mariadb -u root -p$MYSQL_ROOT_PASSWORD < /share/$arquivo"
-rm share/$arquivo
+infisical run -- docker compose exec -T db_pesquisa bash -c "mariadb -u root -p$MYSQL_ROOT_PASSWORD < /share/$arquivo"
+rm -f share/$arquivo
+rm -f share/*.gpg

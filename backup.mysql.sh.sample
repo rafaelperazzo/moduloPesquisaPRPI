@@ -1,4 +1,8 @@
 #!/bin/bash
+if [ -z "$INFISICAL_TOKEN" ]; then
+echo "Error: INFISICAL_TOKEN environment variable is not set."
+exit 1
+fi
 MYSQL_ROOT_PASSWORD=$(infisical secrets get MYSQL_ROOT_PASSWORD --plain)
 GPG_KEY=$(infisical secrets get GPG_KEY --plain)
 export RCLONE_CONFIG_PASS=$(infisical secrets get RCLONE_CONFIG_PASS --plain)

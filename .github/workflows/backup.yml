@@ -25,6 +25,6 @@ jobs:
           script: |
             cd /backup/pesquisa3
             export INFISICAL_TOKEN=${{ secrets.INFISICAL_TOKEN }}
-            infisical run -- ./backup.mysql.sh
+            ./backup.mysql.sh
             history -c && history -w
             cat /dev/null > ~/.bash_history

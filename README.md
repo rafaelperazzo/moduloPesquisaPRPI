@@ -1,23 +1,75 @@
-# Módulo de Pesquisa - UFCA/PRPI
+# 🎓 Módulo de Pesquisa
 
-**aplicação em flask com mysql, docker e docker-compose que gerencia o PIICT da UFCA**
+Sistema web desenvolvido para auxiliar no gerenciamento e acompanhamento de projetos de pesquisa no âmbito acadêmico. Projetado para atender às necessidades de instituições de ensino e pesquisa.
 
-## NOVIDADES
-- [x] Download automático do currículo lattes a partir do CPF informado no formulário de submissão
-- [x] Cálculo da pontuação e envio de e-mail de confirmação realizado em background, evitando a sensação de travamento da aplicação
-- [x] Certificados de conclusão do projeto para discentes
-- [x] Envio imediato de e-mail ao incluir um novo avaliador para um projeto
-- [x] Envio dos convites de avaliação para todos os editais em aberto
-- [x] Possibilidade de enviar frequências atrasadas
-- [x] Possibilidade de justificar o desligamento do bolsista/voluntário
-- [x] Cobrança de frequência por e-mail, para os editais vigentes
+---
 
-## TODO
-- [ ] Autenticação por QRCode
-- [ ] Cadastro de projetos com aproveitamento de dados já cadastrados em outros editais
-- [ ] Testes automatizados para a avaliação de um projeto
+## 📌 Funcionalidades
 
+- 📁 Cadastro e gerenciamento de projetos de pesquisa
+- 🧮 Cálculo automático da pontuação Lattes
+- 🧑‍⚖️ Avaliação Ad Hoc por avaliadores externos
+- 🧾 Consulta e visualização de resultados dos projetos
+- 👨‍🎓 Indicação e acompanhamento de discentes vinculados
+- 📤 Envio de folhas de frequência mensal
 
-## Autor
+---
 
-* Prof. Rafael Perazzo Barbosa Mota ( pesquisapython3.display999 (at) passmail.net )
+## 🛠️ Tecnologias Utilizadas
+
+- **Linguagem:** Python 3.13  
+- **Framework Web:** Flask  
+- **Banco de Dados:** (MariaDB 11.7.2)
+
+---
+
+## ⚙️ Instalação
+
+### Pré-requisitos
+
+- Python 3.13 instalado
+- Gerenciador de pacotes `pip`
+- Docker
+
+### Passos (em construção...)
+
+```bash
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "noble") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
+```bash
+# Instale os requisitos
+sudo apt-get update && sudo apt-get -y upgrade
+
+# Instale os pacotes necessários
+sudo apt-get -y install gh hub
+
+# Instale o Infisical
+curl -1sLf \
+'https://artifacts-cli.infisical.com/setup.deb.sh' \
+| sudo -E bash
+
+sudo apt-get update && sudo apt-get install -y infisical
+
+echo "eval $(hub alias -s)" >> ~/.bashrc
+
+mkdir pesquisa
+cd pesquisa
+git remote add origin git@github.com:rafaelperazzo/moduloPesquisaPRPI.git
+git sync
+
+# Em construção...
+```

@@ -132,7 +132,7 @@ def removerTravessao(texto):
     return resultado
 
 def getID(cpf):
-    wsdl = 'cnpq'
+    wsdl = './cnpq'
     client = zeep.Client(wsdl=wsdl)
     idlattes = client.service.getIdentificadorCNPq(cpf,"","")
     if idlattes is None:
@@ -140,7 +140,7 @@ def getID(cpf):
     return str(idlattes)
 
 def salvarCV(idlattes):
-    wsdl = 'cnpq'
+    wsdl = './cnpq'
     client = zeep.Client(wsdl=wsdl)
     resultado = client.service.getCurriculoCompactado(idlattes)
     if resultado is not None:
@@ -920,7 +920,8 @@ def enviarAvaliacao():
             logging.error("[AVALIACAO] ERRO ao gravar a avaliação: " + token)
             return("Não foi possível gravar a avaliação. Favor entrar contactar pesquisa.prpi@ufca.edu.br.")
         try:
-            return (redirect("/declaracaoAvaliador/" + token))
+            #return (redirect("/declaracaoAvaliador/" + token))
+            return (redirect(url_for('getDeclaracaoAvaliador',tokenAvaliacao=token)))
         except Exception as e:
             logging.error(e)
             logging.error("[/avaliar] ERRO ao gerar a declaração: " + token)

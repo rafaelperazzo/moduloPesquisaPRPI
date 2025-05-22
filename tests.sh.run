@@ -1,2 +1,7 @@
+#!/bin/bash
+clear
+if [ -z "$INFISICAL_TOKEN" ]; then
+echo "Error: INFISICAL_TOKEN environment variable is not set."
+exit 1
 ./clonar.sh.run
-docker compose exec pesquisa bash -c "pytest -rxa test_home.py"
+infisical run -- docker compose exec pesquisa bash -c "pytest -rxa test_home.py"

@@ -3207,6 +3207,24 @@ def get_projetos_discente():
             logging.error(str(e))
             return render_template("Erro ao gerar projetos por aluno (/projetos_discente)")
 
+@app.route("/argon2", methods=['GET'])
+@auth.login_required(role=['admin'])
+def hash_passwords():
+    consulta = """
+    SELECT id,password FROM users 
+    WHERE password not like "%argon%" 
+    ORDER BY id
+    """
+    linhas,total = executarSelect(consulta)
+    logging.debug("Total de senhas a serem atualizadas: %s", total)
+    for linha in linhas:
+        idUsuario = str(linha[0])
+        password = str(linha[1])
+        hashed_password = cripto.hash_argon2id(password)
+        consulta = f"""UPDATE users SET password="{hashed_password}" WHERE id={idUsuario}"""
+        #atualizar(consulta)
+    return("OK")
+
 if __name__ == "__main__":
     prefixo = os.getenv('URL_PREFIX','/pesquisa')
     serve(app, host='0.0.0.0', port=80, url_prefix=prefixo,trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')

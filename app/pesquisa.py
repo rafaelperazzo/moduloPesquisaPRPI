@@ -3015,8 +3015,6 @@ def enviarPedidoAvaliacao(id):
         link = str(linha[4])
         token = str(linha[7])
         email_avaliador = str(linha[3])
-        if "ufca.edu.br" in email_avaliador:
-            continue
         link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
         deadline = obterColunaUnica('editais',"DATE_FORMAT(deadline_avaliacao,'%d/%m/%Y')",'id',str(linha[9]))
         nome_longo = obterColunaUnica('editais','nome','id',str(linha[9]))

@@ -3299,6 +3299,8 @@ def cadastrar_usuario():
     else:
         return render_template('cadastrar_usuario.html')
 
+#TODO: Cadastrar todos os usuário que enviaram projetos e ainda não possuem conta na plataforma
+
 if __name__ == "__main__":
     prefixo = os.getenv('URL_PREFIX','/pesquisa')
     serve(app, host='0.0.0.0', port=80, url_prefix=prefixo,trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')

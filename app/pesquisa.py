@@ -1946,6 +1946,14 @@ def login():
 def esqueciMinhaSenha():
     return(render_template('esqueciMinhaSenha.html'))
 
+def thread_enviar_senha(msg):
+    with app.app_context():
+        try:
+            mail.send(msg)
+        except Exception as e:
+            logging.error("Erro ao enviar e-mail. /enviarMinhaSenha")
+            logging.error(str(e))
+
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 def enviarMinhaSenha():
     if request.method == "POST":
@@ -1967,11 +1975,9 @@ def enviarMinhaSenha():
                 #Enviando e-mail
                 texto_mensagem = "Usuario: " + username + "\nSenha: " + senha + "\n" + USUARIO_SITE
                 msg = Message(subject = "Plataforma Yoko - Lembrete de senha",recipients=[email],body=texto_mensagem)
-                try:
-                    mail.send(msg)
-                except Exception as e:
-                    logging.error("Erro ao enviar e-mail. /enviarMinhaSenha")
-                    logging.error(str(e))
+                thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
+                thread.start()
+                #Redirecionando para a página de login
                 return(render_template('login.html',mensagem='Senha enviada para o email: ' + email))
             else:
                 return(render_template('login.html',mensagem='E-mail não cadastrado. Envie e-mail para atendimento.prpi@ufca.edu.br para solicitar sua senha.'))

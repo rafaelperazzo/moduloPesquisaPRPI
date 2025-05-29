@@ -3280,6 +3280,7 @@ def cadastrar_usuario():
         if total > 0:
             flash("E-mail já cadastrado!")
             return redirect(url_for('cadastrar_usuario'))
+        #Cadastrando novo usuário no banco de dados
         try:
             senha = cadastrar_novo_usuario(siape, nome, email)
         except Exception as e:

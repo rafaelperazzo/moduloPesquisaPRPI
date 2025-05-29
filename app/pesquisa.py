@@ -1923,6 +1923,7 @@ def login():
         if (('siape' in request.form) and ('senha' in request.form)):
             siape = str(request.form['siape'])
             senha = str(request.form['senha'])
+            senha = senha[:64]  # Limitar o tamanho da senha para evitar problemas ataques DoS
             if verify_password(siape,senha):
                 registrar_acesso(request.remote_addr,siape)
                 return(redirect(url_for('usuario')))

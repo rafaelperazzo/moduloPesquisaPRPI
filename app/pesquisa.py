@@ -1950,6 +1950,7 @@ def thread_enviar_senha(msg):
     with app.app_context():
         try:
             mail.send(msg)
+            logging.debug("E-mail enviado com sucesso. /enviarMinhaSenha")
         except Exception as e:
             logging.error("Erro ao enviar e-mail. /enviarMinhaSenha")
             logging.error(str(e))

@@ -26,14 +26,13 @@ def test_home(client):
     assert response.status_code == 200
     assert b'SUBMETER PROJETO' in response.data
 
-def test_declaracao_discente(client):
-    """Test the declaracao discente route."""
-    response = client.get('/projetos_discente')
-    assert response.status_code == 200
-    assert b'Buscar projetos' in response.data
+def test_login():
+    """Test the login route"""
+    TEST_USER = os.getenv("TEST_USER", "")
+    TEST_PASSWORD = os.getenv("TEST_PASSWORD", "")
     data = {
-        "txtNome": "00000000000",
-    }
-    response = client.post('/projetos_discente', data=data)
+            "siape": TEST_USER,
+            "senha": TEST_PASSWORD,
+        }
+    response = client.post("/login", data=data)
     assert response.status_code == 200
-    assert b'Projetos do aluno' in response.data

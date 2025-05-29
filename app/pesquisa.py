@@ -18,9 +18,6 @@ from flask_mail import Message
 from flask_uploads import UploadSet, configure_uploads, ALL, DOCUMENTS
 import pandas as pd
 import threading
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import zeep
 import zipfile
 import time
@@ -406,11 +403,40 @@ def verify_password(username, password):
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
         conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
-        consulta = """SELECT id,username,permission,roles FROM users WHERE username='""" + username + """' AND password=('""" + password + """')"""
-        cursor.execute(consulta)
+        consulta1 = """
+        SELECT id,
+        username,
+        permission,
+        roles,
+        password 
+        FROM users 
+        WHERE username='""" + username + """' AND password=('""" + password + """')"""
+        consulta2 = f"""
+        SELECT id,
+        username,
+        permission,
+        roles,
+        password 
+        FROM users 
+        WHERE username="{username}" LIMIT 1 """
+        cursor.execute(consulta1)
         total = cursor.rowcount
-        if (total==0):
-            return (False)
+        '''
+        resultado,total_usuarios = executarSelect(consulta2)       
+        if total_usuarios>0:
+            linha = resultado[0]
+            hash_senha = str(linha[4])
+            try:
+                if cripto.hash_argon2id_verify(hash_senha, password):
+                    continuar = True
+                else:
+                    continuar = False
+            except Exception as e:
+                logging.error(str(e))
+                logging.error("Erro ao verificar o hash")
+        '''
+        if total==0:
+            return False
         else:
             linha = cursor.fetchone()
             session['username'] = str(linha[1])
@@ -420,11 +446,10 @@ def verify_password(username, password):
             session['roles'] = roles
             session['edital'] = 0
             return (username)
-    except:
-        e = sys.exc_info()[0]
+    except Exception as e:
         logging.error(e)
         logging.error("ERRO Na função check_auth. Ver consulta abaixo.")
-        logging.error(consulta)
+        logging.error(consulta2)
     finally:
         cursor.close()
         conn.close()
@@ -527,10 +552,9 @@ def autenticar():
     tipo = int(request.form['tipo'])
     codigo = str(request.form['codigo'])
     if tipo==0:
-	    return redirect("/pesquisa/orientadorDeclaracao?idProjeto=" + codigo)
+        return redirect("/pesquisa/orientadorDeclaracao?idProjeto=" + codigo)
     else:
-	    return redirect("/pesquisa/declaracao?idProjeto=" + codigo)
-
+        return redirect("/pesquisa/declaracao?idProjeto=" + codigo)
 
 @app.route("/projetosPorOrientador", methods=['GET', 'POST'])
 def projetosOrientador():
@@ -1357,30 +1381,6 @@ def obterColunaUnica_str(tabela,coluna,colunaId,valorId):
         cursor.close()
         conn.close()
 
-def gerarGraficos(demandas,grafico1,grafico2,rotacao=0):
-    #import matplotlib
-    #matplotlib.use('Agg')
-    #import matplotlib.pyplot as plt
-    unidades = []
-    fatias = []
-    for linha in demandas:
-        unidades.append(str(linha[0]))
-        fatias.append(float(linha[1]))
-
-    fig1,ax1 = plt.subplots()
-    ax1.pie(fatias,labels=unidades,autopct='%1.1f%%',shadow=True,startangle=90)
-    ax1.axis('equal')
-    plt.savefig(PLOTS_DIR + grafico1)
-
-    plt.clf()
-    y_pos = np.arange(len(unidades))
-    bars = plt.bar(y_pos, fatias)
-    for bar in bars:
-        yval = bar.get_height()
-        plt.text(bar.get_x(), yval + .005, int(yval),fontweight='bold')
-    plt.xticks(y_pos, unidades,rotation=rotacao)
-    plt.savefig(PLOTS_DIR + grafico2, bbox_inches = "tight")
-    plt.close('all')
 
 def gerarPDF(template):
     logging.debug(type(template))
@@ -3216,7 +3216,6 @@ def hash_passwords():
     ORDER BY id
     """
     linhas,total = executarSelect(consulta)
-    logging.debug("Total de senhas a serem atualizadas: %s", total)
     for linha in linhas:
         idUsuario = str(linha[0])
         password = str(linha[1])

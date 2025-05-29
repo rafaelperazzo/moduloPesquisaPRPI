@@ -3252,6 +3252,51 @@ def hash_passwords():
         atualizar(consulta)
     return("OK")
 
+def cadastrar_novo_usuario(siape, nome, email):
+    senha = generate_secure_password()
+    hashed_password = cripto.hash_argon2id(senha)
+    role = 'user'
+    consulta = f"""INSERT INTO users (username,nome,email,password,roles) VALUES ('{siape}','{nome}','{email}','{hashed_password}','{role}')"""
+    atualizar(consulta)
+    return senha
+
+@app.route("/cadastrar_usuario", methods=['GET', 'POST'])
+@auth.login_required(role=['admin'])
+def cadastrar_usuario():
+    if request.method == 'POST':
+        #Recebendo siape, nome e email do formulário
+        siape = str(request.form['siape'])
+        nome = str(request.form['nome'])
+        email = str(request.form['email'])
+        #Verificando se o usuário já existe
+        consulta = f"""SELECT id FROM users WHERE username='{siape}'"""
+        linhas,total = executarSelect(consulta)
+        if total > 0:
+            flash("Usuário já cadastrado!")
+            return redirect(url_for('cadastrar_usuario'))
+        #Verificando se o e-mail já está cadastrado
+        consulta = f"""SELECT id FROM users WHERE email='{email}'"""
+        linhas,total = executarSelect(consulta)
+        if total > 0:
+            flash("E-mail já cadastrado!")
+            return redirect(url_for('cadastrar_usuario'))
+        try:
+            senha = cadastrar_novo_usuario(siape, nome, email)
+        except Exception as e:
+            logging.error("Erro ao cadastrar novo usuário")
+            logging.error(str(e))
+            flash("Erro ao cadastrar usuário.")
+            return redirect(url_for('cadastrar_usuario'))
+        flash("Usuário cadastrado com sucesso!")
+        #Enviando e-mail com as credenciais do usuário
+        texto_mensagem = "Usuario: " + siape + "\nSenha: " + senha + "\n" + USUARIO_SITE
+        msg = Message(subject = "Plataforma Yoko - Cadastro de Usuário",recipients=[email],body=texto_mensagem)
+        thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
+        thread.start()
+        return redirect(url_for('admin'))
+    else:
+        return render_template('cadastrar_usuario.html')
+
 if __name__ == "__main__":
     prefixo = os.getenv('URL_PREFIX','/pesquisa')
     serve(app, host='0.0.0.0', port=80, url_prefix=prefixo,trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')

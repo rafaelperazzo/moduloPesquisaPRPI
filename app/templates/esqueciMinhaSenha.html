@@ -93,6 +93,8 @@ function humano() {
   </div>
 
 </form>
-<center><div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div></center>
+{% if session['PRODUCAO']==1 %}
+      <center><div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div></center>
+{% endif %}
 </body>
 </html>

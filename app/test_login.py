@@ -26,7 +26,7 @@ def test_home(client):
     assert response.status_code == 200
     assert b'SUBMETER PROJETO' in response.data
 
-def test_login():
+def test_login(client):
     """Test the login route"""
     TEST_USER = os.getenv("TEST_USER", "")
     TEST_PASSWORD = os.getenv("TEST_PASSWORD", "")
@@ -34,5 +34,7 @@ def test_login():
             "siape": TEST_USER,
             "senha": TEST_PASSWORD,
         }
-    response = client.post("/login", data=data)
+    response = client.post("/login", data=data,follow_redirects=True)
     assert response.status_code == 200
+    assert b'Editais' in response.data
+    

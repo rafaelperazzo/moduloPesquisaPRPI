@@ -27,6 +27,7 @@ from flask_wtf.csrf import CSRFProtect
 from modules import scorerun
 from brseclabcripto.cripto3 import SecCripto
 from git import Repo
+import secrets
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -118,6 +119,22 @@ submissoes = UploadSet("submissoes", DOCUMENTS, default_dest=SUBMISSOES_DIR)
 
 configure_uploads(app, anexos)
 configure_uploads(app, submissoes)
+
+def generate_secure_password(length=16, include_uppercase=True,
+                             include_numbers=True, include_special_chars=True):
+    # Define character sets
+    lowercase_letters = string.ascii_lowercase
+    uppercase_letters = string.ascii_uppercase if include_uppercase else ""
+    digits = string.digits if include_numbers else ""
+    special_chars = string.punctuation if include_special_chars else ""
+
+    # Combine character sets and create a password
+    all_characters = lowercase_letters + uppercase_letters + digits + special_chars
+    if len(all_characters) == 0:
+        raise ValueError("At least one character set must be included")
+
+    password = ''.join(secrets.choice(all_characters) for _ in range(length))
+    return password
 
 def removerAspas(texto):
     resultado = texto.replace('"',' ')
@@ -421,8 +438,8 @@ def verify_password(username, password):
         WHERE username="{username}" LIMIT 1 """
         cursor.execute(consulta1)
         total = cursor.rowcount
-        '''
-        resultado,total_usuarios = executarSelect(consulta2)       
+        continuar = False
+        resultado,total_usuarios = executarSelect(consulta2)
         if total_usuarios>0:
             linha = resultado[0]
             hash_senha = str(linha[4])
@@ -431,21 +448,22 @@ def verify_password(username, password):
                     continuar = True
                 else:
                     continuar = False
-            except Exception as e:
-                logging.error(str(e))
-                logging.error("Erro ao verificar o hash")
-        '''
-        if total==0:
+            except Exception:
+                continuar = False
+        else:
+            continuar = False
+        if continuar is False:
             return False
         else:
             linha = cursor.fetchone()
+            linha = resultado[0]
             session['username'] = str(linha[1])
             session['permissao'] = int(linha[2])
             roles = str(linha[3])
             roles = roles.split(',')
             session['roles'] = roles
             session['edital'] = 0
-            return (username)
+            return username
     except Exception as e:
         logging.error(e)
         logging.error("ERRO Na função check_auth. Ver consulta abaixo.")
@@ -1877,6 +1895,7 @@ def meusPareceres():
 
 @app.route("/usuario", methods=['GET', 'POST'])
 def usuario():
+    session['PRODUCAO'] = PRODUCAO
     if autenticado():
         if (session['permissao']==0):
             return(redirect(url_for('admin')))
@@ -1932,17 +1951,21 @@ def enviarMinhaSenha():
     if request.method == "POST":
         if ('email' in request.form):
             email = str(request.form['email'])
+            senha_forte = generate_secure_password()
             #ENVIAR E-MAIL
-            consulta = """SELECT username,password FROM users WHERE email='""" + email + """' """
+            consulta = """SELECT username,id FROM users WHERE email='""" + email + """' """
             linhas,total = executarSelect(consulta,1)
-
             if (total>0):
-                usuario = str(linhas[0])
-                senha = str(linhas[1])
-
-                #logging.debug(senha)
-                #logging.debug(usuario)
-                texto_mensagem = "Usuario: " + usuario + "\nSenha: " + senha + "\n" + USUARIO_SITE
+                username = str(linhas[0])
+                idUsuario = str(linhas[1])
+                senha = senha_forte
+                if PRODUCAO==0:
+                    logging.debug("Senha gerada: " + senha)
+                hash_senha = cripto.hash_argon2id(senha)
+                consulta = f"""UPDATE users SET password='{hash_senha}' WHERE id={idUsuario}"""
+                atualizar(consulta)
+                #Enviando e-mail
+                texto_mensagem = "Usuario: " + username + "\nSenha: " + senha + "\n" + USUARIO_SITE
                 msg = Message(subject = "Plataforma Yoko - Lembrete de senha",recipients=[email],body=texto_mensagem)
                 try:
                     mail.send(msg)
@@ -3208,7 +3231,6 @@ def get_projetos_discente():
             return render_template("Erro ao gerar projetos por aluno (/projetos_discente)")
 
 @app.route("/argon2", methods=['GET'])
-@auth.login_required(role=['admin'])
 def hash_passwords():
     consulta = """
     SELECT id,password FROM users 
@@ -3221,7 +3243,7 @@ def hash_passwords():
         password = str(linha[1])
         hashed_password = cripto.hash_argon2id(password)
         consulta = f"""UPDATE users SET password="{hashed_password}" WHERE id={idUsuario}"""
-        #atualizar(consulta)
+        atualizar(consulta)
     return("OK")
 
 if __name__ == "__main__":

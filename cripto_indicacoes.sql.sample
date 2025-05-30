@@ -1,3 +1,4 @@
+UPDATE indicacoes SET iv=TO_BASE64(RANDOM_BYTES(16)) WHERE iv=""
 #START TRANSACTION;
 #UPDATE indicacoes SET rg=TO_BASE64(AES_ENCRYPT(rg,'',iv));
 #UPDATE indicacoes SET nascimento=TO_BASE64(AES_ENCRYPT(nascimento,'',iv));
@@ -10,3 +11,28 @@
 #SELECT AES_DECRYPT(FROM_BASE64(telefone),'',iv) FROM indicacoes;
 #SELECT AES_DECRYPT(FROM_BASE64(celular),'',iv) FROM indicacoes;
 #SELECT AES_DECRYPT(FROM_BASE64(endereco),'',iv) FROM indicacoes;
+
+#############
+START TRANSACTION;
+SET @chave='123456';
+UPDATE indicacoes SET 
+	rg=TO_BASE64(AES_ENCRYPT(rg,@chave,iv)),
+	nascimento=TO_BASE64(AES_ENCRYPT(nascimento,@chave,iv)),
+	telefone=TO_BASE64(AES_ENCRYPT(telefone,@chave,iv)),
+	celular=TO_BASE64(AES_ENCRYPT(celular,@chave,iv)),
+	endereco=TO_BASE64(AES_ENCRYPT(endereco,@chave,iv))
+WHERE id=9999;
+COMMIT;
+
+##############
+idIndicado = '9999'
+chave = '1111'
+consulta = f"""
+UPDATE indicacoes SET 
+    rg=TO_BASE64(AES_ENCRYPT(rg,'{chave}',iv)),
+    nascimento=TO_BASE64(AES_ENCRYPT(nascimento,'{chave}',iv)),
+    telefone=TO_BASE64(AES_ENCRYPT(telefone,'{chave}',iv)),
+    celular=TO_BASE64(AES_ENCRYPT(celular,'{chave}',iv)),
+    endereco=TO_BASE64(AES_ENCRYPT(endereco,'{chave}',iv))
+WHERE id={idIndicado};
+"""

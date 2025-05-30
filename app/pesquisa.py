@@ -3239,6 +3239,7 @@ def get_projetos_discente():
             return render_template("Erro ao gerar projetos por aluno (/projetos_discente)")
 
 @app.route("/argon2", methods=['GET'])
+@auth.login_required(role=['admin'])
 def hash_passwords():
     consulta = """
     SELECT id,password FROM users 

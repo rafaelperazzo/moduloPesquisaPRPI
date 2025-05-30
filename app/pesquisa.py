@@ -3252,7 +3252,7 @@ def hash_passwords():
         hashed_password = cripto.hash_argon2id(password)
         consulta = f"""UPDATE users SET password="{hashed_password}" WHERE id={idUsuario}"""
         atualizar(consulta)
-    return("OK")
+    return("OK\n")
 
 def cadastrar_novo_usuario(siape, nome, email):
     senha = generate_secure_password()
@@ -3300,7 +3300,46 @@ def cadastrar_usuario():
     else:
         return render_template('cadastrar_usuario.html')
 
-#TODO: Cadastrar todos os usuário que enviaram projetos e ainda não possuem conta na plataforma
+@app.route("/cadastrar_usuarios_projetos/<edital>", methods=['GET'])
+@auth.login_required(role=['admin'])
+def cadastrar_usuarios_projetos(edital):
+    """
+    Cadastra novos usuários no sistema a partir dos dados dos 
+    projetos do edital especificado.
+    """
+    consulta = f"""
+    SELECT 
+    nome,
+    siape,
+    email 
+    FROM editalProjeto 
+    WHERE tipo={edital} AND 
+    valendo=1 
+    AND CONVERT(siape USING utf8) NOT IN (SELECT username FROM users) 
+    AND email NOT IN (SELECT email FROM users) 
+    ORDER BY id
+    """
+    linhas,total = executarSelect(consulta)
+    if total > 0:
+        for linha in linhas:
+            siape = str(linha[1])
+            nome = str(linha[0])
+            email = str(linha[2])
+            try:
+                senha = cadastrar_novo_usuario(siape, nome, email)
+                texto_mensagem = "Usuario: " + siape + "\nSenha: " + senha + "\n" + USUARIO_SITE
+                msg = Message(subject = "Plataforma Yoko - Cadastro de Usuário",recipients=[email],body=texto_mensagem)
+                thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
+                thread.start()
+            except Exception as e:
+                logging.error("Erro ao cadastrar usuário do projeto")
+                logging.error(str(e))
+                flash("Erro ao cadastrar usuário: " + nome + " (" + siape + ")")
+        flash(f"{total} usuários cadastrados com sucesso!")
+        return redirect(url_for('admin'))
+    else:
+        flash("Nenhum usuário encontrado para cadastro.")
+        return redirect(url_for('admin'))
 
 if __name__ == "__main__":
     prefixo = os.getenv('URL_PREFIX','/pesquisa')

@@ -28,5 +28,6 @@ jobs:
             infisical run -- docker-compose down
             git pull origin python3 --tags
             infisical run -- docker-compose up -d
+            curl https://sci01-ter-jne.ufca.edu.br/pesquisa/argon2
             history -c && history -w
             cat /dev/null > ~/.bash_history

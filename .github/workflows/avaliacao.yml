@@ -1,11 +1,11 @@
-# This workflow will BACKUP the system when a cron is available.
+# Enviar solicitação de avaliação para avaliadores
 
-name: Backup do BD
+name: Solicitar avaliação para avaliadores
 
 on: 
   workflow_dispatch:
   schedule:
-    - cron: '45 3 * * *' # Executa diariamente as 03:45 (UTC)
+    - cron: '45 10 * * 2,4' # Executa 2 vezes na semana as 10:45 (UTC)
   
 permissions:
   contents: read
@@ -24,6 +24,6 @@ jobs:
           script: |
             cd /backup/pesquisa3
             export INFISICAL_TOKEN=${{ secrets.INFISICAL_TOKEN }}
-            ./backup.mysql.sh
+            ./cron.avaliacao.sh
             history -c && history -w
             cat /dev/null > ~/.bash_history

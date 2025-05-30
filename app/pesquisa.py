@@ -2378,13 +2378,24 @@ def efetivarIndicacao():
                 iv = secrets.token_urlsafe(16)
                 consulta = """INSERT INTO indicacoes (idProjeto,nome,nascimento,estado_civil,sexo,rg,orgao_emissor,uf,
                 cpf,tipo_de_vaga,modalidade,curso,matricula,ano_de_ingresso,lattes,nome_banco,agencia,conta,telefone,celular,
-                email,endereco,escola,ano_conclusao,arquivo_cpf_rg,arquivo_extrato,arquivo_historico,arquivo_termo,inicio,fim,arquivo_plano,substituido,fomento)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) """
-                valores = (int(idProjeto),nome,nascimento,estado_civil,sexo,rg,orgao,uf,cpf,vaga,modalidade,curso,matricula,ingresso,lattes,banco,agencia,conta,telefone,celular,email,endereco,escola,conclusao,nomeDoArquivoRg,nomeDoArquivoExtrato,nomeDoArquivoHistorico,nomeDoArquivoTermo,inicio,fim,nomeDoArquivoPlano,substituido,fomento)
+                email,endereco,escola,ano_conclusao,arquivo_cpf_rg,arquivo_extrato,arquivo_historico,arquivo_termo,inicio,fim,arquivo_plano,substituido,fomento,iv)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) """
+                valores = (int(idProjeto),nome,nascimento,estado_civil,sexo,rg,orgao,uf,cpf,vaga,modalidade,curso,matricula,ingresso,lattes,banco,agencia,conta,telefone,celular,email,endereco,escola,conclusao,nomeDoArquivoRg,nomeDoArquivoExtrato,nomeDoArquivoHistorico,nomeDoArquivoTermo,inicio,fim,nomeDoArquivoPlano,substituido,fomento,iv)
                 inserir(consulta,valores)
                 lastID = "SELECT id FROM indicacoes WHERE idProjeto=" + idProjeto + " ORDER BY id DESC LIMIT 1"
                 ultimo_id,total = executarSelect(lastID,1)
                 idIndicacao = int(ultimo_id[0])
+                chave = AES_KEY
+                consulta_criptografar = f"""
+                UPDATE indicacoes SET 
+                    rg=TO_BASE64(AES_ENCRYPT(rg,'{chave}',iv)),
+                    nascimento=TO_BASE64(AES_ENCRYPT(nascimento,'{chave}',iv)),
+                    telefone=TO_BASE64(AES_ENCRYPT(telefone,'{chave}',iv)),
+                    celular=TO_BASE64(AES_ENCRYPT(celular,'{chave}',iv)),
+                    endereco=TO_BASE64(AES_ENCRYPT(endereco,'{chave}',iv))
+                WHERE id={idIndicacao};
+                """
+                atualizar(consulta_criptografar)
                 titulo_projeto = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
                 orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)
                 email = obterColunaUnica('editalProjeto','email','id',idProjeto)
@@ -2394,20 +2405,16 @@ def efetivarIndicacao():
                     msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE BOLSISTA",recipients=[email,email2],html=texto_email)
                 else:
                     msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE VOLUNTARIO",recipients=[email,email2],html=texto_email)
-                try:
-                    mail.send(msg)
-                except Exception as e:
-                    logging.error("Erro ao enviar e-mail. /efetivarIndicacao")
-                    logging.error(str(e))
+                t1 = threading.Thread(target=thread_enviar_email, args=(msg,'/efetivarIndicacao',))
+                t1.start()
                 return(render_template('confirmacao_indicacao.html',vaga=vaga,id_projeto=idProjeto,indicado=nome,proponente=orientador,titulo=titulo_projeto,email_proponente=email,idIndicacao=idIndicacao))
             else:
-                return (u"Você já indicou todos os bolsistas/voluntários. Entrar em contato através do e-mail atendimento.prpi@ufca.edu.br")
-        except:
-            e = sys.exc_info()[0]
+                return ("Você já indicou todos os bolsistas/voluntários. Entrar em contato através do e-mail atendimento.prpi@ufca.edu.br")
+        except Exception as e:
             logging.error(e)
             logging.error("ERRO Na função /efetivarIndicacao. Ver consulta abaixo.")
+            logging.error(consulta)
             return("ERRO!")
-
     else:
         return("OK")
 
@@ -2634,13 +2641,13 @@ def cadastrarFrequencia():
     else:
         return("OK")
 
-def thread_enviar_email(msg,erro):
+def thread_enviar_email(msg,rota):
     with app.app_context():
         try:
             mail.send(msg)
         except Exception as e:
-            logging.error(erro)
             logging.error(str(e))
+            logging.error("Erro ao enviar e-mail. Rota: " + rota)
 
 def enviar_lembrete_frequencia():
     import datetime

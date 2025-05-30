@@ -2375,7 +2375,7 @@ def efetivarIndicacao():
                     if agora>inicio:
                         inicio=agora
                 fim = obterColunaUnica('editais','discente_fim','id',str(codigoEdital))
-
+                iv = secrets.token_urlsafe(16)
                 consulta = """INSERT INTO indicacoes (idProjeto,nome,nascimento,estado_civil,sexo,rg,orgao_emissor,uf,
                 cpf,tipo_de_vaga,modalidade,curso,matricula,ano_de_ingresso,lattes,nome_banco,agencia,conta,telefone,celular,
                 email,endereco,escola,ano_conclusao,arquivo_cpf_rg,arquivo_extrato,arquivo_historico,arquivo_termo,inicio,fim,arquivo_plano,substituido,fomento)

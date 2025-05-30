@@ -80,21 +80,37 @@ function humano() {
 
 </head>
 <body>
-
-<h2>Esqueci minha senha</h2>
-
-<form action="/pesquisa/enviarMinhaSenha" METHOD="POST" onsubmit="return humano()">
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <hr>
+        <ul class=flashes>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+    <hr>
+  {% endif %}
+{% endwith %}
+<h2>Cadastro de Usuário</h2>
+<form action="/pesquisa/cadastrar_usuario" METHOD="POST" onsubmit="return humano()">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
   <div class="container">
-    <label for="uname"><b>E-Mail</b></label>
-    <input type="text" placeholder="e-mail: " name="email" required>
+    <label for="uname"><b>Usuário (siape)</b></label>
+    <input type="text" placeholder="SIAPE: " name="siape" required>
 
-    <button type="submit">Enviar</button>
+    <label for="uname"><b>Nome</b></label>
+    <input type="text" placeholder="Nome completo" name="nome" required>
+
+    <label for="uname"><b>E-mail institucional</b></label>
+    <input type="email" placeholder="E-mail institucional" name="email" required>
+
+    <button type="submit">Cadastrar</button>
   </div>
 
 </form>
 {% if session['PRODUCAO']==1 %}
-      <center><div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div></center>
+    <center><div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div></center>
 {% endif %}
+
 </body>
 </html>

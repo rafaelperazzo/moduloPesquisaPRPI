@@ -25,8 +25,9 @@ jobs:
           script: |
             cd /backup/pesquisa3
             export INFISICAL_TOKEN=${{ secrets.INFISICAL_TOKEN }}
-            infisical run -- docker compose down
+            infisical run -- docker-compose down
             git pull origin python3 --tags
-            infisical run -- docker compose up -d
+            infisical run -- docker-compose up -d
+            curl https://sci01-ter-jne.ufca.edu.br/pesquisa/argon2
             history -c && history -w
             cat /dev/null > ~/.bash_history

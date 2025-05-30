@@ -18,9 +18,6 @@ from flask_mail import Message
 from flask_uploads import UploadSet, configure_uploads, ALL, DOCUMENTS
 import pandas as pd
 import threading
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import zeep
 import zipfile
 import time
@@ -30,6 +27,7 @@ from flask_wtf.csrf import CSRFProtect
 from modules import scorerun
 from brseclabcripto.cripto3 import SecCripto
 from git import Repo
+import secrets
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -122,6 +120,22 @@ submissoes = UploadSet("submissoes", DOCUMENTS, default_dest=SUBMISSOES_DIR)
 configure_uploads(app, anexos)
 configure_uploads(app, submissoes)
 
+def generate_secure_password(length=16, include_uppercase=True,
+                             include_numbers=True, include_special_chars=True):
+    # Define character sets
+    lowercase_letters = string.ascii_lowercase
+    uppercase_letters = string.ascii_uppercase if include_uppercase else ""
+    digits = string.digits if include_numbers else ""
+    special_chars = string.punctuation if include_special_chars else ""
+
+    # Combine character sets and create a password
+    all_characters = lowercase_letters + uppercase_letters + digits + special_chars
+    if len(all_characters) == 0:
+        raise ValueError("At least one character set must be included")
+
+    password = ''.join(secrets.choice(all_characters) for _ in range(length))
+    return password
+
 def removerAspas(texto):
     resultado = texto.replace('"',' ')
     resultado = resultado.replace("'"," ")
@@ -132,7 +146,7 @@ def removerTravessao(texto):
     return resultado
 
 def getID(cpf):
-    wsdl = 'cnpq'
+    wsdl = './cnpq'
     client = zeep.Client(wsdl=wsdl)
     idlattes = client.service.getIdentificadorCNPq(cpf,"","")
     if idlattes is None:
@@ -140,7 +154,7 @@ def getID(cpf):
     return str(idlattes)
 
 def salvarCV(idlattes):
-    wsdl = 'cnpq'
+    wsdl = './cnpq'
     client = zeep.Client(wsdl=wsdl)
     resultado = client.service.getCurriculoCompactado(idlattes)
     if resultado is not None:
@@ -406,25 +420,54 @@ def verify_password(username, password):
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
         conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
-        consulta = """SELECT id,username,permission,roles FROM users WHERE username='""" + username + """' AND password=('""" + password + """')"""
-        cursor.execute(consulta)
+        consulta1 = """
+        SELECT id,
+        username,
+        permission,
+        roles,
+        password 
+        FROM users 
+        WHERE username='""" + username + """' AND password=('""" + password + """')"""
+        consulta2 = f"""
+        SELECT id,
+        username,
+        permission,
+        roles,
+        password 
+        FROM users 
+        WHERE username="{username}" LIMIT 1 """
+        cursor.execute(consulta1)
         total = cursor.rowcount
-        if (total==0):
-            return (False)
+        continuar = False
+        resultado,total_usuarios = executarSelect(consulta2)
+        if total_usuarios>0:
+            linha = resultado[0]
+            hash_senha = str(linha[4])
+            try:
+                if cripto.hash_argon2id_verify(hash_senha, password):
+                    continuar = True
+                else:
+                    continuar = False
+            except Exception:
+                continuar = False
+        else:
+            continuar = False
+        if continuar is False:
+            return False
         else:
             linha = cursor.fetchone()
+            linha = resultado[0]
             session['username'] = str(linha[1])
             session['permissao'] = int(linha[2])
             roles = str(linha[3])
             roles = roles.split(',')
             session['roles'] = roles
             session['edital'] = 0
-            return (username)
-    except:
-        e = sys.exc_info()[0]
+            return username
+    except Exception as e:
         logging.error(e)
         logging.error("ERRO Na função check_auth. Ver consulta abaixo.")
-        logging.error(consulta)
+        logging.error(consulta2)
     finally:
         cursor.close()
         conn.close()
@@ -527,10 +570,9 @@ def autenticar():
     tipo = int(request.form['tipo'])
     codigo = str(request.form['codigo'])
     if tipo==0:
-	    return redirect("/pesquisa/orientadorDeclaracao?idProjeto=" + codigo)
+        return redirect("/pesquisa/orientadorDeclaracao?idProjeto=" + codigo)
     else:
-	    return redirect("/pesquisa/declaracao?idProjeto=" + codigo)
-
+        return redirect("/pesquisa/declaracao?idProjeto=" + codigo)
 
 @app.route("/projetosPorOrientador", methods=['GET', 'POST'])
 def projetosOrientador():
@@ -920,7 +962,8 @@ def enviarAvaliacao():
             logging.error("[AVALIACAO] ERRO ao gravar a avaliação: " + token)
             return("Não foi possível gravar a avaliação. Favor entrar contactar pesquisa.prpi@ufca.edu.br.")
         try:
-            return (redirect("/declaracaoAvaliador/" + token))
+            #return (redirect("/declaracaoAvaliador/" + token))
+            return (redirect(url_for('getDeclaracaoAvaliador',tokenAvaliacao=token)))
         except Exception as e:
             logging.error(e)
             logging.error("[/avaliar] ERRO ao gerar a declaração: " + token)
@@ -1356,30 +1399,6 @@ def obterColunaUnica_str(tabela,coluna,colunaId,valorId):
         cursor.close()
         conn.close()
 
-def gerarGraficos(demandas,grafico1,grafico2,rotacao=0):
-    #import matplotlib
-    #matplotlib.use('Agg')
-    #import matplotlib.pyplot as plt
-    unidades = []
-    fatias = []
-    for linha in demandas:
-        unidades.append(str(linha[0]))
-        fatias.append(float(linha[1]))
-
-    fig1,ax1 = plt.subplots()
-    ax1.pie(fatias,labels=unidades,autopct='%1.1f%%',shadow=True,startangle=90)
-    ax1.axis('equal')
-    plt.savefig(PLOTS_DIR + grafico1)
-
-    plt.clf()
-    y_pos = np.arange(len(unidades))
-    bars = plt.bar(y_pos, fatias)
-    for bar in bars:
-        yval = bar.get_height()
-        plt.text(bar.get_x(), yval + .005, int(yval),fontweight='bold')
-    plt.xticks(y_pos, unidades,rotation=rotacao)
-    plt.savefig(PLOTS_DIR + grafico2, bbox_inches = "tight")
-    plt.close('all')
 
 def gerarPDF(template):
     logging.debug(type(template))
@@ -1876,6 +1895,7 @@ def meusPareceres():
 
 @app.route("/usuario", methods=['GET', 'POST'])
 def usuario():
+    session['PRODUCAO'] = PRODUCAO
     if autenticado():
         if (session['permissao']==0):
             return(redirect(url_for('admin')))
@@ -1903,6 +1923,7 @@ def login():
         if (('siape' in request.form) and ('senha' in request.form)):
             siape = str(request.form['siape'])
             senha = str(request.form['senha'])
+            senha = senha[:64]  # Limitar o tamanho da senha para evitar problemas ataques DoS
             if verify_password(siape,senha):
                 registrar_acesso(request.remote_addr,siape)
                 return(redirect(url_for('usuario')))
@@ -1926,28 +1947,39 @@ def login():
 def esqueciMinhaSenha():
     return(render_template('esqueciMinhaSenha.html'))
 
+def thread_enviar_senha(msg):
+    with app.app_context():
+        try:
+            mail.send(msg)
+            logging.debug("E-mail enviado com sucesso. /enviarMinhaSenha")
+        except Exception as e:
+            logging.error("Erro ao enviar e-mail. /enviarMinhaSenha")
+            logging.error(str(e))
+
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 def enviarMinhaSenha():
     if request.method == "POST":
         if ('email' in request.form):
             email = str(request.form['email'])
+            senha_forte = generate_secure_password()
             #ENVIAR E-MAIL
-            consulta = """SELECT username,password FROM users WHERE email='""" + email + """' """
+            consulta = """SELECT username,id FROM users WHERE email='""" + email + """' """
             linhas,total = executarSelect(consulta,1)
-
             if (total>0):
-                usuario = str(linhas[0])
-                senha = str(linhas[1])
-
-                #logging.debug(senha)
-                #logging.debug(usuario)
-                texto_mensagem = "Usuario: " + usuario + "\nSenha: " + senha + "\n" + USUARIO_SITE
+                username = str(linhas[0])
+                idUsuario = str(linhas[1])
+                senha = senha_forte
+                if PRODUCAO==0:
+                    logging.debug("Senha gerada: " + senha)
+                hash_senha = cripto.hash_argon2id(senha)
+                consulta = f"""UPDATE users SET password='{hash_senha}' WHERE id={idUsuario}"""
+                atualizar(consulta)
+                #Enviando e-mail
+                texto_mensagem = "Usuario: " + username + "\nSenha: " + senha + "\n" + USUARIO_SITE
                 msg = Message(subject = "Plataforma Yoko - Lembrete de senha",recipients=[email],body=texto_mensagem)
-                try:
-                    mail.send(msg)
-                except Exception as e:
-                    logging.error("Erro ao enviar e-mail. /enviarMinhaSenha")
-                    logging.error(str(e))
+                thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
+                thread.start()
+                #Redirecionando para a página de login
                 return(render_template('login.html',mensagem='Senha enviada para o email: ' + email))
             else:
                 return(render_template('login.html',mensagem='E-mail não cadastrado. Envie e-mail para atendimento.prpi@ufca.edu.br para solicitar sua senha.'))
@@ -3014,8 +3046,6 @@ def enviarPedidoAvaliacao(id):
         link = str(linha[4])
         token = str(linha[7])
         email_avaliador = str(linha[3])
-        if "ufca.edu.br" in email_avaliador:
-            continue
         link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
         deadline = obterColunaUnica('editais',"DATE_FORMAT(deadline_avaliacao,'%d/%m/%Y')",'id',str(linha[9]))
         nome_longo = obterColunaUnica('editais','nome','id',str(linha[9]))
@@ -3207,6 +3237,109 @@ def get_projetos_discente():
             logging.error("Erro ao gerar projetos por aluno")
             logging.error(str(e))
             return render_template("Erro ao gerar projetos por aluno (/projetos_discente)")
+
+@app.route("/argon2", methods=['GET'])
+def hash_passwords():
+    consulta = """
+    SELECT id,password FROM users 
+    WHERE password not like "%argon%" 
+    ORDER BY id
+    """
+    linhas,total = executarSelect(consulta)
+    for linha in linhas:
+        idUsuario = str(linha[0])
+        password = str(linha[1])
+        hashed_password = cripto.hash_argon2id(password)
+        consulta = f"""UPDATE users SET password="{hashed_password}" WHERE id={idUsuario}"""
+        atualizar(consulta)
+    return("OK\n")
+
+def cadastrar_novo_usuario(siape, nome, email):
+    senha = generate_secure_password()
+    hashed_password = cripto.hash_argon2id(senha)
+    role = 'user'
+    consulta = f"""INSERT INTO users (username,nome,email,password,roles) VALUES ('{siape}','{nome}','{email}','{hashed_password}','{role}')"""
+    atualizar(consulta)
+    return senha
+
+@app.route("/cadastrar_usuario", methods=['GET', 'POST'])
+@auth.login_required(role=['admin'])
+def cadastrar_usuario():
+    if request.method == 'POST':
+        #Recebendo siape, nome e email do formulário
+        siape = str(request.form['siape'])
+        nome = str(request.form['nome'])
+        email = str(request.form['email'])
+        #Verificando se o usuário já existe
+        consulta = f"""SELECT id FROM users WHERE username='{siape}'"""
+        linhas,total = executarSelect(consulta)
+        if total > 0:
+            flash("Usuário já cadastrado!")
+            return redirect(url_for('cadastrar_usuario'))
+        #Verificando se o e-mail já está cadastrado
+        consulta = f"""SELECT id FROM users WHERE email='{email}'"""
+        linhas,total = executarSelect(consulta)
+        if total > 0:
+            flash("E-mail já cadastrado!")
+            return redirect(url_for('cadastrar_usuario'))
+        #Cadastrando novo usuário no banco de dados
+        try:
+            senha = cadastrar_novo_usuario(siape, nome, email)
+        except Exception as e:
+            logging.error("Erro ao cadastrar novo usuário")
+            logging.error(str(e))
+            flash("Erro ao cadastrar usuário.")
+            return redirect(url_for('cadastrar_usuario'))
+        flash("Usuário cadastrado com sucesso!")
+        #Enviando e-mail com as credenciais do usuário
+        texto_mensagem = "Usuario: " + siape + "\nSenha: " + senha + "\n" + USUARIO_SITE
+        msg = Message(subject = "Plataforma Yoko - Cadastro de Usuário",recipients=[email],body=texto_mensagem)
+        thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
+        thread.start()
+        return redirect(url_for('admin'))
+    else:
+        return render_template('cadastrar_usuario.html')
+
+@app.route("/cadastrar_usuarios_projetos/<edital>", methods=['GET'])
+@auth.login_required(role=['admin'])
+def cadastrar_usuarios_projetos(edital):
+    """
+    Cadastra novos usuários no sistema a partir dos dados dos 
+    projetos do edital especificado.
+    """
+    consulta = f"""
+    SELECT 
+    nome,
+    siape,
+    email 
+    FROM editalProjeto 
+    WHERE tipo={edital} AND 
+    valendo=1 
+    AND CONVERT(siape USING utf8) NOT IN (SELECT username FROM users) 
+    AND email NOT IN (SELECT email FROM users) 
+    ORDER BY id
+    """
+    linhas,total = executarSelect(consulta)
+    if total > 0:
+        for linha in linhas:
+            siape = str(linha[1])
+            nome = str(linha[0])
+            email = str(linha[2])
+            try:
+                senha = cadastrar_novo_usuario(siape, nome, email)
+                texto_mensagem = "Usuario: " + siape + "\nSenha: " + senha + "\n" + USUARIO_SITE
+                msg = Message(subject = "Plataforma Yoko - Cadastro de Usuário",recipients=[email],body=texto_mensagem)
+                thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
+                thread.start()
+            except Exception as e:
+                logging.error("Erro ao cadastrar usuário do projeto")
+                logging.error(str(e))
+                flash("Erro ao cadastrar usuário: " + nome + " (" + siape + ")")
+        flash(f"{total} usuários cadastrados com sucesso!")
+        return redirect(url_for('admin'))
+    else:
+        flash("Nenhum usuário encontrado para cadastro.")
+        return redirect(url_for('admin'))
 
 if __name__ == "__main__":
     prefixo = os.getenv('URL_PREFIX','/pesquisa')

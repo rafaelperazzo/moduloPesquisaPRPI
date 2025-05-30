@@ -1,3 +1,42 @@
+- fix: Senha do login limitada a 64 caracteres para evitar ataques DoS
+- docs: Adicionado TODO para criação dos usuários ainda não cadastrados
+- docs: Adicionado log no ambiente de testes que confirma o envio do email
+- docs: Adicionada novo recurso para cadastro de usuário. Não testado ainda.
+- feat: Adicionada novo recurso para cadastro de usuário. Não testado ainda.
+- fix: Envio de nova senha como uma thread
+- fix: Corrigida verificação de senha para checar hash argon2id
+- fix: Iniciada transição para senhas em argon2
+- feat: iniciada funcionalidade para migração de senhas para argon2
+- fix: Liberadas avaliações de membros internos.
+- fix: update.yml comando docker estava errado -> o certo é docker-compose e não docker compose
+- fix: rota declaraçãoAvaliador estava com redirect errado.
+- docs: Incluída primeira versão do README completo
+- docs: Readme reiniciado...
+- chore: modificado horário da action backup para as 03:45 (UTC), 7:45 da manhã
+- fix: script backup.mysql está corrigido para RCLONE
+- fix: atualizar.db agora está criptografado
+- fix: gitignore agora ignora os .gpg
+- chore: atualizado atualizar_db para dodar o workflow do actions (backup.mysql.sh)
+- feat: backup do BD agendado para cada 6 horas
+- fix: action backup - corrigido trigger
+- fix: action backup - removido push
+- fix: action backup
+- feat: action Backup mysql
+- fix: reiniciar.sh.run limpa o bash_history apos execução
+- fix: actions - clear bash_history
+- chore: docker-compose modificado para criptografar mariadb
+- fix: Corrigida criptografia dos arquivos das submissões.
+- chore: removidos arquivos desnecessários da pasta documentos
+- fix: avaliação de projeto agora envia e-mail com o link da declaração.
+- fix: links dos projetos para os avaliadores estavam incorretos!
+- chore: WSDL do Cnpq incluido do repositorio
+- feat: Adicionada rota /version
+- chore: incluído arquivo exemplo para recuperar os segredos do infisical
+- feat: Adicionada versão na rota /admin
+- fix: editalProjeto com o plano 3
+- chore: Incluída consultas para criptografar colunas da tabela indicações, assim como como fazer o select
+- feat: Criptografa arquivos pessoais dos indicados no momento da indicação
+- chore: Incluída funcionalidade de criptografia dos documentos pessoais dos bolsistas ew docker-compose agora utiliza uma imagem personalizada
 - feat: Gitpython incluído nos requirements
 - fix: requirements.txt atualizado e corrigido
 - fix: docker compose do autoheal

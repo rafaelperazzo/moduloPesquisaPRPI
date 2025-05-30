@@ -22,10 +22,11 @@ Página administrativa
 <center><A href="{{url_for('meusProjetos')}}">Ir para MeusProjetos</A></center>
 <hr>
 <table>
-  <th>Edital</th><th>Lista de Bolsistas</th><th>Lista de Voluntários</th><th>Situação das indicações</th><th>Desligamentos e Substituições</TH><th>Estatísticas</th><th>Resultados</th>
+  <th>Edital</th><th>Cadastrar Usuários</th><th>Lista de Bolsistas</th><th>Lista de Voluntários</th><th>Situação das indicações</th><th>Desligamentos e Substituições</TH><th>Estatísticas</th><th>Resultados</th>
     {% for edital in editais %}
         <tr>
             <td>{{edital[1]}} </td>
+            <td><a href="/pesquisa/cadastrar_usuarios_projetos/{{edital[0]}}">Cadastrar</a></td>
             <td><a href="/pesquisa/indicacoes?edital={{edital[0]}}&tipo=1">BOLSISTAS</a></td>
             <td><a href="/pesquisa/indicacoes?edital={{edital[0]}}&tipo=0">VOLUNTÁRIOS</a></td>
             <td><a href="/pesquisa/situacaoIndicacoes?edital={{edital[0]}}">Situação das indicações</a></td>
@@ -37,4 +38,5 @@ Página administrativa
     {% endfor %}
 </table>
 <p><a href="/pesquisa/emailSolicitarAvaliacao">ENVIAR OS E-MAILs PARA OS AVALIADORES</a></p>
+<p><a href="/pesquisa/cadastrar_usuario">CADASTRAR NOVO USUÁRIO</a></p>
 {% endblock %}

@@ -1,0 +1,29 @@
+# Enviar solicitação de frequencia para os orientadores
+
+name: Solicitar envio de frequencia dos bolsistas
+
+on: 
+  workflow_dispatch:
+  schedule:
+    - cron: '59 10 5-30 * 1,3,5' # Executa 3 vezes na semana as 10:59 (UTC)
+  
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: enviando comandos ssh
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            cd /backup/pesquisa3
+            export INFISICAL_TOKEN=${{ secrets.INFISICAL_TOKEN }}
+            ./cron.frequencia.sh
+            history -c && history -w
+            cat /dev/null > ~/.bash_history

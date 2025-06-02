@@ -36,3 +36,33 @@ UPDATE indicacoes SET
     endereco=TO_BASE64(AES_ENCRYPT(endereco,'{chave}',iv))
 WHERE id={idIndicado};
 """
+
+############
+# cadastro_geral
+############
+BEGIN;
+SET @chave='123456';
+UPDATE cadastro_geral SET 
+	orientador_cpf=TO_BASE64(AES_ENCRYPT(orientador_cpf,@chave,iv)),
+	orientador_email=TO_BASE64(AES_ENCRYPT(orientador_email,@chave,iv)),
+	telefone=TO_BASE64(AES_ENCRYPT(telefone,@chave,iv)),
+	celular=TO_BASE64(AES_ENCRYPT(celular,@chave,iv)),
+	rg=TO_BASE64(AES_ENCRYPT(rg,@chave,iv)),
+    id_lattes=TO_BASE64(AES_ENCRYPT(id_lattes,@chave,iv)),
+    estudante_banco=TO_BASE64(AES_ENCRYPT(estudante_banco,@chave,iv)),
+    estudante_no_agencia=TO_BASE64(AES_ENCRYPT(estudante_no_agencia,@chave,iv)),
+    estudante_no_conta_corrente=TO_BASE64(AES_ENCRYPT(estudante_no_conta_corrente,@chave,iv));
+ROLLBACK;
+
+############
+# docentes
+############
+BEGIN;
+SET @chave='123456';
+UPDATE docentes SET 
+	docente=TO_BASE64(AES_ENCRYPT(docente,@chave,iv)),
+	siape=TO_BASE64(AES_ENCRYPT(siape,@chave,iv)),
+	cpf=TO_BASE64(AES_ENCRYPT(cpf,@chave,iv)),
+	nascimento=TO_BASE64(AES_ENCRYPT(nascimento,@chave,iv));
+ROLLBACK;
+

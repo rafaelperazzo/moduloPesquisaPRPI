@@ -865,9 +865,6 @@ def podeAvaliar(idProjeto):
 @app.route("/testes", methods=['GET', 'POST'])
 def getPaginaAvaliacaoTeste():
     arquivos = "TESTE"
-    #msg = Message(subject = "Hello",recipients=["pesquisapython3.display999@passmail.net"],body="teste...")
-    #msg.body("Teste...")
-    #mail.send(msg)
     return render_template('avaliacao.html',arquivos=arquivos)
 
 #Gerar pagina de avaliacao para o avaliador
@@ -1560,7 +1557,7 @@ def declaracaoEvento():
                 data_agora = getData()
                 return(render_template('declaracao_evento.html',texto=texto,data=data_agora,identificador=idDeclaracao))
             else:
-                return(u"Nenhuma declaração encontrada.")
+                return("Nenhuma declaração encontrada.")
         else:
             return ("OK")
 
@@ -2948,16 +2945,6 @@ def consultas():
     else:
         return("OK")
 
-'''
-SELECT indicacoes.id,idProjeto,editalProjeto.tipo,IF(tipo_de_vaga=1,'BOLSISTA','VOLUNARIO(A)') AS tipo,IF(indicacoes.situacao=1,'DESLIGADO(A)','SUBSTITUIDO(A)') AS tipo_situacao,indicacoes.nome,nome_banco,agencia,conta, DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y') as inicio,
-DATE_FORMAT(indicacoes.fim,'%d/%m/%Y') as final FROM indicacoes,editalProjeto WHERE indicacoes.idProjeto=editalProjeto.id AND
-indicacoes.situacao in (1,2) ORDER BY indicacoes.tipo_de_vaga DESC,indicacoes.fim DESC
-
-SELECT indicacoes.id,idProjeto,editalProjeto.tipo,IF(tipo_de_vaga=1,'BOLSISTA','VOLUNARIO(A)') AS tipo,IF(indicacoes.substituido!=0,'SUBSTITUTO(A)','N/A') AS tipo_situacao,indicacoes.nome,nome_banco,agencia,conta, DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y') as inicio,
-DATE_FORMAT(indicacoes.fim,'%d/%m/%Y') as final FROM indicacoes,editalProjeto WHERE indicacoes.idProjeto=editalProjeto.id AND
-indicacoes.situacao in (0) AND indicacoes.substituido!=0 ORDER BY indicacoes.tipo_de_vaga DESC,indicacoes.fim DESC
-'''
-
 @app.route("/substituicoes", methods=['GET', 'POST'])
 def substituicoes():
     if 'id' in request.args:
@@ -3266,7 +3253,8 @@ def cadastrar_novo_usuario(siape, nome, email):
     senha = generate_secure_password()
     hashed_password = cripto.hash_argon2id(senha)
     role = 'user'
-    consulta = f"""INSERT INTO users (username,nome,email,password,roles) VALUES ('{siape}','{nome}','{email}','{hashed_password}','{role}')"""
+    consulta = f"""INSERT INTO users (username,nome,email,password,roles) 
+    VALUES ('{siape}','{nome}','{email}','{hashed_password}','{role}')"""
     atualizar(consulta)
     return senha
 

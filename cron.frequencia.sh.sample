@@ -1,1 +1,7 @@
-/usr/bin/docker run --rm curlimages/curl:latest -s -u USUARIO:SENHA https://HOST/pesquisa/listaNegra/1
+#!/bin/bash
+if [ -z "$INFISICAL_TOKEN" ]; then
+echo "Error: INFISICAL_TOKEN environment variable is not set."
+exit 1
+fi
+CRON_AVALIACAO=$(infisical secrets get CRON_AVALIACAO --plain)
+/usr/bin/docker run --rm curlimages/curl:latest -s -u 0000:$CRON_AVALIACAO https://sci01-ter-jne.ufca.edu.br/pesquisa/listaNegra/1

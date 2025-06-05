@@ -56,6 +56,7 @@ if PRODUCAO==1:
 else: 
     MYSQL_DATABASE = os.getenv("MYSQL_TEST_DATABASE", "pesquisa_test")
 EMAIL_TESTES = os.getenv("EMAIL_TESTES","test@123.com")
+DEFAULT_EMAIL = os.getenv("DEFAULT_EMAIL","teste@test.com")
 LINK_AVALIACAO = ROOT_SITE + URL_PREFIX + "/avaliacao"
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -73,10 +74,10 @@ except Exception as e:
 mail = Mail(app)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = 'pesquisa.prpi@ufca.edu.br'
+app.config['MAIL_USERNAME'] = DEFAULT_EMAIL
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
-app.config['MAIL_DEFAULT_SENDER'] = 'pesquisa.prpi@ufca.edu.br'
+app.config['MAIL_DEFAULT_SENDER'] = DEFAULT_EMAIL
 
 if PRODUCAO==1:
     app.config['MAIL_SUPPRESS_SEND'] = False
@@ -956,7 +957,7 @@ def enviarAvaliacao():
         except Exception as e:
             logging.error(e)
             logging.error("[AVALIACAO] ERRO ao gravar a avaliação: " + token)
-            return("Não foi possível gravar a avaliação. Favor entrar contactar pesquisa.prpi@ufca.edu.br.")
+            return("Não foi possível gravar a avaliação. Favor entrar contactar " + DEFAULT_EMAIL)
         try:
             #return (redirect("/declaracaoAvaliador/" + token))
             return (redirect(url_for('getDeclaracaoAvaliador',tokenAvaliacao=token)))
@@ -2395,7 +2396,7 @@ def efetivarIndicacao():
                 titulo_projeto = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
                 orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)
                 email = obterColunaUnica('editalProjeto','email','id',idProjeto)
-                email2 = "pesquisa.prpi@ufca.edu.br"
+                email2 = DEFAULT_EMAIL
                 texto_email = render_template('confirmacao_indicacao.html',vaga=vaga,id_projeto=idProjeto,indicado=nome,proponente=orientador,titulo=titulo_projeto,email_proponente=email,idIndicacao=idIndicacao)
                 if vaga==1:
                     msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE BOLSISTA",recipients=[email,email2],html=texto_email)
@@ -2740,7 +2741,7 @@ def listaNegra(email):
     ORDER BY editalProjeto.nome,indicacoes.id"""
     linhas,total = executarSelect(consulta)
     lista = []
-    lista_emails = ['pesquisa.prpi@ufca.edu.br']
+    lista_emails = [DEFAULT_EMAIL]
     lista_emails_discentes = []
     for linha in linhas:
         idIndicacao = str(linha[0])
@@ -2802,7 +2803,7 @@ def desligarIndicacao(id_indicacao):
             consulta = "UPDATE indicacoes SET situacao=1, fim=NOW() WHERE id=" + idAluno
             atualizar(consulta)
             email = obterColunaUnica('editalProjeto','email','id',idProjeto)
-            email2 = "pesquisa.prpi@ufca.edu.br"
+            email2 = DEFAULT_EMAIL
             
             texto_email = render_template('confirmacao_desligamento.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
             if tipo_vaga==1:
@@ -2863,7 +2864,7 @@ def substituirIndicacao(id_indicacao):
             consulta = "UPDATE indicacoes SET situacao=2, fim=NOW() WHERE id=" + idAluno
             atualizar(consulta)
             email = obterColunaUnica('editalProjeto','email','id',idProjeto)
-            email2 = "pesquisa.prpi@ufca.edu.br"
+            email2 = DEFAULT_EMAIL
             texto_email = render_template('confirmacao_substituicao.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
             if tipo_vaga=="1":
                 msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE BOLSISTA",recipients=[email,email2],html=texto_email)

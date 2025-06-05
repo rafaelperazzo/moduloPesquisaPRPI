@@ -4,23 +4,29 @@ if [ -z "$INFISICAL_TOKEN" ]; then
 echo "Error: INFISICAL_TOKEN environment variable is not set."
 exit 1
 fi
+echo "OBTENDO OS SEGREDOS DO INFISICAL"
 MYSQL_ROOT_PASSWORD=$(infisical secrets get MYSQL_ROOT_PASSWORD --plain)
 GPG_KEY=$(infisical secrets get GPG_KEY --plain)
 folder=/home/perazzo/Projetos/docker/pesquisa 
 cd $folder
+echo "REINICIANDO CONTAINERES"
 infisical run -- docker compose down
 infisical run -- docker compose up -d
 #gh workflow run backup.yml
 #ssh sci01-ter-jne.ufca.edu.br '/backup/pesquisa3/./backup.mysql.sh'
+echo "ATUALIZANDO ARQUIVOS DOS PROJETOS E DOS INDICADOS"
 rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa3/app/submissoes/ $folder/app/submissoes/
 rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa3/app/docs_indicacoes/ $folder/app/docs_indicacoes/
+echo "BAIXANDO O ULTIMO BACKUP DO BANCO DE DADOS"
 dir="/backup/pesquisa3/share"
 server="perazzo@sci01-ter-jne.ufca.edu.br"
 arquivo=$(ssh sci01-ter-jne.ufca.edu.br 'ls -t /backup/pesquisa3/share | head -1')
 scp $server:$dir/$arquivo share/
+echo "DECRIPTANDO O ARQUIVO DO BANCO DE DADOS"
 gpg -o share/ultimo.sql.gz --decrypt --batch --yes --passphrase $GPG_KEY share/$arquivo
 gunzip -f share/ultimo.sql.gz
 arquivo=$(ls -t share | head -1)
+echo "ATUALIZANDO O BANCO DE DADOS"
 infisical run -- docker compose exec -T db_pesquisa bash -c "mariadb -u root -p$MYSQL_ROOT_PASSWORD < /share/$arquivo"
 rm -f share/$arquivo
 rm -f share/*.gpg

@@ -241,18 +241,15 @@ def calcularScoreLattes(tipo,area,since,until,arquivo):
     return (s)
 
 def atualizar(consulta):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE) 
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
         cursor.execute(consulta)
         conn.commit()
     except MySQLdb.Error as e:
-        #e = sys.exc_info()[0]
         logging.error(e)
         logging.error(consulta)
-        #conn.rollback()
     finally:
         cursor.close()
         conn.close()

@@ -1692,32 +1692,32 @@ def minhaDeclaracao():
 
 @app.route("/discente/minhaDeclaracao", methods=['GET', 'POST'])
 def minhaDeclaracaoDiscente():
-        if request.method == "GET":
-            #Recuperando o token da declaração
-            if 'token' in request.args:
-                token = str(request.args.get('token'))
-                consulta = """SELECT estudante_nome_completo,cpf,if(estudante_fim>NOW(),1,0) as verbo,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,
-                            ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(estudante_fim,'%d/%m/%Y') as final FROM cadastro_geral WHERE token='""" + token + """'"""
-                projeto,total = executarSelect(consulta,1)
-                data_agora = getData()
-                if total==1:
-                    arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                    options = {
-                        'page-size': 'A4',
-                        'margin-top': '2cm',
-                        'margin-right': '2cm',
-                        'margin-bottom': '1cm',
-                        'margin-left': '2cm',
-                    }
-                    pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
-                    return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    
-                else:
-                    return("declaração inexistente!")
+    if request.method == "GET":
+        #Recuperando o token da declaração
+        if 'token' in request.args:
+            token = str(request.args.get('token'))
+            consulta = """SELECT estudante_nome_completo,cpf,if(estudante_fim>NOW(),1,0) as verbo,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,
+                        ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(estudante_fim,'%d/%m/%Y') as final FROM cadastro_geral WHERE token='""" + token + """'"""
+            projeto,total = executarSelect(consulta,1)
+            data_agora = getData()
+            if total==1:
+                arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
+                options = {
+                    'page-size': 'A4',
+                    'margin-top': '2cm',
+                    'margin-right': '2cm',
+                    'margin-bottom': '1cm',
+                    'margin-left': '2cm',
+                }
+                pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
+                
             else:
-                return("OK")
+                return("declaração inexistente!")
         else:
             return("OK")
+    else:
+        return("OK")
 
 '''
 qrcode_url = url_for('avaliacao_gerar_declaracao',ano=ano,periodo=periodo,token=token,_external=True)

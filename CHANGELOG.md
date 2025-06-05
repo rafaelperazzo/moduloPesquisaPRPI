@@ -1,3 +1,4 @@
+	2025-06-05 15:46:53 -0300	docs: TODO atualizado para criptografia da tabela users
 	2025-06-05 15:40:38 -0300	style: Ajustes na identação da função id_generator
 	2025-06-05 15:39:04 -0300	docs: TODO atualizado para remover email NAO-RESPONDA
 	2025-06-05 15:34:21 -0300	style: corrigida identação da rota minhaDeclaração

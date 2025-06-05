@@ -1,6 +1,6 @@
+#!/bin/bash
+# Usage: ./merge.sh
 git checkout master
-git merge --no-ff develop
-git tag -a $1
+git merge python3
 git push origin master
-git push origin --tags
-git checkout develop
+git checkout python3

@@ -522,7 +522,7 @@ def admin():
         editais,total = executarSelect(consulta)
         return (render_template('index.html',editais=editais,versao=__version__))
     else:
-        return(render_template('login.html',mensagem=u"É necessário autenticação para acessar a página solicitada"))
+        return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
 
 @app.route("/declaracao", methods=['GET', 'POST'])
 def declaracao():
@@ -1137,7 +1137,7 @@ def estatisticas():
             for linha in nomeEdital:
                 edital = linha[0]
         else:
-            edital=u"CÓDIGO DE EDITAL INVÁLIDO"
+            edital="CÓDIGO DE EDITAL INVÁLIDO"
         conn.close()
         return(render_template('estatisticas.html',nomeEdital=edital,linhasResumo=resumoGeral,projetosAprovados=aprovados,projetosPendentes=pendentes,projetosReprovados=reprovados))
         #return(codigoEdital)
@@ -1279,7 +1279,7 @@ def resultados():
                 recursos = str(linha[4])
                 link = str(linha[5])
         else:
-            edital=u"CÓDIGO DE EDITAL INVÁLIDO"
+            edital="CÓDIGO DE EDITAL INVÁLIDO"
         qtde_bolsas = str(qtde_bolsas)
 
         #Recuperando total de projetos: total_projetos e calculando total de bolsas por unidade
@@ -1498,7 +1498,7 @@ def editalProjeto():
             else:
                 return ("OK")
     else:
-        return(render_template('login.html',mensagem=u"É necessário autenticação para acessar a página solicitada"))
+        return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
 
 @app.route("/lattesDetalhado", methods=['GET', 'POST'])
 def lattesDetalhado():
@@ -1607,7 +1607,7 @@ def meusProjetos():
 
         return(render_template('meusProjetos.html',projetos=projetos,total=total,projetos2019=projetos2019,total2019=total2019,permissao=session['permissao'],orientandos=orientandos_atuais,orientandos_antigos=orientandos_antigos))
     else:
-        return(render_template('login.html',mensagem=u"É necessário autenticação para acessar a página solicitada"))
+        return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
 
 @app.route("/minhaDeclaracaoOrientador", methods=['GET', 'POST'])
 def minhaDeclaracao():
@@ -1688,7 +1688,7 @@ def minhaDeclaracao():
         else:
             return("OK")
     else:
-        return(render_template('login.html',mensagem=u"É necessário autenticação para acessar a página solicitada"))
+        return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
 
 @app.route("/discente/minhaDeclaracao", methods=['GET', 'POST'])
 def minhaDeclaracaoDiscente():
@@ -1884,7 +1884,7 @@ def meusPareceres():
                     logging.error(str(e))
                     return("ERRO!")
             else:
-                return(render_template('login.html',mensagem=u"É necessário autenticação para acessar a página solicitada"))
+                return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
         else:
             return("OK")
     else:
@@ -3002,7 +3002,7 @@ def enviar_email_avaliadores():
         nome_longo = str(linha[12])
         with app.app_context():
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
-            msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+            msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 try:
                     mail.send(msg)
@@ -3011,8 +3011,9 @@ def enviar_email_avaliadores():
                     logging.error(str(e))
                 consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
                 atualizar(consulta)    
-            except:
-                logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: " + email_avaliador)
+            except Exception as e:
+                logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s", email_avaliador)
+                logging.error(str(e))
                 return("Erro! Verifique o log!")
 
 @app.route("/emailSolicitarAvaliacao", methods=['GET', 'POST'])
@@ -3022,16 +3023,16 @@ def email_solicitar_avaliacao():
     t.start()
     return("Envio de e-mails iniciado!")
     
-def enviarPedidoAvaliacao(id):
+def enviarPedidoAvaliacao(idProjeto):
     gerarLinkAvaliacao()
     consulta = """
     SELECT e.id,e.titulo,e.resumo,a.avaliador,a.link,a.id,a.enviado,a.token,e.categoria,e.tipo 
     FROM editalProjeto as e, avaliacoes as a WHERE e.id=a.idProjeto AND e.valendo=1 
-    AND a.finalizado=0 AND e.categoria=1 and e.id=""" + str(id) + """ 
+    AND a.finalizado=0 AND e.categoria=1 and e.id=""" + str(idProjeto) + """ 
     ORDER BY a.id DESC LIMIT 1
     """
     linhas,total = executarSelect(consulta)
-    logging.debug("Enviado pedido de avaliacao para: " + str(total))
+    logging.debug("Enviado pedido de avaliacao para: %s", str(total))
     
     for linha in linhas:
         titulo = str(linha[1])
@@ -3045,14 +3046,15 @@ def enviarPedidoAvaliacao(id):
         with app.app_context():
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
             if PRODUCAO==1:
-                msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+                msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             else:
-                msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[EMAIL_TESTES],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+                msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[EMAIL_TESTES],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 mail.send(msg)
                 logging.debug("E-MAIL ENVIADO COM SUCESSO.")    
-            except:
-                logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: " + email_avaliador)
+            except Exception as e:
+                logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s", email_avaliador)
+                logging.error(str(e))
 
 @app.route("/arquivar/<id_projeto>", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
@@ -3096,7 +3098,7 @@ def desligar(id_indicacao):
 @app.route("/substituir/<id_indicacao>", methods=['GET', 'POST'])
 def substituir(id_indicacao):
     action = url_for('substituirIndicacao',id_indicacao=id_indicacao)
-    return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao=u"SUBSTITUIÇÃO",action=action))
+    return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao="SUBSTITUIÇÃO",action=action))
 
 @app.route("/get_bib/<siapes>", methods=['GET'])
 @auth.login_required(role=['user'])
@@ -3115,7 +3117,7 @@ def get_bib(siapes):
     group by editalProjeto.id
     order by year(editalProjeto.inicio),editalProjeto.id
     """ % (siapes)
-    consulta = u"""
+    consulta = """
     (SELECT UPPER(editalProjeto.nome),area_capes,UPPER(titulo), YEAR(editalProjeto.inicio) as ano,
     GROUP_CONCAT(IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')) LIMIT 1) as modalidade,
     palavras,bolsas as solicitadas,bolsas_concedidas as concedidas,

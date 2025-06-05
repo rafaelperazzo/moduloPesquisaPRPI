@@ -256,26 +256,22 @@ def atualizar(consulta):
 
 def inserir(consulta,valores):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
         cursor.execute(consulta,valores)
         conn.commit()
     except MySQLdb.Error as e:
-        #e = sys.exc_info()[0]
         logging.error(e)
         logging.debug(consulta)
         logging.error("Erro ao inserir registro")
         logging.error(valores)
-        #conn.rollback()
     finally:
         cursor.close()
         conn.close()
 
-
 def id_generator(size=20, chars=string.ascii_uppercase + string.digits + string.ascii_lowercase):
-        return ''.join(random.choice(chars) for _ in range(size))
+    return ''.join(random.choice(chars) for _ in range(size))
 
 def allowed_file(filename):
     return '.' in filename and \

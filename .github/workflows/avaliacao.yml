@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  backup:
+  avaliacao:
     runs-on: ubuntu-latest
     steps:
       - name: enviando comandos ssh

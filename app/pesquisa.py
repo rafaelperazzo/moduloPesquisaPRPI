@@ -883,13 +883,12 @@ def getPaginaAvaliacao():
                 link_plano2 = url_for('verArquivosProjeto',filename=str(arquivos[2]))
             links = ""
             if 'link_projeto' in locals():
-                links = links + "<a href=\"" + link_projeto + "\">PROJETO</a><BR>"
+                links = links + "<a href=\"" + link_projeto + "\" target=\"_blank\">PROJETO</a><BR>"
             if 'link_plano1' in locals():
-                links = links + "<a href=\"" + link_plano1 + "\">PLANO DE TRABALHO 1</a><BR>"
+                links = links + "<a href=\"" + link_plano1 + "\" target=\"_blank\">PLANO DE TRABALHO 1</a><BR>"
             if 'link_plano2' in locals():
-                links = links + "<a href=\"" + link_plano2 + "\">PLANO DE TRABALHO 2</a><BR>"
+                links = links + "<a href=\"" + link_plano2 + "\" target=\"_blank\">PLANO DE TRABALHO 2</a><BR>"
             links = links + "<input type=\"hidden\" id=\"token\" name=\"token\" value=\"" + tokenAvaliacao + "\">"
-            #links = Markup(links)
             if naoEstaFinalizado(tokenAvaliacao):
                 consulta = "UPDATE avaliacoes SET aceitou=1 WHERE token=\"" + tokenAvaliacao + "\""
                 atualizar(consulta)
@@ -2703,21 +2702,21 @@ def enviar_lembrete_frequencia():
                 
                 texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
                 if PRODUCAO==1:
-                    msg = Message(subject = u"Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     try:
                         mail.send(msg)            
                     except Exception as e:
                         logging.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
                         logging.error(str(e))
                 else:
-                    msg = Message(subject = u"Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisapython3.display999@passmail.net'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisapython3.display999@passmail.net'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     try:
                         mail.send(msg)
                     except Exception as e:
                         logging.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
                         logging.error(str(e))
                     finally:
-                        break
+                        continue
                     
 @app.route("/listaNegra/<email>", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
@@ -2756,7 +2755,6 @@ def listaNegra(email):
     if email=="1":
         t = threading.Thread(target=enviar_lembrete_frequencia)
         t.start()
-        #enviar_lembrete_frequencia()
         return("200")
 
     return(render_template('listaNegra.html',lista=tuple(lista),mes=mes,ano=ano,total=len(lista)))

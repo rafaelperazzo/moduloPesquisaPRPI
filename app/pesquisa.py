@@ -915,7 +915,8 @@ def podeAvaliar(idProjeto):
 @app.route("/testes", methods=['GET', 'POST'])
 def getPaginaAvaliacaoTeste():
     arquivos = "TESTE"
-    return render_template('avaliacao.html',arquivos=arquivos)
+    #return render_template('avaliacao.html',arquivos=arquivos)
+    return "TESTES"
 
 #Gerar pagina de avaliacao para o avaliador
 @app.route("/avaliacao", methods=['GET', 'POST'])
@@ -1021,14 +1022,14 @@ def enviarAvaliacao():
                 atualizar(consulta)
         except Exception as e:
             logging.error(e)
-            logging.error("[AVALIACAO] ERRO ao gravar a avaliação: " + token)
+            logging.error("[AVALIACAO] ERRO ao gravar a avaliação: %s", token)
             return("Não foi possível gravar a avaliação. Favor entrar contactar " + DEFAULT_EMAIL)
         try:
             #return (redirect("/declaracaoAvaliador/" + token))
             return (redirect(url_for('getDeclaracaoAvaliador',tokenAvaliacao=token)))
         except Exception as e:
             logging.error(e)
-            logging.error("[/avaliar] ERRO ao gerar a declaração: " + token)
+            logging.error("[/avaliar] ERRO ao gerar a declaração: %s",token)
             return("Não foi possível gerar a declaração.")
     else:
         return("OK")

@@ -254,6 +254,30 @@ def atualizar(consulta):
         cursor.close()
         conn.close()
 
+def atualizar2(consulta,valores=()):
+    """Função para UPDATE, INSERT e DELETE no banco de dados.
+
+    Args:
+        consulta (str): consulta SQL
+        valores (list, optional): Valores para consulta. Defaults to ().
+    """
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE) 
+    conn.select_db(MYSQL_DATABASE)
+    cursor  = conn.cursor()
+    try:
+        if valores==():
+            cursor.execute(consulta)
+            conn.commit()
+        else:
+            cursor.execute(consulta,tuple(valores))
+            conn.commit()
+    except MySQLdb.Error as e:
+        logging.error(e)
+        logging.error(consulta)
+    finally:
+        cursor.close()
+        conn.close()
+
 def inserir(consulta,valores):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
     conn.select_db(MYSQL_DATABASE)
@@ -963,6 +987,7 @@ def enviarAvaliacao():
         comite = str(request.form['comite'])
         try:
             consulta = "UPDATE avaliacoes SET recomendacao=" + recomendacao + " WHERE token=\"" + token + "\""
+            #consulta = "UPDATE avaliacoes SET recomendacao= ? WHERE token= ?"
             atualizar(consulta)
             consulta = "UPDATE avaliacoes SET finalizado=1" + " WHERE token=\"" + token + "\""
             atualizar(consulta)

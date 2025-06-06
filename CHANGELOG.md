@@ -1,3 +1,4 @@
+	2025-06-06 10:48:22 -0300	fix: adicionada verificação da entrada do usuário até a rota /avaliacao
 	2025-06-06 10:07:43 -0300	fix: verify_password evita sql injection
 	2025-06-05 16:02:38 -0300	fix: gitignore inclui .vscode
 	2025-06-05 15:46:53 -0300	docs: TODO atualizado para criptografia da tabela users

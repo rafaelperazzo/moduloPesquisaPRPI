@@ -1,3 +1,5 @@
+	2025-06-06 10:07:43 -0300	fix: verify_password evita sql injection
+	2025-06-05 16:02:38 -0300	fix: gitignore inclui .vscode
 	2025-06-05 15:46:53 -0300	docs: TODO atualizado para criptografia da tabela users
 	2025-06-05 15:40:38 -0300	style: Ajustes na identação da função id_generator
 	2025-06-05 15:39:04 -0300	docs: TODO atualizado para remover email NAO-RESPONDA

@@ -449,6 +449,8 @@ def verify_password(username, password):
     password combination is valid.
     """
     try:
+        if not username_valido(username):
+            return False
         consulta2 = """
         SELECT id,
         username,
@@ -517,31 +519,33 @@ FIM AUTENTICAÇÃO
 @app.route('/segredo')
 @auth.login_required
 def secret_page():
-    return (session['username'])
+    return session['username']
 
 @app.route("/")
 def home():
     editaisAbertos = getEditaisAbertos()
     session['PRODUCAO'] = PRODUCAO
-    return (render_template('cadastrarProjeto.html',abertos=editaisAbertos))
+    return render_template('cadastrarProjeto.html',abertos=editaisAbertos)
 
 @app.route("/version")
 def version():
-    return(__version__)
+    return __version__
 
 @app.route("/admin")
 def admin():
     if (autenticado() and int(session['permissao'])==0):
         consulta = """SELECT id,nome FROM editais ORDER BY id"""
         editais,total = executarSelect(consulta)
-        return (render_template('index.html',editais=editais,versao=__version__))
+        return render_template('index.html',editais=editais,versao=__version__)
     else:
-        return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
+        return render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada")
 
 @app.route("/declaracao", methods=['GET', 'POST'])
 def declaracao():
     if request.method == "GET":
         if 'idProjeto' in request.args:
+            if not numero_valido(str(request.args['idProjeto'])):
+                return "ID do projeto inválido!"
             texto_declaracao = gerarDeclaracao(str(request.args['idProjeto']))
             data_agora = getData()
             try:
@@ -552,36 +556,35 @@ def declaracao():
                     'margin-bottom': '20mm',
                     'margin-left': '20mm',
 }
-                arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                #pdfkit.from_string(render_template('a4.html',texto=texto_declaracao,data=data_agora,identificador=texto_declaracao[7],raiz=ROOT_SITE),arquivoDeclaracao)
-                #return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')
-            except:
-                e = sys.exc_info()[0]
+                return render_template('a4.html',texto=texto_declaracao,
+                                       data=data_agora,identificador=texto_declaracao[7],raiz=ROOT_SITE)
+            except Exception as e:
                 logging.error(e)
-                logging.error(arquivoDeclaracao)
                 logging.error("Nao foi possivel gerar o PDF da declaração.")
-            finally:
-                return render_template('a4.html',texto=texto_declaracao,data=data_agora,identificador=texto_declaracao[7],raiz=ROOT_SITE)
+                return "Erro ao gerar o PDF da declaração. Verifique os logs para mais detalhes."
         else:
             logging.debug("Tentativa de gerar declaração, sem o id do projeto!")
-            return("OK")
+            return "OK"
 
-@app.route("/projetosAluno", methods=['GET', 'POST'])
+@app.route("/projetosAluno", methods=['POST'])
 def projetos():
     try:
+        if not token_valido(str(request.form['txtNome'])):
+            return "Nome do aluno inválido!"
         projetosAluno,projetosAluno2019 = gerarProjetosPorAluno(str(request.form['txtNome']))
-        return render_template('alunos.html',listaProjetos=projetosAluno,lista2019=projetosAluno2019)
-    except:
-        e = sys.exc_info()[0]
+        return render_template('alunos.html',listaProjetos=projetosAluno,
+                               lista2019=projetosAluno2019)
+    except Exception as e:
         logging.error(e)
         logging.error("Nao foi possivel gerar os projetos do aluno.")
-        return("Erro! Não utilize acentos ou caracteres especiais na busca.")
+        return "Erro! Não utilize acentos ou caracteres especiais na busca."
 
-@app.route("/autenticacao", methods=['GET', 'POST'])
+@app.route("/autenticacao", methods=['POST'])
 def autenticar():
-    #dadosAutenticacao = gerarAutenticacao(str(request.form['txtCodigo']))
-    #return render_template('autenticacao.html',linha=dadosAutenticacao)
+    if not numero_valido(str(request.form['tipo'])):
+        return "Tipo de autenticação inválido!"
+    if not token_valido(str(request.form['codigo'])):
+        return "Código de autenticação inválido!"
     tipo = int(request.form['tipo'])
     codigo = str(request.form['codigo'])
     if tipo==0:
@@ -589,18 +592,23 @@ def autenticar():
     else:
         return redirect("/pesquisa/declaracao?idProjeto=" + codigo)
 
-@app.route("/projetosPorOrientador", methods=['GET', 'POST'])
+@app.route("/projetosPorOrientador", methods=['POST'])
 def projetosOrientador():
-    projetosOrientador = gerarProjetosPorOrientador(str(request.form['txtSiape']))
-    return render_template('projetos_orientador.html',listaProjetos=projetosOrientador)
+    if not username_valido(str(request.form['txtSiape'])):
+        return "SIAPE do orientador inválido!"
+    projetos_por_orientador = gerarProjetosPorOrientador(str(request.form['txtSiape']))
+    return render_template('projetos_orientador.html',listaProjetos=projetos_por_orientador)
 
-@app.route("/orientadorDeclaracao", methods=['GET', 'POST'])
+@app.route("/orientadorDeclaracao", methods=['GET'])
 def declaracaoOrientador():
+    if not numero_valido(str(request.args['idProjeto'])):
+        return "ID do projeto inválido!"
     resultados = gerarDeclaracaoOrientador(str(request.args['idProjeto']))
     texto_declaracao = resultados[0]
     bolsistas = resultados[1]
     data_agora = getData()
-    return render_template('orientador.html',texto=texto_declaracao,data=data_agora,identificador=texto_declaracao[0],bolsistas=bolsistas)
+    return render_template('orientador.html',texto=texto_declaracao,
+                           data=data_agora,identificador=texto_declaracao[0],bolsistas=bolsistas)
 
 @app.route("/cadastrarProjeto", methods=['GET', 'POST'])
 def cadastrarProjeto():
@@ -855,12 +863,15 @@ def naoEstaFinalizado(token):
     consulta = "SELECT finalizado FROM avaliacoes WHERE token=\"" + token + "\""
     cursor.execute(consulta)
     linha = cursor.fetchone()
-    finalizado = int(linha[0])
+    try:
+        finalizado = int(linha[0])
+    except Exception as e:
+        return False
     conn.close()
     if finalizado==0:
-        return (True)
+        return True
     else:
-        return (False)
+        return False
 
 def podeAvaliar(idProjeto):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
@@ -886,9 +897,22 @@ def getPaginaAvaliacaoTeste():
 @app.route("/avaliacao", methods=['GET', 'POST'])
 def getPaginaAvaliacao():
     if request.method == "GET":
-        idProjeto = str(request.args.get('id'))
+        try:
+            idProjeto = str(request.args.get('id'))
+        except Exception as e:
+            logging.error("[/avaliacao] Erro ao obter ID do projeto: %s",str(e))
+            return "ID do projeto não informado!"
+        if not numero_valido(idProjeto):
+            logging.error("[/avaliacao] ID do projeto inválido!")
+            return "ID do projeto inválido!"
         if podeAvaliar(idProjeto): #Se ainda está no prazo para receber avaliações
-            tokenAvaliacao = str(request.args.get('token'))
+            try:
+                tokenAvaliacao = str(request.args.get('token'))
+            except Exception as e:
+                logging.error("[/avaliacao] Erro ao obter token de avaliação: %s", str(e))
+                return "Token de avaliação não informado!"
+            if not token_valido(tokenAvaliacao):
+                return "Token de avaliação inválido!"
             arquivos = getFiles(idProjeto)
             if str(arquivos[0])!="0":
                 link_projeto = url_for('verArquivosProjeto',filename=str(arquivos[0]))
@@ -915,8 +939,10 @@ def getPaginaAvaliacao():
                 logging.debug("[AVALIACAO] Tentativa de reavaliar projeto")
                 return("Projeto já foi avaliado! Não é possível modificar a avaliação!")
         else:
-            return("Prazo de avaliação expirado!")
+            return "ID Inválido ou prazo de avaliação expirado!"
+
 #Gravar avaliacao gerada pelo avaliador
+#TODO: Continuar a implementação da verificação das entradas do usuário para evitar SQL Injection
 @app.route("/avaliar", methods=['GET', 'POST'])
 def enviarAvaliacao():
     if request.method == "POST":

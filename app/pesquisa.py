@@ -270,6 +270,48 @@ def inserir(consulta,valores):
         cursor.close()
         conn.close()
 
+def numero_valido(numero):
+    """Verifica se um número é válido.
+
+    Args:
+        numero (string): Identificador
+
+    Returns:
+        boolean: Verdadeiro ou falso
+    """
+    try:
+        int(numero)
+        return True
+    except ValueError:
+        return False
+
+def username_valido(username):
+    """Verifica se um nome de usuário é válido.
+
+    Args:
+        username (string): Nome de usuário
+
+    Returns:
+        boolean: Verdadeiro ou falso
+    """
+    if not username.isalnum():
+        return False
+    return True
+
+def token_valido(token):
+    """Verifica se um token é válido.
+
+    Args:
+        token (string): Token
+
+    Returns:
+        boolean: Verdadeiro ou falso
+    """
+    if not token.isalnum():
+        return False
+    else:
+        return True
+
 def id_generator(size=20, chars=string.ascii_uppercase + string.digits + string.ascii_lowercase):
     return ''.join(random.choice(chars) for _ in range(size))
 
@@ -399,41 +441,24 @@ def getEditaisAbertos():
     linhas = cursor.fetchall()
     cursor.close()
     conn.close()
-    return(linhas)
+    return linhas
 
-'''
-INÍCIO AUTENTICAÇÃO
-**************************************************************
-'''
 @auth.verify_password
 def verify_password(username, password):
     """This function is called to check if a username /
     password combination is valid.
     """
     try:
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-        conn.select_db(MYSQL_DATABASE)
-        cursor  = conn.cursor()
-        consulta1 = """
+        consulta2 = """
         SELECT id,
         username,
         permission,
         roles,
         password 
         FROM users 
-        WHERE username='""" + username + """' AND password=('""" + password + """')"""
-        consulta2 = f"""
-        SELECT id,
-        username,
-        permission,
-        roles,
-        password 
-        FROM users 
-        WHERE username="{username}" LIMIT 1 """
-        cursor.execute(consulta1)
-        total = cursor.rowcount
+        WHERE username=? LIMIT 1 """
         continuar = False
-        resultado,total_usuarios = executarSelect(consulta2)
+        resultado,total_usuarios = executarSelect2(consulta2,valores=[username])
         if total_usuarios>0:
             linha = resultado[0]
             hash_senha = str(linha[4])
@@ -446,10 +471,9 @@ def verify_password(username, password):
                 continuar = False
         else:
             continuar = False
-        if continuar is False:
+        if continuar is False: #Usuário inexistente ou senha inválida
             return False
-        else:
-            linha = cursor.fetchone()
+        else: #Usuário e senha válidos
             linha = resultado[0]
             session['username'] = str(linha[1])
             session['permissao'] = int(linha[2])
@@ -462,9 +486,6 @@ def verify_password(username, password):
         logging.error(e)
         logging.error("ERRO Na função check_auth. Ver consulta abaixo.")
         logging.error(consulta2)
-    finally:
-        cursor.close()
-        conn.close()
 
 @auth.get_user_roles
 def get_user_roles(user):
@@ -1219,6 +1240,30 @@ def executarSelect(consulta,tipo=0):
     finally:
         cursor.close()
         conn.close()
+
+def executarSelect2(consulta,tipo=0,valores=()):
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn.select_db(MYSQL_DATABASE)
+    cursor  = conn.cursor()
+    try:
+        if valores==():
+            cursor.execute(consulta)
+        else:
+            cursor.execute(consulta,tuple(valores))
+        total = cursor.rowcount
+        if tipo==0: #Retorna todas as linhas
+            resultado = cursor.fetchall()
+        else: #Retorna uma única linha
+            resultado = cursor.fetchone()
+        return (resultado,total)
+    except Exception as e:
+        logging.error(e)
+        logging.error("ERRO Na função executarSelect. Ver consulta abaixo.")
+        logging.error(consulta)
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 def avaliacoesEncerradas(codigoEdital):

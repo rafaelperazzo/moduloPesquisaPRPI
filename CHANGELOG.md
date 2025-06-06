@@ -1,3 +1,4 @@
+	2025-06-06 15:18:12 -0300	fix: Removido render_template da rota /testes
 	2025-06-06 15:14:59 -0300	fix: atualizar2 implementada e corrigida
 	2025-06-06 10:48:22 -0300	fix: adicionada verificação da entrada do usuário até a rota /avaliacao
 	2025-06-06 10:07:43 -0300	fix: verify_password evita sql injection

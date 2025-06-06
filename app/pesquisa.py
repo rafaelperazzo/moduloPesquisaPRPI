@@ -987,45 +987,44 @@ def enviarAvaliacao():
         c7 = str(request.form['c7'])
         comite = str(request.form['comite'])
         try:
-            consulta = "UPDATE avaliacoes SET recomendacao=" + recomendacao + " WHERE token=\"" + token + "\""
-            #consulta = "UPDATE avaliacoes SET recomendacao= ? WHERE token= ?"
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET finalizado=1" + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET data_avaliacao=CURRENT_TIMESTAMP()" + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET nome_avaliador=\"" + nome_avaliador + "\"" + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
+            consulta = "UPDATE avaliacoes SET recomendacao= ? WHERE token= ? "
+            atualizar2(consulta, valores=[recomendacao,token])
+            consulta = "UPDATE avaliacoes SET finalizado=1 WHERE token= ? "
+            atualizar2(consulta, valores=[token])
+            consulta = "UPDATE avaliacoes SET data_avaliacao=CURRENT_TIMESTAMP() WHERE token= ? "
+            atualizar2(consulta, valores=[token])
+            consulta = "UPDATE avaliacoes SET nome_avaliador= ? WHERE token= ?"
+            atualizar2(consulta, valores=[nome_avaliador,token])
             comentarios = comentarios.replace('"',' ')
             comentarios = comentarios.replace("'"," ")
             consulta = "UPDATE avaliacoes SET comentario=\"" + comentarios + "\"" + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET c1=" + c1 + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET c2=" + c2 + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET c3=" + c3 + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET c4=" + c4 + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET c5=" + c5 + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET c6=" + c6 + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET c7=" + c7 + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET cepa=" + comite + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
+            consulta = "UPDATE avaliacoes SET comentario= ? WHERE token= ? "
+            atualizar2(consulta, valores=[comentarios,token])
+            consulta = "UPDATE avaliacoes SET c1= ? WHERE token= ? "
+            atualizar2(consulta, valores=[c1,token])
+            consulta = "UPDATE avaliacoes SET c2= ? WHERE token= ? "
+            atualizar2(consulta, valores=[c2,token])
+            consulta = "UPDATE avaliacoes SET c3= ? WHERE token= ? "
+            atualizar2(consulta, valores=[c3,token])
+            consulta = "UPDATE avaliacoes SET c4= ? WHERE token= ? "
+            atualizar2(consulta, valores=[c4,token])
+            consulta = "UPDATE avaliacoes SET c5= ? WHERE token= ? "
+            atualizar2(consulta, valores=[c5,token])
+            consulta = "UPDATE avaliacoes SET c6= ? WHERE token= ? "
+            atualizar2(consulta, valores=[c6,token])
+            consulta = "UPDATE avaliacoes SET c7= ? WHERE token= ? "
+            atualizar2(consulta, valores=[c7,token])
+            consulta = "UPDATE avaliacoes SET cepa= ? WHERE token= ? "
+            atualizar2(consulta, valores=[comite,token])
             if modalidade==2:
                 inovacao = str(request.form['inovacao'])
-                consulta = "UPDATE avaliacoes SET inovacao=" + inovacao + " WHERE token=\"" + token + "\""
-                atualizar(consulta)
+                consulta = "UPDATE avaliacoes SET inovacao= ? WHERE token= ? "
+                atualizar2(consulta, valores=[inovacao,token])
         except Exception as e:
             logging.error(e)
             logging.error("[AVALIACAO] ERRO ao gravar a avaliação: %s", token)
             return("Não foi possível gravar a avaliação. Favor entrar contactar " + DEFAULT_EMAIL)
         try:
-            #return (redirect("/declaracaoAvaliador/" + token))
             return (redirect(url_for('getDeclaracaoAvaliador',tokenAvaliacao=token)))
         except Exception as e:
             logging.error(e)

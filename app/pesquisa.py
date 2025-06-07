@@ -1135,6 +1135,7 @@ def recusarConvite():
         return("OK")
 
 @app.route("/avaliacoesNegadas", methods=['GET', 'POST'])
+@auth.login_required(role=['admin'])
 def avaliacoesNegadas():
     if request.method == "GET":
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
@@ -1170,6 +1171,7 @@ def avaliacoesNegadas():
         return("OK")
 
 @app.route("/inserirAvaliador", methods=['GET', 'POST'])
+@auth.login_required(role=['admin'])
 def inserirAvaliador():
     """
     Atribuir avaliador a um projeto
@@ -1202,7 +1204,7 @@ def quantidades(consulta):
     conn.close()
     return (total)
 
-## TODO: Finalizar as estatisticas - Projetos aprovados devem ser vir da tabela editalProjeto
+## TODO: CONTINUAR PROTEÇÃO DE SQLi
 @app.route("/estatisticas", methods=['GET', 'POST'])
 def estatisticas():
     if request.method == "GET":

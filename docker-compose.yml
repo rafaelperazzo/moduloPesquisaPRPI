@@ -75,6 +75,7 @@ services:
       CPF_TESTES: ${CPF_TESTES}
       AES_KEY: ${AES_KEY}
       GPG_KEY: ${GPG_KEY}
+      DEFAULT_EMAIL: ${DEFAULT_EMAIL}
     
     healthcheck:
       test: ["CMD", "curl", "-f", "http://ip.me"]

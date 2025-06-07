@@ -1206,6 +1206,7 @@ def quantidades(consulta):
 
 ## TODO: CONTINUAR PROTEÇÃO DE SQLi
 @app.route("/estatisticas", methods=['GET', 'POST'])
+@auth.login_required
 def estatisticas():
     if request.method == "GET":
         codigoEdital = str(request.args.get('edital'))

@@ -1049,7 +1049,6 @@ def enviarAvaliacao():
     else:
         return("OK")
 
-## TODO: Revisar função abaixo
 def descricaoEdital(codigoEdital):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
     conn.select_db(MYSQL_DATABASE)

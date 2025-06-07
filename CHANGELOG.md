@@ -1,3 +1,4 @@
+	2025-06-07 13:29:15 -0300	fix: protegida rota /estatisticas e incluída variável de ambiente DEFAULT_EMAIL no docker-compose.yml
 	2025-06-07 13:22:21 -0300	fix: protegidas rotas de inserção de avaliadores para projetos
 	2025-06-07 13:17:11 -0300	fix: Corrigidos SQLi até a rota /inserirAvaliador (não testado)
 	2025-06-06 15:45:44 -0300	fix: Rota /avaliar com consultas parametrizadas

@@ -11,7 +11,7 @@ import string
 import random
 import logging
 import sys
-import numpy as np
+import re
 import pdfkit
 from flask_mail import Mail
 from flask_mail import Message
@@ -336,6 +336,21 @@ def token_valido(token):
     else:
         return True
 
+def nome_valido(nome):
+    """Verifica se um nome é válido.
+
+    Args:
+        nome (string): Nome
+
+    Returns:
+        boolean: Verdadeiro ou falso
+    """
+    padrao = "^[a-zA-Z\u00C0-\u00FF ]+$"
+    if re.fullmatch(padrao, nome):
+        return True
+    else:
+        return False
+
 def id_generator(size=20, chars=string.ascii_uppercase + string.digits + string.ascii_lowercase):
     return ''.join(random.choice(chars) for _ in range(size))
 
@@ -593,7 +608,7 @@ def declaracao():
 @app.route("/projetosAluno", methods=['POST'])
 def projetos():
     try:
-        if not token_valido(str(request.form['txtNome'])):
+        if not nome_valido(str(request.form['txtNome'])):
             return "Nome do aluno inválido!"
         projetosAluno,projetosAluno2019 = gerarProjetosPorAluno(str(request.form['txtNome']))
         return render_template('alunos.html',listaProjetos=projetosAluno,
@@ -966,10 +981,11 @@ def getPaginaAvaliacao():
         else:
             return "ID Inválido ou prazo de avaliação expirado!"
 
-#Gravar avaliacao gerada pelo avaliador
-#TODO: Continuar a implementação da verificação das entradas do usuário para evitar SQL Injection
 @app.route("/avaliar", methods=['GET', 'POST'])
 def enviarAvaliacao():
+    """
+    Grava a avaliação do avaliador no banco de dados.
+    """
     if request.method == "POST":
         comentarios = str(request.form['txtComentarios'])
         recomendacao = str(request.form['txtRecomendacao'])
@@ -1066,6 +1082,9 @@ def getDeclaracaoAvaliador(tokenAvaliacao):
     """
     Gera a declaração de avaliação do avaliador.
     """
+    if not token_valido(tokenAvaliacao):
+        logging.error("[/declaracaoAvaliador] Token inválido: %s", tokenAvaliacao)
+        return "Token inválido!"
     consulta = f"""
     SELECT nome_avaliador,idProjeto,avaliador FROM avaliacoes WHERE token="{tokenAvaliacao}" 
     AND finalizado=1
@@ -1106,6 +1125,9 @@ def consultar(consulta):
 def recusarConvite():
     if request.method == "GET":
         tokenAvaliacao = str(request.args.get('token'))
+        if not token_valido(tokenAvaliacao):
+            logging.error("[/recusarConvite] Token inválido: %s", tokenAvaliacao)
+            return "Token inválido!"
         consulta = "UPDATE avaliacoes SET aceitou=0 WHERE token=\"" + tokenAvaliacao + "\""
         atualizar(consulta)
         return("Avaliação cancelada com sucesso. Agradecemos a atenção.")
@@ -1120,8 +1142,14 @@ def avaliacoesNegadas():
         cursor  = conn.cursor()
         if 'edital' in request.args:
             codigoEdital = str(request.args.get('edital'))
+            if not numero_valido(codigoEdital):
+                logging.error("[/avaliacoesNegadas] Código do edital inválido: %s", codigoEdital)
+                return "Código do edital inválido!"
             if 'id' in request.args:
                 idProjeto = str(request.args.get('id'))
+                if not numero_valido(idProjeto):
+                    logging.error("[/avaliacoesNegadas] ID do projeto inválido: %s", idProjeto)
+                    return "ID do projeto inválido!"
                 consulta = "SELECT resumoGeralAvaliacoes.id,CONCAT(SUBSTRING(resumoGeralAvaliacoes.titulo,1,80),\" - (\",resumoGeralAvaliacoes.nome,\" )\"),(resumoGeralAvaliacoes.aceites+resumoGeralAvaliacoes.rejeicoes) as resultado,resumoGeralAvaliacoes.indefinido FROM resumoGeralAvaliacoes WHERE ((aceites+rejeicoes<10) OR (aceites=rejeicoes)) AND tipo=" + codigoEdital + " AND id = " + idProjeto +" ORDER BY aceites+rejeicoes, id"
             else:
                 consulta = "SELECT resumoGeralAvaliacoes.id,CONCAT(SUBSTRING(resumoGeralAvaliacoes.titulo,1,80),\" - (\",resumoGeralAvaliacoes.nome,\" )\"),(resumoGeralAvaliacoes.aceites+resumoGeralAvaliacoes.rejeicoes) as resultado,resumoGeralAvaliacoes.indefinido FROM resumoGeralAvaliacoes WHERE ((aceites+rejeicoes<2) OR (aceites=rejeicoes)) AND tipo=" + codigoEdital + " ORDER BY aceites+rejeicoes, id"
@@ -1131,8 +1159,7 @@ def avaliacoesNegadas():
                 total = cursor.rowcount
                 conn.close()
                 return(render_template('inserirAvaliador.html',listaProjetos=linha,totalDeLinhas=total,codigoEdital=codigoEdital))
-            except:
-                e = sys.exc_info()[0]
+            except Exception as e:
                 logging.error(e)
                 logging.error(consulta)
                 conn.close()
@@ -1144,18 +1171,21 @@ def avaliacoesNegadas():
 
 @app.route("/inserirAvaliador", methods=['GET', 'POST'])
 def inserirAvaliador():
+    """
+    Atribuir avaliador a um projeto
+    """
     if request.method == "POST":
         token = id_generator(40)
         idProjeto = int(request.form['txtProjeto'])
         avaliador1_email = str(request.form['txtEmail'])
         consulta_verificacao = """
-            SELECT avaliador from avaliacoes WHERE idProjeto = %s AND avaliador = "%s"
-        """ % (idProjeto, avaliador1_email)
-        linhas, total = executarSelect(consulta_verificacao)
+            SELECT avaliador from avaliacoes WHERE idProjeto = ? AND avaliador = ? 
+        """
+        linhas, total = executarSelect2(consulta_verificacao,valores=[idProjeto, avaliador1_email])
         if total > 0: #Já existe este avaliador para este projeto
             return("Avaliador já cadastrado para este projeto.")
-        consulta = "INSERT INTO avaliacoes (aceitou,avaliador,token,idProjeto) VALUES (-1,\"" + avaliador1_email + "\", \"" + token + "\", " + str(idProjeto) + ")"
-        atualizar(consulta)
+        consulta = "INSERT INTO avaliacoes (aceitou,avaliador,token,idProjeto) VALUES (-1, ?, ?, ?)"
+        atualizar2(consulta, valores=[avaliador1_email, token, str(idProjeto)])
         t = threading.Thread(target=enviarPedidoAvaliacao,args=(idProjeto,))
         t.start()
         return("Avaliador cadastrado com sucesso.")

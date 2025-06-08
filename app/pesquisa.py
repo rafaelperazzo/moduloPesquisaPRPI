@@ -2064,7 +2064,6 @@ def login():
                 return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
         else:
             return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
-    #TODO: Verificar se realmente é necessário o método GET aqui
     else: #GET
         return(render_template('login.html',mensagem='Entre com suas credenciais de acesso'))
 
@@ -3354,6 +3353,9 @@ def get_projetos_discente():
         return (render_template('projetos.html'))
     else:
         try:
+            if not nome_valido(str(request.form['txtNome'])):
+                flash("Nome inválido. Por favor, insira um nome válido.")
+                return redirect(url_for('get_projetos_discente'))
             projetosAluno,projetosAluno2019 = gerarProjetosPorAluno(str(request.form['txtNome']))
             return render_template('alunos.html',listaProjetos=projetosAluno,lista2019=projetosAluno2019)
         except Exception as e:

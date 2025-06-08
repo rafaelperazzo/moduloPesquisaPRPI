@@ -1,3 +1,4 @@
+	2025-06-08 16:27:33 -0300	fix: DSN do sentry incluído como um segredo do infisical
 	2025-06-08 16:22:41 -0300	feat: Comecei a incluir o recurso de integração com o sentry
 	2025-06-08 14:28:00 -0300	security: rota /cadastrarProjeto protegida e com consultas parametrizadas (não testado)
 	2025-06-08 13:32:21 -0300	fix: permissões das rotas agora estão protegidas com o decorator login_required

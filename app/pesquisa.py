@@ -31,6 +31,8 @@ import secrets
 from functools import wraps
 from datetime import timedelta
 import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -67,6 +69,15 @@ sentry_sdk.init(
     dsn=DSN_SENTRY,
     # Add data like request headers and IP for users,
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    integrations = [
+        FlaskIntegration(
+            transaction_style="url",
+        ),
+        LoggingIntegration(
+            level=logging.ERROR,        # Capture info and above as breadcrumbs
+            event_level=logging.ERROR   # Send records as events
+        ),
+    ],
     send_default_pii=True,
 )
 

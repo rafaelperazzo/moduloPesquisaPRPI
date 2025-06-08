@@ -127,7 +127,6 @@ def login_required(role='admin'):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if (not 'username' in session) or (role not in session['roles']):
-                logging.debug("Tentativa de acesso a página sem autenticação.")
                 return(render_template('login.html',
                                     mensagem="É necessário autenticação para acessar a página solicitada"))
             return f(*args, **kwargs)
@@ -436,7 +435,6 @@ def gerarDeclaracaoOrientador(identificador):
     conn.close()
     return (linha,frase_bolsistas)
 
-
 def gerarProjetosPorAluno(cpf):
     try:
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
@@ -460,7 +458,6 @@ def gerarProjetosPorAluno(cpf):
         cursor.close()
         conn.close()
 
-
 def gerarProjetosPorOrientador(identificador):
     #CONEXÃO COM BD
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
@@ -471,7 +468,6 @@ def gerarProjetosPorOrientador(identificador):
     linhas = cursor.fetchall()
     conn.close()
     return (linhas)
-
 
 def gerarAutenticacao(identificador):
     #CONEXÃO COM BD
@@ -502,6 +498,7 @@ def verify_password(username, password):
     """
     try:
         if not username_valido(username):
+            logging.debug("Nome de usuário inválido: %s", username)
             return False
         consulta2 = """
         SELECT id,
@@ -521,7 +518,9 @@ def verify_password(username, password):
                     continuar = True
                 else:
                     continuar = False
+                    logging.debug("Senha inválida (hash argon) para o usuário: %s", username)
             except Exception:
+                logging.debug("Erro ao verificar a senha com hash argon2id para o usuário: %s", username)
                 continuar = False
         else:
             continuar = False

@@ -1,3 +1,4 @@
+	2025-06-08 09:56:33 -0300	fix: decorator login_required solicita também um role de usuário
 	2025-06-08 09:31:48 -0300	feat: Implementado decorator login_required
 	2025-06-07 13:33:57 -0300	doc: Removidos TODOs resolvidos
 	2025-06-07 13:29:15 -0300	fix: protegida rota /estatisticas e incluída variável de ambiente DEFAULT_EMAIL no docker-compose.yml

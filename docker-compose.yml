@@ -76,6 +76,7 @@ services:
       AES_KEY: ${AES_KEY}
       GPG_KEY: ${GPG_KEY}
       DEFAULT_EMAIL: ${DEFAULT_EMAIL}
+      DSN_SENTRY: ${DSN_SENTRY}
     
     healthcheck:
       test: ["CMD", "curl", "-f", "http://ip.me"]

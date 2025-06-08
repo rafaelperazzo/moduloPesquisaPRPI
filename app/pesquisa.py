@@ -29,6 +29,7 @@ from brseclabcripto.cripto3 import SecCripto
 from git import Repo
 import secrets
 from functools import wraps
+from datetime import timedelta
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -121,6 +122,8 @@ submissoes = UploadSet("submissoes", DOCUMENTS, default_dest=SUBMISSOES_DIR)
 
 configure_uploads(app, anexos)
 configure_uploads(app, submissoes)
+
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
 
 def login_required(role='admin'):
     def decorator_login_required(f):
@@ -562,11 +565,6 @@ def autenticado():
 def logout():
     session.clear()
 
-'''
-FIM AUTENTICAÇÃO
-**************************************************************
-'''
-
 @app.route('/segredo')
 @auth.login_required
 def secret_page():
@@ -574,9 +572,8 @@ def secret_page():
 
 @app.route("/")
 def home():
-    editaisAbertos = getEditaisAbertos()
     session['PRODUCAO'] = PRODUCAO
-    return render_template('cadastrarProjeto.html',abertos=editaisAbertos)
+    return render_template('root.html',version=__version__)
 
 @app.route("/version")
 def version():
@@ -662,210 +659,216 @@ def declaracaoOrientador():
                            data=data_agora,identificador=texto_declaracao[0],bolsistas=bolsistas)
 
 @app.route("/cadastrarProjeto", methods=['GET', 'POST'])
+@login_required(role='user')
 def cadastrarProjeto():
-    #CADASTRAR DADOS DO PROPONENTE
-    tipo = int(request.form['tipo'])
-    nome = str(request.form['nome'])
-    categoria_projeto = int(request.form['categoria_projeto'])
-    try:
-        siape = int(removerTravessao(request.form['siape']))
-    except ValueError as e:
-        logging.error("Erro ao converter SIAPE para inteiro.")
-        logging.error(e)
-        siape = 0
-    email = str(request.form['email'])
-    ua = str(request.form['ua'])
-    area_capes = str(request.form['area_capes'])
-    grande_area = str(request.form['grande_area'])
-    grupo = str(request.form['grupo'])
-    grupo = removerAspas(grupo)
-    ods_projeto = str(request.form['ods_projeto'])
-    inovacao = int(request.form['inovacao'])
-    justificativa = ""
-    if 'justificativa' in request.form:
-        justificativa = str(request.form['justificativa'])
-    else:
+    if request.method == "POST":
+        #CADASTRAR DADOS DO PROPONENTE
+        tipo = int(request.form['tipo'])
+        nome = str(request.form['nome'])
+        categoria_projeto = int(request.form['categoria_projeto'])
+        try:
+            siape = int(removerTravessao(request.form['siape']))
+        except ValueError as e:
+            logging.error("Erro ao converter SIAPE para inteiro.")
+            logging.error(e)
+            siape = 0
+        email = str(request.form['email'])
+        ua = str(request.form['ua'])
+        area_capes = str(request.form['area_capes'])
+        grande_area = str(request.form['grande_area'])
+        grupo = str(request.form['grupo'])
+        grupo = removerAspas(grupo)
+        ods_projeto = str(request.form['ods_projeto'])
+        inovacao = int(request.form['inovacao'])
         justificativa = ""
-    justificativa = removerAspas(justificativa)
-    cpf = str(request.form['cpf'])
-    #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    
-    conn.select_db(MYSQL_DATABASE)
-    cursor  = conn.cursor()
+        if 'justificativa' in request.form:
+            justificativa = str(request.form['justificativa'])
+        else:
+            justificativa = ""
+        justificativa = removerAspas(justificativa)
+        cpf = str(request.form['cpf'])
+        #CONEXÃO COM BD
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+        
+        conn.select_db(MYSQL_DATABASE)
+        cursor  = conn.cursor()
 
-    #DADOS PESSOAIS E BÁSICOS DO PROJETO
-    consulta = "INSERT INTO editalProjeto (categoria,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,data,ods,inovacao,justificativa) VALUES (" + str(categoria_projeto) + "," + str(tipo) + "," +  "\"" + nome + "\"," + str(siape) + "," + "\"" + email + "\"," + "\"" + ua + "\"," + "\"" + area_capes + "\"," + "\"" + grande_area + "\"," + "\"" + grupo + "\"," + "CURRENT_TIMESTAMP()," + ods_projeto + ", " + str(inovacao) + ", " + "\"" + justificativa + "\"" +")"
-    #atualizar(consulta)
-    try:
-        cursor.execute(consulta)
-        conn.commit()
-    except MySQLdb.Error as e:
-        logging.error(str(e))
-        logging.error(consulta)
-        #conn.rollback()
-        return(str(e))
+        #DADOS PESSOAIS E BÁSICOS DO PROJETO
+        consulta = "INSERT INTO editalProjeto (categoria,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,data,ods,inovacao,justificativa) VALUES (" + str(categoria_projeto) + "," + str(tipo) + "," +  "\"" + nome + "\"," + str(siape) + "," + "\"" + email + "\"," + "\"" + ua + "\"," + "\"" + area_capes + "\"," + "\"" + grande_area + "\"," + "\"" + grupo + "\"," + "CURRENT_TIMESTAMP()," + ods_projeto + ", " + str(inovacao) + ", " + "\"" + justificativa + "\"" +")"
+        #atualizar(consulta)
+        try:
+            cursor.execute(consulta)
+            conn.commit()
+        except MySQLdb.Error as e:
+            logging.error(str(e))
+            logging.error(consulta)
+            #conn.rollback()
+            return(str(e))
 
-    lastID = "SELECT LAST_INSERT_ID()"
-    cursor.execute(lastID)
-    ultimo_id = int(cursor.fetchone()[0])
-    ultimo_id_str = "%03d" % (ultimo_id)
-    if tipo==0:
-        tipo_str = "Fluxo Continuo"
-    else:
-        tipo_str= "Edital"
+        lastID = "SELECT LAST_INSERT_ID()"
+        cursor.execute(lastID)
+        ultimo_id = int(cursor.fetchone()[0])
+        ultimo_id_str = "%03d" % (ultimo_id)
+        if tipo==0:
+            tipo_str = "Fluxo Continuo"
+        else:
+            tipo_str= "Edital"
 
-    if categoria_projeto==0:
-        categoria_str = "Projeto em andamento"
-    else:
-        categoria_str= "Projeto Novo"
+        if categoria_projeto==0:
+            categoria_str = "Projeto em andamento"
+        else:
+            categoria_str= "Projeto Novo"
 
-    logging.debug("Projeto [" + tipo_str + "] [" + categoria_str + "] com ID: " + ultimo_id_str + " cadastrado. Proponente: " + nome)
-    #CADASTRAR DADOS DO PROJETO
+        logging.debug("Projeto [" + tipo_str + "] [" + categoria_str + "] com ID: " + ultimo_id_str + " cadastrado. Proponente: " + nome)
+        #CADASTRAR DADOS DO PROJETO
 
-    titulo = str(request.form['titulo'])
-    titulo = removerAspas(titulo)
-    validade = int(request.form['validade'])
-    palavras_chave = str(request.form['palavras_chave'])
-    palavras_chave = removerAspas(palavras_chave)
-    descricao_resumida = str(request.form['descricao_resumida'])
-    descricao_resumida = removerAspas(descricao_resumida)
-    if 'numero_bolsas' in request.form:
-        bolsas = int(request.form['numero_bolsas'])
-    else:
-        bolsas = 0
-    transporte = str(request.form['transporte'])
-    consulta = "UPDATE editalProjeto SET titulo=\"" + titulo + "\", validade=" + str(validade) + ", palavras=\"" + palavras_chave + "\", resumo=\"" + descricao_resumida + "\", bolsas=" + str(bolsas) +  " WHERE id=" + str(ultimo_id)
-    logging.debug("Preparando para atualizar dados do projeto.")
-    atualizar(consulta)
-    consulta = "UPDATE editalProjeto SET transporte=" + transporte + " WHERE id=" + str(ultimo_id)
-    atualizar(consulta)
-    inicio = str(request.form['inicio'])
-    fim = str(request.form['fim'])
-    consulta = "UPDATE editalProjeto SET inicio=\"" + inicio + "\" WHERE id=" + str(ultimo_id)
-    atualizar(consulta)
-    consulta = "UPDATE editalProjeto SET fim=\"" + fim + "\" WHERE id=" + str(ultimo_id)
-    atualizar(consulta)
-    logging.debug("Dados do projeto cadastrados.")
-    codigo = id_generator()
+        titulo = str(request.form['titulo'])
+        titulo = removerAspas(titulo)
+        validade = int(request.form['validade'])
+        palavras_chave = str(request.form['palavras_chave'])
+        palavras_chave = removerAspas(palavras_chave)
+        descricao_resumida = str(request.form['descricao_resumida'])
+        descricao_resumida = removerAspas(descricao_resumida)
+        if 'numero_bolsas' in request.form:
+            bolsas = int(request.form['numero_bolsas'])
+        else:
+            bolsas = 0
+        transporte = str(request.form['transporte'])
+        consulta = "UPDATE editalProjeto SET titulo=\"" + titulo + "\", validade=" + str(validade) + ", palavras=\"" + palavras_chave + "\", resumo=\"" + descricao_resumida + "\", bolsas=" + str(bolsas) +  " WHERE id=" + str(ultimo_id)
+        logging.debug("Preparando para atualizar dados do projeto.")
+        atualizar(consulta)
+        consulta = "UPDATE editalProjeto SET transporte=" + transporte + " WHERE id=" + str(ultimo_id)
+        atualizar(consulta)
+        inicio = str(request.form['inicio'])
+        fim = str(request.form['fim'])
+        consulta = "UPDATE editalProjeto SET inicio=\"" + inicio + "\" WHERE id=" + str(ultimo_id)
+        atualizar(consulta)
+        consulta = "UPDATE editalProjeto SET fim=\"" + fim + "\" WHERE id=" + str(ultimo_id)
+        atualizar(consulta)
+        logging.debug("Dados do projeto cadastrados.")
+        codigo = id_generator()
 
-    if ('arquivo_projeto' in request.files):
-        arquivo_projeto = request.files['arquivo_projeto']
-        if arquivo_projeto and allowed_file(arquivo_projeto.filename) :
-            arquivo_projeto.filename = "projeto_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
-            filename = secure_filename(arquivo_projeto.filename)
-            submissoes.save(arquivo_projeto, name=filename)
-            encripta_e_apaga(SUBMISSOES_DIR + filename)
-            consulta = "UPDATE editalProjeto SET arquivo_projeto=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-            atualizar(consulta)
-            logging.debug("Arquivo de projeto cadastrado.")
-        elif not allowed_file(arquivo_projeto.filename):
-    	    return ("Arquivo de projeto não permitido")
-    else:
-        logging.debug("Não foi incluído um arquivo de projeto")
+        if ('arquivo_projeto' in request.files):
+            arquivo_projeto = request.files['arquivo_projeto']
+            if arquivo_projeto and allowed_file(arquivo_projeto.filename) :
+                arquivo_projeto.filename = "projeto_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
+                filename = secure_filename(arquivo_projeto.filename)
+                submissoes.save(arquivo_projeto, name=filename)
+                encripta_e_apaga(SUBMISSOES_DIR + filename)
+                consulta = "UPDATE editalProjeto SET arquivo_projeto=\"" + filename + "\" WHERE id=" + str(ultimo_id)
+                atualizar(consulta)
+                logging.debug("Arquivo de projeto cadastrado.")
+            elif not allowed_file(arquivo_projeto.filename):
+                return ("Arquivo de projeto não permitido")
+        else:
+            logging.debug("Não foi incluído um arquivo de projeto")
 
-    if ('arquivo_plano1' in request.files):
+        if ('arquivo_plano1' in request.files):
 
-        arquivo_plano1 = request.files['arquivo_plano1']
-        if arquivo_plano1 and allowed_file(arquivo_plano1.filename):
-            arquivo_plano1.filename = "plano1_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
-            filename = secure_filename(arquivo_plano1.filename)
-            submissoes.save(arquivo_plano1, name=filename)
-            encripta_e_apaga(SUBMISSOES_DIR + filename)
-            consulta = "UPDATE editalProjeto SET arquivo_plano1=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-            atualizar(consulta)
-            logging.debug("Arquivo Plano 1 cadastrado.")
-        elif not allowed_file(arquivo_plano1.filename):
-    	    return ("Arquivo de plano 1 de trabalho não permitido")
-    else:
-        logging.debug("Não foi incluído um arquivo de plano 1")
+            arquivo_plano1 = request.files['arquivo_plano1']
+            if arquivo_plano1 and allowed_file(arquivo_plano1.filename):
+                arquivo_plano1.filename = "plano1_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
+                filename = secure_filename(arquivo_plano1.filename)
+                submissoes.save(arquivo_plano1, name=filename)
+                encripta_e_apaga(SUBMISSOES_DIR + filename)
+                consulta = "UPDATE editalProjeto SET arquivo_plano1=\"" + filename + "\" WHERE id=" + str(ultimo_id)
+                atualizar(consulta)
+                logging.debug("Arquivo Plano 1 cadastrado.")
+            elif not allowed_file(arquivo_plano1.filename):
+                return ("Arquivo de plano 1 de trabalho não permitido")
+        else:
+            logging.debug("Não foi incluído um arquivo de plano 1")
 
-    if ('arquivo_plano2' in request.files):
-        arquivo_plano2 = request.files['arquivo_plano2']
-        if arquivo_plano2 and allowed_file(arquivo_plano2.filename):
-            arquivo_plano2.filename = "plano2_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
-            filename = secure_filename(arquivo_plano2.filename)
-            submissoes.save(arquivo_plano2, name=filename)
-            encripta_e_apaga(SUBMISSOES_DIR + filename)
-            consulta = "UPDATE editalProjeto SET arquivo_plano2=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-            atualizar(consulta)
-            logging.debug("Arquivo Plano 2 cadastrado.")
-        elif not allowed_file(arquivo_plano2.filename):
-    	    return ("Arquivo de plano 2 de trabalho não permitido")
-    else:
-        logging.debug("Não foi incluído um arquivo de plano 2")
+        if ('arquivo_plano2' in request.files):
+            arquivo_plano2 = request.files['arquivo_plano2']
+            if arquivo_plano2 and allowed_file(arquivo_plano2.filename):
+                arquivo_plano2.filename = "plano2_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
+                filename = secure_filename(arquivo_plano2.filename)
+                submissoes.save(arquivo_plano2, name=filename)
+                encripta_e_apaga(SUBMISSOES_DIR + filename)
+                consulta = "UPDATE editalProjeto SET arquivo_plano2=\"" + filename + "\" WHERE id=" + str(ultimo_id)
+                atualizar(consulta)
+                logging.debug("Arquivo Plano 2 cadastrado.")
+            elif not allowed_file(arquivo_plano2.filename):
+                return ("Arquivo de plano 2 de trabalho não permitido")
+        else:
+            logging.debug("Não foi incluído um arquivo de plano 2")
 
-    if ('arquivo_plano3' in request.files):
-        arquivo_plano3 = request.files['arquivo_plano3']
-        if arquivo_plano3.filename=="":
+        if ('arquivo_plano3' in request.files):
+            arquivo_plano3 = request.files['arquivo_plano3']
+            if arquivo_plano3.filename=="":
+                logging.debug("Não foi incluído um arquivo de plano 3")
+            elif arquivo_plano3 and allowed_file(arquivo_plano3.filename):
+                arquivo_plano3.filename = "plano3_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
+                filename = secure_filename(arquivo_plano3.filename)
+                submissoes.save(arquivo_plano3, name=filename)
+                encripta_e_apaga(SUBMISSOES_DIR + filename)
+                consulta = "UPDATE editalProjeto SET arquivo_plano3=\"" + filename + "\" WHERE id=" + str(ultimo_id)
+                atualizar(consulta)
+                logging.debug("Arquivo Plano 3 cadastrado.")
+            elif not allowed_file(arquivo_plano3.filename):
+                    return ("Arquivo de plano 3 de trabalho não permitido")
+        else:
             logging.debug("Não foi incluído um arquivo de plano 3")
-        elif arquivo_plano3 and allowed_file(arquivo_plano3.filename):
-            arquivo_plano3.filename = "plano3_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
-            filename = secure_filename(arquivo_plano3.filename)
-            submissoes.save(arquivo_plano3, name=filename)
-            encripta_e_apaga(SUBMISSOES_DIR + filename)
-            consulta = "UPDATE editalProjeto SET arquivo_plano3=\"" + filename + "\" WHERE id=" + str(ultimo_id)
+
+        #ARQUIVO DE COMPROVANTES
+        if ('arquivo_comprovantes' in request.files):
+            arquivo_comprovantes = request.files['arquivo_comprovantes']
+            if allowed_file(arquivo_comprovantes.filename):
+                arquivo_comprovantes.filename = "Comprovantes_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
+                filename = secure_filename(arquivo_comprovantes.filename)
+                submissoes.save(arquivo_comprovantes, name=filename)
+                encripta_e_apaga(SUBMISSOES_DIR + filename)
+                consulta = "UPDATE editalProjeto SET arquivo_comprovantes=\"" + filename + "\" WHERE id=" + str(ultimo_id)
+                atualizar(consulta)
+                logging.debug("Arquivo COMPROVANTES cadastrado.")
+        else:
+            logging.debug("Não foi incluído um arquivo de COMPROVANTES")
+
+        #CADASTRAR AVALIADORES SUGERIDOS
+        if 'avaliador1_email' in request.form:
+            avaliador1_email = str(request.form['avaliador1_email'])
+            if avaliador1_email!='':
+                token = id_generator(40)
+                consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador1_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
+                atualizar(consulta)
+                logging.debug("Avaliador 1 sugerido cadastrado.")
+
+        if 'avaliador2_email' in request.form:
+            avaliador2_email = str(request.form['avaliador2_email'])
+            if avaliador2_email!='':
+                token = id_generator(40)
+                consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador2_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
+                atualizar(consulta)
+                logging.debug("Avaliador 2 sugerido cadastrado.")
+
+        if 'avaliador3_email' in request.form:
+            avaliador3_email = str(request.form['avaliador3_email'])
+            if avaliador3_email!='':
+                token = id_generator(40)
+                consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador3_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
+                atualizar(consulta)
+                logging.debug("Avaliador 3 sugerido cadastrado.")
+        #Incluir avaliador teste em caso de não inclusão
+        if ('avaliador1_email' not in request.form and 'avaliador2_email' not in request.form and 'avaliador3_email' not in request.form):
+            token = id_generator(40)
+            consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + "TESTE@IGNORAR.COM" + "\", \"" + token + "\", " + str(ultimo_id) + ")"
             atualizar(consulta)
-            logging.debug("Arquivo Plano 3 cadastrado.")
-        elif not allowed_file(arquivo_plano3.filename):
-                return ("Arquivo de plano 3 de trabalho não permitido")
+            logging.debug("Avaliador TESTE sugerido cadastrado.")
+        elif avaliador1_email=="" and avaliador2_email=="" and avaliador3_email=="":
+            token = id_generator(40)
+            consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + "TESTE@IGNORAR.COM" + "\", \"" + token + "\", " + str(ultimo_id) + ")"
+            atualizar(consulta)
+            logging.debug("Avaliador TESTE sugerido cadastrado.")
+        #CALCULANDO scorelattes
+        dados = [email,nome,titulo,descricao_resumida]
+        t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
+        t.start()
+        return("Submissão realizada com sucesso. ESTA PÁGINA JÁ PODE SER FECHADA COM SEGURANÇA.")
     else:
-        logging.debug("Não foi incluído um arquivo de plano 3")
-
-    #ARQUIVO DE COMPROVANTES
-    if ('arquivo_comprovantes' in request.files):
-        arquivo_comprovantes = request.files['arquivo_comprovantes']
-        if allowed_file(arquivo_comprovantes.filename):
-            arquivo_comprovantes.filename = "Comprovantes_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
-            filename = secure_filename(arquivo_comprovantes.filename)
-            submissoes.save(arquivo_comprovantes, name=filename)
-            encripta_e_apaga(SUBMISSOES_DIR + filename)
-            consulta = "UPDATE editalProjeto SET arquivo_comprovantes=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-            atualizar(consulta)
-            logging.debug("Arquivo COMPROVANTES cadastrado.")
-    else:
-        logging.debug("Não foi incluído um arquivo de COMPROVANTES")
-
-    #CADASTRAR AVALIADORES SUGERIDOS
-    if 'avaliador1_email' in request.form:
-        avaliador1_email = str(request.form['avaliador1_email'])
-        if avaliador1_email!='':
-            token = id_generator(40)
-            consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador1_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-            atualizar(consulta)
-            logging.debug("Avaliador 1 sugerido cadastrado.")
-
-    if 'avaliador2_email' in request.form:
-        avaliador2_email = str(request.form['avaliador2_email'])
-        if avaliador2_email!='':
-            token = id_generator(40)
-            consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador2_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-            atualizar(consulta)
-            logging.debug("Avaliador 2 sugerido cadastrado.")
-
-    if 'avaliador3_email' in request.form:
-        avaliador3_email = str(request.form['avaliador3_email'])
-        if avaliador3_email!='':
-            token = id_generator(40)
-            consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador3_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-            atualizar(consulta)
-            logging.debug("Avaliador 3 sugerido cadastrado.")
-    #Incluir avaliador teste em caso de não inclusão
-    if ('avaliador1_email' not in request.form and 'avaliador2_email' not in request.form and 'avaliador3_email' not in request.form):
-        token = id_generator(40)
-        consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + "TESTE@IGNORAR.COM" + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-        atualizar(consulta)
-        logging.debug("Avaliador TESTE sugerido cadastrado.")
-    elif avaliador1_email=="" and avaliador2_email=="" and avaliador3_email=="":
-        token = id_generator(40)
-        consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + "TESTE@IGNORAR.COM" + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-        atualizar(consulta)
-        logging.debug("Avaliador TESTE sugerido cadastrado.")
-    #CALCULANDO scorelattes
-    dados = [email,nome,titulo,descricao_resumida]
-    t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
-    t.start()
-    return("Submissão realizada com sucesso. ESTA PÁGINA JÁ PODE SER FECHADA COM SEGURANÇA.")
+        editaisAbertos = getEditaisAbertos()
+        session['PRODUCAO'] = PRODUCAO
+        return render_template('cadastrarProjeto.html',abertos=editaisAbertos)
 
 @app.route("/scorelattes", methods=['GET'])
 def calcularScorelattesFromID():
@@ -2044,11 +2047,11 @@ def registrar_acesso(ip,usuario):
     except Exception as e:
         logging.error("Erro ao registrar acesso: " + str(e))
 
-'''
-Método que ativa a sessão com os dados do usuário
-'''
 @app.route("/login", methods=['POST','GET'])
 def login():
+    '''
+    Método que ativa a sessão com os dados do usuário
+    '''
     if request.method == "POST":
         if (('siape' in request.form) and ('senha' in request.form)):
             siape = str(request.form['siape'])
@@ -2056,22 +2059,14 @@ def login():
             senha = senha[:64]  # Limitar o tamanho da senha para evitar problemas ataques DoS
             if verify_password(siape,senha):
                 registrar_acesso(request.remote_addr,siape)
-                return(redirect(url_for('usuario')))
+                return(redirect(url_for('home')))
             else:
                 return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
         else:
             return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
+    #TODO: Verificar se realmente é necessário o método GET aqui
     else: #GET
-        if 'siape' in request.args and 'senha' in request.args:
-            siape = str(request.args.get('siape'))
-            senha = str(request.args.get('senha'))
-            if verify_password(siape,senha):
-                registrar_acesso(request.remote_addr,siape)
-                return(redirect(url_for('usuario')))
-            else:
-                return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
-        else:
-            return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
+        return(render_template('login.html',mensagem='Entre com suas credenciais de acesso'))
 
 @app.route("/esqueciMinhaSenha", methods=['GET', 'POST'])
 def esqueciMinhaSenha():
@@ -2121,7 +2116,7 @@ def enviarMinhaSenha():
 @app.route("/logout", methods=['GET', 'POST'])
 def encerrarSessao():
     logout()
-    return(render_template('login.html',mensagem=''))
+    return redirect(url_for('home'))
 
 def projetoAprovado(idProjeto):
 

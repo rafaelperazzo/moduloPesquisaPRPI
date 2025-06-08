@@ -1,0 +1,36 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+
+<div class="container text-center">
+  <div class="row">
+    <div class="col">
+        <div class="card" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-title">Cadastrar Projeto de Pesquisa</h5>
+                <p class="card-text">Submeter projeto para edital aberto</p>
+                <a href="{{ url_for('cadastrarProjeto') }}">CADASTRAR PROJETO DE PESQUISA</a>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+      <div class="card" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-title">Meus Projetos</h5>
+                <p class="card-text">Visualizar projetos submetidos, enviar frequências e gerar declarações</p>
+                <a href="{{ url_for('meusProjetos') }}">MEUS PROJETOS</a>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+      <div class="card" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-title">Módulo gestor</h5>
+                <p class="card-text">Gerenciar projetos submetidos</p>
+                <a href="{{ url_for('admin') }}">MÓDULO GESTOR</a>
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

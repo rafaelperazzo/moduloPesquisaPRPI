@@ -122,13 +122,17 @@ submissoes = UploadSet("submissoes", DOCUMENTS, default_dest=SUBMISSOES_DIR)
 configure_uploads(app, anexos)
 configure_uploads(app, submissoes)
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not 'username' in session:
-            return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
-        return f(*args, **kwargs)
-    return decorated_function
+def login_required(role='admin'):
+    def decorator_login_required(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if (not 'username' in session) or (role not in session['roles']):
+                logging.debug("Tentativa de acesso a página sem autenticação.")
+                return(render_template('login.html',
+                                    mensagem="É necessário autenticação para acessar a página solicitada"))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator_login_required
 
 def generate_secure_password(length=16, include_uppercase=True,
                              include_numbers=True, include_special_chars=True):

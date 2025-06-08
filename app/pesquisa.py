@@ -443,17 +443,16 @@ def gerarProjetosPorAluno(cpf):
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
         conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
-        consulta = """SELECT estudante_nome_completo,cpf,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,estudante_inicio,estudante_fim,token FROM cadastro_geral WHERE cpf = '""" + cpf + """'"""
-        cursor.execute(consulta)
+        consulta = """SELECT estudante_nome_completo,cpf,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,estudante_inicio,estudante_fim,token FROM cadastro_geral WHERE cpf = ? """
+        cursor.execute(consulta, (cpf,))
         linhas = cursor.fetchall()
         consulta = """SELECT indicacoes.nome,indicacoes.cpf,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),editalProjeto.nome,editalProjeto.titulo,indicacoes.inicio,indicacoes.fim,indicacoes.id
                     FROM indicacoes,editalProjeto
-                    WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.cpf='""" + cpf + """'"""
-        cursor.execute(consulta)
+                    WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.cpf= ? """
+        cursor.execute(consulta, (cpf,))
         linhas2019 = cursor.fetchall()
         return (linhas,linhas2019)
-    except:
-        e = sys.exc_info()[0]
+    except Exception as e:
         logging.error(e)
         logging.error("ERRO Na função gerarProjetosPorAluno. Ver consulta abaixo.")
         logging.error(consulta)
@@ -580,6 +579,7 @@ def version():
     return __version__
 
 @app.route("/admin")
+@login_required(role='admin')
 def admin():
     if (autenticado() and int(session['permissao'])==0):
         consulta = """SELECT id,nome FROM editais ORDER BY id"""
@@ -617,8 +617,6 @@ def declaracao():
 @app.route("/projetosAluno", methods=['POST'])
 def projetos():
     try:
-        if not nome_valido(str(request.form['txtNome'])):
-            return "Nome do aluno inválido!"
         projetosAluno,projetosAluno2019 = gerarProjetosPorAluno(str(request.form['txtNome']))
         return render_template('alunos.html',listaProjetos=projetosAluno,
                                lista2019=projetosAluno2019)
@@ -1149,7 +1147,7 @@ def recusarConvite():
         return("OK")
 
 @app.route("/avaliacoesNegadas", methods=['GET', 'POST'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 def avaliacoesNegadas():
     if request.method == "GET":
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
@@ -1185,7 +1183,7 @@ def avaliacoesNegadas():
         return("OK")
 
 @app.route("/inserirAvaliador", methods=['GET', 'POST'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 def inserirAvaliador():
     """
     Atribuir avaliador a um projeto
@@ -1220,7 +1218,7 @@ def quantidades(consulta):
 
 ## TODO: CONTINUAR PROTEÇÃO DE SQLi
 @app.route("/estatisticas", methods=['GET', 'POST'])
-@auth.login_required
+@login_required(role='admin')
 def estatisticas():
     if request.method == "GET":
         codigoEdital = str(request.args.get('edital'))
@@ -1552,8 +1550,8 @@ def gerarPDF(template):
     #return send_from_directory(app.config['TEMP_FOLDER'], 'resultados.pdf')
 
 @app.route("/editalProjeto", methods=['GET', 'POST'])
+@login_required(role='admin')
 def editalProjeto():
-    
     if (autenticado() and int(session['permissao'])==0):
         if request.method == "GET":
             #Recuperando o código do edital
@@ -1698,6 +1696,7 @@ def declaracaoEvento():
             return ("OK")
 
 @app.route("/meusProjetos", methods=['GET', 'POST'])
+@login_required(role='user')
 def meusProjetos():
     if 'siape' in request.args and 'senha' in request.args:
             siape = str(request.args.get('siape'))
@@ -1707,7 +1706,6 @@ def meusProjetos():
     if autenticado():        
         consulta = """SELECT id,nome_do_coordenador,orientador_lotacao,titulo_do_projeto,DATE_FORMAT(inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(termino,'%d/%m/%Y') as fim,estudante_nome_completo,token FROM cadastro_geral WHERE siape='""" + str(session['username']) + """' ORDER BY inicio,titulo_do_projeto"""
         projetos,total = executarSelect(consulta)
-
         consulta_outros = """SELECT 
         editalProjeto.id,
         editais.nome,
@@ -2001,6 +1999,7 @@ def minhaDeclaracaoDiscente2019():
         return("OK")
 
 @app.route("/meusPareceres", methods=['GET', 'POST'])
+@login_required(role='user')
 def meusPareceres():
     if request.method == "GET":
         #Recuperando o id do Projeto
@@ -2087,14 +2086,14 @@ def enviarMinhaSenha():
             email = str(request.form['email'])
             senha_forte = generate_secure_password()
             #ENVIAR E-MAIL
-            consulta = """SELECT username,id FROM users WHERE email='""" + email + """' """
-            linhas,total = executarSelect(consulta,1)
+            consulta = """SELECT username,id FROM users WHERE email= ? """
+            linhas,total = executarSelect2(consulta,1,valores=[email])
             if (total>0):
                 username = str(linhas[0])
                 idUsuario = str(linhas[1])
                 senha = senha_forte
                 if PRODUCAO==0:
-                    logging.debug("Senha gerada: " + senha)
+                    logging.debug("Senha gerada: %s", senha)
                 hash_senha = cripto.hash_argon2id(senha)
                 consulta = f"""UPDATE users SET password='{hash_senha}' WHERE id={idUsuario}"""
                 atualizar(consulta)
@@ -2136,6 +2135,7 @@ def projetoAprovado(idProjeto):
             return(False)
 
 @app.route("/prepararResultados", methods=['GET', 'POST'])
+@login_required(role='admin')
 def prepararResultados():
     if request.method == "GET":
         #Recuperando o código do edital
@@ -2249,6 +2249,7 @@ def tuplaDeEditais(ano):
 
 
 @app.route("/cruzarDados", methods=['GET', 'POST'])
+@login_required(role='admin')
 def cruzarDados():
     if request.method == "GET":
         #Recuperando o ano dos editais
@@ -2357,6 +2358,7 @@ def dataDeIndicacao(codigoEdital):
         return (True)
 
 @app.route("/indicacao", methods=['GET', 'POST'])
+@login_required(role='user')
 def indicacao():
     if request.method == "GET":
         #Recuperando o código do projeto
@@ -2416,6 +2418,7 @@ def encripta_e_apaga(arquivo):
     os.remove(arquivo)
 
 @app.route("/efetivarIndicacao", methods=['GET', 'POST'])
+@login_required(role='user')
 def efetivarIndicacao():
     if request.method == "POST":
         try:
@@ -2543,7 +2546,7 @@ def efetivarIndicacao():
         return("OK")
 
 @app.route("/indicacoes", methods=['GET', 'POST'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 def indicacoes():
     if request.method == "GET":
         #Recuperando código do edital
@@ -2617,6 +2620,7 @@ def verArquivo():
         return("OK")
     
 @app.route("/verArquivosProjeto/<filename>", methods=['GET', 'POST'])
+@login_required(role='admin')
 def verArquivosProjeto(filename):
     arquivo = secure_filename(filename) + ".gpg"
     if os.path.isfile(SUBMISSOES_DIR + arquivo):
@@ -2628,6 +2632,7 @@ def verArquivosProjeto(filename):
         return("Arquivo não encontrado!")
 
 @app.route("/situacaoIndicacoes", methods=['GET', 'POST'])
+@login_required(role='admin')
 def situacaoIndicacoes():
     if request.method == "GET":
         if 'edital' in request.args:
@@ -2706,6 +2711,7 @@ def jaEnviouFrequenciaAtual(idAluno,mes,ano):
 
 
 @app.route("/enviarFrequencia", methods=['GET', 'POST'])
+@login_required(role='user')
 def enviarFrequencia():
     if request.method == "GET":
         if 'id' in request.args:
@@ -2742,6 +2748,7 @@ def enviarFrequencia():
 
 
 @app.route("/cadastrarFrequencia", methods=['GET', 'POST'])
+@login_required(role='user')
 def cadastrarFrequencia():
     if request.method == "POST":
         s1 = str(request.form['s1'])
@@ -2899,6 +2906,7 @@ def timestamp():
     return(str(now))
 
 @app.route("/desligarIndicacao/<id_indicacao>", methods=['GET', 'POST'])
+@login_required(role='user')
 def desligarIndicacao(id_indicacao):
     idAluno = id_indicacao
     siape = session['username']
@@ -2959,6 +2967,7 @@ def enviar_email_desligamento_substituicao(msg):
 
 
 @app.route("/substituirIndicacao/<id_indicacao>", methods=['GET', 'POST'])
+@login_required(role='user')
 def substituirIndicacao(id_indicacao):
     idAluno = id_indicacao
     siape = session['username']
@@ -3072,6 +3081,7 @@ def consultas():
         return("OK")
 
 @app.route("/substituicoes", methods=['GET', 'POST'])
+@login_required(role='admin')
 def substituicoes():
     if 'id' in request.args:
         id = str(request.args.get('id'))
@@ -3184,7 +3194,7 @@ def enviarPedidoAvaliacao(idProjeto):
                 logging.error(str(e))
 
 @app.route("/arquivar/<id_projeto>", methods=['GET', 'POST'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 def arquivar_projeto(id_projeto):
     projeto = str(id_projeto)
     consulta = "UPDATE editalProjeto SET valendo=0 WHERE id=" + projeto
@@ -3193,7 +3203,7 @@ def arquivar_projeto(id_projeto):
     return(redirect("/pesquisa/editalProjeto?edital=" + edital))
 
 @app.route("/aprovar/projetos/<edital>", methods=['GET', 'POST'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 def aprovar_projetos(edital):
     #RECOMENDADOS
     consulta1 = """UPDATE editalProjeto SET situacao=1 
@@ -3218,11 +3228,13 @@ def aprovar_projetos(edital):
     return(redirect("/pesquisa/admin"))
 
 @app.route("/desligar/<id_indicacao>", methods=['GET', 'POST'])
+@login_required(role='user')
 def desligar(id_indicacao):
     action = url_for('desligarIndicacao',id_indicacao=id_indicacao)
     return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao="DESLIGAMENTO",action=action))
 
 @app.route("/substituir/<id_indicacao>", methods=['GET', 'POST'])
+@login_required(role='user')
 def substituir(id_indicacao):
     action = url_for('substituirIndicacao',id_indicacao=id_indicacao)
     return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao="SUBSTITUIÇÃO",action=action))
@@ -3354,8 +3366,7 @@ def get_projetos_discente():
     else:
         try:
             if not nome_valido(str(request.form['txtNome'])):
-                flash("Nome inválido. Por favor, insira um nome válido.")
-                return redirect(url_for('get_projetos_discente'))
+                return "Nome inválido. Por favor, verifique o nome digitado."
             projetosAluno,projetosAluno2019 = gerarProjetosPorAluno(str(request.form['txtNome']))
             return render_template('alunos.html',listaProjetos=projetosAluno,lista2019=projetosAluno2019)
         except Exception as e:
@@ -3364,7 +3375,7 @@ def get_projetos_discente():
             return render_template("Erro ao gerar projetos por aluno (/projetos_discente)")
 
 @app.route("/argon2", methods=['GET'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 def hash_passwords():
     consulta = """
     SELECT id,password FROM users 
@@ -3376,21 +3387,21 @@ def hash_passwords():
         idUsuario = str(linha[0])
         password = str(linha[1])
         hashed_password = cripto.hash_argon2id(password)
-        consulta = f"""UPDATE users SET password="{hashed_password}" WHERE id={idUsuario}"""
-        atualizar(consulta)
+        consulta = """UPDATE users SET password= ? WHERE id= ?"""
+        atualizar2(consulta, valores=[hashed_password, idUsuario])
     return("OK\n")
 
 def cadastrar_novo_usuario(siape, nome, email):
     senha = generate_secure_password()
     hashed_password = cripto.hash_argon2id(senha)
     role = 'user'
-    consulta = f"""INSERT INTO users (username,nome,email,password,roles) 
-    VALUES ('{siape}','{nome}','{email}','{hashed_password}','{role}')"""
-    atualizar(consulta)
+    consulta = """INSERT INTO users (username,nome,email,password,roles) 
+    VALUES (?, ?, ?, ?, ?)"""
+    atualizar2(consulta,valores=[siape, nome, email, hashed_password, role])
     return senha
 
 @app.route("/cadastrar_usuario", methods=['GET', 'POST'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 def cadastrar_usuario():
     if request.method == 'POST':
         #Recebendo siape, nome e email do formulário
@@ -3398,14 +3409,14 @@ def cadastrar_usuario():
         nome = str(request.form['nome'])
         email = str(request.form['email'])
         #Verificando se o usuário já existe
-        consulta = f"""SELECT id FROM users WHERE username='{siape}'"""
-        linhas,total = executarSelect(consulta)
+        consulta = """SELECT id FROM users WHERE username= ? """
+        linhas,total = executarSelect2(consulta, valores=[siape])
         if total > 0:
             flash("Usuário já cadastrado!")
             return redirect(url_for('cadastrar_usuario'))
         #Verificando se o e-mail já está cadastrado
-        consulta = f"""SELECT id FROM users WHERE email='{email}'"""
-        linhas,total = executarSelect(consulta)
+        consulta = """SELECT id FROM users WHERE email= ? """
+        linhas,total = executarSelect2(consulta, valores=[email])
         if total > 0:
             flash("E-mail já cadastrado!")
             return redirect(url_for('cadastrar_usuario'))
@@ -3428,25 +3439,25 @@ def cadastrar_usuario():
         return render_template('cadastrar_usuario.html')
 
 @app.route("/cadastrar_usuarios_projetos/<edital>", methods=['GET'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 def cadastrar_usuarios_projetos(edital):
     """
     Cadastra novos usuários no sistema a partir dos dados dos 
     projetos do edital especificado.
     """
-    consulta = f"""
+    consulta = """
     SELECT 
     nome,
     siape,
     email 
     FROM editalProjeto 
-    WHERE tipo={edital} AND 
+    WHERE tipo= ? AND 
     valendo=1 
     AND CONVERT(siape USING utf8) NOT IN (SELECT username FROM users) 
     AND email NOT IN (SELECT email FROM users) 
     ORDER BY id
     """
-    linhas,total = executarSelect(consulta)
+    linhas,total = executarSelect2(consulta,valores=[edital])
     if total > 0:
         for linha in linhas:
             siape = str(linha[1])

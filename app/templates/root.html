@@ -16,7 +16,7 @@
       <div class="card" style="width: 18rem;">
             <div class="card-body">
                 <h5 class="card-title">Meus Projetos</h5>
-                <p class="card-text">Visualizar projetos submetidos, enviar frequências e gerar declarações</p>
+                <p class="card-text">Visualizar projetos submetidos, enviar frequências, gerar declarações, indicar, substituir ou desligar bolsista/voluntário</p>
                 <a href="{{ url_for('meusProjetos') }}">MEUS PROJETOS</a>
             </div>
         </div>
@@ -31,6 +31,7 @@
         </div>
     </div>
   </div>
+  <br>
   <div class="row">
     <div class="col">
       <div class="card" style="width: 18rem;">
@@ -38,6 +39,24 @@
                 <h5 class="card-title">Declarações de discentes</h5>
                 <p class="card-text">Buscar declarações de discentes bolsistas/voluntários</p>
                 <a href="{{ url_for('get_projetos_discente') }}">BUSCAR PROJETOS DISCENTE</a>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+      <div class="card" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-title">Redefinição de senha</h5>
+                <p class="card-text">Solicitar redefinição de senha esquecida</p>
+                <a href="{{ url_for('esqueciMinhaSenha') }}">REDEFINIR SENHA DE ACESSO</a>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+      <div class="card" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-title">Solicitação de Cadastro</h5>
+                <p class="card-text">Solicitar cadastro para utilização do sistema (apenas @ufca.edu.br)</p>
+                INDISPONÍVEL
             </div>
         </div>
     </div>

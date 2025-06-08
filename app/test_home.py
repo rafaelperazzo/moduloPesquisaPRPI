@@ -24,7 +24,7 @@ def test_home(client):
     """Test the home route."""
     response = client.get('/')
     assert response.status_code == 200
-    assert b'SUBMETER PROJETO' in response.data
+    assert b'YOKO - PESQUISA' in response.data
 
 def test_declaracao_discente(client):
     """Test the declaracao discente route."""
@@ -32,7 +32,7 @@ def test_declaracao_discente(client):
     assert response.status_code == 200
     assert b'Buscar projetos' in response.data
     data = {
-        "txtNome": "00000000000",
+        "txtNome": "Nome do Aluno",
     }
     response = client.post('/projetos_discente', data=data)
     assert response.status_code == 200

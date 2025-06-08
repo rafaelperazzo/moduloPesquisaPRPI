@@ -1,3 +1,4 @@
+	2025-06-08 13:32:21 -0300	fix: permissões das rotas agora estão protegidas com o decorator login_required
 	2025-06-08 12:35:45 -0300	feat: Página principal implementada
 	2025-06-08 11:47:09 -0300	feat: Página principal implementada
 	2025-06-08 10:19:53 -0300	style: modificado estilos dos logging de verify password

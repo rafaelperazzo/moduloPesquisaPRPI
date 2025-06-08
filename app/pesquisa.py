@@ -692,17 +692,11 @@ def cadastrarProjeto():
         cursor  = conn.cursor()
 
         #DADOS PESSOAIS E BÁSICOS DO PROJETO
-        consulta = "INSERT INTO editalProjeto (categoria,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,data,ods,inovacao,justificativa) VALUES (" + str(categoria_projeto) + "," + str(tipo) + "," +  "\"" + nome + "\"," + str(siape) + "," + "\"" + email + "\"," + "\"" + ua + "\"," + "\"" + area_capes + "\"," + "\"" + grande_area + "\"," + "\"" + grupo + "\"," + "CURRENT_TIMESTAMP()," + ods_projeto + ", " + str(inovacao) + ", " + "\"" + justificativa + "\"" +")"
-        #atualizar(consulta)
-        try:
-            cursor.execute(consulta)
-            conn.commit()
-        except MySQLdb.Error as e:
-            logging.error(str(e))
-            logging.error(consulta)
-            #conn.rollback()
-            return(str(e))
-
+        consulta = """INSERT INTO editalProjeto 
+        (categoria,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,data,ods,inovacao,justificativa) 
+        VALUES (?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP(),?,?,?)"""
+        atualizar2(consulta, valores=[categoria_projeto,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,ods_projeto,inovacao,justificativa])
+        
         lastID = "SELECT LAST_INSERT_ID()"
         cursor.execute(lastID)
         ultimo_id = int(cursor.fetchone()[0])
@@ -732,17 +726,17 @@ def cadastrarProjeto():
         else:
             bolsas = 0
         transporte = str(request.form['transporte'])
-        consulta = "UPDATE editalProjeto SET titulo=\"" + titulo + "\", validade=" + str(validade) + ", palavras=\"" + palavras_chave + "\", resumo=\"" + descricao_resumida + "\", bolsas=" + str(bolsas) +  " WHERE id=" + str(ultimo_id)
-        logging.debug("Preparando para atualizar dados do projeto.")
-        atualizar(consulta)
-        consulta = "UPDATE editalProjeto SET transporte=" + transporte + " WHERE id=" + str(ultimo_id)
-        atualizar(consulta)
+        consulta = """UPDATE editalProjeto 
+        SET titulo= ?, validade= ? , palavras= ? , resumo= ? , bolsas= ? WHERE id= ? """
+        atualizar2(consulta, valores=[titulo,validade,palavras_chave,descricao_resumida,bolsas,ultimo_id])
+        consulta = "UPDATE editalProjeto SET transporte= ? WHERE id= ?"
+        atualizar2(consulta, valores=[transporte,ultimo_id])
         inicio = str(request.form['inicio'])
         fim = str(request.form['fim'])
-        consulta = "UPDATE editalProjeto SET inicio=\"" + inicio + "\" WHERE id=" + str(ultimo_id)
-        atualizar(consulta)
-        consulta = "UPDATE editalProjeto SET fim=\"" + fim + "\" WHERE id=" + str(ultimo_id)
-        atualizar(consulta)
+        consulta = "UPDATE editalProjeto SET inicio= ? WHERE id= ? "
+        atualizar2(consulta, valores=[inicio,ultimo_id])
+        consulta = "UPDATE editalProjeto SET fim= ? WHERE id= ? "
+        atualizar2(consulta, valores=[fim,ultimo_id])
         logging.debug("Dados do projeto cadastrados.")
         codigo = id_generator()
 
@@ -753,8 +747,8 @@ def cadastrarProjeto():
                 filename = secure_filename(arquivo_projeto.filename)
                 submissoes.save(arquivo_projeto, name=filename)
                 encripta_e_apaga(SUBMISSOES_DIR + filename)
-                consulta = "UPDATE editalProjeto SET arquivo_projeto=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-                atualizar(consulta)
+                consulta = "UPDATE editalProjeto SET arquivo_projeto= ? WHERE id= ? "
+                atualizar2(consulta, valores=[filename,ultimo_id])
                 logging.debug("Arquivo de projeto cadastrado.")
             elif not allowed_file(arquivo_projeto.filename):
                 return ("Arquivo de projeto não permitido")
@@ -769,8 +763,8 @@ def cadastrarProjeto():
                 filename = secure_filename(arquivo_plano1.filename)
                 submissoes.save(arquivo_plano1, name=filename)
                 encripta_e_apaga(SUBMISSOES_DIR + filename)
-                consulta = "UPDATE editalProjeto SET arquivo_plano1=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-                atualizar(consulta)
+                consulta = "UPDATE editalProjeto SET arquivo_plano1= ? WHERE id= ? "
+                atualizar2(consulta, valores=[filename,ultimo_id])
                 logging.debug("Arquivo Plano 1 cadastrado.")
             elif not allowed_file(arquivo_plano1.filename):
                 return ("Arquivo de plano 1 de trabalho não permitido")
@@ -784,8 +778,8 @@ def cadastrarProjeto():
                 filename = secure_filename(arquivo_plano2.filename)
                 submissoes.save(arquivo_plano2, name=filename)
                 encripta_e_apaga(SUBMISSOES_DIR + filename)
-                consulta = "UPDATE editalProjeto SET arquivo_plano2=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-                atualizar(consulta)
+                consulta = "UPDATE editalProjeto SET arquivo_plano2= ? WHERE id= ? "
+                atualizar2(consulta, valores=[filename,ultimo_id])
                 logging.debug("Arquivo Plano 2 cadastrado.")
             elif not allowed_file(arquivo_plano2.filename):
                 return ("Arquivo de plano 2 de trabalho não permitido")
@@ -801,8 +795,8 @@ def cadastrarProjeto():
                 filename = secure_filename(arquivo_plano3.filename)
                 submissoes.save(arquivo_plano3, name=filename)
                 encripta_e_apaga(SUBMISSOES_DIR + filename)
-                consulta = "UPDATE editalProjeto SET arquivo_plano3=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-                atualizar(consulta)
+                consulta = "UPDATE editalProjeto SET arquivo_plano3= ? WHERE id= ? "
+                atualizar2(consulta, valores=[filename,ultimo_id])
                 logging.debug("Arquivo Plano 3 cadastrado.")
             elif not allowed_file(arquivo_plano3.filename):
                     return ("Arquivo de plano 3 de trabalho não permitido")
@@ -817,8 +811,8 @@ def cadastrarProjeto():
                 filename = secure_filename(arquivo_comprovantes.filename)
                 submissoes.save(arquivo_comprovantes, name=filename)
                 encripta_e_apaga(SUBMISSOES_DIR + filename)
-                consulta = "UPDATE editalProjeto SET arquivo_comprovantes=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-                atualizar(consulta)
+                consulta = "UPDATE editalProjeto SET arquivo_comprovantes= ? WHERE id= ? "
+                atualizar2(consulta, valores=[filename,ultimo_id])
                 logging.debug("Arquivo COMPROVANTES cadastrado.")
         else:
             logging.debug("Não foi incluído um arquivo de COMPROVANTES")
@@ -828,35 +822,35 @@ def cadastrarProjeto():
             avaliador1_email = str(request.form['avaliador1_email'])
             if avaliador1_email!='':
                 token = id_generator(40)
-                consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador1_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-                atualizar(consulta)
+                consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (?,?,?)"
+                atualizar2(consulta, valores=[avaliador1_email,token,ultimo_id])
                 logging.debug("Avaliador 1 sugerido cadastrado.")
 
         if 'avaliador2_email' in request.form:
             avaliador2_email = str(request.form['avaliador2_email'])
             if avaliador2_email!='':
                 token = id_generator(40)
-                consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador2_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-                atualizar(consulta)
+                consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (?,?,?)"
+                atualizar2(consulta, valores=[avaliador2_email,token,ultimo_id])
                 logging.debug("Avaliador 2 sugerido cadastrado.")
 
         if 'avaliador3_email' in request.form:
             avaliador3_email = str(request.form['avaliador3_email'])
             if avaliador3_email!='':
                 token = id_generator(40)
-                consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador3_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-                atualizar(consulta)
+                consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (?,?,?)"
+                atualizar2(consulta, valores=[avaliador3_email,token,ultimo_id])
                 logging.debug("Avaliador 3 sugerido cadastrado.")
         #Incluir avaliador teste em caso de não inclusão
         if ('avaliador1_email' not in request.form and 'avaliador2_email' not in request.form and 'avaliador3_email' not in request.form):
             token = id_generator(40)
-            consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + "TESTE@IGNORAR.COM" + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-            atualizar(consulta)
+            consulta = """INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES ("TESTE@IGNORAR.COM", ?, ?)"""
+            atualizar2(consulta, valores=[token, ultimo_id])
             logging.debug("Avaliador TESTE sugerido cadastrado.")
         elif avaliador1_email=="" and avaliador2_email=="" and avaliador3_email=="":
             token = id_generator(40)
-            consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + "TESTE@IGNORAR.COM" + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-            atualizar(consulta)
+            consulta = """INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES ("TESTE@IGNORAR.COM", ?, ?)"""
+            atualizar2(consulta, valores=[token, ultimo_id])
             logging.debug("Avaliador TESTE sugerido cadastrado.")
         #CALCULANDO scorelattes
         dados = [email,nome,titulo,descricao_resumida]
@@ -946,9 +940,17 @@ def getPaginaAvaliacaoTeste():
     #return render_template('avaliacao.html',arquivos=arquivos)
     return "TESTES"
 
-#Gerar pagina de avaliacao para o avaliador
 @app.route("/avaliacao", methods=['GET', 'POST'])
 def getPaginaAvaliacao():
+    """
+    Página de avaliação de projetos.
+
+    Esta página é acessada pelos avaliadores para avaliar os projetos.
+    Ela recebe o ID do projeto e o token de avaliação via GET.
+    Se o ID do projeto for válido e o token de avaliação for válido,
+    a página exibe os links para os arquivos do projeto e permite que o avaliador
+    envie sua avaliação.
+    """
     if request.method == "GET":
         try:
             idProjeto = str(request.args.get('id'))
@@ -1026,7 +1028,6 @@ def enviarAvaliacao():
             atualizar2(consulta, valores=[nome_avaliador,token])
             comentarios = comentarios.replace('"',' ')
             comentarios = comentarios.replace("'"," ")
-            consulta = "UPDATE avaliacoes SET comentario=\"" + comentarios + "\"" + " WHERE token=\"" + token + "\""
             consulta = "UPDATE avaliacoes SET comentario= ? WHERE token= ? "
             atualizar2(consulta, valores=[comentarios,token])
             consulta = "UPDATE avaliacoes SET c1= ? WHERE token= ? "
@@ -2620,7 +2621,6 @@ def verArquivo():
         return("OK")
     
 @app.route("/verArquivosProjeto/<filename>", methods=['GET', 'POST'])
-@login_required(role='admin')
 def verArquivosProjeto(filename):
     arquivo = secure_filename(filename) + ".gpg"
     if os.path.isfile(SUBMISSOES_DIR + arquivo):

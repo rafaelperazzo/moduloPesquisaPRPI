@@ -30,6 +30,7 @@ from git import Repo
 import secrets
 from functools import wraps
 from datetime import timedelta
+#import sentry_sdk
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -60,6 +61,15 @@ else:
 EMAIL_TESTES = os.getenv("EMAIL_TESTES","test@123.com")
 DEFAULT_EMAIL = os.getenv("DEFAULT_EMAIL","teste@test.com")
 LINK_AVALIACAO = ROOT_SITE + URL_PREFIX + "/avaliacao"
+
+'''
+sentry_sdk.init(
+    dsn="https://98755c6767112f95defd17c31a6095c0@o4509464537333760.ingest.de.sentry.io/4509464653725776",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)
+'''
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 csrf = CSRFProtect(app)

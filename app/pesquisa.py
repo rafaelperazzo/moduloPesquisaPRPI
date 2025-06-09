@@ -11,7 +11,7 @@ import string
 import random
 import logging
 import sys
-import numpy as np
+import re
 import pdfkit
 from flask_mail import Mail
 from flask_mail import Message
@@ -28,6 +28,11 @@ from modules import scorerun
 from brseclabcripto.cripto3 import SecCripto
 from git import Repo
 import secrets
+from functools import wraps
+from datetime import timedelta
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -53,10 +58,30 @@ SUBMISSOES_DIR = 'submissoes/'
 MYSQL_DB = os.getenv("MYSQL_HOST", "localhost")
 if PRODUCAO==1:
     MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "pesquisa")
-else: 
+else:
     MYSQL_DATABASE = os.getenv("MYSQL_TEST_DATABASE", "pesquisa_test")
 EMAIL_TESTES = os.getenv("EMAIL_TESTES","test@123.com")
+DEFAULT_EMAIL = os.getenv("DEFAULT_EMAIL","teste@test.com")
 LINK_AVALIACAO = ROOT_SITE + URL_PREFIX + "/avaliacao"
+DSN_SENTRY = os.getenv("DSN_SENTRY", "")
+
+if PRODUCAO==1:
+    sentry_sdk.init(
+        dsn=DSN_SENTRY,
+        # Add data like request headers and IP for users,
+        # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+        integrations = [
+            FlaskIntegration(
+                transaction_style="url",
+            ),
+            LoggingIntegration(
+                level=logging.ERROR,        # Capture info and above as breadcrumbs
+                event_level=logging.ERROR   # Send records as events
+            ),
+        ],
+        send_default_pii=True,
+    )
+
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 csrf = CSRFProtect(app)
@@ -73,10 +98,10 @@ except Exception as e:
 mail = Mail(app)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = 'pesquisa.prpi@ufca.edu.br'
+app.config['MAIL_USERNAME'] = DEFAULT_EMAIL
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
-app.config['MAIL_DEFAULT_SENDER'] = 'pesquisa.prpi@ufca.edu.br'
+app.config['MAIL_DEFAULT_SENDER'] = DEFAULT_EMAIL
 
 if PRODUCAO==1:
     app.config['MAIL_SUPPRESS_SEND'] = False
@@ -119,6 +144,22 @@ submissoes = UploadSet("submissoes", DOCUMENTS, default_dest=SUBMISSOES_DIR)
 
 configure_uploads(app, anexos)
 configure_uploads(app, submissoes)
+
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
+
+def login_required(role='admin'):
+    def decorator_login_required(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not 'username' in session:
+                return render_template('login.html',mensagem="""É necessário 
+                                       autenticação para acessar a página solicitada""")
+            if role not in session['roles']:
+                flash('Você não tem permissão para acessar este recurso.','error')
+                return redirect(url_for('home'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator_login_required
 
 def generate_secure_password(length=16, include_uppercase=True,
                              include_numbers=True, include_special_chars=True):
@@ -205,8 +246,9 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
         sumario = "ERRO AO PROCESSAR O SCORELATTES"
 
     try:
-        consulta = "UPDATE editalProjeto SET scorelattes=" + str(pontuacao) + " WHERE id=" + str(idProjeto)
-        atualizar(consulta)
+        consulta = """UPDATE editalProjeto 
+        SET scorelattes= ? WHERE id= ?"""
+        atualizar2(consulta,valores=[pontuacao,idProjeto])
     except Exception as e:
         with app.app_context():
             logging.error("Erro ao atualizar o scorelattes: %s", str(e))
@@ -240,44 +282,118 @@ def calcularScoreLattes(tipo,area,since,until,arquivo):
     return (s)
 
 def atualizar(consulta):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE) 
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
         cursor.execute(consulta)
         conn.commit()
     except MySQLdb.Error as e:
-        #e = sys.exc_info()[0]
         logging.error(e)
         logging.error(consulta)
-        #conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+def atualizar2(consulta,valores=()):
+    """Função para UPDATE, INSERT e DELETE no banco de dados.
+
+    Args:
+        consulta (str): consulta SQL
+        valores (list, optional): Valores para consulta. Defaults to ().
+    """
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE) 
+    conn.select_db(MYSQL_DATABASE)
+    cursor  = conn.cursor()
+    try:
+        if valores==():
+            cursor.execute(consulta)
+            conn.commit()
+        else:
+            cursor.execute(consulta,tuple(valores))
+            conn.commit()
+    except MySQLdb.Error as e:
+        logging.error(e)
+        logging.error(consulta)
     finally:
         cursor.close()
         conn.close()
 
 def inserir(consulta,valores):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
         cursor.execute(consulta,valores)
         conn.commit()
     except MySQLdb.Error as e:
-        #e = sys.exc_info()[0]
         logging.error(e)
         logging.debug(consulta)
         logging.error("Erro ao inserir registro")
         logging.error(valores)
-        #conn.rollback()
     finally:
         cursor.close()
         conn.close()
 
+def numero_valido(numero):
+    """Verifica se um número é válido.
+
+    Args:
+        numero (string): Identificador
+
+    Returns:
+        boolean: Verdadeiro ou falso
+    """
+    try:
+        int(numero)
+        return True
+    except ValueError:
+        return False
+
+def username_valido(username):
+    """Verifica se um nome de usuário é válido.
+
+    Args:
+        username (string): Nome de usuário
+
+    Returns:
+        boolean: Verdadeiro ou falso
+    """
+    if not username.isalnum():
+        return False
+    return True
+
+def token_valido(token):
+    """Verifica se um token é válido.
+
+    Args:
+        token (string): Token
+
+    Returns:
+        boolean: Verdadeiro ou falso
+    """
+    if not token.isalnum():
+        return False
+    else:
+        return True
+
+def nome_valido(nome):
+    """Verifica se um nome é válido.
+
+    Args:
+        nome (string): Nome
+
+    Returns:
+        boolean: Verdadeiro ou falso
+    """
+    padrao = "^[a-zA-Z\u00C0-\u00FF ]+$"
+    if re.fullmatch(padrao, nome):
+        return True
+    else:
+        return False
 
 def id_generator(size=20, chars=string.ascii_uppercase + string.digits + string.ascii_lowercase):
-        return ''.join(random.choice(chars) for _ in range(size))
+    return ''.join(random.choice(chars) for _ in range(size))
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -348,30 +464,27 @@ def gerarDeclaracaoOrientador(identificador):
     conn.close()
     return (linha,frase_bolsistas)
 
-
 def gerarProjetosPorAluno(cpf):
     try:
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
         conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
-        consulta = """SELECT estudante_nome_completo,cpf,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,estudante_inicio,estudante_fim,token FROM cadastro_geral WHERE cpf = '""" + cpf + """'"""
-        cursor.execute(consulta)
+        consulta = """SELECT estudante_nome_completo,cpf,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,estudante_inicio,estudante_fim,token FROM cadastro_geral WHERE cpf = ? """
+        cursor.execute(consulta, (cpf,))
         linhas = cursor.fetchall()
         consulta = """SELECT indicacoes.nome,indicacoes.cpf,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),editalProjeto.nome,editalProjeto.titulo,indicacoes.inicio,indicacoes.fim,indicacoes.id
                     FROM indicacoes,editalProjeto
-                    WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.cpf='""" + cpf + """'"""
-        cursor.execute(consulta)
+                    WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.cpf= ? """
+        cursor.execute(consulta, (cpf,))
         linhas2019 = cursor.fetchall()
         return (linhas,linhas2019)
-    except:
-        e = sys.exc_info()[0]
+    except Exception as e:
         logging.error(e)
         logging.error("ERRO Na função gerarProjetosPorAluno. Ver consulta abaixo.")
         logging.error(consulta)
     finally:
         cursor.close()
         conn.close()
-
 
 def gerarProjetosPorOrientador(identificador):
     #CONEXÃO COM BD
@@ -383,7 +496,6 @@ def gerarProjetosPorOrientador(identificador):
     linhas = cursor.fetchall()
     conn.close()
     return (linhas)
-
 
 def gerarAutenticacao(identificador):
     #CONEXÃO COM BD
@@ -405,41 +517,27 @@ def getEditaisAbertos():
     linhas = cursor.fetchall()
     cursor.close()
     conn.close()
-    return(linhas)
+    return linhas
 
-'''
-INÍCIO AUTENTICAÇÃO
-**************************************************************
-'''
 @auth.verify_password
 def verify_password(username, password):
     """This function is called to check if a username /
     password combination is valid.
     """
     try:
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-        conn.select_db(MYSQL_DATABASE)
-        cursor  = conn.cursor()
-        consulta1 = """
+        if not username_valido(username):
+            logging.debug("Nome de usuário inválido: %s", username)
+            return False
+        consulta2 = """
         SELECT id,
         username,
         permission,
         roles,
         password 
         FROM users 
-        WHERE username='""" + username + """' AND password=('""" + password + """')"""
-        consulta2 = f"""
-        SELECT id,
-        username,
-        permission,
-        roles,
-        password 
-        FROM users 
-        WHERE username="{username}" LIMIT 1 """
-        cursor.execute(consulta1)
-        total = cursor.rowcount
+        WHERE username=? LIMIT 1 """
         continuar = False
-        resultado,total_usuarios = executarSelect(consulta2)
+        resultado,total_usuarios = executarSelect2(consulta2,valores=[username])
         if total_usuarios>0:
             linha = resultado[0]
             hash_senha = str(linha[4])
@@ -448,14 +546,15 @@ def verify_password(username, password):
                     continuar = True
                 else:
                     continuar = False
+                    logging.debug("Senha inválida (hash argon) para o usuário: %s", username)
             except Exception:
+                logging.debug("Erro ao verificar a senha com hash argon2id para o usuário: %s", username)
                 continuar = False
         else:
             continuar = False
-        if continuar is False:
+        if continuar is False: #Usuário inexistente ou senha inválida
             return False
-        else:
-            linha = cursor.fetchone()
+        else: #Usuário e senha válidos
             linha = resultado[0]
             session['username'] = str(linha[1])
             session['permissao'] = int(linha[2])
@@ -468,9 +567,6 @@ def verify_password(username, password):
         logging.error(e)
         logging.error("ERRO Na função check_auth. Ver consulta abaixo.")
         logging.error(consulta2)
-    finally:
-        cursor.close()
-        conn.close()
 
 @auth.get_user_roles
 def get_user_roles(user):
@@ -494,39 +590,36 @@ def autenticado():
 def logout():
     session.clear()
 
-'''
-FIM AUTENTICAÇÃO
-**************************************************************
-'''
-
 @app.route('/segredo')
 @auth.login_required
 def secret_page():
-    return (session['username'])
+    return session['username']
 
 @app.route("/")
 def home():
-    editaisAbertos = getEditaisAbertos()
     session['PRODUCAO'] = PRODUCAO
-    return (render_template('cadastrarProjeto.html',abertos=editaisAbertos))
+    return render_template('root.html',version=__version__)
 
 @app.route("/version")
 def version():
-    return(__version__)
+    return __version__
 
 @app.route("/admin")
+@login_required(role='admin')
 def admin():
     if (autenticado() and int(session['permissao'])==0):
         consulta = """SELECT id,nome FROM editais ORDER BY id"""
         editais,total = executarSelect(consulta)
-        return (render_template('index.html',editais=editais,versao=__version__))
+        return render_template('index.html',editais=editais,versao=__version__)
     else:
-        return(render_template('login.html',mensagem=u"É necessário autenticação para acessar a página solicitada"))
+        return render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada")
 
 @app.route("/declaracao", methods=['GET', 'POST'])
 def declaracao():
     if request.method == "GET":
         if 'idProjeto' in request.args:
+            if not numero_valido(str(request.args['idProjeto'])):
+                return "ID do projeto inválido!"
             texto_declaracao = gerarDeclaracao(str(request.args['idProjeto']))
             data_agora = getData()
             try:
@@ -537,36 +630,33 @@ def declaracao():
                     'margin-bottom': '20mm',
                     'margin-left': '20mm',
 }
-                arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                #pdfkit.from_string(render_template('a4.html',texto=texto_declaracao,data=data_agora,identificador=texto_declaracao[7],raiz=ROOT_SITE),arquivoDeclaracao)
-                #return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                #return send_file(arquivoDeclaracao, attachment_filename='arquivo.pdf')
-            except:
-                e = sys.exc_info()[0]
+                return render_template('a4.html',texto=texto_declaracao,
+                                       data=data_agora,identificador=texto_declaracao[7],raiz=ROOT_SITE)
+            except Exception as e:
                 logging.error(e)
-                logging.error(arquivoDeclaracao)
                 logging.error("Nao foi possivel gerar o PDF da declaração.")
-            finally:
-                return render_template('a4.html',texto=texto_declaracao,data=data_agora,identificador=texto_declaracao[7],raiz=ROOT_SITE)
+                return "Erro ao gerar o PDF da declaração. Verifique os logs para mais detalhes."
         else:
             logging.debug("Tentativa de gerar declaração, sem o id do projeto!")
-            return("OK")
+            return "OK"
 
-@app.route("/projetosAluno", methods=['GET', 'POST'])
+@app.route("/projetosAluno", methods=['POST'])
 def projetos():
     try:
         projetosAluno,projetosAluno2019 = gerarProjetosPorAluno(str(request.form['txtNome']))
-        return render_template('alunos.html',listaProjetos=projetosAluno,lista2019=projetosAluno2019)
-    except:
-        e = sys.exc_info()[0]
+        return render_template('alunos.html',listaProjetos=projetosAluno,
+                               lista2019=projetosAluno2019)
+    except Exception as e:
         logging.error(e)
         logging.error("Nao foi possivel gerar os projetos do aluno.")
-        return("Erro! Não utilize acentos ou caracteres especiais na busca.")
+        return "Erro! Não utilize acentos ou caracteres especiais na busca."
 
-@app.route("/autenticacao", methods=['GET', 'POST'])
+@app.route("/autenticacao", methods=['POST'])
 def autenticar():
-    #dadosAutenticacao = gerarAutenticacao(str(request.form['txtCodigo']))
-    #return render_template('autenticacao.html',linha=dadosAutenticacao)
+    if not numero_valido(str(request.form['tipo'])):
+        return "Tipo de autenticação inválido!"
+    if not token_valido(str(request.form['codigo'])):
+        return "Código de autenticação inválido!"
     tipo = int(request.form['tipo'])
     codigo = str(request.form['codigo'])
     if tipo==0:
@@ -574,224 +664,229 @@ def autenticar():
     else:
         return redirect("/pesquisa/declaracao?idProjeto=" + codigo)
 
-@app.route("/projetosPorOrientador", methods=['GET', 'POST'])
+@app.route("/projetosPorOrientador", methods=['POST'])
 def projetosOrientador():
-    projetosOrientador = gerarProjetosPorOrientador(str(request.form['txtSiape']))
-    return render_template('projetos_orientador.html',listaProjetos=projetosOrientador)
+    if not username_valido(str(request.form['txtSiape'])):
+        return "SIAPE do orientador inválido!"
+    projetos_por_orientador = gerarProjetosPorOrientador(str(request.form['txtSiape']))
+    return render_template('projetos_orientador.html',listaProjetos=projetos_por_orientador)
 
-@app.route("/orientadorDeclaracao", methods=['GET', 'POST'])
+@app.route("/orientadorDeclaracao", methods=['GET'])
 def declaracaoOrientador():
+    if not numero_valido(str(request.args['idProjeto'])):
+        return "ID do projeto inválido!"
     resultados = gerarDeclaracaoOrientador(str(request.args['idProjeto']))
     texto_declaracao = resultados[0]
     bolsistas = resultados[1]
     data_agora = getData()
-    return render_template('orientador.html',texto=texto_declaracao,data=data_agora,identificador=texto_declaracao[0],bolsistas=bolsistas)
+    return render_template('orientador.html',texto=texto_declaracao,
+                           data=data_agora,identificador=texto_declaracao[0],bolsistas=bolsistas)
 
 @app.route("/cadastrarProjeto", methods=['GET', 'POST'])
+@login_required(role='user')
 def cadastrarProjeto():
-    #CADASTRAR DADOS DO PROPONENTE
-    tipo = int(request.form['tipo'])
-    nome = str(request.form['nome'])
-    categoria_projeto = int(request.form['categoria_projeto'])
-    try:
-        siape = int(removerTravessao(request.form['siape']))
-    except ValueError as e:
-        logging.error("Erro ao converter SIAPE para inteiro.")
-        logging.error(e)
-        siape = 0
-    email = str(request.form['email'])
-    ua = str(request.form['ua'])
-    area_capes = str(request.form['area_capes'])
-    grande_area = str(request.form['grande_area'])
-    grupo = str(request.form['grupo'])
-    grupo = removerAspas(grupo)
-    ods_projeto = str(request.form['ods_projeto'])
-    inovacao = int(request.form['inovacao'])
-    justificativa = ""
-    if 'justificativa' in request.form:
-        justificativa = str(request.form['justificativa'])
-    else:
+    if request.method == "POST":
+        #CADASTRAR DADOS DO PROPONENTE
+        tipo = int(request.form['tipo'])
+        nome = str(request.form['nome'])
+        categoria_projeto = int(request.form['categoria_projeto'])
+        try:
+            siape = int(removerTravessao(request.form['siape']))
+        except ValueError as e:
+            logging.error("Erro ao converter SIAPE para inteiro.")
+            logging.error(e)
+            siape = 0
+        email = str(request.form['email'])
+        ua = str(request.form['ua'])
+        area_capes = str(request.form['area_capes'])
+        grande_area = str(request.form['grande_area'])
+        grupo = str(request.form['grupo'])
+        grupo = removerAspas(grupo)
+        ods_projeto = str(request.form['ods_projeto'])
+        inovacao = int(request.form['inovacao'])
         justificativa = ""
-    justificativa = removerAspas(justificativa)
-    cpf = str(request.form['cpf'])
-    #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-    
-    conn.select_db(MYSQL_DATABASE)
-    cursor  = conn.cursor()
+        if 'justificativa' in request.form:
+            justificativa = str(request.form['justificativa'])
+        else:
+            justificativa = ""
+        justificativa = removerAspas(justificativa)
+        cpf = str(request.form['cpf'])
+        #CONEXÃO COM BD
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+        
+        conn.select_db(MYSQL_DATABASE)
+        cursor  = conn.cursor()
 
-    #DADOS PESSOAIS E BÁSICOS DO PROJETO
-    consulta = "INSERT INTO editalProjeto (categoria,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,data,ods,inovacao,justificativa) VALUES (" + str(categoria_projeto) + "," + str(tipo) + "," +  "\"" + nome + "\"," + str(siape) + "," + "\"" + email + "\"," + "\"" + ua + "\"," + "\"" + area_capes + "\"," + "\"" + grande_area + "\"," + "\"" + grupo + "\"," + "CURRENT_TIMESTAMP()," + ods_projeto + ", " + str(inovacao) + ", " + "\"" + justificativa + "\"" +")"
-    #atualizar(consulta)
-    try:
-        cursor.execute(consulta)
-        conn.commit()
-    except MySQLdb.Error as e:
-        logging.error(str(e))
-        logging.error(consulta)
-        #conn.rollback()
-        return(str(e))
+        #DADOS PESSOAIS E BÁSICOS DO PROJETO
+        consulta = """INSERT INTO editalProjeto 
+        (categoria,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,data,ods,inovacao,justificativa) 
+        VALUES (?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP(),?,?,?)"""
+        atualizar2(consulta, valores=[categoria_projeto,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,ods_projeto,inovacao,justificativa])
+        
+        lastID = "SELECT LAST_INSERT_ID()"
+        cursor.execute(lastID)
+        ultimo_id = int(cursor.fetchone()[0])
+        ultimo_id_str = "%03d" % (ultimo_id)
+        if tipo==0:
+            tipo_str = "Fluxo Continuo"
+        else:
+            tipo_str= "Edital"
 
-    lastID = "SELECT LAST_INSERT_ID()"
-    cursor.execute(lastID)
-    ultimo_id = int(cursor.fetchone()[0])
-    ultimo_id_str = "%03d" % (ultimo_id)
-    if tipo==0:
-        tipo_str = "Fluxo Continuo"
-    else:
-        tipo_str= "Edital"
+        if categoria_projeto==0:
+            categoria_str = "Projeto em andamento"
+        else:
+            categoria_str= "Projeto Novo"
 
-    if categoria_projeto==0:
-        categoria_str = "Projeto em andamento"
-    else:
-        categoria_str= "Projeto Novo"
+        logging.debug("Projeto [" + tipo_str + "] [" + categoria_str + "] com ID: " + ultimo_id_str + " cadastrado. Proponente: " + nome)
+        #CADASTRAR DADOS DO PROJETO
 
-    logging.debug("Projeto [" + tipo_str + "] [" + categoria_str + "] com ID: " + ultimo_id_str + " cadastrado. Proponente: " + nome)
-    #CADASTRAR DADOS DO PROJETO
+        titulo = str(request.form['titulo'])
+        titulo = removerAspas(titulo)
+        validade = int(request.form['validade'])
+        palavras_chave = str(request.form['palavras_chave'])
+        palavras_chave = removerAspas(palavras_chave)
+        descricao_resumida = str(request.form['descricao_resumida'])
+        descricao_resumida = removerAspas(descricao_resumida)
+        if 'numero_bolsas' in request.form:
+            bolsas = int(request.form['numero_bolsas'])
+        else:
+            bolsas = 0
+        transporte = str(request.form['transporte'])
+        consulta = """UPDATE editalProjeto 
+        SET titulo= ?, validade= ? , palavras= ? , resumo= ? , bolsas= ? WHERE id= ? """
+        atualizar2(consulta, valores=[titulo,validade,palavras_chave,descricao_resumida,bolsas,ultimo_id])
+        consulta = "UPDATE editalProjeto SET transporte= ? WHERE id= ?"
+        atualizar2(consulta, valores=[transporte,ultimo_id])
+        inicio = str(request.form['inicio'])
+        fim = str(request.form['fim'])
+        consulta = "UPDATE editalProjeto SET inicio= ? WHERE id= ? "
+        atualizar2(consulta, valores=[inicio,ultimo_id])
+        consulta = "UPDATE editalProjeto SET fim= ? WHERE id= ? "
+        atualizar2(consulta, valores=[fim,ultimo_id])
+        logging.debug("Dados do projeto cadastrados.")
+        codigo = id_generator()
 
-    titulo = str(request.form['titulo'])
-    titulo = removerAspas(titulo)
-    validade = int(request.form['validade'])
-    palavras_chave = str(request.form['palavras_chave'])
-    palavras_chave = removerAspas(palavras_chave)
-    descricao_resumida = str(request.form['descricao_resumida'])
-    descricao_resumida = removerAspas(descricao_resumida)
-    if 'numero_bolsas' in request.form:
-        bolsas = int(request.form['numero_bolsas'])
-    else:
-        bolsas = 0
-    transporte = str(request.form['transporte'])
-    consulta = "UPDATE editalProjeto SET titulo=\"" + titulo + "\", validade=" + str(validade) + ", palavras=\"" + palavras_chave + "\", resumo=\"" + descricao_resumida + "\", bolsas=" + str(bolsas) +  " WHERE id=" + str(ultimo_id)
-    logging.debug("Preparando para atualizar dados do projeto.")
-    atualizar(consulta)
-    consulta = "UPDATE editalProjeto SET transporte=" + transporte + " WHERE id=" + str(ultimo_id)
-    atualizar(consulta)
-    inicio = str(request.form['inicio'])
-    fim = str(request.form['fim'])
-    consulta = "UPDATE editalProjeto SET inicio=\"" + inicio + "\" WHERE id=" + str(ultimo_id)
-    atualizar(consulta)
-    consulta = "UPDATE editalProjeto SET fim=\"" + fim + "\" WHERE id=" + str(ultimo_id)
-    atualizar(consulta)
-    logging.debug("Dados do projeto cadastrados.")
-    codigo = id_generator()
+        if ('arquivo_projeto' in request.files):
+            arquivo_projeto = request.files['arquivo_projeto']
+            if arquivo_projeto and allowed_file(arquivo_projeto.filename) :
+                arquivo_projeto.filename = "projeto_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
+                filename = secure_filename(arquivo_projeto.filename)
+                submissoes.save(arquivo_projeto, name=filename)
+                encripta_e_apaga(SUBMISSOES_DIR + filename)
+                consulta = "UPDATE editalProjeto SET arquivo_projeto= ? WHERE id= ? "
+                atualizar2(consulta, valores=[filename,ultimo_id])
+                logging.debug("Arquivo de projeto cadastrado.")
+            elif not allowed_file(arquivo_projeto.filename):
+                return ("Arquivo de projeto não permitido")
+        else:
+            logging.debug("Não foi incluído um arquivo de projeto")
 
-    if ('arquivo_projeto' in request.files):
-        arquivo_projeto = request.files['arquivo_projeto']
-        if arquivo_projeto and allowed_file(arquivo_projeto.filename) :
-            arquivo_projeto.filename = "projeto_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
-            filename = secure_filename(arquivo_projeto.filename)
-            submissoes.save(arquivo_projeto, name=filename)
-            encripta_e_apaga(SUBMISSOES_DIR + filename)
-            consulta = "UPDATE editalProjeto SET arquivo_projeto=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-            atualizar(consulta)
-            logging.debug("Arquivo de projeto cadastrado.")
-        elif not allowed_file(arquivo_projeto.filename):
-    	    return ("Arquivo de projeto não permitido")
-    else:
-        logging.debug("Não foi incluído um arquivo de projeto")
+        if ('arquivo_plano1' in request.files):
 
-    if ('arquivo_plano1' in request.files):
+            arquivo_plano1 = request.files['arquivo_plano1']
+            if arquivo_plano1 and allowed_file(arquivo_plano1.filename):
+                arquivo_plano1.filename = "plano1_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
+                filename = secure_filename(arquivo_plano1.filename)
+                submissoes.save(arquivo_plano1, name=filename)
+                encripta_e_apaga(SUBMISSOES_DIR + filename)
+                consulta = "UPDATE editalProjeto SET arquivo_plano1= ? WHERE id= ? "
+                atualizar2(consulta, valores=[filename,ultimo_id])
+                logging.debug("Arquivo Plano 1 cadastrado.")
+            elif not allowed_file(arquivo_plano1.filename):
+                return ("Arquivo de plano 1 de trabalho não permitido")
+        else:
+            logging.debug("Não foi incluído um arquivo de plano 1")
 
-        arquivo_plano1 = request.files['arquivo_plano1']
-        if arquivo_plano1 and allowed_file(arquivo_plano1.filename):
-            arquivo_plano1.filename = "plano1_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
-            filename = secure_filename(arquivo_plano1.filename)
-            submissoes.save(arquivo_plano1, name=filename)
-            encripta_e_apaga(SUBMISSOES_DIR + filename)
-            consulta = "UPDATE editalProjeto SET arquivo_plano1=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-            atualizar(consulta)
-            logging.debug("Arquivo Plano 1 cadastrado.")
-        elif not allowed_file(arquivo_plano1.filename):
-    	    return ("Arquivo de plano 1 de trabalho não permitido")
-    else:
-        logging.debug("Não foi incluído um arquivo de plano 1")
+        if ('arquivo_plano2' in request.files):
+            arquivo_plano2 = request.files['arquivo_plano2']
+            if arquivo_plano2 and allowed_file(arquivo_plano2.filename):
+                arquivo_plano2.filename = "plano2_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
+                filename = secure_filename(arquivo_plano2.filename)
+                submissoes.save(arquivo_plano2, name=filename)
+                encripta_e_apaga(SUBMISSOES_DIR + filename)
+                consulta = "UPDATE editalProjeto SET arquivo_plano2= ? WHERE id= ? "
+                atualizar2(consulta, valores=[filename,ultimo_id])
+                logging.debug("Arquivo Plano 2 cadastrado.")
+            elif not allowed_file(arquivo_plano2.filename):
+                return ("Arquivo de plano 2 de trabalho não permitido")
+        else:
+            logging.debug("Não foi incluído um arquivo de plano 2")
 
-    if ('arquivo_plano2' in request.files):
-        arquivo_plano2 = request.files['arquivo_plano2']
-        if arquivo_plano2 and allowed_file(arquivo_plano2.filename):
-            arquivo_plano2.filename = "plano2_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
-            filename = secure_filename(arquivo_plano2.filename)
-            submissoes.save(arquivo_plano2, name=filename)
-            encripta_e_apaga(SUBMISSOES_DIR + filename)
-            consulta = "UPDATE editalProjeto SET arquivo_plano2=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-            atualizar(consulta)
-            logging.debug("Arquivo Plano 2 cadastrado.")
-        elif not allowed_file(arquivo_plano2.filename):
-    	    return ("Arquivo de plano 2 de trabalho não permitido")
-    else:
-        logging.debug("Não foi incluído um arquivo de plano 2")
-
-    if ('arquivo_plano3' in request.files):
-        arquivo_plano3 = request.files['arquivo_plano3']
-        if arquivo_plano3.filename=="":
+        if ('arquivo_plano3' in request.files):
+            arquivo_plano3 = request.files['arquivo_plano3']
+            if arquivo_plano3.filename=="":
+                logging.debug("Não foi incluído um arquivo de plano 3")
+            elif arquivo_plano3 and allowed_file(arquivo_plano3.filename):
+                arquivo_plano3.filename = "plano3_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
+                filename = secure_filename(arquivo_plano3.filename)
+                submissoes.save(arquivo_plano3, name=filename)
+                encripta_e_apaga(SUBMISSOES_DIR + filename)
+                consulta = "UPDATE editalProjeto SET arquivo_plano3= ? WHERE id= ? "
+                atualizar2(consulta, valores=[filename,ultimo_id])
+                logging.debug("Arquivo Plano 3 cadastrado.")
+            elif not allowed_file(arquivo_plano3.filename):
+                    return ("Arquivo de plano 3 de trabalho não permitido")
+        else:
             logging.debug("Não foi incluído um arquivo de plano 3")
-        elif arquivo_plano3 and allowed_file(arquivo_plano3.filename):
-            arquivo_plano3.filename = "plano3_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
-            filename = secure_filename(arquivo_plano3.filename)
-            submissoes.save(arquivo_plano3, name=filename)
-            encripta_e_apaga(SUBMISSOES_DIR + filename)
-            consulta = "UPDATE editalProjeto SET arquivo_plano3=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-            atualizar(consulta)
-            logging.debug("Arquivo Plano 3 cadastrado.")
-        elif not allowed_file(arquivo_plano3.filename):
-                return ("Arquivo de plano 3 de trabalho não permitido")
+
+        #ARQUIVO DE COMPROVANTES
+        if ('arquivo_comprovantes' in request.files):
+            arquivo_comprovantes = request.files['arquivo_comprovantes']
+            if allowed_file(arquivo_comprovantes.filename):
+                arquivo_comprovantes.filename = "Comprovantes_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
+                filename = secure_filename(arquivo_comprovantes.filename)
+                submissoes.save(arquivo_comprovantes, name=filename)
+                encripta_e_apaga(SUBMISSOES_DIR + filename)
+                consulta = "UPDATE editalProjeto SET arquivo_comprovantes= ? WHERE id= ? "
+                atualizar2(consulta, valores=[filename,ultimo_id])
+                logging.debug("Arquivo COMPROVANTES cadastrado.")
+        else:
+            logging.debug("Não foi incluído um arquivo de COMPROVANTES")
+
+        #CADASTRAR AVALIADORES SUGERIDOS
+        if 'avaliador1_email' in request.form:
+            avaliador1_email = str(request.form['avaliador1_email'])
+            if avaliador1_email!='':
+                token = id_generator(40)
+                consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (?,?,?)"
+                atualizar2(consulta, valores=[avaliador1_email,token,ultimo_id])
+                logging.debug("Avaliador 1 sugerido cadastrado.")
+
+        if 'avaliador2_email' in request.form:
+            avaliador2_email = str(request.form['avaliador2_email'])
+            if avaliador2_email!='':
+                token = id_generator(40)
+                consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (?,?,?)"
+                atualizar2(consulta, valores=[avaliador2_email,token,ultimo_id])
+                logging.debug("Avaliador 2 sugerido cadastrado.")
+
+        if 'avaliador3_email' in request.form:
+            avaliador3_email = str(request.form['avaliador3_email'])
+            if avaliador3_email!='':
+                token = id_generator(40)
+                consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (?,?,?)"
+                atualizar2(consulta, valores=[avaliador3_email,token,ultimo_id])
+                logging.debug("Avaliador 3 sugerido cadastrado.")
+        #Incluir avaliador teste em caso de não inclusão
+        if ('avaliador1_email' not in request.form and 'avaliador2_email' not in request.form and 'avaliador3_email' not in request.form):
+            token = id_generator(40)
+            consulta = """INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES ("TESTE@IGNORAR.COM", ?, ?)"""
+            atualizar2(consulta, valores=[token, ultimo_id])
+            logging.debug("Avaliador TESTE sugerido cadastrado.")
+        elif avaliador1_email=="" and avaliador2_email=="" and avaliador3_email=="":
+            token = id_generator(40)
+            consulta = """INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES ("TESTE@IGNORAR.COM", ?, ?)"""
+            atualizar2(consulta, valores=[token, ultimo_id])
+            logging.debug("Avaliador TESTE sugerido cadastrado.")
+        #CALCULANDO scorelattes
+        dados = [email,nome,titulo,descricao_resumida]
+        t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
+        t.start()
+        return("Submissão realizada com sucesso. ESTA PÁGINA JÁ PODE SER FECHADA COM SEGURANÇA.")
     else:
-        logging.debug("Não foi incluído um arquivo de plano 3")
-
-    #ARQUIVO DE COMPROVANTES
-    if ('arquivo_comprovantes' in request.files):
-        arquivo_comprovantes = request.files['arquivo_comprovantes']
-        if allowed_file(arquivo_comprovantes.filename):
-            arquivo_comprovantes.filename = "Comprovantes_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
-            filename = secure_filename(arquivo_comprovantes.filename)
-            submissoes.save(arquivo_comprovantes, name=filename)
-            encripta_e_apaga(SUBMISSOES_DIR + filename)
-            consulta = "UPDATE editalProjeto SET arquivo_comprovantes=\"" + filename + "\" WHERE id=" + str(ultimo_id)
-            atualizar(consulta)
-            logging.debug("Arquivo COMPROVANTES cadastrado.")
-    else:
-        logging.debug("Não foi incluído um arquivo de COMPROVANTES")
-
-    #CADASTRAR AVALIADORES SUGERIDOS
-    if 'avaliador1_email' in request.form:
-        avaliador1_email = str(request.form['avaliador1_email'])
-        if avaliador1_email!='':
-            token = id_generator(40)
-            consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador1_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-            atualizar(consulta)
-            logging.debug("Avaliador 1 sugerido cadastrado.")
-
-    if 'avaliador2_email' in request.form:
-        avaliador2_email = str(request.form['avaliador2_email'])
-        if avaliador2_email!='':
-            token = id_generator(40)
-            consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador2_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-            atualizar(consulta)
-            logging.debug("Avaliador 2 sugerido cadastrado.")
-
-    if 'avaliador3_email' in request.form:
-        avaliador3_email = str(request.form['avaliador3_email'])
-        if avaliador3_email!='':
-            token = id_generator(40)
-            consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + avaliador3_email + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-            atualizar(consulta)
-            logging.debug("Avaliador 3 sugerido cadastrado.")
-    #Incluir avaliador teste em caso de não inclusão
-    if ('avaliador1_email' not in request.form and 'avaliador2_email' not in request.form and 'avaliador3_email' not in request.form):
-        token = id_generator(40)
-        consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + "TESTE@IGNORAR.COM" + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-        atualizar(consulta)
-        logging.debug("Avaliador TESTE sugerido cadastrado.")
-    elif avaliador1_email=="" and avaliador2_email=="" and avaliador3_email=="":
-        token = id_generator(40)
-        consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (\"" + "TESTE@IGNORAR.COM" + "\", \"" + token + "\", " + str(ultimo_id) + ")"
-        atualizar(consulta)
-        logging.debug("Avaliador TESTE sugerido cadastrado.")
-    #CALCULANDO scorelattes
-    dados = [email,nome,titulo,descricao_resumida]
-    t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
-    t.start()
-    return("Submissão realizada com sucesso. ESTA PÁGINA JÁ PODE SER FECHADA COM SEGURANÇA.")
+        editaisAbertos = getEditaisAbertos()
+        session['PRODUCAO'] = PRODUCAO
+        return render_template('cadastrarProjeto.html',abertos=editaisAbertos)
 
 @app.route("/scorelattes", methods=['GET'])
 def calcularScorelattesFromID():
@@ -802,6 +897,8 @@ def getScoreLattesFromFile():
     area_capes = str(request.form['area_capes'])
     idlattes = str(request.form['idlattes'])
     periodo = int(str(request.form['periodo']))
+    if not numero_valido(periodo) or periodo not in [5,7]:
+        return "Período inválido! Informe um número inteiro positivo."
     try:
         salvarCV(idlattes)
     except Exception as e:
@@ -840,12 +937,15 @@ def naoEstaFinalizado(token):
     consulta = "SELECT finalizado FROM avaliacoes WHERE token=\"" + token + "\""
     cursor.execute(consulta)
     linha = cursor.fetchone()
-    finalizado = int(linha[0])
+    try:
+        finalizado = int(linha[0])
+    except Exception as e:
+        return False
     conn.close()
     if finalizado==0:
-        return (True)
+        return True
     else:
-        return (False)
+        return False
 
 def podeAvaliar(idProjeto):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
@@ -865,15 +965,37 @@ def podeAvaliar(idProjeto):
 @app.route("/testes", methods=['GET', 'POST'])
 def getPaginaAvaliacaoTeste():
     arquivos = "TESTE"
-    return render_template('avaliacao.html',arquivos=arquivos)
+    #return render_template('avaliacao.html',arquivos=arquivos)
+    return "TESTES"
 
-#Gerar pagina de avaliacao para o avaliador
 @app.route("/avaliacao", methods=['GET', 'POST'])
 def getPaginaAvaliacao():
+    """
+    Página de avaliação de projetos.
+
+    Esta página é acessada pelos avaliadores para avaliar os projetos.
+    Ela recebe o ID do projeto e o token de avaliação via GET.
+    Se o ID do projeto for válido e o token de avaliação for válido,
+    a página exibe os links para os arquivos do projeto e permite que o avaliador
+    envie sua avaliação.
+    """
     if request.method == "GET":
-        idProjeto = str(request.args.get('id'))
+        try:
+            idProjeto = str(request.args.get('id'))
+        except Exception as e:
+            logging.error("[/avaliacao] Erro ao obter ID do projeto: %s",str(e))
+            return "ID do projeto não informado!"
+        if not numero_valido(idProjeto):
+            logging.error("[/avaliacao] ID do projeto inválido!")
+            return "ID do projeto inválido!"
         if podeAvaliar(idProjeto): #Se ainda está no prazo para receber avaliações
-            tokenAvaliacao = str(request.args.get('token'))
+            try:
+                tokenAvaliacao = str(request.args.get('token'))
+            except Exception as e:
+                logging.error("[/avaliacao] Erro ao obter token de avaliação: %s", str(e))
+                return "Token de avaliação não informado!"
+            if not token_valido(tokenAvaliacao):
+                return "Token de avaliação inválido!"
             arquivos = getFiles(idProjeto)
             if str(arquivos[0])!="0":
                 link_projeto = url_for('verArquivosProjeto',filename=str(arquivos[0]))
@@ -900,10 +1022,13 @@ def getPaginaAvaliacao():
                 logging.debug("[AVALIACAO] Tentativa de reavaliar projeto")
                 return("Projeto já foi avaliado! Não é possível modificar a avaliação!")
         else:
-            return("Prazo de avaliação expirado!")
-#Gravar avaliacao gerada pelo avaliador
+            return "ID Inválido ou prazo de avaliação expirado!"
+
 @app.route("/avaliar", methods=['GET', 'POST'])
 def enviarAvaliacao():
+    """
+    Grava a avaliação do avaliador no banco de dados.
+    """
     if request.method == "POST":
         comentarios = str(request.form['txtComentarios'])
         recomendacao = str(request.form['txtRecomendacao'])
@@ -921,53 +1046,51 @@ def enviarAvaliacao():
         c7 = str(request.form['c7'])
         comite = str(request.form['comite'])
         try:
-            consulta = "UPDATE avaliacoes SET recomendacao=" + recomendacao + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET finalizado=1" + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET data_avaliacao=CURRENT_TIMESTAMP()" + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET nome_avaliador=\"" + nome_avaliador + "\"" + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
+            consulta = "UPDATE avaliacoes SET recomendacao= ? WHERE token= ? "
+            atualizar2(consulta, valores=[recomendacao,token])
+            consulta = "UPDATE avaliacoes SET finalizado=1 WHERE token= ? "
+            atualizar2(consulta, valores=[token])
+            consulta = "UPDATE avaliacoes SET data_avaliacao=CURRENT_TIMESTAMP() WHERE token= ? "
+            atualizar2(consulta, valores=[token])
+            consulta = "UPDATE avaliacoes SET nome_avaliador= ? WHERE token= ?"
+            atualizar2(consulta, valores=[nome_avaliador,token])
             comentarios = comentarios.replace('"',' ')
             comentarios = comentarios.replace("'"," ")
-            consulta = "UPDATE avaliacoes SET comentario=\"" + comentarios + "\"" + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET c1=" + c1 + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET c2=" + c2 + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET c3=" + c3 + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET c4=" + c4 + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET c5=" + c5 + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET c6=" + c6 + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET c7=" + c7 + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
-            consulta = "UPDATE avaliacoes SET cepa=" + comite + " WHERE token=\"" + token + "\""
-            atualizar(consulta)
+            consulta = "UPDATE avaliacoes SET comentario= ? WHERE token= ? "
+            atualizar2(consulta, valores=[comentarios,token])
+            consulta = "UPDATE avaliacoes SET c1= ? WHERE token= ? "
+            atualizar2(consulta, valores=[c1,token])
+            consulta = "UPDATE avaliacoes SET c2= ? WHERE token= ? "
+            atualizar2(consulta, valores=[c2,token])
+            consulta = "UPDATE avaliacoes SET c3= ? WHERE token= ? "
+            atualizar2(consulta, valores=[c3,token])
+            consulta = "UPDATE avaliacoes SET c4= ? WHERE token= ? "
+            atualizar2(consulta, valores=[c4,token])
+            consulta = "UPDATE avaliacoes SET c5= ? WHERE token= ? "
+            atualizar2(consulta, valores=[c5,token])
+            consulta = "UPDATE avaliacoes SET c6= ? WHERE token= ? "
+            atualizar2(consulta, valores=[c6,token])
+            consulta = "UPDATE avaliacoes SET c7= ? WHERE token= ? "
+            atualizar2(consulta, valores=[c7,token])
+            consulta = "UPDATE avaliacoes SET cepa= ? WHERE token= ? "
+            atualizar2(consulta, valores=[comite,token])
             if modalidade==2:
                 inovacao = str(request.form['inovacao'])
-                consulta = "UPDATE avaliacoes SET inovacao=" + inovacao + " WHERE token=\"" + token + "\""
-                atualizar(consulta)
+                consulta = "UPDATE avaliacoes SET inovacao= ? WHERE token= ? "
+                atualizar2(consulta, valores=[inovacao,token])
         except Exception as e:
             logging.error(e)
-            logging.error("[AVALIACAO] ERRO ao gravar a avaliação: " + token)
-            return("Não foi possível gravar a avaliação. Favor entrar contactar pesquisa.prpi@ufca.edu.br.")
+            logging.error("[AVALIACAO] ERRO ao gravar a avaliação: %s", token)
+            return("Não foi possível gravar a avaliação. Favor entrar contactar " + DEFAULT_EMAIL)
         try:
-            #return (redirect("/declaracaoAvaliador/" + token))
             return (redirect(url_for('getDeclaracaoAvaliador',tokenAvaliacao=token)))
         except Exception as e:
             logging.error(e)
-            logging.error("[/avaliar] ERRO ao gerar a declaração: " + token)
+            logging.error("[/avaliar] ERRO ao gerar a declaração: %s",token)
             return("Não foi possível gerar a declaração.")
     else:
         return("OK")
 
-## TODO: Revisar função abaixo
 def descricaoEdital(codigoEdital):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
     conn.select_db(MYSQL_DATABASE)
@@ -1000,6 +1123,9 @@ def getDeclaracaoAvaliador(tokenAvaliacao):
     """
     Gera a declaração de avaliação do avaliador.
     """
+    if not token_valido(tokenAvaliacao):
+        logging.error("[/declaracaoAvaliador] Token inválido: %s", tokenAvaliacao)
+        return "Token inválido!"
     consulta = f"""
     SELECT nome_avaliador,idProjeto,avaliador FROM avaliacoes WHERE token="{tokenAvaliacao}" 
     AND finalizado=1
@@ -1040,6 +1166,9 @@ def consultar(consulta):
 def recusarConvite():
     if request.method == "GET":
         tokenAvaliacao = str(request.args.get('token'))
+        if not token_valido(tokenAvaliacao):
+            logging.error("[/recusarConvite] Token inválido: %s", tokenAvaliacao)
+            return "Token inválido!"
         consulta = "UPDATE avaliacoes SET aceitou=0 WHERE token=\"" + tokenAvaliacao + "\""
         atualizar(consulta)
         return("Avaliação cancelada com sucesso. Agradecemos a atenção.")
@@ -1047,6 +1176,7 @@ def recusarConvite():
         return("OK")
 
 @app.route("/avaliacoesNegadas", methods=['GET', 'POST'])
+@login_required(role='admin')
 def avaliacoesNegadas():
     if request.method == "GET":
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
@@ -1054,8 +1184,14 @@ def avaliacoesNegadas():
         cursor  = conn.cursor()
         if 'edital' in request.args:
             codigoEdital = str(request.args.get('edital'))
+            if not numero_valido(codigoEdital):
+                logging.error("[/avaliacoesNegadas] Código do edital inválido: %s", codigoEdital)
+                return "Código do edital inválido!"
             if 'id' in request.args:
                 idProjeto = str(request.args.get('id'))
+                if not numero_valido(idProjeto):
+                    logging.error("[/avaliacoesNegadas] ID do projeto inválido: %s", idProjeto)
+                    return "ID do projeto inválido!"
                 consulta = "SELECT resumoGeralAvaliacoes.id,CONCAT(SUBSTRING(resumoGeralAvaliacoes.titulo,1,80),\" - (\",resumoGeralAvaliacoes.nome,\" )\"),(resumoGeralAvaliacoes.aceites+resumoGeralAvaliacoes.rejeicoes) as resultado,resumoGeralAvaliacoes.indefinido FROM resumoGeralAvaliacoes WHERE ((aceites+rejeicoes<10) OR (aceites=rejeicoes)) AND tipo=" + codigoEdital + " AND id = " + idProjeto +" ORDER BY aceites+rejeicoes, id"
             else:
                 consulta = "SELECT resumoGeralAvaliacoes.id,CONCAT(SUBSTRING(resumoGeralAvaliacoes.titulo,1,80),\" - (\",resumoGeralAvaliacoes.nome,\" )\"),(resumoGeralAvaliacoes.aceites+resumoGeralAvaliacoes.rejeicoes) as resultado,resumoGeralAvaliacoes.indefinido FROM resumoGeralAvaliacoes WHERE ((aceites+rejeicoes<2) OR (aceites=rejeicoes)) AND tipo=" + codigoEdital + " ORDER BY aceites+rejeicoes, id"
@@ -1065,8 +1201,7 @@ def avaliacoesNegadas():
                 total = cursor.rowcount
                 conn.close()
                 return(render_template('inserirAvaliador.html',listaProjetos=linha,totalDeLinhas=total,codigoEdital=codigoEdital))
-            except:
-                e = sys.exc_info()[0]
+            except Exception as e:
                 logging.error(e)
                 logging.error(consulta)
                 conn.close()
@@ -1077,19 +1212,23 @@ def avaliacoesNegadas():
         return("OK")
 
 @app.route("/inserirAvaliador", methods=['GET', 'POST'])
+@login_required(role='admin')
 def inserirAvaliador():
+    """
+    Atribuir avaliador a um projeto
+    """
     if request.method == "POST":
         token = id_generator(40)
         idProjeto = int(request.form['txtProjeto'])
         avaliador1_email = str(request.form['txtEmail'])
         consulta_verificacao = """
-            SELECT avaliador from avaliacoes WHERE idProjeto = %s AND avaliador = "%s"
-        """ % (idProjeto, avaliador1_email)
-        linhas, total = executarSelect(consulta_verificacao)
+            SELECT avaliador from avaliacoes WHERE idProjeto = ? AND avaliador = ? 
+        """
+        linhas, total = executarSelect2(consulta_verificacao,valores=[idProjeto, avaliador1_email])
         if total > 0: #Já existe este avaliador para este projeto
             return("Avaliador já cadastrado para este projeto.")
-        consulta = "INSERT INTO avaliacoes (aceitou,avaliador,token,idProjeto) VALUES (-1,\"" + avaliador1_email + "\", \"" + token + "\", " + str(idProjeto) + ")"
-        atualizar(consulta)
+        consulta = "INSERT INTO avaliacoes (aceitou,avaliador,token,idProjeto) VALUES (-1, ?, ?, ?)"
+        atualizar2(consulta, valores=[avaliador1_email, token, str(idProjeto)])
         t = threading.Thread(target=enviarPedidoAvaliacao,args=(idProjeto,))
         t.start()
         return("Avaliador cadastrado com sucesso.")
@@ -1106,11 +1245,17 @@ def quantidades(consulta):
     conn.close()
     return (total)
 
-## TODO: Finalizar as estatisticas - Projetos aprovados devem ser vir da tabela editalProjeto
 @app.route("/estatisticas", methods=['GET', 'POST'])
+@login_required(role='admin')
 def estatisticas():
     if request.method == "GET":
-        codigoEdital = str(request.args.get('edital'))
+        try:
+            codigoEdital = str(request.args.get('edital'))
+        except Exception as e:
+            logging.error("[/estatisticas] Erro ao obter código do edital: %s", str(e))
+            return "Código do edital não informado!"
+        if not numero_valido(codigoEdital):
+            return "Código do edital inválido!"
         #Resumo Geral
         consulta = "SELECT * FROM resumoGeralAvaliacoes WHERE tipo=" + codigoEdital + " ORDER BY ua, score DESC"
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
@@ -1136,13 +1281,12 @@ def estatisticas():
             for linha in nomeEdital:
                 edital = linha[0]
         else:
-            edital=u"CÓDIGO DE EDITAL INVÁLIDO"
+            edital="CÓDIGO DE EDITAL INVÁLIDO"
         conn.close()
         return(render_template('estatisticas.html',nomeEdital=edital,linhasResumo=resumoGeral,projetosAprovados=aprovados,projetosPendentes=pendentes,projetosReprovados=reprovados))
         #return(codigoEdital)
     else:
         return("OK")
-
 
 def cotaEstourada(codigoEdital,siape):
     if (codigoEdital=='1'): #Situação particular do edital 01: Checar os que tem 2 bolsas no edital 02/2018/CNPQ/UFCA
@@ -1155,10 +1299,6 @@ def cotaEstourada(codigoEdital,siape):
     else:
         return (False)
 
-'''
-demanda: Quantidade de bolsas por unidade academica
-dados: projetos ordenados por Unidade Academica e Lattes
-'''
 def distribuir_bolsas(demanda,consulta):
     ## TODO: Incluir condição de cruzamento de dados
     '''
@@ -1217,8 +1357,7 @@ def executarSelect(consulta,tipo=0):
         else: #Retorna uma única linha
             resultado = cursor.fetchone()
         return (resultado,total)
-    except:
-        e = sys.exc_info()[0]
+    except Exception as e:
         logging.error(e)
         logging.error("ERRO Na função executarSelect. Ver consulta abaixo.")
         logging.error(consulta)
@@ -1226,6 +1365,28 @@ def executarSelect(consulta,tipo=0):
         cursor.close()
         conn.close()
 
+def executarSelect2(consulta,tipo=0,valores=()):
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn.select_db(MYSQL_DATABASE)
+    cursor  = conn.cursor()
+    try:
+        if valores==():
+            cursor.execute(consulta)
+        else:
+            cursor.execute(consulta,tuple(valores))
+        total = cursor.rowcount
+        if tipo==0: #Retorna todas as linhas
+            resultado = cursor.fetchall()
+        else: #Retorna uma única linha
+            resultado = cursor.fetchone()
+        return (resultado,total)
+    except Exception as e:
+        logging.error(e)
+        logging.error("ERRO Na função executarSelect. Ver consulta abaixo.")
+        logging.error(consulta)
+    finally:
+        cursor.close()
+        conn.close()
 
 def avaliacoesEncerradas(codigoEdital):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
@@ -1240,15 +1401,17 @@ def avaliacoesEncerradas(codigoEdital):
     else: #Edital com avaliacoes em andamento
         return(True)
 
-
 @app.route("/resultados", methods=['GET', 'POST'])
-@auth.login_required
+@login_required(role='admin')
 def resultados():
     if request.method == "GET":
-
         #Recuperando o código do edital
-        codigoEdital = str(request.args.get('edital'))
-
+        try:
+            codigoEdital = str(request.args.get('edital'))
+        except Exception as e:
+            return "Código do edital não informado!"
+        if not numero_valido(codigoEdital):
+            return "Código do edital inválido!"
         #Recuperando o Resumo Geral
         consulta = "SELECT * FROM resumoGeralClassificacao WHERE tipo=" + codigoEdital + " ORDER BY ua, score DESC"
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
@@ -1278,7 +1441,7 @@ def resultados():
                 recursos = str(linha[4])
                 link = str(linha[5])
         else:
-            edital=u"CÓDIGO DE EDITAL INVÁLIDO"
+            edital="CÓDIGO DE EDITAL INVÁLIDO"
         qtde_bolsas = str(qtde_bolsas)
 
         #Recuperando total de projetos: total_projetos e calculando total de bolsas por unidade
@@ -1350,10 +1513,11 @@ def resultados():
     else:
         return("OK")
 
-'''
-Retorna uma coluna de uma linha única dado uma chave primária
-'''
+#TODO: Parametrizar consulta (sqli)
 def obterColunaUnica(tabela,coluna,colunaId,valorId):
+    '''
+    Retorna uma coluna de uma linha única dado uma chave primária
+    '''
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
@@ -1365,8 +1529,7 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
         for linha in linhas:
             resultado = str(linha[0])
         return(resultado)
-    except:
-        e = sys.exc_info()[0]
+    except Exception as e:
         logging.error(e)
         logging.error("ERRO Na função obtercolunaUnica. Ver consulta abaixo.")
         logging.error(consulta)
@@ -1415,8 +1578,8 @@ def gerarPDF(template):
     #return send_from_directory(app.config['TEMP_FOLDER'], 'resultados.pdf')
 
 @app.route("/editalProjeto", methods=['GET', 'POST'])
+@login_required(role='admin')
 def editalProjeto():
-    
     if (autenticado() and int(session['permissao'])==0):
         if request.method == "GET":
             #Recuperando o código do edital
@@ -1497,7 +1660,7 @@ def editalProjeto():
             else:
                 return ("OK")
     else:
-        return(render_template('login.html',mensagem=u"É necessário autenticação para acessar a página solicitada"))
+        return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
 
 @app.route("/lattesDetalhado", methods=['GET', 'POST'])
 def lattesDetalhado():
@@ -1561,6 +1724,7 @@ def declaracaoEvento():
             return ("OK")
 
 @app.route("/meusProjetos", methods=['GET', 'POST'])
+@login_required(role='user')
 def meusProjetos():
     if 'siape' in request.args and 'senha' in request.args:
             siape = str(request.args.get('siape'))
@@ -1570,7 +1734,6 @@ def meusProjetos():
     if autenticado():        
         consulta = """SELECT id,nome_do_coordenador,orientador_lotacao,titulo_do_projeto,DATE_FORMAT(inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(termino,'%d/%m/%Y') as fim,estudante_nome_completo,token FROM cadastro_geral WHERE siape='""" + str(session['username']) + """' ORDER BY inicio,titulo_do_projeto"""
         projetos,total = executarSelect(consulta)
-
         consulta_outros = """SELECT 
         editalProjeto.id,
         editais.nome,
@@ -1606,7 +1769,7 @@ def meusProjetos():
 
         return(render_template('meusProjetos.html',projetos=projetos,total=total,projetos2019=projetos2019,total2019=total2019,permissao=session['permissao'],orientandos=orientandos_atuais,orientandos_antigos=orientandos_antigos))
     else:
-        return(render_template('login.html',mensagem=u"É necessário autenticação para acessar a página solicitada"))
+        return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
 
 @app.route("/minhaDeclaracaoOrientador", methods=['GET', 'POST'])
 def minhaDeclaracao():
@@ -1687,36 +1850,36 @@ def minhaDeclaracao():
         else:
             return("OK")
     else:
-        return(render_template('login.html',mensagem=u"É necessário autenticação para acessar a página solicitada"))
+        return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
 
 @app.route("/discente/minhaDeclaracao", methods=['GET', 'POST'])
 def minhaDeclaracaoDiscente():
-        if request.method == "GET":
-            #Recuperando o token da declaração
-            if 'token' in request.args:
-                token = str(request.args.get('token'))
-                consulta = """SELECT estudante_nome_completo,cpf,if(estudante_fim>NOW(),1,0) as verbo,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,
-                            ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(estudante_fim,'%d/%m/%Y') as final FROM cadastro_geral WHERE token='""" + token + """'"""
-                projeto,total = executarSelect(consulta,1)
-                data_agora = getData()
-                if total==1:
-                    arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                    options = {
-                        'page-size': 'A4',
-                        'margin-top': '2cm',
-                        'margin-right': '2cm',
-                        'margin-bottom': '1cm',
-                        'margin-left': '2cm',
-                    }
-                    pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
-                    return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    
-                else:
-                    return("declaração inexistente!")
+    if request.method == "GET":
+        #Recuperando o token da declaração
+        if 'token' in request.args:
+            token = str(request.args.get('token'))
+            consulta = """SELECT estudante_nome_completo,cpf,if(estudante_fim>NOW(),1,0) as verbo,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,
+                        ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(estudante_fim,'%d/%m/%Y') as final FROM cadastro_geral WHERE token='""" + token + """'"""
+            projeto,total = executarSelect(consulta,1)
+            data_agora = getData()
+            if total==1:
+                arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
+                options = {
+                    'page-size': 'A4',
+                    'margin-top': '2cm',
+                    'margin-right': '2cm',
+                    'margin-bottom': '1cm',
+                    'margin-left': '2cm',
+                }
+                pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
+                
             else:
-                return("OK")
+                return("declaração inexistente!")
         else:
             return("OK")
+    else:
+        return("OK")
 
 '''
 qrcode_url = url_for('avaliacao_gerar_declaracao',ano=ano,periodo=periodo,token=token,_external=True)
@@ -1864,6 +2027,7 @@ def minhaDeclaracaoDiscente2019():
         return("OK")
 
 @app.route("/meusPareceres", methods=['GET', 'POST'])
+@login_required(role='user')
 def meusPareceres():
     if request.method == "GET":
         #Recuperando o id do Projeto
@@ -1883,7 +2047,7 @@ def meusPareceres():
                     logging.error(str(e))
                     return("ERRO!")
             else:
-                return(render_template('login.html',mensagem=u"É necessário autenticação para acessar a página solicitada"))
+                return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
         else:
             return("OK")
     else:
@@ -1910,11 +2074,11 @@ def registrar_acesso(ip,usuario):
     except Exception as e:
         logging.error("Erro ao registrar acesso: " + str(e))
 
-'''
-Método que ativa a sessão com os dados do usuário
-'''
 @app.route("/login", methods=['POST','GET'])
 def login():
+    '''
+    Método que ativa a sessão com os dados do usuário
+    '''
     if request.method == "POST":
         if (('siape' in request.form) and ('senha' in request.form)):
             siape = str(request.form['siape'])
@@ -1922,22 +2086,13 @@ def login():
             senha = senha[:64]  # Limitar o tamanho da senha para evitar problemas ataques DoS
             if verify_password(siape,senha):
                 registrar_acesso(request.remote_addr,siape)
-                return(redirect(url_for('usuario')))
+                return(redirect(url_for('home')))
             else:
                 return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
         else:
             return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
     else: #GET
-        if 'siape' in request.args and 'senha' in request.args:
-            siape = str(request.args.get('siape'))
-            senha = str(request.args.get('senha'))
-            if verify_password(siape,senha):
-                registrar_acesso(request.remote_addr,siape)
-                return(redirect(url_for('usuario')))
-            else:
-                return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
-        else:
-            return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
+        return(render_template('login.html',mensagem='Entre com suas credenciais de acesso'))
 
 @app.route("/esqueciMinhaSenha", methods=['GET', 'POST'])
 def esqueciMinhaSenha():
@@ -1959,14 +2114,14 @@ def enviarMinhaSenha():
             email = str(request.form['email'])
             senha_forte = generate_secure_password()
             #ENVIAR E-MAIL
-            consulta = """SELECT username,id FROM users WHERE email='""" + email + """' """
-            linhas,total = executarSelect(consulta,1)
+            consulta = """SELECT username,id FROM users WHERE email= ? """
+            linhas,total = executarSelect2(consulta,1,valores=[email])
             if (total>0):
                 username = str(linhas[0])
                 idUsuario = str(linhas[1])
                 senha = senha_forte
                 if PRODUCAO==0:
-                    logging.debug("Senha gerada: " + senha)
+                    logging.debug("Senha gerada: %s", senha)
                 hash_senha = cripto.hash_argon2id(senha)
                 consulta = f"""UPDATE users SET password='{hash_senha}' WHERE id={idUsuario}"""
                 atualizar(consulta)
@@ -1987,7 +2142,7 @@ def enviarMinhaSenha():
 @app.route("/logout", methods=['GET', 'POST'])
 def encerrarSessao():
     logout()
-    return(render_template('login.html',mensagem=''))
+    return redirect(url_for('home'))
 
 def projetoAprovado(idProjeto):
 
@@ -2008,6 +2163,7 @@ def projetoAprovado(idProjeto):
             return(False)
 
 @app.route("/prepararResultados", methods=['GET', 'POST'])
+@login_required(role='admin')
 def prepararResultados():
     if request.method == "GET":
         #Recuperando o código do edital
@@ -2121,6 +2277,7 @@ def tuplaDeEditais(ano):
 
 
 @app.route("/cruzarDados", methods=['GET', 'POST'])
+@login_required(role='admin')
 def cruzarDados():
     if request.method == "GET":
         #Recuperando o ano dos editais
@@ -2229,6 +2386,7 @@ def dataDeIndicacao(codigoEdital):
         return (True)
 
 @app.route("/indicacao", methods=['GET', 'POST'])
+@login_required(role='user')
 def indicacao():
     if request.method == "GET":
         #Recuperando o código do projeto
@@ -2288,6 +2446,7 @@ def encripta_e_apaga(arquivo):
     os.remove(arquivo)
 
 @app.route("/efetivarIndicacao", methods=['GET', 'POST'])
+@login_required(role='user')
 def efetivarIndicacao():
     if request.method == "POST":
         try:
@@ -2395,7 +2554,7 @@ def efetivarIndicacao():
                 titulo_projeto = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
                 orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)
                 email = obterColunaUnica('editalProjeto','email','id',idProjeto)
-                email2 = "pesquisa.prpi@ufca.edu.br"
+                email2 = DEFAULT_EMAIL
                 texto_email = render_template('confirmacao_indicacao.html',vaga=vaga,id_projeto=idProjeto,indicado=nome,proponente=orientador,titulo=titulo_projeto,email_proponente=email,idIndicacao=idIndicacao)
                 if vaga==1:
                     msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE BOLSISTA",recipients=[email,email2],html=texto_email)
@@ -2415,7 +2574,7 @@ def efetivarIndicacao():
         return("OK")
 
 @app.route("/indicacoes", methods=['GET', 'POST'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 def indicacoes():
     if request.method == "GET":
         #Recuperando código do edital
@@ -2500,6 +2659,7 @@ def verArquivosProjeto(filename):
         return("Arquivo não encontrado!")
 
 @app.route("/situacaoIndicacoes", methods=['GET', 'POST'])
+@login_required(role='admin')
 def situacaoIndicacoes():
     if request.method == "GET":
         if 'edital' in request.args:
@@ -2578,6 +2738,7 @@ def jaEnviouFrequenciaAtual(idAluno,mes,ano):
 
 
 @app.route("/enviarFrequencia", methods=['GET', 'POST'])
+@login_required(role='user')
 def enviarFrequencia():
     if request.method == "GET":
         if 'id' in request.args:
@@ -2614,6 +2775,7 @@ def enviarFrequencia():
 
 
 @app.route("/cadastrarFrequencia", methods=['GET', 'POST'])
+@login_required(role='user')
 def cadastrarFrequencia():
     if request.method == "POST":
         s1 = str(request.form['s1'])
@@ -2740,7 +2902,7 @@ def listaNegra(email):
     ORDER BY editalProjeto.nome,indicacoes.id"""
     linhas,total = executarSelect(consulta)
     lista = []
-    lista_emails = ['pesquisa.prpi@ufca.edu.br']
+    lista_emails = [DEFAULT_EMAIL]
     lista_emails_discentes = []
     for linha in linhas:
         idIndicacao = str(linha[0])
@@ -2771,6 +2933,7 @@ def timestamp():
     return(str(now))
 
 @app.route("/desligarIndicacao/<id_indicacao>", methods=['GET', 'POST'])
+@login_required(role='user')
 def desligarIndicacao(id_indicacao):
     idAluno = id_indicacao
     siape = session['username']
@@ -2802,7 +2965,7 @@ def desligarIndicacao(id_indicacao):
             consulta = "UPDATE indicacoes SET situacao=1, fim=NOW() WHERE id=" + idAluno
             atualizar(consulta)
             email = obterColunaUnica('editalProjeto','email','id',idProjeto)
-            email2 = "pesquisa.prpi@ufca.edu.br"
+            email2 = DEFAULT_EMAIL
             
             texto_email = render_template('confirmacao_desligamento.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
             if tipo_vaga==1:
@@ -2831,6 +2994,7 @@ def enviar_email_desligamento_substituicao(msg):
 
 
 @app.route("/substituirIndicacao/<id_indicacao>", methods=['GET', 'POST'])
+@login_required(role='user')
 def substituirIndicacao(id_indicacao):
     idAluno = id_indicacao
     siape = session['username']
@@ -2863,7 +3027,7 @@ def substituirIndicacao(id_indicacao):
             consulta = "UPDATE indicacoes SET situacao=2, fim=NOW() WHERE id=" + idAluno
             atualizar(consulta)
             email = obterColunaUnica('editalProjeto','email','id',idProjeto)
-            email2 = "pesquisa.prpi@ufca.edu.br"
+            email2 = DEFAULT_EMAIL
             texto_email = render_template('confirmacao_substituicao.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
             if tipo_vaga=="1":
                 msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE BOLSISTA",recipients=[email,email2],html=texto_email)
@@ -2944,6 +3108,7 @@ def consultas():
         return("OK")
 
 @app.route("/substituicoes", methods=['GET', 'POST'])
+@login_required(role='admin')
 def substituicoes():
     if 'id' in request.args:
         id = str(request.args.get('id'))
@@ -3001,7 +3166,7 @@ def enviar_email_avaliadores():
         nome_longo = str(linha[12])
         with app.app_context():
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
-            msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+            msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 try:
                     mail.send(msg)
@@ -3010,8 +3175,9 @@ def enviar_email_avaliadores():
                     logging.error(str(e))
                 consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
                 atualizar(consulta)    
-            except:
-                logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: " + email_avaliador)
+            except Exception as e:
+                logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s", email_avaliador)
+                logging.error(str(e))
                 return("Erro! Verifique o log!")
 
 @app.route("/emailSolicitarAvaliacao", methods=['GET', 'POST'])
@@ -3021,16 +3187,16 @@ def email_solicitar_avaliacao():
     t.start()
     return("Envio de e-mails iniciado!")
     
-def enviarPedidoAvaliacao(id):
+def enviarPedidoAvaliacao(idProjeto):
     gerarLinkAvaliacao()
     consulta = """
     SELECT e.id,e.titulo,e.resumo,a.avaliador,a.link,a.id,a.enviado,a.token,e.categoria,e.tipo 
     FROM editalProjeto as e, avaliacoes as a WHERE e.id=a.idProjeto AND e.valendo=1 
-    AND a.finalizado=0 AND e.categoria=1 and e.id=""" + str(id) + """ 
+    AND a.finalizado=0 AND e.categoria=1 and e.id=""" + str(idProjeto) + """ 
     ORDER BY a.id DESC LIMIT 1
     """
     linhas,total = executarSelect(consulta)
-    logging.debug("Enviado pedido de avaliacao para: " + str(total))
+    logging.debug("Enviado pedido de avaliacao para: %s", str(total))
     
     for linha in linhas:
         titulo = str(linha[1])
@@ -3044,17 +3210,18 @@ def enviarPedidoAvaliacao(id):
         with app.app_context():
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
             if PRODUCAO==1:
-                msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+                msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             else:
-                msg = Message(subject = u"CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[EMAIL_TESTES],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+                msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[EMAIL_TESTES],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 mail.send(msg)
                 logging.debug("E-MAIL ENVIADO COM SUCESSO.")    
-            except:
-                logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: " + email_avaliador)
+            except Exception as e:
+                logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s", email_avaliador)
+                logging.error(str(e))
 
 @app.route("/arquivar/<id_projeto>", methods=['GET', 'POST'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 def arquivar_projeto(id_projeto):
     projeto = str(id_projeto)
     consulta = "UPDATE editalProjeto SET valendo=0 WHERE id=" + projeto
@@ -3063,7 +3230,7 @@ def arquivar_projeto(id_projeto):
     return(redirect("/pesquisa/editalProjeto?edital=" + edital))
 
 @app.route("/aprovar/projetos/<edital>", methods=['GET', 'POST'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 def aprovar_projetos(edital):
     #RECOMENDADOS
     consulta1 = """UPDATE editalProjeto SET situacao=1 
@@ -3088,14 +3255,16 @@ def aprovar_projetos(edital):
     return(redirect("/pesquisa/admin"))
 
 @app.route("/desligar/<id_indicacao>", methods=['GET', 'POST'])
+@login_required(role='user')
 def desligar(id_indicacao):
     action = url_for('desligarIndicacao',id_indicacao=id_indicacao)
     return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao="DESLIGAMENTO",action=action))
 
 @app.route("/substituir/<id_indicacao>", methods=['GET', 'POST'])
+@login_required(role='user')
 def substituir(id_indicacao):
     action = url_for('substituirIndicacao',id_indicacao=id_indicacao)
-    return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao=u"SUBSTITUIÇÃO",action=action))
+    return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao="SUBSTITUIÇÃO",action=action))
 
 @app.route("/get_bib/<siapes>", methods=['GET'])
 @auth.login_required(role=['user'])
@@ -3114,7 +3283,7 @@ def get_bib(siapes):
     group by editalProjeto.id
     order by year(editalProjeto.inicio),editalProjeto.id
     """ % (siapes)
-    consulta = u"""
+    consulta = """
     (SELECT UPPER(editalProjeto.nome),area_capes,UPPER(titulo), YEAR(editalProjeto.inicio) as ano,
     GROUP_CONCAT(IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')) LIMIT 1) as modalidade,
     palavras,bolsas as solicitadas,bolsas_concedidas as concedidas,
@@ -3223,6 +3392,8 @@ def get_projetos_discente():
         return (render_template('projetos.html'))
     else:
         try:
+            if not nome_valido(str(request.form['txtNome'])):
+                return "Nome inválido. Por favor, verifique o nome digitado."
             projetosAluno,projetosAluno2019 = gerarProjetosPorAluno(str(request.form['txtNome']))
             return render_template('alunos.html',listaProjetos=projetosAluno,lista2019=projetosAluno2019)
         except Exception as e:
@@ -3231,7 +3402,7 @@ def get_projetos_discente():
             return render_template("Erro ao gerar projetos por aluno (/projetos_discente)")
 
 @app.route("/argon2", methods=['GET'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 def hash_passwords():
     consulta = """
     SELECT id,password FROM users 
@@ -3243,21 +3414,21 @@ def hash_passwords():
         idUsuario = str(linha[0])
         password = str(linha[1])
         hashed_password = cripto.hash_argon2id(password)
-        consulta = f"""UPDATE users SET password="{hashed_password}" WHERE id={idUsuario}"""
-        atualizar(consulta)
+        consulta = """UPDATE users SET password= ? WHERE id= ?"""
+        atualizar2(consulta, valores=[hashed_password, idUsuario])
     return("OK\n")
 
 def cadastrar_novo_usuario(siape, nome, email):
     senha = generate_secure_password()
     hashed_password = cripto.hash_argon2id(senha)
     role = 'user'
-    consulta = f"""INSERT INTO users (username,nome,email,password,roles) 
-    VALUES ('{siape}','{nome}','{email}','{hashed_password}','{role}')"""
-    atualizar(consulta)
+    consulta = """INSERT INTO users (username,nome,email,password,roles) 
+    VALUES (?, ?, ?, ?, ?)"""
+    atualizar2(consulta,valores=[siape, nome, email, hashed_password, role])
     return senha
 
 @app.route("/cadastrar_usuario", methods=['GET', 'POST'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 def cadastrar_usuario():
     if request.method == 'POST':
         #Recebendo siape, nome e email do formulário
@@ -3265,14 +3436,14 @@ def cadastrar_usuario():
         nome = str(request.form['nome'])
         email = str(request.form['email'])
         #Verificando se o usuário já existe
-        consulta = f"""SELECT id FROM users WHERE username='{siape}'"""
-        linhas,total = executarSelect(consulta)
+        consulta = """SELECT id FROM users WHERE username= ? """
+        linhas,total = executarSelect2(consulta, valores=[siape])
         if total > 0:
             flash("Usuário já cadastrado!")
             return redirect(url_for('cadastrar_usuario'))
         #Verificando se o e-mail já está cadastrado
-        consulta = f"""SELECT id FROM users WHERE email='{email}'"""
-        linhas,total = executarSelect(consulta)
+        consulta = """SELECT id FROM users WHERE email= ? """
+        linhas,total = executarSelect2(consulta, valores=[email])
         if total > 0:
             flash("E-mail já cadastrado!")
             return redirect(url_for('cadastrar_usuario'))
@@ -3295,25 +3466,25 @@ def cadastrar_usuario():
         return render_template('cadastrar_usuario.html')
 
 @app.route("/cadastrar_usuarios_projetos/<edital>", methods=['GET'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 def cadastrar_usuarios_projetos(edital):
     """
     Cadastra novos usuários no sistema a partir dos dados dos 
     projetos do edital especificado.
     """
-    consulta = f"""
+    consulta = """
     SELECT 
     nome,
     siape,
     email 
     FROM editalProjeto 
-    WHERE tipo={edital} AND 
+    WHERE tipo= ? AND 
     valendo=1 
     AND CONVERT(siape USING utf8) NOT IN (SELECT username FROM users) 
     AND email NOT IN (SELECT email FROM users) 
     ORDER BY id
     """
-    linhas,total = executarSelect(consulta)
+    linhas,total = executarSelect2(consulta,valores=[edital])
     if total > 0:
         for linha in linhas:
             siape = str(linha[1])

@@ -5,7 +5,7 @@ name: Solicitar avaliação para avaliadores
 on: 
   workflow_dispatch:
   schedule:
-    - cron: '45 10 * * 2,4' # Executa 2 vezes na semana as 10:45 (UTC)
+    - cron: '45 10 * * 2,4' # Executa 2 vezes na semana (terça e quinta) as 10:45 (UTC)
   
 permissions:
   contents: read

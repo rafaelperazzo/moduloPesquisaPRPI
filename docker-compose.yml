@@ -42,7 +42,7 @@ services:
     networks:
       - web  
   pesquisa:
-    image: ghcr.io/rafaelperazzo/python3:v1.0.1
+    image: ghcr.io/rafaelperazzo/python3:v1.0.2
     command: python3 pesquisa.py
     depends_on:
       db_pesquisa:
@@ -75,6 +75,8 @@ services:
       CPF_TESTES: ${CPF_TESTES}
       AES_KEY: ${AES_KEY}
       GPG_KEY: ${GPG_KEY}
+      DEFAULT_EMAIL: ${DEFAULT_EMAIL}
+      DSN_SENTRY: ${DSN_SENTRY}
     
     healthcheck:
       test: ["CMD", "curl", "-f", "http://ip.me"]

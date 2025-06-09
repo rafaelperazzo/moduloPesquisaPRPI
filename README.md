@@ -1,5 +1,7 @@
 # 🎓 Módulo de Pesquisa
 
+[![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://uptime.betterstack.com/?utm_source=status_badge)
+
 Sistema web desenvolvido para auxiliar no gerenciamento e acompanhamento de projetos de pesquisa no âmbito acadêmico
 da UFCA. Projetado para atender às necessidades da instituição supracitada. 
 

@@ -7,5 +7,5 @@ fi
 git log --date=iso --pretty=format:"%x09%ad%x09%s" > CHANGELOG.md
 git add .
 git commit -m "$1"
-git tag -a v$2
-git push origin python3
+git tag -a $2
+git push origin python3 --tags

@@ -1,3 +1,4 @@
+	2025-06-09 16:18:29 -0300	docs: Alguns links com o target = blank
 	2025-06-09 16:16:03 -0300	docs: Incluída sessão de status do sistema no README
 	2025-06-09 16:13:23 -0300	docs: GPL 3 no README
 	2025-06-09 16:08:26 -0300	docs: Incluídos novos badges no readme separados por tipo

@@ -42,13 +42,12 @@ services:
     networks:
       - web  
   pesquisa:
-    image: ghcr.io/rafaelperazzo/python3:v1.0.2
+    image: ghcr.io/rafaelperazzo/python3:v1.0.3
     command: python3 pesquisa.py
     depends_on:
       db_pesquisa:
         condition: service_healthy
     
-    #build: .
     volumes:
       - ./app:/app
       - ./share:/share
@@ -77,6 +76,8 @@ services:
       GPG_KEY: ${GPG_KEY}
       DEFAULT_EMAIL: ${DEFAULT_EMAIL}
       DSN_SENTRY: ${DSN_SENTRY}
+      BS_SOURCE_TOKEN: ${BS_SOURCE_TOKEN}
+      BS_HOST: ${BS_HOST}
     
     healthcheck:
       test: ["CMD", "curl", "-f", "http://ip.me"]

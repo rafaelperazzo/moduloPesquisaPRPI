@@ -33,6 +33,7 @@ from datetime import timedelta
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
+from logtail import LogtailHandler
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -64,6 +65,8 @@ EMAIL_TESTES = os.getenv("EMAIL_TESTES","test@123.com")
 DEFAULT_EMAIL = os.getenv("DEFAULT_EMAIL","teste@test.com")
 LINK_AVALIACAO = ROOT_SITE + URL_PREFIX + "/avaliacao"
 DSN_SENTRY = os.getenv("DSN_SENTRY", "")
+BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
+BS_HOST = os.getenv("BS_HOST", "")
 
 if PRODUCAO==1:
     sentry_sdk.init(
@@ -126,6 +129,17 @@ else:
                     filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
 logging.getLogger('waitress')
+
+#TODO: Ajustar configuração do Logtail
+handler = LogtailHandler(
+    source_token=BS_SOURCE_TOKEN,
+    host=BS_HOST,
+)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.handlers = []
+logger.addHandler(handler)
+
 #Obtendo senhas
 PASSWORD = os.getenv("DB_PASSWORD", "World")
 GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD", "World")

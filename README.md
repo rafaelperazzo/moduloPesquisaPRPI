@@ -1,6 +1,13 @@
 # 🎓 Módulo de Pesquisa
 
-[![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://uptime.betterstack.com/?utm_source=status_badge)
+[![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://yoko.betteruptime.com/pt)
+![GitHub last commit](https://img.shields.io/github/last-commit/rafaelperazzo/moduloPesquisaPRPI)
+![GitHub Tag](https://img.shields.io/github/v/tag/rafaelperazzo/moduloPesquisaPRPI)
+
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![Flask](https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white)
+![Debian](https://img.shields.io/badge/Debian-D70A53?style=for-the-badge&logo=debian&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 
 Sistema web desenvolvido para auxiliar no gerenciamento e acompanhamento de projetos de pesquisa no âmbito acadêmico
 da UFCA. Projetado para atender às necessidades da instituição supracitada.

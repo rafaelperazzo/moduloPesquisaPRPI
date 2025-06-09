@@ -1,3 +1,8 @@
+	2025-06-09 16:07:39 -0300	docs: Incluídos novos badges no readme
+	2025-06-09 16:05:14 -0300	docs: Organizado badges do readme
+	2025-06-09 15:58:35 -0300	fix: Incluídos badges do shield.io no README
+	2025-06-09 15:55:21 -0300	docs: Incluídos badges do shield.io no README
+	2025-06-09 14:50:05 -0300	docs: README atualizado em seus pre-requisitos
 	2025-06-09 14:45:18 -0300	feat: Incluído recurso do betterstack no readme.md
 	2025-06-09 14:25:37 -0300	fix: Removido titulo do projeto da declaração do avaliador.
 	2025-06-09 10:43:05 -0300	docs: Atualizados comentários nos github actions e nos scripts de deploy e commit

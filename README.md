@@ -3,7 +3,7 @@
 [![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://uptime.betterstack.com/?utm_source=status_badge)
 
 Sistema web desenvolvido para auxiliar no gerenciamento e acompanhamento de projetos de pesquisa no âmbito acadêmico
-da UFCA. Projetado para atender às necessidades da instituição supracitada. 
+da UFCA. Projetado para atender às necessidades da instituição supracitada.
 
 ---
 
@@ -20,18 +20,19 @@ da UFCA. Projetado para atender às necessidades da instituição supracitada.
 
 ## 🛠️ Tecnologias Utilizadas
 
-- **Linguagem:** Python 3.13  
-- **Framework Web:** Flask  
+- **Linguagem:** Python 3.13.4
+- **Framework Web:** Flask  3.1.1
 - **Banco de Dados:** (MariaDB 11.7.2)
 
 ---
 
 ## ⚙️ Instalação
 
+Ainda em fase de desenvolvimento, o passo a passo abaixo ainda precisa de alguns ajustes.
+
 ### Pré-requisitos
 
-- Python 3.13 instalado
-- Docker
+- Linux (Ubuntu 22.04 ou superior)
 
 ### Passos
 

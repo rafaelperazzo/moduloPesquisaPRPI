@@ -2,7 +2,7 @@
 
 [![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://yoko.betteruptime.com/pt)
 
-![Gitea Last Commit](https://img.shields.io/gitea/last-commit/rafaelperazzo/moduloPesquisaPRPI)
+![GitHub last commit](https://img.shields.io/github/last-commit/rafaelperazzo/moduloPesquisaPRPI)
 
 ![GitHub Tag](https://img.shields.io/github/v/tag/rafaelperazzo/moduloPesquisaPRPI)
 

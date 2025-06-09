@@ -1,6 +1,10 @@
 # 🎓 Módulo de Pesquisa
 
-[![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://uptime.betterstack.com/?utm_source=status_badge)
+[![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://yoko.betteruptime.com/pt)
+
+![Gitea Last Commit](https://img.shields.io/gitea/last-commit/rafaelperazzo/moduloPesquisaPRPI)
+
+![GitHub Tag](https://img.shields.io/github/v/tag/rafaelperazzo/moduloPesquisaPRPI)
 
 Sistema web desenvolvido para auxiliar no gerenciamento e acompanhamento de projetos de pesquisa no âmbito acadêmico
 da UFCA. Projetado para atender às necessidades da instituição supracitada.

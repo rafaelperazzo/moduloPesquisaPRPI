@@ -1,3 +1,4 @@
+	2025-06-09 16:13:23 -0300	docs: GPL 3 no README
 	2025-06-09 16:08:26 -0300	docs: Incluídos novos badges no readme separados por tipo
 	2025-06-09 16:07:39 -0300	docs: Incluídos novos badges no readme
 	2025-06-09 16:05:14 -0300	docs: Organizado badges do readme

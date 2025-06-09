@@ -15,6 +15,14 @@ da UFCA. Projetado para atender às necessidades da instituição supracitada.
 
 ---
 
+## Status do Sistema (online ou offline)
+
+[![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://yoko.betteruptime.com/pt)
+
+Página de status do sistema: [Yoko](https://yoko.betteruptime.com/pt)
+
+---
+
 ## 📌 Funcionalidades
 
 - 📁 Cadastro e gerenciamento de projetos de pesquisa

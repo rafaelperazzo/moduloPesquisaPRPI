@@ -65,21 +65,22 @@ DEFAULT_EMAIL = os.getenv("DEFAULT_EMAIL","teste@test.com")
 LINK_AVALIACAO = ROOT_SITE + URL_PREFIX + "/avaliacao"
 DSN_SENTRY = os.getenv("DSN_SENTRY", "")
 
-sentry_sdk.init(
-    dsn=DSN_SENTRY,
-    # Add data like request headers and IP for users,
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    integrations = [
-        FlaskIntegration(
-            transaction_style="url",
-        ),
-        LoggingIntegration(
-            level=logging.ERROR,        # Capture info and above as breadcrumbs
-            event_level=logging.ERROR   # Send records as events
-        ),
-    ],
-    send_default_pii=True,
-)
+if PRODUCAO==1:
+    sentry_sdk.init(
+        dsn=DSN_SENTRY,
+        # Add data like request headers and IP for users,
+        # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+        integrations = [
+            FlaskIntegration(
+                transaction_style="url",
+            ),
+            LoggingIntegration(
+                level=logging.ERROR,        # Capture info and above as breadcrumbs
+                event_level=logging.ERROR   # Send records as events
+            ),
+        ],
+        send_default_pii=True,
+    )
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -150,9 +151,12 @@ def login_required(role='admin'):
     def decorator_login_required(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if (not 'username' in session) or (role not in session['roles']):
-                return(render_template('login.html',
-                                    mensagem="É necessário autenticação para acessar a página solicitada"))
+            if not 'username' in session:
+                return render_template('login.html',mensagem="""É necessário 
+                                       autenticação para acessar a página solicitada""")
+            if role not in session['roles']:
+                flash('Você não tem permissão para acessar este recurso.','error')
+                return redirect(url_for('home'))
             return f(*args, **kwargs)
         return decorated_function
     return decorator_login_required
@@ -242,8 +246,9 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
         sumario = "ERRO AO PROCESSAR O SCORELATTES"
 
     try:
-        consulta = "UPDATE editalProjeto SET scorelattes=" + str(pontuacao) + " WHERE id=" + str(idProjeto)
-        atualizar(consulta)
+        consulta = """UPDATE editalProjeto 
+        SET scorelattes= ? WHERE id= ?"""
+        atualizar2(consulta,valores=[pontuacao,idProjeto])
     except Exception as e:
         with app.app_context():
             logging.error("Erro ao atualizar o scorelattes: %s", str(e))
@@ -892,6 +897,8 @@ def getScoreLattesFromFile():
     area_capes = str(request.form['area_capes'])
     idlattes = str(request.form['idlattes'])
     periodo = int(str(request.form['periodo']))
+    if not numero_valido(periodo) or periodo not in [5,7]:
+        return "Período inválido! Informe um número inteiro positivo."
     try:
         salvarCV(idlattes)
     except Exception as e:
@@ -1238,12 +1245,17 @@ def quantidades(consulta):
     conn.close()
     return (total)
 
-## TODO: CONTINUAR PROTEÇÃO DE SQLi
 @app.route("/estatisticas", methods=['GET', 'POST'])
 @login_required(role='admin')
 def estatisticas():
     if request.method == "GET":
-        codigoEdital = str(request.args.get('edital'))
+        try:
+            codigoEdital = str(request.args.get('edital'))
+        except Exception as e:
+            logging.error("[/estatisticas] Erro ao obter código do edital: %s", str(e))
+            return "Código do edital não informado!"
+        if not numero_valido(codigoEdital):
+            return "Código do edital inválido!"
         #Resumo Geral
         consulta = "SELECT * FROM resumoGeralAvaliacoes WHERE tipo=" + codigoEdital + " ORDER BY ua, score DESC"
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
@@ -1276,7 +1288,6 @@ def estatisticas():
     else:
         return("OK")
 
-
 def cotaEstourada(codigoEdital,siape):
     if (codigoEdital=='1'): #Situação particular do edital 01: Checar os que tem 2 bolsas no edital 02/2018/CNPQ/UFCA
         consulta = "SELECT ua,nome,siape FROM resumoGeralClassificacao WHERE tipo=" + codigoEdital + " AND bolsas>0 AND siape=" + siape + " AND siape IN (SELECT siape FROM edital02_2018 WHERE situacao=\"ATIVO\" and modalidade=\"PIBIC\" GROUP BY siape HAVING count(id)=2 ORDER BY orientador) ORDER BY nome"
@@ -1288,10 +1299,6 @@ def cotaEstourada(codigoEdital,siape):
     else:
         return (False)
 
-'''
-demanda: Quantidade de bolsas por unidade academica
-dados: projetos ordenados por Unidade Academica e Lattes
-'''
 def distribuir_bolsas(demanda,consulta):
     ## TODO: Incluir condição de cruzamento de dados
     '''
@@ -1350,8 +1357,7 @@ def executarSelect(consulta,tipo=0):
         else: #Retorna uma única linha
             resultado = cursor.fetchone()
         return (resultado,total)
-    except:
-        e = sys.exc_info()[0]
+    except Exception as e:
         logging.error(e)
         logging.error("ERRO Na função executarSelect. Ver consulta abaixo.")
         logging.error(consulta)
@@ -1382,8 +1388,6 @@ def executarSelect2(consulta,tipo=0,valores=()):
         cursor.close()
         conn.close()
 
-
-
 def avaliacoesEncerradas(codigoEdital):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
     conn.select_db(MYSQL_DATABASE)
@@ -1397,15 +1401,17 @@ def avaliacoesEncerradas(codigoEdital):
     else: #Edital com avaliacoes em andamento
         return(True)
 
-
 @app.route("/resultados", methods=['GET', 'POST'])
-@auth.login_required
+@login_required(role='admin')
 def resultados():
     if request.method == "GET":
-
         #Recuperando o código do edital
-        codigoEdital = str(request.args.get('edital'))
-
+        try:
+            codigoEdital = str(request.args.get('edital'))
+        except Exception as e:
+            return "Código do edital não informado!"
+        if not numero_valido(codigoEdital):
+            return "Código do edital inválido!"
         #Recuperando o Resumo Geral
         consulta = "SELECT * FROM resumoGeralClassificacao WHERE tipo=" + codigoEdital + " ORDER BY ua, score DESC"
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
@@ -1507,10 +1513,11 @@ def resultados():
     else:
         return("OK")
 
-'''
-Retorna uma coluna de uma linha única dado uma chave primária
-'''
+#TODO: Parametrizar consulta (sqli)
 def obterColunaUnica(tabela,coluna,colunaId,valorId):
+    '''
+    Retorna uma coluna de uma linha única dado uma chave primária
+    '''
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
@@ -1522,8 +1529,7 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
         for linha in linhas:
             resultado = str(linha[0])
         return(resultado)
-    except:
-        e = sys.exc_info()[0]
+    except Exception as e:
         logging.error(e)
         logging.error("ERRO Na função obtercolunaUnica. Ver consulta abaixo.")
         logging.error(consulta)

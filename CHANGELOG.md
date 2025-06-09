@@ -1,3 +1,6 @@
+	2025-06-09 14:45:18 -0300	feat: Incluído recurso do betterstack no readme.md
+	2025-06-09 14:25:37 -0300	fix: Removido titulo do projeto da declaração do avaliador.
+	2025-06-09 10:43:05 -0300	docs: Atualizados comentários nos github actions e nos scripts de deploy e commit
 	2025-06-09 10:38:09 -0300	fix: decorator login_required agora mostra mensagem em home em caso de erro de permissão. Corrigidos SQLi até antes de obterColuneUnica
 	2025-06-08 17:12:40 -0300	fix: opções do sentry corrigidas para capturar o logging
 	2025-06-08 16:27:33 -0300	fix: DSN do sentry incluído como um segredo do infisical

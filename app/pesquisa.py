@@ -1148,10 +1148,12 @@ def getDeclaracaoAvaliador(tokenAvaliacao):
         url = url_for('getDeclaracaoAvaliador',tokenAvaliacao=tokenAvaliacao, _external=True)
         thread = threading.Thread(target=enviar_declaracao_avaliador,args=(url,destinatario,))
         thread.start()
-        return(render_template('declaracao_avaliador.html',nome=nome_avaliador,data=data_agora,edital=descricao_do_edital,titulo=titulo))
+        return render_template('declaracao_avaliador.html',
+                               nome=nome_avaliador,data=data_agora,edital=descricao_do_edital,
+                               titulo=titulo,idProjeto=idProjeto)
     else:
         titulo = "--- ERRO ---"
-        return ("PROJETO AINDA NÃO AVALIADO OU INEXISTENTE!")
+        return "PROJETO AINDA NÃO AVALIADO OU INEXISTENTE!"
     
 def consultar(consulta):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)

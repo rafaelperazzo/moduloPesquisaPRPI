@@ -1,3 +1,4 @@
+	2025-06-09 15:58:35 -0300	fix: Incluídos badges do shield.io no README
 	2025-06-09 15:55:21 -0300	docs: Incluídos badges do shield.io no README
 	2025-06-09 14:50:05 -0300	docs: README atualizado em seus pre-requisitos
 	2025-06-09 14:45:18 -0300	feat: Incluído recurso do betterstack no readme.md

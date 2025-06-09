@@ -130,12 +130,12 @@ else:
                     level=logging.DEBUG)
 logging.getLogger('waitress')
 
-#TODO: Ajustar configuração do Logtail
+#TODO: Ajustar configuração do Logtail: Trocar o logging.debug e logging.error por logger.debug e logger.error
 handler = LogtailHandler(
     source_token=BS_SOURCE_TOKEN,
     host=BS_HOST,
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__) #Precisa ser antes da configuração
 logger.setLevel(logging.DEBUG)
 logger.handlers = []
 logger.addHandler(handler)

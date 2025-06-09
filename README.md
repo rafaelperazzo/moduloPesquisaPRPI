@@ -1,6 +1,6 @@
 # 🎓 Módulo de Pesquisa
 
-[![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://yoko.betteruptime.com/pt)
+[![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://yoko.betteruptime.com/pt){target="_blank"}
 ![GitHub last commit](https://img.shields.io/github/last-commit/rafaelperazzo/moduloPesquisaPRPI)
 ![GitHub Tag](https://img.shields.io/github/v/tag/rafaelperazzo/moduloPesquisaPRPI)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
@@ -19,7 +19,7 @@ da UFCA. Projetado para atender às necessidades da instituição supracitada.
 
 [![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://yoko.betteruptime.com/pt)
 
-Página de status do sistema: [Yoko](https://yoko.betteruptime.com/pt)
+Página de status do sistema: [Yoko](https://yoko.betteruptime.com/pt){target="_blank"}
 
 ---
 

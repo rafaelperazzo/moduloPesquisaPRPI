@@ -68,22 +68,25 @@ DSN_SENTRY = os.getenv("DSN_SENTRY", "")
 BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
 BS_HOST = os.getenv("BS_HOST", "")
 
-if PRODUCAO==1:
-    sentry_sdk.init(
-        dsn=DSN_SENTRY,
-        # Add data like request headers and IP for users,
-        # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-        integrations = [
-            FlaskIntegration(
-                transaction_style="url",
-            ),
-            LoggingIntegration(
-                level=logging.ERROR,        # Capture info and above as breadcrumbs
-                event_level=logging.ERROR   # Send records as events
-            ),
-        ],
-        send_default_pii=True,
-    )
+
+sentry_sdk.init(
+    dsn=DSN_SENTRY,
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    _experiments={
+        "enable_logs": True
+    },
+    integrations = [
+        FlaskIntegration(
+            transaction_style="url",
+        ),
+        LoggingIntegration(
+            level=logging.INFO,        # Capture info and above as breadcrumbs
+            event_level=logging.ERROR   # Send records as events
+        ),
+    ],
+    send_default_pii=True,
+)
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -120,23 +123,23 @@ AES_KEY = os.getenv("AES_KEY", "000000")
 GPG_KEY = os.getenv("GPG_KEY", "000000")
 cripto = SecCripto(AES_KEY)
 
+logger = logging.getLogger('pesquisa')
+
 if PRODUCAO==1:
     logging.basicConfig(filename=WORKING_DIR + 'app.log',
-                    filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
-                    level=logging.ERROR)
+                    filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
 else:
     logging.basicConfig(filename=WORKING_DIR + 'app.log',
                     filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG)
-logging.getLogger('waitress')
+                    level=logging.INFO)
 
-#TODO: Ajustar configuração do Logtail: Trocar o logging.debug e logging.error por logger.debug e logger.error
 handler = LogtailHandler(
     source_token=BS_SOURCE_TOKEN,
     host=BS_HOST,
 )
-logger = logging.getLogger(__name__) #Precisa ser antes da configuração
-logger.setLevel(logging.DEBUG)
+
+logger.setLevel(logging.INFO)
 logger.handlers = []
 logger.addHandler(handler)
 
@@ -229,13 +232,11 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
         arquivo = XML_DIR + idlattes + ".xml"
         pontuacao = -100
         sumario = "---"
-        with app.app_context():
-            logging.debug("Tentativa de BAIXAR o XML com o CPF: %s", cpf)
         processou_scoreLattes = True
     except Exception as e:
         with app.app_context():
-            logging.error("Erro ao BAIXAR O XML: %s", e)
-            logging.error("Tentativa de BAIXAR o XML com o CPF: %s", cpf)
+            logger.error("Erro ao BAIXAR O XML: %s", e)
+            logger.error("Tentativa de BAIXAR o XML com o CPF: %s", cpf)
         processou_scoreLattes = False
     try:
         if processou_scoreLattes:
@@ -254,8 +255,8 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
             sumario = "ERRO AO PROCESSAR O SCORELATTES"
     except Exception as e:
         with app.app_context():
-            logging.error("Erro ao processar o scorelattes: %s", e)
-            logging.error("Tentativa de processar o scorelattes com CPF: %s", cpf)
+            logger.error("Erro ao processar o scorelattes: %s", e)
+            logger.error("Tentativa de processar o scorelattes com CPF: %s", cpf)
         pontuacao = -1
         sumario = "ERRO AO PROCESSAR O SCORELATTES"
 
@@ -265,8 +266,8 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
         atualizar2(consulta,valores=[pontuacao,idProjeto])
     except Exception as e:
         with app.app_context():
-            logging.error("Erro ao atualizar o scorelattes: %s", str(e))
-            logging.error("Tentativa de atualizar o scorelattes com CPF: %s", str(cpf))
+            logger.error("Erro ao atualizar o scorelattes: %s", str(e))
+            logger.error("Tentativa de atualizar o scorelattes com CPF: %s", str(cpf))
     with app.app_context():
         try:
             #ENVIAR E-MAIL DE CONFIRMAÇÃO
@@ -277,13 +278,12 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
                 msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
             try:
                 mail.send(msg)
-                logging.debug("E-mail de submissão de projeto enviado com sucesso.")
             except Exception as e:
-                logging.error("Erro ao enviar e-mail. processarPontuacaoLattes")
-                logging.error(str(e))
+                logger.error("Erro ao enviar e-mail. processarPontuacaoLattes")
+                logger.error(str(e))
         except Exception as e:
-            logging.error(str(e))
-            logging.error("Procedimento para o ID: " + str(idProjeto) + " finalizado. Erros ocorreram ao enviar e-mail.")        
+            logger.error(str(e))
+            logger.error("Procedimento para o ID: " + str(idProjeto) + " finalizado. Erros ocorreram ao enviar e-mail.")        
 
 def calcularScoreLattes(tipo,area,since,until,arquivo):
     #Tipo = 0: Apenas pontuacao; Tipo = 1: Sumário
@@ -303,8 +303,8 @@ def atualizar(consulta):
         cursor.execute(consulta)
         conn.commit()
     except MySQLdb.Error as e:
-        logging.error(e)
-        logging.error(consulta)
+        logger.error(e)
+        logger.error(consulta)
     finally:
         cursor.close()
         conn.close()
@@ -327,8 +327,8 @@ def atualizar2(consulta,valores=()):
             cursor.execute(consulta,tuple(valores))
             conn.commit()
     except MySQLdb.Error as e:
-        logging.error(e)
-        logging.error(consulta)
+        logger.error(e)
+        logger.error(consulta)
     finally:
         cursor.close()
         conn.close()
@@ -341,10 +341,9 @@ def inserir(consulta,valores):
         cursor.execute(consulta,valores)
         conn.commit()
     except MySQLdb.Error as e:
-        logging.error(e)
-        logging.debug(consulta)
-        logging.error("Erro ao inserir registro")
-        logging.error(valores)
+        logger.error(e)
+        logger.error("Erro ao inserir registro")
+        logger.error(valores)
     finally:
         cursor.close()
         conn.close()
@@ -493,9 +492,9 @@ def gerarProjetosPorAluno(cpf):
         linhas2019 = cursor.fetchall()
         return (linhas,linhas2019)
     except Exception as e:
-        logging.error(e)
-        logging.error("ERRO Na função gerarProjetosPorAluno. Ver consulta abaixo.")
-        logging.error(consulta)
+        logger.error(e)
+        logger.error("ERRO Na função gerarProjetosPorAluno. Ver consulta abaixo.")
+        logger.error(consulta)
     finally:
         cursor.close()
         conn.close()
@@ -540,7 +539,6 @@ def verify_password(username, password):
     """
     try:
         if not username_valido(username):
-            logging.debug("Nome de usuário inválido: %s", username)
             return False
         consulta2 = """
         SELECT id,
@@ -558,12 +556,13 @@ def verify_password(username, password):
             try:
                 if cripto.hash_argon2id_verify(hash_senha, password):
                     continuar = True
+                    logger.info("[%s]Usuário %s autenticado com sucesso.", request.remote_addr,username)
                 else:
                     continuar = False
-                    logging.debug("Senha inválida (hash argon) para o usuário: %s", username)
+                    logger.warning("Senha inválida para o usuário %s.", username)
             except Exception:
-                logging.debug("Erro ao verificar a senha com hash argon2id para o usuário: %s", username)
                 continuar = False
+                logger.error("Erro ao verificar a senha do usuário %s com o argon_verify.", username)
         else:
             continuar = False
         if continuar is False: #Usuário inexistente ou senha inválida
@@ -578,9 +577,9 @@ def verify_password(username, password):
             session['edital'] = 0
             return username
     except Exception as e:
-        logging.error(e)
-        logging.error("ERRO Na função check_auth. Ver consulta abaixo.")
-        logging.error(consulta2)
+        logger.error(e)
+        logger.error("ERRO Na função check_auth. Ver consulta abaixo.")
+        logger.error(consulta2)
 
 @auth.get_user_roles
 def get_user_roles(user):
@@ -622,6 +621,7 @@ def version():
 @login_required(role='admin')
 def admin():
     if (autenticado() and int(session['permissao'])==0):
+        logger.info("[%s][/admin] Usuário %s acessou a página de administração.", request.remote_addr,session['username'])
         consulta = """SELECT id,nome FROM editais ORDER BY id"""
         editais,total = executarSelect(consulta)
         return render_template('index.html',editais=editais,versao=__version__)
@@ -647,11 +647,10 @@ def declaracao():
                 return render_template('a4.html',texto=texto_declaracao,
                                        data=data_agora,identificador=texto_declaracao[7],raiz=ROOT_SITE)
             except Exception as e:
-                logging.error(e)
-                logging.error("Nao foi possivel gerar o PDF da declaração.")
+                logger.error(e)
+                logger.error("Nao foi possivel gerar o PDF da declaração.")
                 return "Erro ao gerar o PDF da declaração. Verifique os logs para mais detalhes."
         else:
-            logging.debug("Tentativa de gerar declaração, sem o id do projeto!")
             return "OK"
 
 @app.route("/projetosAluno", methods=['POST'])
@@ -661,8 +660,8 @@ def projetos():
         return render_template('alunos.html',listaProjetos=projetosAluno,
                                lista2019=projetosAluno2019)
     except Exception as e:
-        logging.error(e)
-        logging.error("Nao foi possivel gerar os projetos do aluno.")
+        logger.error(e)
+        logger.error("Nao foi possivel gerar os projetos do aluno.")
         return "Erro! Não utilize acentos ou caracteres especiais na busca."
 
 @app.route("/autenticacao", methods=['POST'])
@@ -707,8 +706,8 @@ def cadastrarProjeto():
         try:
             siape = int(removerTravessao(request.form['siape']))
         except ValueError as e:
-            logging.error("Erro ao converter SIAPE para inteiro.")
-            logging.error(e)
+            logger.error("Erro ao converter SIAPE para inteiro.")
+            logger.error(e)
             siape = 0
         email = str(request.form['email'])
         ua = str(request.form['ua'])
@@ -751,7 +750,6 @@ def cadastrarProjeto():
         else:
             categoria_str= "Projeto Novo"
 
-        logging.debug("Projeto [" + tipo_str + "] [" + categoria_str + "] com ID: " + ultimo_id_str + " cadastrado. Proponente: " + nome)
         #CADASTRAR DADOS DO PROJETO
 
         titulo = str(request.form['titulo'])
@@ -777,7 +775,6 @@ def cadastrarProjeto():
         atualizar2(consulta, valores=[inicio,ultimo_id])
         consulta = "UPDATE editalProjeto SET fim= ? WHERE id= ? "
         atualizar2(consulta, valores=[fim,ultimo_id])
-        logging.debug("Dados do projeto cadastrados.")
         codigo = id_generator()
 
         if ('arquivo_projeto' in request.files):
@@ -789,11 +786,8 @@ def cadastrarProjeto():
                 encripta_e_apaga(SUBMISSOES_DIR + filename)
                 consulta = "UPDATE editalProjeto SET arquivo_projeto= ? WHERE id= ? "
                 atualizar2(consulta, valores=[filename,ultimo_id])
-                logging.debug("Arquivo de projeto cadastrado.")
             elif not allowed_file(arquivo_projeto.filename):
                 return ("Arquivo de projeto não permitido")
-        else:
-            logging.debug("Não foi incluído um arquivo de projeto")
 
         if ('arquivo_plano1' in request.files):
 
@@ -805,11 +799,8 @@ def cadastrarProjeto():
                 encripta_e_apaga(SUBMISSOES_DIR + filename)
                 consulta = "UPDATE editalProjeto SET arquivo_plano1= ? WHERE id= ? "
                 atualizar2(consulta, valores=[filename,ultimo_id])
-                logging.debug("Arquivo Plano 1 cadastrado.")
             elif not allowed_file(arquivo_plano1.filename):
                 return ("Arquivo de plano 1 de trabalho não permitido")
-        else:
-            logging.debug("Não foi incluído um arquivo de plano 1")
 
         if ('arquivo_plano2' in request.files):
             arquivo_plano2 = request.files['arquivo_plano2']
@@ -820,28 +811,20 @@ def cadastrarProjeto():
                 encripta_e_apaga(SUBMISSOES_DIR + filename)
                 consulta = "UPDATE editalProjeto SET arquivo_plano2= ? WHERE id= ? "
                 atualizar2(consulta, valores=[filename,ultimo_id])
-                logging.debug("Arquivo Plano 2 cadastrado.")
             elif not allowed_file(arquivo_plano2.filename):
                 return ("Arquivo de plano 2 de trabalho não permitido")
-        else:
-            logging.debug("Não foi incluído um arquivo de plano 2")
 
         if ('arquivo_plano3' in request.files):
             arquivo_plano3 = request.files['arquivo_plano3']
-            if arquivo_plano3.filename=="":
-                logging.debug("Não foi incluído um arquivo de plano 3")
-            elif arquivo_plano3 and allowed_file(arquivo_plano3.filename):
+            if arquivo_plano3 and allowed_file(arquivo_plano3.filename):
                 arquivo_plano3.filename = "plano3_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
                 filename = secure_filename(arquivo_plano3.filename)
                 submissoes.save(arquivo_plano3, name=filename)
                 encripta_e_apaga(SUBMISSOES_DIR + filename)
                 consulta = "UPDATE editalProjeto SET arquivo_plano3= ? WHERE id= ? "
                 atualizar2(consulta, valores=[filename,ultimo_id])
-                logging.debug("Arquivo Plano 3 cadastrado.")
             elif not allowed_file(arquivo_plano3.filename):
                     return ("Arquivo de plano 3 de trabalho não permitido")
-        else:
-            logging.debug("Não foi incluído um arquivo de plano 3")
 
         #ARQUIVO DE COMPROVANTES
         if ('arquivo_comprovantes' in request.files):
@@ -853,9 +836,6 @@ def cadastrarProjeto():
                 encripta_e_apaga(SUBMISSOES_DIR + filename)
                 consulta = "UPDATE editalProjeto SET arquivo_comprovantes= ? WHERE id= ? "
                 atualizar2(consulta, valores=[filename,ultimo_id])
-                logging.debug("Arquivo COMPROVANTES cadastrado.")
-        else:
-            logging.debug("Não foi incluído um arquivo de COMPROVANTES")
 
         #CADASTRAR AVALIADORES SUGERIDOS
         if 'avaliador1_email' in request.form:
@@ -864,7 +844,6 @@ def cadastrarProjeto():
                 token = id_generator(40)
                 consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (?,?,?)"
                 atualizar2(consulta, valores=[avaliador1_email,token,ultimo_id])
-                logging.debug("Avaliador 1 sugerido cadastrado.")
 
         if 'avaliador2_email' in request.form:
             avaliador2_email = str(request.form['avaliador2_email'])
@@ -872,7 +851,6 @@ def cadastrarProjeto():
                 token = id_generator(40)
                 consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (?,?,?)"
                 atualizar2(consulta, valores=[avaliador2_email,token,ultimo_id])
-                logging.debug("Avaliador 2 sugerido cadastrado.")
 
         if 'avaliador3_email' in request.form:
             avaliador3_email = str(request.form['avaliador3_email'])
@@ -880,18 +858,15 @@ def cadastrarProjeto():
                 token = id_generator(40)
                 consulta = "INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES (?,?,?)"
                 atualizar2(consulta, valores=[avaliador3_email,token,ultimo_id])
-                logging.debug("Avaliador 3 sugerido cadastrado.")
         #Incluir avaliador teste em caso de não inclusão
         if ('avaliador1_email' not in request.form and 'avaliador2_email' not in request.form and 'avaliador3_email' not in request.form):
             token = id_generator(40)
             consulta = """INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES ("TESTE@IGNORAR.COM", ?, ?)"""
             atualizar2(consulta, valores=[token, ultimo_id])
-            logging.debug("Avaliador TESTE sugerido cadastrado.")
         elif avaliador1_email=="" and avaliador2_email=="" and avaliador3_email=="":
             token = id_generator(40)
             consulta = """INSERT INTO avaliacoes (avaliador,token,idProjeto) VALUES ("TESTE@IGNORAR.COM", ?, ?)"""
             atualizar2(consulta, valores=[token, ultimo_id])
-            logging.debug("Avaliador TESTE sugerido cadastrado.")
         #CALCULANDO scorelattes
         dados = [email,nome,titulo,descricao_resumida]
         t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
@@ -916,9 +891,9 @@ def getScoreLattesFromFile():
     try:
         salvarCV(idlattes)
     except Exception as e:
-        logging.error(str(e))
-        logging.error("[/SCORE] Nao foi possivel baixar o curriculo. IDlattes de um servidor/discente da UFCA ?")
-        logging.error(idlattes)
+        logger.error(str(e))
+        logger.error("[/SCORE] Nao foi possivel baixar o curriculo. IDlattes de um servidor/discente da UFCA ?")
+        logger.error(idlattes)
         return("[/SCORE] Este IDLattes e de um servidor/discente da UFCA ? Nao foi possivel calcular a pontuacao!")
     arquivo = XML_DIR + idlattes + ".xml"
     try:
@@ -929,8 +904,8 @@ def getScoreLattesFromFile():
         sumario = str(score.sumario())
         return(sumario)
     except Exception as e:
-        logging.error("[SCORELATTES] Erro ao calcular o scorelattes.")
-        logging.error(e)
+        logger.error("[SCORELATTES] Erro ao calcular o scorelattes.")
+        logger.error(e)
         return("Erro ao calcular pontuacao!")
 
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam
@@ -997,16 +972,16 @@ def getPaginaAvaliacao():
         try:
             idProjeto = str(request.args.get('id'))
         except Exception as e:
-            logging.error("[/avaliacao] Erro ao obter ID do projeto: %s",str(e))
+            logger.error("[/avaliacao] Erro ao obter ID do projeto: %s",str(e))
             return "ID do projeto não informado!"
         if not numero_valido(idProjeto):
-            logging.error("[/avaliacao] ID do projeto inválido!")
+            logger.error("[/avaliacao] ID do projeto inválido!")
             return "ID do projeto inválido!"
         if podeAvaliar(idProjeto): #Se ainda está no prazo para receber avaliações
             try:
                 tokenAvaliacao = str(request.args.get('token'))
             except Exception as e:
-                logging.error("[/avaliacao] Erro ao obter token de avaliação: %s", str(e))
+                logger.error("[/avaliacao] Erro ao obter token de avaliação: %s", str(e))
                 return "Token de avaliação não informado!"
             if not token_valido(tokenAvaliacao):
                 return "Token de avaliação inválido!"
@@ -1031,9 +1006,9 @@ def getPaginaAvaliacao():
                 idProjeto = obterColunaUnica_str("avaliacoes","idProjeto","token",tokenAvaliacao)
                 edital = obterColunaUnica("editalProjeto","tipo","id",idProjeto)
                 modalidade = int(obterColunaUnica("editais","modalidade","id",edital))
+                logger.info("[%s][/avaliacao] Avaliador abriu formulário de avaliação do projeto %s.", request.remote_addr,str(idProjeto))
                 return render_template('avaliacao.html',arquivos=links,modalidade=modalidade)
             else:
-                logging.debug("[AVALIACAO] Tentativa de reavaliar projeto")
                 return("Projeto já foi avaliado! Não é possível modificar a avaliação!")
         else:
             return "ID Inválido ou prazo de avaliação expirado!"
@@ -1088,19 +1063,20 @@ def enviarAvaliacao():
             atualizar2(consulta, valores=[c7,token])
             consulta = "UPDATE avaliacoes SET cepa= ? WHERE token= ? "
             atualizar2(consulta, valores=[comite,token])
+            logger.info("[%s][/avaliar] Avaliação do projeto %s gravada com sucesso por %s", request.remote_addr,str(idProjeto),str(nome_avaliador))
             if modalidade==2:
                 inovacao = str(request.form['inovacao'])
                 consulta = "UPDATE avaliacoes SET inovacao= ? WHERE token= ? "
                 atualizar2(consulta, valores=[inovacao,token])
         except Exception as e:
-            logging.error(e)
-            logging.error("[AVALIACAO] ERRO ao gravar a avaliação: %s", token)
+            logger.error(e)
+            logger.error("[AVALIACAO] ERRO ao gravar a avaliação: %s", token)
             return("Não foi possível gravar a avaliação. Favor entrar contactar " + DEFAULT_EMAIL)
         try:
             return (redirect(url_for('getDeclaracaoAvaliador',tokenAvaliacao=token)))
         except Exception as e:
-            logging.error(e)
-            logging.error("[/avaliar] ERRO ao gerar a declaração: %s",token)
+            logger.error(e)
+            logger.error("[/avaliar] ERRO ao gerar a declaração: %s",token)
             return("Não foi possível gerar a declaração.")
     else:
         return("OK")
@@ -1127,10 +1103,9 @@ def enviar_declaracao_avaliador(url,destinatario):
             msg = Message(subject = "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
         try:
             mail.send(msg)
-            logging.debug("E-mail de declaração de avaliação enviado com sucesso.")
         except Exception as e:
-            logging.error("Erro ao enviar e-mail. processarPontuacaoLattes")
-            logging.error(str(e))
+            logger.error("Erro ao enviar e-mail. processarPontuacaoLattes")
+            logger.error(str(e))
 
 @app.route("/declaracaoAvaliador/<tokenAvaliacao>", methods=['GET'])
 def getDeclaracaoAvaliador(tokenAvaliacao):
@@ -1138,22 +1113,19 @@ def getDeclaracaoAvaliador(tokenAvaliacao):
     Gera a declaração de avaliação do avaliador.
     """
     if not token_valido(tokenAvaliacao):
-        logging.error("[/declaracaoAvaliador] Token inválido: %s", tokenAvaliacao)
+        logger.error("[/declaracaoAvaliador] Token inválido: %s", tokenAvaliacao)
         return "Token inválido!"
     consulta = f"""
     SELECT nome_avaliador,idProjeto,avaliador FROM avaliacoes WHERE token="{tokenAvaliacao}" 
     AND finalizado=1
     """
-    logging.debug(consulta)
     linhas = consultar(consulta)
     nome_avaliador = "NAO INFORMADO"
     idProjeto = 0
-    logging.debug(linhas)
     for linha in linhas:
         nome_avaliador = str(linha[0])
         idProjeto = str(linha[1])
         destinatario = str(linha[2])
-    logging.debug(idProjeto)
     if idProjeto!=0:
         titulo = str(obterColunaUnica("editalProjeto","titulo","id",idProjeto))
         codigo_do_edital = str(obterColunaUnica("editalProjeto","tipo","id",idProjeto))
@@ -1183,7 +1155,7 @@ def recusarConvite():
     if request.method == "GET":
         tokenAvaliacao = str(request.args.get('token'))
         if not token_valido(tokenAvaliacao):
-            logging.error("[/recusarConvite] Token inválido: %s", tokenAvaliacao)
+            logger.error("[/recusarConvite] Token inválido: %s", tokenAvaliacao)
             return "Token inválido!"
         consulta = "UPDATE avaliacoes SET aceitou=0 WHERE token=\"" + tokenAvaliacao + "\""
         atualizar(consulta)
@@ -1201,12 +1173,12 @@ def avaliacoesNegadas():
         if 'edital' in request.args:
             codigoEdital = str(request.args.get('edital'))
             if not numero_valido(codigoEdital):
-                logging.error("[/avaliacoesNegadas] Código do edital inválido: %s", codigoEdital)
+                logger.error("[/avaliacoesNegadas] Código do edital inválido: %s", codigoEdital)
                 return "Código do edital inválido!"
             if 'id' in request.args:
                 idProjeto = str(request.args.get('id'))
                 if not numero_valido(idProjeto):
-                    logging.error("[/avaliacoesNegadas] ID do projeto inválido: %s", idProjeto)
+                    logger.error("[/avaliacoesNegadas] ID do projeto inválido: %s", idProjeto)
                     return "ID do projeto inválido!"
                 consulta = "SELECT resumoGeralAvaliacoes.id,CONCAT(SUBSTRING(resumoGeralAvaliacoes.titulo,1,80),\" - (\",resumoGeralAvaliacoes.nome,\" )\"),(resumoGeralAvaliacoes.aceites+resumoGeralAvaliacoes.rejeicoes) as resultado,resumoGeralAvaliacoes.indefinido FROM resumoGeralAvaliacoes WHERE ((aceites+rejeicoes<10) OR (aceites=rejeicoes)) AND tipo=" + codigoEdital + " AND id = " + idProjeto +" ORDER BY aceites+rejeicoes, id"
             else:
@@ -1218,8 +1190,8 @@ def avaliacoesNegadas():
                 conn.close()
                 return(render_template('inserirAvaliador.html',listaProjetos=linha,totalDeLinhas=total,codigoEdital=codigoEdital))
             except Exception as e:
-                logging.error(e)
-                logging.error(consulta)
+                logger.error(e)
+                logger.error(consulta)
                 conn.close()
                 return(consulta)
         else:
@@ -1268,7 +1240,7 @@ def estatisticas():
         try:
             codigoEdital = str(request.args.get('edital'))
         except Exception as e:
-            logging.error("[/estatisticas] Erro ao obter código do edital: %s", str(e))
+            logger.error("[/estatisticas] Erro ao obter código do edital: %s", str(e))
             return "Código do edital não informado!"
         if not numero_valido(codigoEdital):
             return "Código do edital inválido!"
@@ -1374,9 +1346,9 @@ def executarSelect(consulta,tipo=0):
             resultado = cursor.fetchone()
         return (resultado,total)
     except Exception as e:
-        logging.error(e)
-        logging.error("ERRO Na função executarSelect. Ver consulta abaixo.")
-        logging.error(consulta)
+        logger.error(e)
+        logger.error("ERRO Na função executarSelect. Ver consulta abaixo.")
+        logger.error(consulta)
     finally:
         cursor.close()
         conn.close()
@@ -1397,9 +1369,9 @@ def executarSelect2(consulta,tipo=0,valores=()):
             resultado = cursor.fetchone()
         return (resultado,total)
     except Exception as e:
-        logging.error(e)
-        logging.error("ERRO Na função executarSelect. Ver consulta abaixo.")
-        logging.error(consulta)
+        logger.error(e)
+        logger.error("ERRO Na função executarSelect. Ver consulta abaixo.")
+        logger.error(consulta)
     finally:
         cursor.close()
         conn.close()
@@ -1451,7 +1423,6 @@ def resultados():
             for linha in nomeEdital:
                 edital = str(linha[0])
                 data_final_avaliacoes = str(linha[1])
-                logging.debug(data_final_avaliacoes)
                 qtde_bolsas = int(linha[2])
                 mensagem = str(linha[3])
                 recursos = str(linha[4])
@@ -1546,9 +1517,9 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
             resultado = str(linha[0])
         return(resultado)
     except Exception as e:
-        logging.error(e)
-        logging.error("ERRO Na função obtercolunaUnica. Ver consulta abaixo.")
-        logging.error(consulta)
+        logger.error(e)
+        logger.error("ERRO Na função obtercolunaUnica. Ver consulta abaixo.")
+        logger.error(consulta)
     finally:
         cursor.close()
         conn.close()
@@ -1567,16 +1538,15 @@ def obterColunaUnica_str(tabela,coluna,colunaId,valorId):
         return(resultado)
     except:
         e = sys.exc_info()[0]
-        logging.error(e)
-        logging.error("ERRO Na função obtercolunaUnica. Ver consulta abaixo.")
-        logging.error(consulta)
+        logger.error(e)
+        logger.error("ERRO Na função obtercolunaUnica. Ver consulta abaixo.")
+        logger.error(consulta)
     finally:
         cursor.close()
         conn.close()
 
 
 def gerarPDF(template):
-    logging.debug(type(template))
     try:
         arquivoDeclaracao = app.config['TEMP_FOLDER'] + 'resultados.pdf'
         options = {
@@ -1589,8 +1559,8 @@ def gerarPDF(template):
         pdfkit.from_string(template,arquivoDeclaracao,options=options)
     except:
         e = sys.exc_info()[0]
-        logging.error(e)
-        logging.error("ERRO Na função gerarPDF")
+        logger.error(e)
+        logger.error("ERRO Na função gerarPDF")
     #return send_from_directory(app.config['TEMP_FOLDER'], 'resultados.pdf')
 
 @app.route("/editalProjeto", methods=['GET', 'POST'])
@@ -1665,9 +1635,9 @@ def editalProjeto():
                         mensagem = ""
                         return(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=0,modalidade=modalidade))
                 except Exception as e:
-                    logging.error(str(e))
-                    logging.error("ERRO Na função /editalProjeto. Ver consulta abaixo.")
-                    logging.error(consulta)
+                    logger.error(str(e))
+                    logger.error("ERRO Na função /editalProjeto. Ver consulta abaixo.")
+                    logger.error(consulta)
                     return("ERRO!")
                 finally:
                     cursor.close()
@@ -1713,9 +1683,9 @@ def declaracoesServidor():
                 return(render_template('declaracoes_servidor.html',listaDeclaracoes=declaracoes))
             except:
                 e = sys.exc_info()[0]
-                logging.error(e)
-                logging.error("ERRO Na função /declaracoesPorServidor. Ver consulta abaixo.")
-                logging.error(consulta)
+                logger.error(e)
+                logger.error("ERRO Na função /declaracoesPorServidor. Ver consulta abaixo.")
+                logger.error(consulta)
                 return("ERRO!")
         else:
             return("OK")
@@ -1748,6 +1718,7 @@ def meusProjetos():
             if verify_password(siape,senha):
                 registrar_acesso(request.remote_addr,siape)
     if autenticado():        
+        logger.info("[%s][/meusProjetos] Acessando meusPprojetos do orientador: %s",request.remote_addr,session['username'])
         consulta = """SELECT id,nome_do_coordenador,orientador_lotacao,titulo_do_projeto,DATE_FORMAT(inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(termino,'%d/%m/%Y') as fim,estudante_nome_completo,token FROM cadastro_geral WHERE siape='""" + str(session['username']) + """' ORDER BY inicio,titulo_do_projeto"""
         projetos,total = executarSelect(consulta)
         consulta_outros = """SELECT 
@@ -2059,8 +2030,8 @@ def meusPareceres():
                     pareceres,total = executarSelect(consulta)
                     return(render_template('meusPareceres.html',linhas=pareceres,total=total,titulo=tituloProjeto))
                 except Exception as e:
-                    logging.error("Erro na função /meusPareceres")
-                    logging.error(str(e))
+                    logger.error("Erro na função /meusPareceres")
+                    logger.error(str(e))
                     return("ERRO!")
             else:
                 return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
@@ -2088,7 +2059,7 @@ def registrar_acesso(ip,usuario):
         valores = (str(ip),str(usuario))
         inserir(consulta,valores)
     except Exception as e:
-        logging.error("Erro ao registrar acesso: " + str(e))
+        logger.error("Erro ao registrar acesso: " + str(e))
 
 @app.route("/login", methods=['POST','GET'])
 def login():
@@ -2118,10 +2089,9 @@ def thread_enviar_senha(msg):
     with app.app_context():
         try:
             mail.send(msg)
-            logging.debug("E-mail enviado com sucesso. /enviarMinhaSenha")
         except Exception as e:
-            logging.error("Erro ao enviar e-mail. /enviarMinhaSenha")
-            logging.error(str(e))
+            logger.error("Erro ao enviar e-mail. /enviarMinhaSenha")
+            logger.error(str(e))
 
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 def enviarMinhaSenha():
@@ -2136,8 +2106,6 @@ def enviarMinhaSenha():
                 username = str(linhas[0])
                 idUsuario = str(linhas[1])
                 senha = senha_forte
-                if PRODUCAO==0:
-                    logging.debug("Senha gerada: %s", senha)
                 hash_senha = cripto.hash_argon2id(senha)
                 consulta = f"""UPDATE users SET password='{hash_senha}' WHERE id={idUsuario}"""
                 atualizar(consulta)
@@ -2157,6 +2125,7 @@ def enviarMinhaSenha():
 
 @app.route("/logout", methods=['GET', 'POST'])
 def encerrarSessao():
+    logger.info("[%s][/logout]Usuário %s encerrou a sessão.", request.remote_addr,session['username'])
     logout()
     return redirect(url_for('home'))
 
@@ -2582,9 +2551,9 @@ def efetivarIndicacao():
             else:
                 return ("Você já indicou todos os bolsistas/voluntários. Entrar em contato através do e-mail atendimento.prpi@ufca.edu.br")
         except Exception as e:
-            logging.error(e)
-            logging.error("ERRO Na função /efetivarIndicacao. Ver consulta abaixo.")
-            logging.error(consulta)
+            logger.error(e)
+            logger.error("ERRO Na função /efetivarIndicacao. Ver consulta abaixo.")
+            logger.error(consulta)
             return("ERRO!")
     else:
         return("OK")
@@ -2640,8 +2609,8 @@ def esperar(arquivo):
         try:
             os.remove(arquivo)
         except FileNotFoundError as e:
-            logging.error("Erro ao remover arquivo temporário (função esperar(arquivo)).")
-            logging.error(str(e))
+            logger.error("Erro ao remover arquivo temporário (função esperar(arquivo)).")
+            logger.error(str(e))
 
 @app.route("/verArquivo", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
@@ -2820,8 +2789,8 @@ def thread_enviar_email(msg,rota):
         try:
             mail.send(msg)
         except Exception as e:
-            logging.error(str(e))
-            logging.error("Erro ao enviar e-mail. Rota: " + rota)
+            logger.error(str(e))
+            logger.error("Erro ao enviar e-mail. Rota: " + rota)
 
 def enviar_lembrete_frequencia():
     import datetime
@@ -2884,15 +2853,15 @@ def enviar_lembrete_frequencia():
                     try:
                         mail.send(msg)            
                     except Exception as e:
-                        logging.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
-                        logging.error(str(e))
+                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
+                        logger.error(str(e))
                 else:
                     msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisapython3.display999@passmail.net'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     try:
                         mail.send(msg)
                     except Exception as e:
-                        logging.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
-                        logging.error(str(e))
+                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
+                        logger.error(str(e))
                     finally:
                         continue
                     
@@ -3005,8 +2974,8 @@ def enviar_email_desligamento_substituicao(msg):
         try:
             mail.send(msg)
         except Exception as e:
-            logging.error("Erro ao enviar e-mail. enviar_email_desligamento_substituicao")
-            logging.error(str(e))
+            logger.error("Erro ao enviar e-mail. enviar_email_desligamento_substituicao")
+            logger.error(str(e))
 
 
 @app.route("/substituirIndicacao/<id_indicacao>", methods=['GET', 'POST'])
@@ -3118,7 +3087,6 @@ def consultas():
                 return(send_from_directory(app.config['TEMP_FOLDER'], 'resultados.csv'))
 
             except:
-                logging.debug(sys.exc_info()[0])
                 return("Erro!")
     else:
         return("OK")
@@ -3187,13 +3155,13 @@ def enviar_email_avaliadores():
                 try:
                     mail.send(msg)
                 except Exception as e:
-                    logging.error("Erro ao enviar e-mail. enviar_email_avaliadores")
-                    logging.error(str(e))
+                    logger.error("Erro ao enviar e-mail. enviar_email_avaliadores")
+                    logger.error(str(e))
                 consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
                 atualizar(consulta)    
             except Exception as e:
-                logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s", email_avaliador)
-                logging.error(str(e))
+                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s", email_avaliador)
+                logger.error(str(e))
                 return("Erro! Verifique o log!")
 
 @app.route("/emailSolicitarAvaliacao", methods=['GET', 'POST'])
@@ -3212,7 +3180,6 @@ def enviarPedidoAvaliacao(idProjeto):
     ORDER BY a.id DESC LIMIT 1
     """
     linhas,total = executarSelect(consulta)
-    logging.debug("Enviado pedido de avaliacao para: %s", str(total))
     
     for linha in linhas:
         titulo = str(linha[1])
@@ -3231,10 +3198,9 @@ def enviarPedidoAvaliacao(idProjeto):
                 msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[EMAIL_TESTES],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 mail.send(msg)
-                logging.debug("E-MAIL ENVIADO COM SUCESSO.")    
             except Exception as e:
-                logging.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s", email_avaliador)
-                logging.error(str(e))
+                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s", email_avaliador)
+                logger.error(str(e))
 
 @app.route("/arquivar/<id_projeto>", methods=['GET', 'POST'])
 @login_required(role='admin')
@@ -3413,8 +3379,8 @@ def get_projetos_discente():
             projetosAluno,projetosAluno2019 = gerarProjetosPorAluno(str(request.form['txtNome']))
             return render_template('alunos.html',listaProjetos=projetosAluno,lista2019=projetosAluno2019)
         except Exception as e:
-            logging.error("Erro ao gerar projetos por aluno")
-            logging.error(str(e))
+            logger.error("Erro ao gerar projetos por aluno")
+            logger.error(str(e))
             return render_template("Erro ao gerar projetos por aluno (/projetos_discente)")
 
 @app.route("/argon2", methods=['GET'])
@@ -3467,8 +3433,8 @@ def cadastrar_usuario():
         try:
             senha = cadastrar_novo_usuario(siape, nome, email)
         except Exception as e:
-            logging.error("Erro ao cadastrar novo usuário")
-            logging.error(str(e))
+            logger.error("Erro ao cadastrar novo usuário")
+            logger.error(str(e))
             flash("Erro ao cadastrar usuário.")
             return redirect(url_for('cadastrar_usuario'))
         flash("Usuário cadastrado com sucesso!")
@@ -3513,8 +3479,8 @@ def cadastrar_usuarios_projetos(edital):
                 thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
                 thread.start()
             except Exception as e:
-                logging.error("Erro ao cadastrar usuário do projeto")
-                logging.error(str(e))
+                logger.error("Erro ao cadastrar usuário do projeto")
+                logger.error(str(e))
                 flash("Erro ao cadastrar usuário: " + nome + " (" + siape + ")")
         flash(f"{total} usuários cadastrados com sucesso!")
         return redirect(url_for('admin'))

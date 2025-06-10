@@ -68,25 +68,25 @@ DSN_SENTRY = os.getenv("DSN_SENTRY", "")
 BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
 BS_HOST = os.getenv("BS_HOST", "")
 
-
-sentry_sdk.init(
-    dsn=DSN_SENTRY,
-    # Add data like request headers and IP for users,
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    _experiments={
-        "enable_logs": True
-    },
-    integrations = [
-        FlaskIntegration(
-            transaction_style="url",
-        ),
-        LoggingIntegration(
-            level=logging.INFO,        # Capture info and above as breadcrumbs
-            event_level=logging.ERROR   # Send records as events
-        ),
-    ],
-    send_default_pii=True,
-)
+if PRODUCAO==1:
+    sentry_sdk.init(
+        dsn=DSN_SENTRY,
+        # Add data like request headers and IP for users,
+        # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+        _experiments={
+            "enable_logs": True
+        },
+        integrations = [
+            FlaskIntegration(
+                transaction_style="url",
+            ),
+            LoggingIntegration(
+                level=logging.INFO,        # Capture info and above as breadcrumbs
+                event_level=logging.ERROR   # Send records as events
+            ),
+        ],
+        send_default_pii=True,
+    )
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -134,14 +134,15 @@ else:
                     filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
-handler = LogtailHandler(
-    source_token=BS_SOURCE_TOKEN,
-    host=BS_HOST,
-)
+if PRODUCAO==1:
+    handler = LogtailHandler(
+        source_token=BS_SOURCE_TOKEN,
+        host=BS_HOST,
+    )
 
-logger.setLevel(logging.INFO)
-logger.handlers = []
-logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    logger.handlers = []
+    logger.addHandler(handler)
 
 #Obtendo senhas
 PASSWORD = os.getenv("DB_PASSWORD", "World")
@@ -972,16 +973,16 @@ def getPaginaAvaliacao():
         try:
             idProjeto = str(request.args.get('id'))
         except Exception as e:
-            logger.error("[/avaliacao] Erro ao obter ID do projeto: %s",str(e))
+            logger.warning("[/avaliacao] Erro ao obter ID do projeto: %s",str(e))
             return "ID do projeto não informado!"
         if not numero_valido(idProjeto):
-            logger.error("[/avaliacao] ID do projeto inválido!")
+            logger.warning("[/avaliacao] ID do projeto inválido!")
             return "ID do projeto inválido!"
         if podeAvaliar(idProjeto): #Se ainda está no prazo para receber avaliações
             try:
                 tokenAvaliacao = str(request.args.get('token'))
             except Exception as e:
-                logger.error("[/avaliacao] Erro ao obter token de avaliação: %s", str(e))
+                logger.warning("[/avaliacao] Erro ao obter token de avaliação: %s", str(e))
                 return "Token de avaliação não informado!"
             if not token_valido(tokenAvaliacao):
                 return "Token de avaliação inválido!"
@@ -1012,6 +1013,9 @@ def getPaginaAvaliacao():
                 return("Projeto já foi avaliado! Não é possível modificar a avaliação!")
         else:
             return "ID Inválido ou prazo de avaliação expirado!"
+    else:
+        logging.warning("[/avaliacao] Método não permitido: %s !",request.method)
+        return "Método não permitido! Use GET para acessar esta página."
 
 @app.route("/avaliar", methods=['GET', 'POST'])
 def enviarAvaliacao():
@@ -2117,8 +2121,9 @@ def enviarMinhaSenha():
                 #Redirecionando para a página de login
                 return(render_template('login.html',mensagem='Senha enviada para o email: ' + email))
             else:
-                #TODO: Encaminhar para home com flash message
-                return(render_template('login.html',mensagem='E-mail não cadastrado. Envie e-mail para atendimento.prpi@ufca.edu.br para solicitar sua senha.'))
+                logger.warning("[%s][/enviarMinhaSenha]E-mail %s não cadastrado.", request.remote_addr, email)
+                flash("E-mail não cadastrado. Solicite seu cadastro no setor responsável.","error")
+                return redirect(url_for('home'))
         else:
             return("OK")
     else:

@@ -1,0 +1,29 @@
+# This workflow will restart the system when a commit is pushed to the python3 branch.
+# The workflow is triggered on pushes to the python3 branch.
+
+name: Reiniciar sistema de Pesquisa
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  restart:
+    runs-on: ubuntu-latest
+    steps:
+      - name: enviando comandos ssh
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            cd /backup/pesquisa3
+            export INFISICAL_TOKEN=${{ secrets.INFISICAL_TOKEN }}
+            infisical run -- docker-compose down
+            infisical run -- docker-compose up -d
+            history -c && history -w
+            cat /dev/null > ~/.bash_history

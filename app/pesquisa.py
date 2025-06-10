@@ -1722,7 +1722,7 @@ def meusProjetos():
             if verify_password(siape,senha):
                 registrar_acesso(request.remote_addr,siape)
     if autenticado():        
-        logger.info("[%s][/meusProjetos] Acessando meusPprojetos do orientador: %s",request.remote_addr,session['username'])
+        logger.info("[%s][/meusProjetos] Acessando meusProjetos do orientador: %s",request.remote_addr,session['username'])
         consulta = """SELECT id,nome_do_coordenador,orientador_lotacao,titulo_do_projeto,DATE_FORMAT(inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(termino,'%d/%m/%Y') as fim,estudante_nome_completo,token FROM cadastro_geral WHERE siape='""" + str(session['username']) + """' ORDER BY inicio,titulo_do_projeto"""
         projetos,total = executarSelect(consulta)
         consulta_outros = """SELECT 
@@ -2131,7 +2131,8 @@ def enviarMinhaSenha():
 
 @app.route("/logout", methods=['GET', 'POST'])
 def encerrarSessao():
-    logger.info("[%s][/logout]Usuário %s encerrou a sessão.", request.remote_addr,session['username'])
+    if 'username' in session:
+        logger.info("[%s][/logout]Usuário %s encerrou a sessão.", request.remote_addr,session['username'])    
     logout()
     return redirect(url_for('home'))
 

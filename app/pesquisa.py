@@ -2117,6 +2117,7 @@ def enviarMinhaSenha():
                 #Redirecionando para a página de login
                 return(render_template('login.html',mensagem='Senha enviada para o email: ' + email))
             else:
+                #TODO: Encaminhar para home com flash message
                 return(render_template('login.html',mensagem='E-mail não cadastrado. Envie e-mail para atendimento.prpi@ufca.edu.br para solicitar sua senha.'))
         else:
             return("OK")

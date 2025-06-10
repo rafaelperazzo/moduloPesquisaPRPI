@@ -2131,7 +2131,8 @@ def enviarMinhaSenha():
 
 @app.route("/logout", methods=['GET', 'POST'])
 def encerrarSessao():
-    logger.info("[%s][/logout]Usuário %s encerrou a sessão.", request.remote_addr,session['username'])
+    if 'username' in session:
+        logger.info("[%s][/logout]Usuário %s encerrou a sessão.", request.remote_addr,session['username'])    
     logout()
     return redirect(url_for('home'))
 

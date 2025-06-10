@@ -1,3 +1,4 @@
+	2025-06-10 13:43:43 -0300	fix: typo no logger do /meusProjetos
 	2025-06-10 13:33:12 -0300	fix: /avaliacao - metodos que não são get agora estão tratados. Log integrado com bettertrack funcionando.
 	2025-06-10 11:05:05 -0300	docs: TODO em /enviarMinhaSenha, para incluir logger
 	2025-06-10 11:02:59 -0300	feat: configurado recurso de enviar logs para betterstack e sentry

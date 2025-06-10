@@ -1,3 +1,8 @@
+	2025-06-10 11:05:05 -0300	docs: TODO em /enviarMinhaSenha, para incluir logger
+	2025-06-10 11:02:59 -0300	feat: configurado recurso de enviar logs para betterstack e sentry
+	2025-06-09 17:38:43 -0300	docs: TODO do logtail com mensagem mais explicada
+	2025-06-09 17:34:25 -0300	feat: Incluída biblioteca logtail do bettertrace
+	2025-06-09 16:19:00 -0300	fix: Alguns links com o target = blank
 	2025-06-09 16:18:29 -0300	docs: Alguns links com o target = blank
 	2025-06-09 16:16:03 -0300	docs: Incluída sessão de status do sistema no README
 	2025-06-09 16:13:23 -0300	docs: GPL 3 no README

@@ -905,8 +905,7 @@ def getScoreLattesFromFile():
         sumario = str(score.sumario())
         return(sumario)
     except Exception as e:
-        logger.error("[SCORELATTES] Erro ao calcular o scorelattes.")
-        logger.error(e)
+        logger.error("[SCORELATTES] Erro ao calcular o scorelattes: %s", str(e))
         return("Erro ao calcular pontuacao!")
 
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam
@@ -1073,14 +1072,12 @@ def enviarAvaliacao():
                 consulta = "UPDATE avaliacoes SET inovacao= ? WHERE token= ? "
                 atualizar2(consulta, valores=[inovacao,token])
         except Exception as e:
-            logger.error(e)
-            logger.error("[AVALIACAO] ERRO ao gravar a avaliação: %s", token)
+            logger.error("[AVALIACAO] ERRO ao gravar a avaliação: %s - (%s)", token, str(e))
             return("Não foi possível gravar a avaliação. Favor entrar contactar " + DEFAULT_EMAIL)
         try:
             return (redirect(url_for('getDeclaracaoAvaliador',tokenAvaliacao=token)))
         except Exception as e:
-            logger.error(e)
-            logger.error("[/avaliar] ERRO ao gerar a declaração: %s",token)
+            logger.error("[/avaliar] ERRO ao gerar a declaração: %s - (%s)",token, str(e))
             return("Não foi possível gerar a declaração.")
     else:
         return("OK")
@@ -1108,8 +1105,7 @@ def enviar_declaracao_avaliador(url,destinatario):
         try:
             mail.send(msg)
         except Exception as e:
-            logger.error("Erro ao enviar e-mail. processarPontuacaoLattes")
-            logger.error(str(e))
+            logger.error("Erro ao enviar e-mail. processarPontuacaoLattes: %s", str(e))
 
 @app.route("/declaracaoAvaliador/<tokenAvaliacao>", methods=['GET'])
 def getDeclaracaoAvaliador(tokenAvaliacao):
@@ -1159,7 +1155,7 @@ def recusarConvite():
     if request.method == "GET":
         tokenAvaliacao = str(request.args.get('token'))
         if not token_valido(tokenAvaliacao):
-            logger.error("[/recusarConvite] Token inválido: %s", tokenAvaliacao)
+            logger.warning("[/recusarConvite] Token inválido: %s", tokenAvaliacao)
             return "Token inválido!"
         consulta = "UPDATE avaliacoes SET aceitou=0 WHERE token=\"" + tokenAvaliacao + "\""
         atualizar(consulta)
@@ -1177,12 +1173,12 @@ def avaliacoesNegadas():
         if 'edital' in request.args:
             codigoEdital = str(request.args.get('edital'))
             if not numero_valido(codigoEdital):
-                logger.error("[/avaliacoesNegadas] Código do edital inválido: %s", codigoEdital)
+                logger.warning("[/avaliacoesNegadas] Código do edital inválido: %s", codigoEdital)
                 return "Código do edital inválido!"
             if 'id' in request.args:
                 idProjeto = str(request.args.get('id'))
                 if not numero_valido(idProjeto):
-                    logger.error("[/avaliacoesNegadas] ID do projeto inválido: %s", idProjeto)
+                    logger.warning("[/avaliacoesNegadas] ID do projeto inválido: %s", idProjeto)
                     return "ID do projeto inválido!"
                 consulta = "SELECT resumoGeralAvaliacoes.id,CONCAT(SUBSTRING(resumoGeralAvaliacoes.titulo,1,80),\" - (\",resumoGeralAvaliacoes.nome,\" )\"),(resumoGeralAvaliacoes.aceites+resumoGeralAvaliacoes.rejeicoes) as resultado,resumoGeralAvaliacoes.indefinido FROM resumoGeralAvaliacoes WHERE ((aceites+rejeicoes<10) OR (aceites=rejeicoes)) AND tipo=" + codigoEdital + " AND id = " + idProjeto +" ORDER BY aceites+rejeicoes, id"
             else:
@@ -1244,7 +1240,7 @@ def estatisticas():
         try:
             codigoEdital = str(request.args.get('edital'))
         except Exception as e:
-            logger.error("[/estatisticas] Erro ao obter código do edital: %s", str(e))
+            logger.warning("[/estatisticas] Erro ao obter código do edital: %s", str(e))
             return "Código do edital não informado!"
         if not numero_valido(codigoEdital):
             return "Código do edital inválido!"
@@ -1350,9 +1346,7 @@ def executarSelect(consulta,tipo=0):
             resultado = cursor.fetchone()
         return (resultado,total)
     except Exception as e:
-        logger.error(e)
-        logger.error("ERRO Na função executarSelect. Ver consulta abaixo.")
-        logger.error(consulta)
+        logger.error("ERRO Na função executarSelect: %s", str(e))
     finally:
         cursor.close()
         conn.close()
@@ -1373,9 +1367,7 @@ def executarSelect2(consulta,tipo=0,valores=()):
             resultado = cursor.fetchone()
         return (resultado,total)
     except Exception as e:
-        logger.error(e)
-        logger.error("ERRO Na função executarSelect. Ver consulta abaixo.")
-        logger.error(consulta)
+        logger.error("ERRO Na função executarSelect2: %s", str(e))
     finally:
         cursor.close()
         conn.close()
@@ -1521,9 +1513,7 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
             resultado = str(linha[0])
         return(resultado)
     except Exception as e:
-        logger.error(e)
-        logger.error("ERRO Na função obtercolunaUnica. Ver consulta abaixo.")
-        logger.error(consulta)
+        logger.error("ERRO Na função obtercolunaUnica: %s", str(e))
     finally:
         cursor.close()
         conn.close()

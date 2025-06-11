@@ -1,3 +1,4 @@
+	2025-06-11 13:42:38 -0300	fix: log do /score agora é um warning
 	2025-06-10 15:59:12 -0300	feat: adicionado actions para reiniciar o sistema
 	2025-06-10 15:56:34 -0300	fix: /logout -> verifica antes se username existe na sessão
 	2025-06-10 13:43:43 -0300	fix: typo no logger do /meusProjetos

@@ -98,8 +98,13 @@ auth = HTTPBasicAuth()
 csrf = CSRFProtect(app)
 
 '''
-if PRODUCAO==1:
-    Talisman(app)
+csp = {
+    'default-src': '*',
+    'img-src': '*',
+    'script-src': '*',
+    'style-src': '*'
+}
+Talisman(app,content_security_policy=csp,force_https=False)
 '''
 
 limiter = Limiter(

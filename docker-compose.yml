@@ -83,8 +83,8 @@ services:
       test: ["CMD", "curl", "-f", "http://ip.me"]
       start_period: 60s
       interval: 180s
-      timeout: 30s
-      retries: 3
+      timeout: 10s
+      retries: 5
 
     restart: "always"
     ports:

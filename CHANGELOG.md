@@ -1,3 +1,4 @@
+	2025-06-11 14:52:28 -0300	fix: ignorando o logger do waitress (comentado)
 	2025-06-11 14:50:26 -0300	fix: ignorando o logger do waitress
 	2025-06-11 14:45:32 -0300	fix: autoheal do docker-compose ajustado com checagens mais espaçadas
 	2025-06-11 14:41:12 -0300	fix: incluido talisman apenas quando em produção

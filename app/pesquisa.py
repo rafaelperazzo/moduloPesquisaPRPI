@@ -38,6 +38,8 @@ from logtail import LogtailHandler
 from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_session import Session
+from redis import Redis
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -97,15 +99,21 @@ app = Flask(__name__)
 auth = HTTPBasicAuth()
 csrf = CSRFProtect(app)
 
-'''
+app.config['SESSION_TYPE'] = 'redis'
+app.config['SESSION_REDIS'] = Redis.from_url('redis://redis:6379')
+app.config['SESSION_PERMANENT'] = False
+Session(app)
+
 csp = {
     'default-src': '*',
     'img-src': '*',
     'script-src': '*',
     'style-src': '*'
 }
-Talisman(app,content_security_policy=csp,force_https=False)
-'''
+if PRODUCAO==0:
+    Talisman(app,content_security_policy=[],force_https=False)
+else:
+    Talisman(app,content_security_policy=[],force_https=True)
 
 limiter = Limiter(
     get_remote_address,

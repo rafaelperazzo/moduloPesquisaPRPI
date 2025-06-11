@@ -1,3 +1,4 @@
+	2025-06-11 16:27:47 -0300	fix: desabilitado talisman
 	2025-06-11 15:59:04 -0300	fix: tempos do healthcheck modificados para container pesquisa
 	2025-06-11 15:47:27 -0300	fix: tempos do healthcheck modificados para inicialização mais rápida
 	2025-06-11 15:35:27 -0300	feat: Removido talisman por configuração invalida

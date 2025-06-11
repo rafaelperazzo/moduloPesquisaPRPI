@@ -97,8 +97,10 @@ app = Flask(__name__)
 auth = HTTPBasicAuth()
 csrf = CSRFProtect(app)
 
+'''
 if PRODUCAO==1:
     Talisman(app)
+'''
 
 limiter = Limiter(
     get_remote_address,

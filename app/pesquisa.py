@@ -886,16 +886,16 @@ def calcularScorelattesFromID():
 def getScoreLattesFromFile():
     area_capes = str(request.form['area_capes'])
     idlattes = str(request.form['idlattes'])
+    if not token_valido(idlattes):
+        return "IDLattes inválido! Informe um IDLattes válido."
     periodo = int(str(request.form['periodo']))
     if not numero_valido(periodo) or periodo not in [5,7]:
         return "Período inválido! Informe um número inteiro positivo."
     try:
         salvarCV(idlattes)
     except Exception as e:
-        logger.error(str(e))
-        logger.error("[/SCORE] Nao foi possivel baixar o curriculo. IDlattes de um servidor/discente da UFCA ?")
-        logger.error(idlattes)
-        return("[/SCORE] Este IDLattes e de um servidor/discente da UFCA ? Nao foi possivel calcular a pontuacao!")
+        logger.warning("[/SCORE] Nao foi possivel baixar o curriculo do IDlattes (%s). Erro: %s",str(idlattes),str(e))
+        return("[/SCORE] Não foi possível baixar o currículo. IDLattes inválido, ou problemas na comunicação com o CNPq. Tente novamente.")
     arquivo = XML_DIR + idlattes + ".xml"
     try:
         from datetime import date

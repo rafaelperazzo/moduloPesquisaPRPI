@@ -100,6 +100,15 @@ csrf = CSRFProtect(app)
 if PRODUCAO==1:
     Talisman(app)
 
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    storage_uri="redis://redis:6379",
+    default_limits=["200 per day", "50 per hour"],
+    storage_options={"socket_connect_timeout": 30},
+    strategy="fixed-window",
+)
+
 if PRODUCAO==1:
     app.config['WTF_CSRF_CHECK_DEFAULT'] = True
 else:

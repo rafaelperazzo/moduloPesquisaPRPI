@@ -42,7 +42,7 @@ services:
     networks:
       - web  
   pesquisa:
-    image: ghcr.io/rafaelperazzo/python3:v1.0.3
+    image: ghcr.io/rafaelperazzo/python3:v1.0.5
     command: python3 pesquisa.py
     depends_on:
       db_pesquisa:
@@ -103,6 +103,12 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock
+  
+  redis:
+    image: redis:8
+    restart: "always"
+    networks:
+      - web
 
 networks:
   web:

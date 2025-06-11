@@ -34,6 +34,9 @@ import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from logtail import LogtailHandler
+from flask_talisman import Talisman
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -91,6 +94,10 @@ if PRODUCAO==1:
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 csrf = CSRFProtect(app)
+
+if PRODUCAO==1:
+    Talisman(app)
+
 if PRODUCAO==1:
     app.config['WTF_CSRF_CHECK_DEFAULT'] = True
 else:

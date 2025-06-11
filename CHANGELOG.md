@@ -1,3 +1,4 @@
+	2025-06-11 15:35:27 -0300	feat: Removido talisman por configuração invalida
 	2025-06-11 15:20:33 -0300	feat: Adicionadas extensões Talisman e Limiter
 	2025-06-11 15:10:09 -0300	fix: autoheal com valores maiores
 	2025-06-11 14:52:28 -0300	fix: ignorando o logger do waitress (comentado)

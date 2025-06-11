@@ -73,7 +73,7 @@ BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
 BS_HOST = os.getenv("BS_HOST", "")
 
 if PRODUCAO==1:
-    ignore_logger("waitress")
+    #ignore_logger("waitress")
     sentry_sdk.init(
         dsn=DSN_SENTRY,
         # Add data like request headers and IP for users,

@@ -1,3 +1,4 @@
+	2025-06-11 14:45:32 -0300	fix: autoheal do docker-compose ajustado com checagens mais espaçadas
 	2025-06-11 14:41:12 -0300	fix: incluido talisman apenas quando em produção
 	2025-06-11 14:16:36 -0300	docs: Incluído o dashboard no README.md
 	2025-06-11 13:58:47 -0300	fix: Link do root.html agora aponta para o github pages do projeto

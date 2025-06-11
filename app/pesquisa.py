@@ -33,6 +33,7 @@ from datetime import timedelta
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.integrations.logging import ignore_logger
 from logtail import LogtailHandler
 from flask_talisman import Talisman
 from flask_limiter import Limiter
@@ -72,6 +73,7 @@ BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
 BS_HOST = os.getenv("BS_HOST", "")
 
 if PRODUCAO==1:
+    ignore_logger("waitress")
     sentry_sdk.init(
         dsn=DSN_SENTRY,
         # Add data like request headers and IP for users,

@@ -1,3 +1,4 @@
+	2025-06-11 13:58:47 -0300	fix: Link do root.html agora aponta para o github pages do projeto
 	2025-06-11 13:49:59 -0300	fix: logs até obterColunaUnica corrigidos.
 	2025-06-11 13:42:38 -0300	fix: log do /score agora é um warning
 	2025-06-10 15:59:12 -0300	feat: adicionado actions para reiniciar o sistema

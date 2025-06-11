@@ -23,6 +23,10 @@ Página de status do sistema: [Yoko](https://yoko.betteruptime.com/pt)
 
 ---
 
+## Dashboard de erros e acessos
+
+[Dashboard](https://telemetry.betterstack.com/dashboards/5Y3xD2)
+
 ## 📌 Funcionalidades
 
 - 📁 Cadastro e gerenciamento de projetos de pesquisa

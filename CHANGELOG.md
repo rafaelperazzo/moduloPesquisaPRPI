@@ -1,3 +1,13 @@
+	2025-06-11 15:10:09 -0300	fix: autoheal com valores maiores
+	2025-06-11 14:52:28 -0300	fix: ignorando o logger do waitress (comentado)
+	2025-06-11 14:50:26 -0300	fix: ignorando o logger do waitress
+	2025-06-11 14:45:32 -0300	fix: autoheal do docker-compose ajustado com checagens mais espaçadas
+	2025-06-11 14:41:12 -0300	fix: incluido talisman apenas quando em produção
+	2025-06-11 14:16:36 -0300	docs: Incluído o dashboard no README.md
+	2025-06-11 13:58:47 -0300	fix: Link do root.html agora aponta para o github pages do projeto
+	2025-06-11 13:49:59 -0300	fix: logs até obterColunaUnica corrigidos.
+	2025-06-11 13:42:38 -0300	fix: log do /score agora é um warning
+	2025-06-10 15:59:12 -0300	feat: adicionado actions para reiniciar o sistema
 	2025-06-10 15:56:34 -0300	fix: /logout -> verifica antes se username existe na sessão
 	2025-06-10 13:43:43 -0300	fix: typo no logger do /meusProjetos
 	2025-06-10 13:33:12 -0300	fix: /avaliacao - metodos que não são get agora estão tratados. Log integrado com bettertrack funcionando.

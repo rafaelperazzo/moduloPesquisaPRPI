@@ -1139,7 +1139,7 @@ def enviar_declaracao_avaliador(url,destinatario):
         try:
             mail.send(msg)
         except Exception as e:
-            logger.error("Erro ao enviar e-mail. processarPontuacaoLattes: %s", str(e))
+            logger.error("Erro ao enviar e-mail. [enviar declaração para avaliador]: %s", str(e))
 
 @app.route("/declaracaoAvaliador/<tokenAvaliacao>", methods=['GET'])
 def getDeclaracaoAvaliador(tokenAvaliacao):
@@ -3183,7 +3183,8 @@ def enviar_email_avaliadores():
         deadline = str(linha[11])
         nome_longo = str(linha[12])
         with app.app_context():
-            texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
+            url_declaracao = url_for('getDeclaracaoAvaliador',token=token, _external=True)
+            texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
             msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 try:

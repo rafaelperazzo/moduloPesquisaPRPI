@@ -1,3 +1,4 @@
+	2025-06-12 11:03:49 -0300	style: Modificado os estilos das telas de autenticação
 	2025-06-11 17:38:13 -0300	feat: Adicionada e configurada a extensão flask-session
 	2025-06-11 16:27:47 -0300	fix: desabilitado talisman
 	2025-06-11 15:59:04 -0300	fix: tempos do healthcheck modificados para container pesquisa

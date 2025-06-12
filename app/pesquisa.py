@@ -1013,7 +1013,11 @@ def getPaginaAvaliacao():
             return "ID do projeto inválido!"
         if podeAvaliar(idProjeto): #Se ainda está no prazo para receber avaliações
             try:
-                tokenAvaliacao = str(request.args.get('token'))
+                tokenAvaliacao = request.args.get('token')
+                if tokenAvaliacao is None or tokenAvaliacao == "":
+                    raise ValueError("Token de avaliação não informado!")
+                else:
+                    tokenAvaliacao = str(tokenAvaliacao)
             except Exception as e:
                 logger.warning("[/avaliacao] Erro ao obter token de avaliação: %s", str(e))
                 return "Token de avaliação não informado!"
@@ -2119,8 +2123,7 @@ def thread_enviar_senha(msg):
         try:
             mail.send(msg)
         except Exception as e:
-            logger.error("Erro ao enviar e-mail. /enviarMinhaSenha")
-            logger.error(str(e))
+            logger.error("[%s] Erro ao enviar e-mail: %s. /enviarMinhaSenha", request.remote_addr, str(e))
 
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 def enviarMinhaSenha():

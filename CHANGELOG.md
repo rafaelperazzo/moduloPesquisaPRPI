@@ -1,3 +1,4 @@
+	2025-06-12 13:45:43 -0300	feat: Adicionado o link da declaração do avaliador no e-mail solicitando a avaliação - com target=blank
 	2025-06-12 13:45:15 -0300	feat: Adicionado o link da declaração do avaliador no e-mail solicitando a avaliação.
 	2025-06-12 11:03:49 -0300	style: Modificado os estilos das telas de autenticação
 	2025-06-11 17:38:13 -0300	feat: Adicionada e configurada a extensão flask-session

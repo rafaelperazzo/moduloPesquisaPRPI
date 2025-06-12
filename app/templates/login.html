@@ -1,8 +1,8 @@
 {% extends "BASE_v3.html" %}
 {% block content %}
 
-  <center><h2>Autenticação</h2></center>
-    <div class="mb-3">
+    <div class="shadow-none p-3 mb-5 bg-body-tertiary rounded">
+      <center><h2>Autenticação</h2></center>
       <form action="/pesquisa/login" METHOD="POST" onsubmit="return humano()">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="container">

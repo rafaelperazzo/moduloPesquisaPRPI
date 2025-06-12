@@ -19,13 +19,11 @@ da UFCA. Projetado para atender às necessidades da instituição supracitada.
 
 [![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://yoko.betteruptime.com/pt)
 
-Página de status do sistema: [Yoko](https://yoko.betteruptime.com/pt)
-
 ---
 
-## Dashboard de erros e acessos
+## Dashboard de LOGS
 
-[Dashboard](https://telemetry.betterstack.com/dashboards/5Y3xD2)
+[![Static Badge](https://img.shields.io/badge/Dashboard%20-%20LOGS%20-%20blue)](https://telemetry.betterstack.com/dashboards/5Y3xD2)
 
 ## 📌 Funcionalidades
 
@@ -43,6 +41,7 @@ Página de status do sistema: [Yoko](https://yoko.betteruptime.com/pt)
 - **Linguagem:** Python 3.13.4
 - **Framework Web:** Flask  3.1.1
 - **Banco de Dados:** (MariaDB 11.7.2)
+- **Docker:** Utilizado para containerização do sistema
 
 ---
 
@@ -53,6 +52,7 @@ Este projeto Flask foi desenvolvido com atenção às melhores práticas de segu
 - **Autenticação Segura**
   - Sistema de login com autenticação baseada em senhas fortes, geradas automaticamente sem intervenção do usuário.
   - Proteção contra força bruta com **Flask-Limiter** para limitar tentativas de login.
+  - Captcha reCAPTCHA v2 para proteger formulários de login e registro contra bots.
 
 - **Autorização baseada em papéis (RBAC)**
   - Gerenciamento de permissões por nível de acesso (usuário, admin).
@@ -66,8 +66,10 @@ Este projeto Flask foi desenvolvido com atenção às melhores práticas de segu
   - Validação de entradas do usuário.
   - Prevenção contra injeções de código malicioso (SQL Injection, XSS).
 
-- **Criptografia de Senhas**
-  - Armazenamento seguro com **Argon2** com pepper (HMAC).
+- **Criptografia**
+  - Armazenamento seguro de senhas utilizando **Argon2** com pepper (HMAC)
+  - Criptografia de arquivos com **AES-256 e GPG**
+  - Criptografia do Banco de Dados com **AES-256-CBC** para proteger dados em repouso
 
 - **Comunicação Segura**
   - Obrigatoriedade de uso de HTTPS/TLS em produção.

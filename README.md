@@ -15,12 +15,15 @@ da UFCA. Projetado para atender às necessidades da instituição supracitada.
 
 ---
 
-## Status do Sistema (online ou offline)
+## Status do Sistema
 
 [![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://yoko.betteruptime.com/pt)
 
-Página de status do sistema: [Yoko](https://yoko.betteruptime.com/pt)
+---
 
+## Dashboard de LOGS
+
+[![Static Badge](https://img.shields.io/badge/Dashboard%20-%20LOGS%20-%20blue)](https://telemetry.betterstack.com/dashboards/5Y3xD2)
 ---
 
 ## 📌 Funcionalidades

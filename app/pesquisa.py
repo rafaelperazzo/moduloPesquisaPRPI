@@ -75,7 +75,7 @@ BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
 BS_HOST = os.getenv("BS_HOST", "")
 
 if PRODUCAO==1:
-    #ignore_logger("waitress")
+    ignore_logger("waitress")
     sentry_sdk.init(
         dsn=DSN_SENTRY,
         # Add data like request headers and IP for users,
@@ -98,7 +98,7 @@ if PRODUCAO==1:
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 csrf = CSRFProtect(app)
-
+app.config['producao'] = PRODUCAO
 app.config['SESSION_TYPE'] = 'redis'
 app.config['SESSION_REDIS'] = Redis.from_url('redis://redis:6379')
 app.config['SESSION_PERMANENT'] = False
@@ -131,8 +131,10 @@ else:
 
 try:
     __version__ = Repo('/git').tags[-1].name
+    app.config['versao'] = __version__
 except Exception as e:
     __version__ = "0.0.0"
+    app.config['versao'] = __version__
 
 mail = Mail(app)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -180,7 +182,7 @@ if PRODUCAO==1:
 #Obtendo senhas
 PASSWORD = os.getenv("DB_PASSWORD", "World")
 GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD", "World")
-app.config['SECRET_KEY'] = os.urandom(24)
+app.config['SECRET_KEY'] = secrets.token_hex()
 app.config['MAIL_PASSWORD'] = GMAIL_PASSWORD
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
 
@@ -203,8 +205,7 @@ def login_required(role='admin'):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if not 'username' in session:
-                return render_template('login.html',mensagem="""É necessário 
-                                       autenticação para acessar a página solicitada""")
+                return render_template('login.html')
             if role not in session['roles']:
                 flash('Você não tem permissão para acessar este recurso.','error')
                 return redirect(url_for('home'))
@@ -645,7 +646,7 @@ def secret_page():
 @app.route("/")
 def home():
     session['PRODUCAO'] = PRODUCAO
-    return render_template('root.html',version=__version__)
+    return render_template('root.html')
 
 @app.route("/version")
 def version():
@@ -2102,11 +2103,13 @@ def login():
                 registrar_acesso(request.remote_addr,siape)
                 return(redirect(url_for('home')))
             else:
-                return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
+                flash("Usuário ou senha inválidos. Tente novamente.","error")
+                return redirect(url_for('home'))
         else:
-            return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
+            flash("Usuário ou senha inválidos. Tente novamente.","error")
+            return redirect(url_for('home'))
     else: #GET
-        return(render_template('login.html',mensagem='Entre com suas credenciais de acesso'))
+        return render_template('login.html')
 
 @app.route("/esqueciMinhaSenha", methods=['GET', 'POST'])
 def esqueciMinhaSenha():
@@ -2137,6 +2140,7 @@ def enviarMinhaSenha():
                 consulta = f"""UPDATE users SET password='{hash_senha}' WHERE id={idUsuario}"""
                 atualizar(consulta)
                 #Enviando e-mail
+                logger.info("[%s][/enviarMinhaSenha] Redefinição de senha do usuário: %s", request.remote_addr, idUsuario)
                 texto_mensagem = "Usuario: " + username + "\nSenha: " + senha + "\n" + USUARIO_SITE
                 msg = Message(subject = "Plataforma Yoko - Lembrete de senha",recipients=[email],body=texto_mensagem)
                 thread = threading.Thread(target=thread_enviar_senha, args=(msg,))

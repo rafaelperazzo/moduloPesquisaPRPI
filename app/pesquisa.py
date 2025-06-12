@@ -38,6 +38,8 @@ from logtail import LogtailHandler
 from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_session import Session
+from redis import Redis
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -73,7 +75,7 @@ BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
 BS_HOST = os.getenv("BS_HOST", "")
 
 if PRODUCAO==1:
-    #ignore_logger("waitress")
+    ignore_logger("waitress")
     sentry_sdk.init(
         dsn=DSN_SENTRY,
         # Add data like request headers and IP for users,
@@ -96,9 +98,22 @@ if PRODUCAO==1:
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 csrf = CSRFProtect(app)
+app.config['producao'] = PRODUCAO
+app.config['SESSION_TYPE'] = 'redis'
+app.config['SESSION_REDIS'] = Redis.from_url('redis://redis:6379')
+app.config['SESSION_PERMANENT'] = False
+Session(app)
 
-if PRODUCAO==1:
-    Talisman(app)
+csp = {
+    'default-src': '*',
+    'img-src': '*',
+    'script-src': '*',
+    'style-src': '*'
+}
+if PRODUCAO==0:
+    Talisman(app,content_security_policy=[],force_https=False)
+else:
+    Talisman(app,content_security_policy=[],force_https=True)
 
 limiter = Limiter(
     get_remote_address,
@@ -116,8 +131,10 @@ else:
 
 try:
     __version__ = Repo('/git').tags[-1].name
+    app.config['versao'] = __version__
 except Exception as e:
     __version__ = "0.0.0"
+    app.config['versao'] = __version__
 
 mail = Mail(app)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -165,7 +182,7 @@ if PRODUCAO==1:
 #Obtendo senhas
 PASSWORD = os.getenv("DB_PASSWORD", "World")
 GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD", "World")
-app.config['SECRET_KEY'] = os.urandom(24)
+app.config['SECRET_KEY'] = secrets.token_hex()
 app.config['MAIL_PASSWORD'] = GMAIL_PASSWORD
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
 
@@ -188,8 +205,7 @@ def login_required(role='admin'):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if not 'username' in session:
-                return render_template('login.html',mensagem="""É necessário 
-                                       autenticação para acessar a página solicitada""")
+                return render_template('login.html')
             if role not in session['roles']:
                 flash('Você não tem permissão para acessar este recurso.','error')
                 return redirect(url_for('home'))
@@ -630,7 +646,7 @@ def secret_page():
 @app.route("/")
 def home():
     session['PRODUCAO'] = PRODUCAO
-    return render_template('root.html',version=__version__)
+    return render_template('root.html')
 
 @app.route("/version")
 def version():
@@ -997,7 +1013,11 @@ def getPaginaAvaliacao():
             return "ID do projeto inválido!"
         if podeAvaliar(idProjeto): #Se ainda está no prazo para receber avaliações
             try:
-                tokenAvaliacao = str(request.args.get('token'))
+                tokenAvaliacao = request.args.get('token')
+                if tokenAvaliacao is None or tokenAvaliacao == "":
+                    raise ValueError("Token de avaliação não informado!")
+                else:
+                    tokenAvaliacao = str(tokenAvaliacao)
             except Exception as e:
                 logger.warning("[/avaliacao] Erro ao obter token de avaliação: %s", str(e))
                 return "Token de avaliação não informado!"
@@ -1123,7 +1143,7 @@ def enviar_declaracao_avaliador(url,destinatario):
         try:
             mail.send(msg)
         except Exception as e:
-            logger.error("Erro ao enviar e-mail. processarPontuacaoLattes: %s", str(e))
+            logger.error("Erro ao enviar e-mail. [enviar declaração para avaliador]: %s", str(e))
 
 @app.route("/declaracaoAvaliador/<tokenAvaliacao>", methods=['GET'])
 def getDeclaracaoAvaliador(tokenAvaliacao):
@@ -1156,7 +1176,6 @@ def getDeclaracaoAvaliador(tokenAvaliacao):
                                nome=nome_avaliador,data=data_agora,edital=descricao_do_edital,
                                titulo=titulo,idProjeto=idProjeto)
     else:
-        titulo = "--- ERRO ---"
         return "PROJETO AINDA NÃO AVALIADO OU INEXISTENTE!"
     
 def consultar(consulta):
@@ -2087,11 +2106,13 @@ def login():
                 registrar_acesso(request.remote_addr,siape)
                 return(redirect(url_for('home')))
             else:
-                return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
+                flash("Usuário ou senha inválidos. Tente novamente.","error")
+                return redirect(url_for('home'))
         else:
-            return(render_template('login.html',mensagem='Problemas com o usuario/senha.'))
+            flash("Usuário ou senha inválidos. Tente novamente.","error")
+            return redirect(url_for('home'))
     else: #GET
-        return(render_template('login.html',mensagem='Entre com suas credenciais de acesso'))
+        return render_template('login.html')
 
 @app.route("/esqueciMinhaSenha", methods=['GET', 'POST'])
 def esqueciMinhaSenha():
@@ -2102,8 +2123,7 @@ def thread_enviar_senha(msg):
         try:
             mail.send(msg)
         except Exception as e:
-            logger.error("Erro ao enviar e-mail. /enviarMinhaSenha")
-            logger.error(str(e))
+            logger.error("[%s] Erro ao enviar e-mail: %s. /enviarMinhaSenha", request.remote_addr, str(e))
 
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 def enviarMinhaSenha():
@@ -2122,6 +2142,7 @@ def enviarMinhaSenha():
                 consulta = f"""UPDATE users SET password='{hash_senha}' WHERE id={idUsuario}"""
                 atualizar(consulta)
                 #Enviando e-mail
+                logger.info("[%s][/enviarMinhaSenha] Redefinição de senha do usuário: %s", request.remote_addr, idUsuario)
                 texto_mensagem = "Usuario: " + username + "\nSenha: " + senha + "\n" + USUARIO_SITE
                 msg = Message(subject = "Plataforma Yoko - Lembrete de senha",recipients=[email],body=texto_mensagem)
                 thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
@@ -3164,7 +3185,8 @@ def enviar_email_avaliadores():
         deadline = str(linha[11])
         nome_longo = str(linha[12])
         with app.app_context():
-            texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
+            url_declaracao = url_for('getDeclaracaoAvaliador',tokenAvaliacao=token, _external=True)
+            texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
             msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 try:

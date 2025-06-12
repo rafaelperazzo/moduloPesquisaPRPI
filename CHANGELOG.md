@@ -1,3 +1,14 @@
+	2025-06-12 14:15:33 -0300	style: adicionado containers nos forms de login e esqueciminhasenha
+	2025-06-12 14:03:56 -0300	style: Incluído botão VOLTAR no footer
+	2025-06-12 13:45:43 -0300	feat: Adicionado o link da declaração do avaliador no e-mail solicitando a avaliação - com target=blank
+	2025-06-12 13:45:15 -0300	feat: Adicionado o link da declaração do avaliador no e-mail solicitando a avaliação.
+	2025-06-12 11:03:49 -0300	style: Modificado os estilos das telas de autenticação
+	2025-06-11 17:38:13 -0300	feat: Adicionada e configurada a extensão flask-session
+	2025-06-11 16:27:47 -0300	fix: desabilitado talisman
+	2025-06-11 15:59:04 -0300	fix: tempos do healthcheck modificados para container pesquisa
+	2025-06-11 15:47:27 -0300	fix: tempos do healthcheck modificados para inicialização mais rápida
+	2025-06-11 15:35:27 -0300	feat: Removido talisman por configuração invalida
+	2025-06-11 15:20:33 -0300	feat: Adicionadas extensões Talisman e Limiter
 	2025-06-11 15:10:09 -0300	fix: autoheal com valores maiores
 	2025-06-11 14:52:28 -0300	fix: ignorando o logger do waitress (comentado)
 	2025-06-11 14:50:26 -0300	fix: ignorando o logger do waitress

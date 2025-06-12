@@ -69,9 +69,21 @@ input[type=submit]:hover {
   }
 }
 </style>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<script>
+function humano() {
+   if (grecaptcha.getResponse() == ""){
+    alert("Marque a caixa abaixo para continuar...");
+    return (false);
+   } else {
+          //alert("Thank you");
+    return (true);
+     }
+}
+</script>
 </head>
   <body>
-    <form name="frmLattes" action="/pesquisa/score" method="POST" enctype="multipart/form-data"><br>
+    <form name="frmLattes" action="/pesquisa/score" method="POST" enctype="multipart/form-data" onsubmit="return humano()"><br>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <b>Período</b>:
       <select name="periodo">
@@ -139,5 +151,8 @@ input[type=submit]:hover {
     </form>
     <p style="text-align: center;"><br>
     </p>
+  {% if session['PRODUCAO']==1 %}
+    <center><div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div></center>
+  {% endif %}
   </body>
 </html>

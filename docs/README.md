@@ -5,27 +5,34 @@
 ![GitHub Tag](https://img.shields.io/github/v/tag/rafaelperazzo/moduloPesquisaPRPI)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![Static Badge](https://img.shields.io/badge/Python%20-%203.13%20-%20blue)
 ![Flask](https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white)
 ![Debian](https://img.shields.io/badge/Debian-D70A53?style=for-the-badge&logo=debian&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 
-Sistema web desenvolvido para auxiliar no gerenciamento e acompanhamento de projetos de pesquisa no âmbito acadêmico
-da UFCA. Projetado para atender às necessidades da instituição supracitada.
+Sistema web desenvolvido para auxiliar no gerenciamento e acompanhamento de projetos de pesquisa de instituição de ensino superior.
+
+---
+
+## Quem utiliza?
+
+- **Universidade Federal do Cariri (UFCA)**
 
 ---
 
 ## Status do Sistema
 
-[![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://yoko.betteruptime.com/pt)
+- **UFCA**
 
-Página de status do sistema: [Yoko](https://yoko.betteruptime.com/pt)
+[![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://yoko.betteruptime.com/pt)
 
 ---
 
-## Dashboard de erros e acessos
+## Dashboard de LOGS
 
-[Dashboard](https://telemetry.betterstack.com/dashboards/5Y3xD2)
+- **UFCA**
+
+[![Static Badge](https://img.shields.io/badge/Dashboard%20-%20LOGS%20-%20blue)](https://telemetry.betterstack.com/dashboards/5Y3xD2)
 
 ## 📌 Funcionalidades
 
@@ -43,6 +50,7 @@ Página de status do sistema: [Yoko](https://yoko.betteruptime.com/pt)
 - **Linguagem:** Python 3.13.4
 - **Framework Web:** Flask  3.1.1
 - **Banco de Dados:** (MariaDB 11.7.2)
+- **Docker:** Utilizado para containerização do sistema
 
 ---
 
@@ -53,6 +61,7 @@ Este projeto Flask foi desenvolvido com atenção às melhores práticas de segu
 - **Autenticação Segura**
   - Sistema de login com autenticação baseada em senhas fortes, geradas automaticamente sem intervenção do usuário.
   - Proteção contra força bruta com **Flask-Limiter** para limitar tentativas de login.
+  - Captcha reCAPTCHA v2 para proteger formulários de login e registro contra bots.
 
 - **Autorização baseada em papéis (RBAC)**
   - Gerenciamento de permissões por nível de acesso (usuário, admin).
@@ -66,9 +75,16 @@ Este projeto Flask foi desenvolvido com atenção às melhores práticas de segu
   - Validação de entradas do usuário.
   - Prevenção contra injeções de código malicioso (SQL Injection, XSS).
 
-- **Criptografia de Senhas**
-  - Armazenamento seguro com **Argon2** com pepper (HMAC).
+- **Criptografia**
+  - Armazenamento seguro de senhas utilizando **Argon2** com pepper (HMAC)
+  - Criptografia de arquivos com **AES-256 e GPG**
+  - Criptografia do Banco de Dados com **AES-256-CBC** para proteger dados em repouso
 
 - **Comunicação Segura**
   - Obrigatoriedade de uso de HTTPS/TLS em produção.
   - Configuração de cabeçalhos de segurança (HSTS, X-Frame-Options, etc.) com **Flask-Talisman**.
+
+- **Auditoria e Monitoramento**
+  - Registro de logs de acesso e erros com **Flask-Logging**, **BetterStack** e **Sentry** .
+  - Monitoramento de erros, desempenho e disponibilidade com **BetterStack** e **Sentry**.
+  

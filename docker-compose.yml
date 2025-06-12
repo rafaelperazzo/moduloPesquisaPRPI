@@ -30,9 +30,9 @@ services:
   
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      start_period: 30s
-      interval: 60s
-      timeout: 15s
+      start_period: 10s
+      interval: 180s
+      timeout: 30s
       retries: 3
     
     volumes:
@@ -81,9 +81,10 @@ services:
     
     healthcheck:
       test: ["CMD", "curl", "-f", "http://ip.me"]
+      start_period: 15s
       interval: 180s
-      timeout: 30s
-      retries: 3
+      timeout: 20s
+      retries: 5
 
     restart: "always"
     ports:
@@ -94,7 +95,7 @@ services:
   autoheal:
     environment:
       AUTOHEAL_CONTAINER_LABEL: all
-      AUTOHEAL_INTERVAL: 120
+      AUTOHEAL_INTERVAL: 180
       AUTOHEAL_START_PERIOD: 5
     image: willfarrell/autoheal:latest
     tty: true

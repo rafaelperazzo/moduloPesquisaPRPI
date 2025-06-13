@@ -1,3 +1,4 @@
+	2025-06-13 09:24:15 -0300	fix: ignorando logger do waitress.queue
 	2025-06-12 16:17:54 -0300	fix: /avaliacao - token é tratado em caso de None
 	2025-06-12 14:15:33 -0300	style: adicionado containers nos forms de login e esqueciminhasenha
 	2025-06-12 14:03:56 -0300	style: Incluído botão VOLTAR no footer

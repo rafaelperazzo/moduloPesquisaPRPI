@@ -74,20 +74,20 @@ tr:nth-child(even) {
     <h1><b>Meus Projetos</b></h1>
     *Caso seu projeto não esteja listado abaixo, favor entrar em contato com a Coordenadoria de Pesquisa/PRPI.
     <table>
-    <th>Id</th><th>Orientador</th><th>Lotação</th><th>Titulo</th><th>Início</th><th>Fim</th><th>Discentes</th><th>Declaração</th>
-    <p>{% for linha in projetos %}</p>
+        <th>Id</th><th>Orientador</th><th>Lotação</th><th>Titulo</th><th>Início</th><th>Fim</th><th>Discentes</th><th>Declaração</th>
+        <p>{% for linha in projetos %}</p>
 
-    <tr>
-    <td>{{ linha[0] }}</td>
-    <td>{{ linha[1] }}</td>
-    <td>{{ linha[2] }}</td>
-    <td>{{ linha[3] }}</td>
-    <td>{{ linha[4] }}</td>
-    <td>{{ linha[5] }}</td>
-    <td>{{ linha[6]|safe }}</td>
-    <td><pre><span class="cp"><a href="/pesquisa/minhaDeclaracaoOrientador?token={{ linha[7] }}"><img src="{{ url_for('static', filename='pdf.png')}}" style="width:25%" alt="" align="center"></a><br></span></pre></td>
-    </tr>
-    <p><span class="cp">{% endfor %}</span></p>
+        <tr>
+        <td>{{ linha[0] }}</td>
+        <td>{{ linha[1] }}</td>
+        <td>{{ linha[2] }}</td>
+        <td>{{ linha[3] }}</td>
+        <td>{{ linha[4] }}</td>
+        <td>{{ linha[5] }}</td>
+        <td>{{ linha[6]|safe }}</td>
+        <td><pre><span class="cp"><a href="/pesquisa/minhaDeclaracaoOrientador?token={{ linha[7] }}"><img src="{{ url_for('static', filename='pdf.png')}}" style="width:25%" alt="" align="center"></a><br></span></pre></td>
+        </tr>
+        <p><span class="cp">{% endfor %}</span></p>
 
     </table>
 

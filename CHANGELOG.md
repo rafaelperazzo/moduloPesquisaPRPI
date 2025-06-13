@@ -1,3 +1,4 @@
+	2025-06-12 16:17:54 -0300	fix: /avaliacao - token é tratado em caso de None
 	2025-06-12 14:15:33 -0300	style: adicionado containers nos forms de login e esqueciminhasenha
 	2025-06-12 14:03:56 -0300	style: Incluído botão VOLTAR no footer
 	2025-06-12 13:45:43 -0300	feat: Adicionado o link da declaração do avaliador no e-mail solicitando a avaliação - com target=blank

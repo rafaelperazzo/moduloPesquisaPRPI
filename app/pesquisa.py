@@ -79,8 +79,6 @@ if PRODUCAO==1:
     ignore_logger("waitress.queue")
     sentry_sdk.init(
         dsn=DSN_SENTRY,
-        # Add data like request headers and IP for users,
-        # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
         _experiments={
             "enable_logs": True
         },

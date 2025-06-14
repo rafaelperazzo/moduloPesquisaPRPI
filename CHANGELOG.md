@@ -1,3 +1,4 @@
+	2025-06-14 15:15:45 -0300	feat: tentando implementar o CSP ...
 	2025-06-13 10:52:17 -0300	feat: Todas as rotas estão com log ativado
 	2025-06-13 10:22:59 -0300	feat: Incluído decorator para logs em todas as rotas
 	2025-06-13 09:24:15 -0300	fix: ignorando logger do waitress.queue

@@ -1,3 +1,4 @@
+	2025-06-13 10:52:17 -0300	feat: Todas as rotas estão com log ativado
 	2025-06-13 10:22:59 -0300	feat: Incluído decorator para logs em todas as rotas
 	2025-06-13 09:24:15 -0300	fix: ignorando logger do waitress.queue
 	2025-06-12 16:17:54 -0300	fix: /avaliacao - token é tratado em caso de None

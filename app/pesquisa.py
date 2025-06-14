@@ -103,14 +103,16 @@ app.config['SESSION_REDIS'] = Redis.from_url('redis://redis:6379')
 app.config['SESSION_PERMANENT'] = False
 Session(app)
 
+SELF = "'self'"
 csp = {
-    'default-src': '*',
+    'default-src': [SELF,'www.googletagmanager.com',],
     'img-src': '*',
-    'script-src': '*',
-    'style-src': '*'
+    'script-src': [SELF,],
+    'style-src': [SELF,],
 }
+nonce_list = ['script-src', 'style-src']
 if PRODUCAO==0:
-    Talisman(app,content_security_policy=[],force_https=False)
+    Talisman(app,content_security_policy=csp,force_https=False,content_security_policy_nonce_in=nonce_list)
 else:
     Talisman(app,content_security_policy=[],force_https=True)
 
@@ -198,6 +200,13 @@ configure_uploads(app, anexos)
 configure_uploads(app, submissoes)
 
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
+
+@app.context_processor
+def utility_processor():
+    def gen_nonce():
+        """Generate a nonce for Content Security Policy."""
+        return secrets.token_hex(16)
+    return dict(gen_nonce=gen_nonce)
 
 def login_required(role='admin'):
     def decorator_login_required(f):

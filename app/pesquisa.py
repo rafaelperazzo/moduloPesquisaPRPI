@@ -105,7 +105,7 @@ Session(app)
 
 SELF = "'self'"
 csp = {
-    'default-src': [SELF,'www.googletagmanager.com',],
+    'default-src': [SELF,],
     'img-src': '*',
     'script-src': [SELF,],
     'style-src': [SELF,],

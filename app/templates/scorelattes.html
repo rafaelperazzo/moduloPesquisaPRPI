@@ -1,7 +1,7 @@
 {% extends "BASE_v3.html" %}
 {% block content %}
     <div class="container border shadow-none p-3 mb-5 bg-body-tertiary rounded">
-        <form name="frmLattes" action="/pesquisa/score" method="POST" enctype="multipart/form-data" onsubmit="return humano()"><br>
+        <form name="frmLattes" id="form" action="/pesquisa/score" method="POST" enctype="multipart/form-data"><br>
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <b>Período</b>:
           <select class="form-select" name="periodo">

@@ -109,8 +109,9 @@ csp = {
     'img-src': '*',
     'script-src': [SELF,],
     'style-src': [SELF,],
+    'font-src': [SELF,'https://cdn.jsdelivr.net',],
 }
-nonce_list = ['default-src','script-src', 'style-src']
+nonce_list = ['script-src', 'style-src','font-src']
 if PRODUCAO==0:
     Talisman(app,content_security_policy=csp,force_https=False,content_security_policy_nonce_in=nonce_list)
 else:

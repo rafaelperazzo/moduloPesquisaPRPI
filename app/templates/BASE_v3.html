@@ -16,8 +16,14 @@
             return (true);
             }
         }
-    </script>
 
+        function voltar() {
+            history.back();
+        }
+    </script>
+    {% block script %}
+
+    {% endblock %}
   </head>
   <body>
     
@@ -78,7 +84,7 @@
                     
                     </div>
                     <div class="col">
-                        <button class="btn btn-link" onclick="history.back()">Voltar</button>
+                        <button class="btn btn-link" id="btnVoltar">Voltar</button>
                     </div>
                     <div class="col">
                         <figure class="text-end">
@@ -94,7 +100,24 @@
                     </div>
                 </div>
             </div>
-            
+            <script nonce="{{ csp_nonce() }}">
+                document.getElementById("btnVoltar").addEventListener("click", function() {
+                    window.history.back();
+                });
+                form = document.getElementById("form");
+                if (form) {
+                    form.addEventListener("submit", function(event) {
+                        if (grecaptcha.getResponse() == "") {
+                            event.preventDefault();
+                            alert("Por favor, complete o reCAPTCHA.");
+                            return false;
+                        }
+                        else {
+                            return true;
+                        }
+                    });
+                }
+            </script>
         {% endblock %}
     </div>    
     <script nonce="{{ csp_nonce() }}" src="{{ url_for('static',filename='bootstrap-5.3.6-dist/js/bootstrap.bundle.min.js') }}" ></script>

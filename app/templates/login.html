@@ -2,7 +2,7 @@
 {% block content %}
     <div class="container border shadow-none p-3 mb-5 bg-body-tertiary rounded">
         <center><h2>Autenticação</h2></center>
-        <form action="/pesquisa/login" METHOD="POST" onsubmit="return humano()">
+        <form action="/pesquisa/login" METHOD="POST" id="form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <div class="container">
             <label for="uname"><b>Usuário (siape)</b></label>
@@ -13,7 +13,6 @@
 
             <button type="submit" class="btn btn-primary mb-3">Entrar</button>
           </div>
-
         </form>
         {% if config['producao']==1 %}
             <center><div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div></center>

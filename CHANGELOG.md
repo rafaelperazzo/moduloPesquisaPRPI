@@ -1,3 +1,4 @@
+	2025-06-16 15:23:49 -0300	docs: Last commit branch python3 nos docs
 	2025-06-16 15:14:39 -0300	fix: Taliman em TESTE: desabilitado o CSP
 	2025-06-16 14:04:20 -0300	fix: Corrigido log da thread enviar_senha
 	2025-06-16 10:02:13 -0300	fix: Adicionados logs.info para todos os envios de emails

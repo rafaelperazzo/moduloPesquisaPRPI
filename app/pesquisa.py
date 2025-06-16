@@ -1165,7 +1165,7 @@ def enviar_declaracao_avaliador(url,destinatario):
         try:
             mail.send(msg)
         except Exception as e:
-            logger.error("Erro ao enviar e-mail. [enviar declaração para avaliador]: %s", str(e))
+            logger.warning("Erro ao enviar e-mail. [enviar declaração para avaliador]: %s", str(e))
 
 @app.route("/declaracaoAvaliador/<tokenAvaliacao>", methods=['GET'])
 @log_required
@@ -2191,7 +2191,7 @@ def enviarMinhaSenha():
                 #Redirecionando para a página de login
                 return(render_template('login.html',mensagem='Senha enviada para o email: ' + email))
             else:
-                logger.warning("[%s][/enviarMinhaSenha]E-mail %s não cadastrado.", request.remote_addr, email)
+                logger.info("[%s][/enviarMinhaSenha]E-mail %s não cadastrado.", request.remote_addr, email)
                 flash("E-mail não cadastrado. Solicite seu cadastro no setor responsável.","error")
                 return redirect(url_for('home'))
         else:

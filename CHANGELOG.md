@@ -1,3 +1,4 @@
+	2025-06-16 15:14:39 -0300	fix: Taliman em TESTE: desabilitado o CSP
 	2025-06-16 14:04:20 -0300	fix: Corrigido log da thread enviar_senha
 	2025-06-16 10:02:13 -0300	fix: Adicionados logs.info para todos os envios de emails
 	2025-06-16 08:51:09 -0300	fix: level de alguns loggers modificados para fins de monitoramento

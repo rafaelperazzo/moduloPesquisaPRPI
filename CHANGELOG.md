@@ -1,3 +1,4 @@
+	2025-06-16 08:51:09 -0300	fix: level de alguns loggers modificados para fins de monitoramento
 	2025-06-15 09:51:36 -0300	fix: HTML básico de Base_v3.html
 	2025-06-15 09:42:29 -0300	fix: incluidos nonces em login,meusProjetos e scorelattes
 	2025-06-14 15:17:43 -0300	feat: tentando implementar o CSP 3...

@@ -6,6 +6,7 @@ from flask_httpauth import HTTPBasicAuth
 from waitress import serve
 import mariadb as MySQLdb
 from werkzeug.utils import secure_filename
+import hashlib
 import os
 import string
 import random
@@ -223,14 +224,22 @@ def login_required(role='admin'):
     return decorator_login_required
 
 def log_required(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            if session.get('username') is None:
-                logger.info("%s | %s | %s |N/A | N/A",request.remote_addr,request.path,request.method)
-            else:
-                logger.info("%s | %s | %s | %s | N/A",request.remote_addr,request.path,request.method,session['username'])
-            return f(*args, **kwargs)
-        return decorated_function
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('username') is None:
+            logger.info("%s | %s | %s |N/A | N/A",request.remote_addr,request.path,request.method)
+        else:
+            logger.info("%s | %s | %s | %s | N/A",request.remote_addr,request.path,request.method,session['username'])
+        return f(*args, **kwargs)
+    return decorated_function
+
+def calcula_hash(mensagem):
+    """
+    Calcula o hash SHA-256 de uma mensagem.
+    """
+    hash_cripto = hashlib.sha224()
+    hash_cripto.update(mensagem.encode('utf-8'))
+    return hash_cripto.hexdigest()
 
 def generate_secure_password(length=16, include_uppercase=True,
                              include_numbers=True, include_special_chars=True):
@@ -332,6 +341,7 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
                 msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
             try:
                 mail.send(msg)
+                logger.info("Email enviado com sucesso. processarPontuacaoLattes - IdProjeto: %s", idProjeto)
             except Exception as e:
                 logger.error("Erro ao enviar e-mail. processarPontuacaoLattes")
                 logger.error(str(e))
@@ -1164,8 +1174,9 @@ def enviar_declaracao_avaliador(url,destinatario):
             msg = Message(subject = "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
         try:
             mail.send(msg)
+            logger.info("E-mail enviado com sucesso para o avaliador: %s", calcula_hash(destinatario))
         except Exception as e:
-            logger.warning("Erro ao enviar e-mail. [enviar declaração para avaliador]: %s", str(e))
+            logger.warning("Erro ao enviar e-mail: %s. [enviar declaração para avaliador]: %s", destinatario,str(e))
 
 @app.route("/declaracaoAvaliador/<tokenAvaliacao>", methods=['GET'])
 @log_required
@@ -2163,6 +2174,7 @@ def thread_enviar_senha(msg):
     with app.app_context():
         try:
             mail.send(msg)
+            logger.info("[%s] E-mail enviado com sucesso. /enviarMinhaSenha", request.remote_addr)
         except Exception as e:
             logger.error("[%s] Erro ao enviar e-mail: %s. /enviarMinhaSenha", request.remote_addr, str(e))
 
@@ -2874,6 +2886,7 @@ def thread_enviar_email(msg,rota):
     with app.app_context():
         try:
             mail.send(msg)
+            logger.info("E-mail enviado: %s",msg.subject)
         except Exception as e:
             logger.error(str(e))
             logger.error("Erro ao enviar e-mail. Rota: " + rota)
@@ -2937,14 +2950,15 @@ def enviar_lembrete_frequencia():
                 if PRODUCAO==1:
                     msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     try:
-                        mail.send(msg)            
+                        mail.send(msg)
+                        logger.info("E-mail enviado: Lembrete de frequência para %s",orientador)
                     except Exception as e:
-                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
-                        logger.error(str(e))
+                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: %s",str(e))
                 else:
                     msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisapython3.display999@passmail.net'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     try:
                         mail.send(msg)
+                        logger.info("E-mail enviado: Lembrete de frequência para %s",orientador)
                     except Exception as e:
                         logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
                         logger.error(str(e))
@@ -3061,6 +3075,7 @@ def enviar_email_desligamento_substituicao(msg):
     with app.app_context():
         try:
             mail.send(msg)
+            logger.info("E-mail enviado: %s",msg.subject)
         except Exception as e:
             logger.error("Erro ao enviar e-mail. enviar_email_desligamento_substituicao")
             logger.error(str(e))
@@ -3246,14 +3261,13 @@ def enviar_email_avaliadores():
             try:
                 try:
                     mail.send(msg)
+                    logger.info("E-mail enviado: %s",msg.subject)
                 except Exception as e:
-                    logger.error("Erro ao enviar e-mail. enviar_email_avaliadores")
-                    logger.error(str(e))
+                    logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: %s",str(e))
                 consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
                 atualizar(consulta)    
             except Exception as e:
-                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s", email_avaliador)
-                logger.error(str(e))
+                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s - (%s)", email_avaliador,str(e))
                 return("Erro! Verifique o log!")
 
 @app.route("/emailSolicitarAvaliacao", methods=['GET', 'POST'])
@@ -3291,9 +3305,9 @@ def enviarPedidoAvaliacao(idProjeto):
                 msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[EMAIL_TESTES],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 mail.send(msg)
+                logger.info("E-mail enviado: %s",msg.subject)
             except Exception as e:
-                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s", email_avaliador)
-                logger.error(str(e))
+                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s - (%s)", email_avaliador,str(e))
 
 @app.route("/arquivar/<id_projeto>", methods=['GET', 'POST'])
 @login_required(role='admin')

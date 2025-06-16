@@ -114,7 +114,7 @@ csp = {
 }
 nonce_list = ['script-src', 'style-src','font-src']
 if PRODUCAO==0:
-    Talisman(app,content_security_policy=csp,force_https=False,content_security_policy_nonce_in=nonce_list)
+    Talisman(app,content_security_policy=[],force_https=False,content_security_policy_nonce_in=nonce_list)
 else:
     Talisman(app,content_security_policy=[],force_https=True)
 

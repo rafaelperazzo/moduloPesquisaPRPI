@@ -672,7 +672,6 @@ def secret_page():
     return session['username']
 
 @app.route("/")
-@log_required
 def home():
     session['PRODUCAO'] = PRODUCAO
     return render_template('root.html')
@@ -2174,9 +2173,9 @@ def thread_enviar_senha(msg):
     with app.app_context():
         try:
             mail.send(msg)
-            logger.info("[%s] E-mail enviado com sucesso. /enviarMinhaSenha", request.remote_addr)
+            logger.info("E-mail enviado com sucesso. /enviarMinhaSenha")
         except Exception as e:
-            logger.error("[%s] Erro ao enviar e-mail: %s. /enviarMinhaSenha", request.remote_addr, str(e))
+            logger.error("Erro ao enviar e-mail: %s. /enviarMinhaSenha", str(e))
 
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 @log_required

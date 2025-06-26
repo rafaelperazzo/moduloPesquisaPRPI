@@ -110,13 +110,15 @@
                 form = document.getElementById("form");
                 if (form) {
                     form.addEventListener("submit", function(event) {
-                        if (grecaptcha.getResponse() == "") {
-                            event.preventDefault();
-                            alert("Por favor, complete o reCAPTCHA.");
-                            return false;
-                        }
-                        else {
-                            return true;
+                        if (typeof grecaptcha != 'undefined') {
+                            if (grecaptcha.getResponse() == "") {
+                                event.preventDefault();
+                                alert("Por favor, complete o reCAPTCHA.");
+                                return false;
+                            }
+                            else {
+                                return true;
+                            }
                         }
                     });
                 }

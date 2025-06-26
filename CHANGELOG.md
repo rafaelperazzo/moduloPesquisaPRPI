@@ -1,3 +1,4 @@
+	2025-06-16 15:46:59 -0300	style: favicon atualizado
 	2025-06-16 15:43:28 -0300	docs: incluído favicon
 	2025-06-16 15:23:49 -0300	docs: Last commit branch python3 nos docs
 	2025-06-16 15:14:39 -0300	fix: Taliman em TESTE: desabilitado o CSP

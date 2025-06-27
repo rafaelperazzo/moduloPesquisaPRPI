@@ -6,6 +6,7 @@ from flask_httpauth import HTTPBasicAuth
 from waitress import serve
 import mariadb as MySQLdb
 from werkzeug.utils import secure_filename
+import hashlib
 import os
 import string
 import random
@@ -76,10 +77,9 @@ BS_HOST = os.getenv("BS_HOST", "")
 
 if PRODUCAO==1:
     ignore_logger("waitress")
+    ignore_logger("waitress.queue")
     sentry_sdk.init(
         dsn=DSN_SENTRY,
-        # Add data like request headers and IP for users,
-        # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
         _experiments={
             "enable_logs": True
         },
@@ -104,14 +104,17 @@ app.config['SESSION_REDIS'] = Redis.from_url('redis://redis:6379')
 app.config['SESSION_PERMANENT'] = False
 Session(app)
 
+SELF = "'self'"
 csp = {
-    'default-src': '*',
+    'default-src': [SELF,],
     'img-src': '*',
-    'script-src': '*',
-    'style-src': '*'
+    'script-src': [SELF,],
+    'style-src': [SELF,],
+    'font-src': [SELF,'https://cdn.jsdelivr.net',],
 }
+nonce_list = ['script-src', 'style-src','font-src']
 if PRODUCAO==0:
-    Talisman(app,content_security_policy=[],force_https=False)
+    Talisman(app,content_security_policy=[],force_https=False,content_security_policy_nonce_in=nonce_list)
 else:
     Talisman(app,content_security_policy=[],force_https=True)
 
@@ -200,6 +203,13 @@ configure_uploads(app, submissoes)
 
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
 
+@app.context_processor
+def utility_processor():
+    def gen_nonce():
+        """Generate a nonce for Content Security Policy."""
+        return secrets.token_hex(16)
+    return dict(gen_nonce=gen_nonce)
+
 def login_required(role='admin'):
     def decorator_login_required(f):
         @wraps(f)
@@ -212,6 +222,24 @@ def login_required(role='admin'):
             return f(*args, **kwargs)
         return decorated_function
     return decorator_login_required
+
+def log_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('username') is None:
+            logger.info("%s | %s | %s |N/A | N/A",request.remote_addr,request.path,request.method)
+        else:
+            logger.info("%s | %s | %s | %s | N/A",request.remote_addr,request.path,request.method,session['username'])
+        return f(*args, **kwargs)
+    return decorated_function
+
+def calcula_hash(mensagem):
+    """
+    Calcula o hash SHA-256 de uma mensagem.
+    """
+    hash_cripto = hashlib.sha224()
+    hash_cripto.update(mensagem.encode('utf-8'))
+    return hash_cripto.hexdigest()
 
 def generate_secure_password(length=16, include_uppercase=True,
                              include_numbers=True, include_special_chars=True):
@@ -313,6 +341,7 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
                 msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
             try:
                 mail.send(msg)
+                logger.info("Email enviado com sucesso. processarPontuacaoLattes - IdProjeto: %s", idProjeto)
             except Exception as e:
                 logger.error("Erro ao enviar e-mail. processarPontuacaoLattes")
                 logger.error(str(e))
@@ -459,6 +488,9 @@ def getData():
     resultado = str(dia) + " de " + mesExtenso + " de " + str(ano) + "."
     return resultado
 
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return (render_template('429.html', erro=e.description), 429)
 
 def gerarDeclaracao(identificador):
     #CONEXÃO COM BD
@@ -591,13 +623,13 @@ def verify_password(username, password):
             try:
                 if cripto.hash_argon2id_verify(hash_senha, password):
                     continuar = True
-                    logger.info("[%s]Usuário %s autenticado com sucesso.", request.remote_addr,username)
+                    logger.info("%s | %s | %s | %s | AUTENTICADO", request.remote_addr,request.path,request.method,username)
                 else:
                     continuar = False
-                    logger.warning("Senha inválida para o usuário %s.", username)
+                    logger.warning("%s | %s | %s | %s | SENHA INVÁLIDA", request.remote_addr,request.path,request.method,username)
             except Exception:
                 continuar = False
-                logger.error("Erro ao verificar a senha do usuário %s com o argon_verify.", username)
+                logger.warning("%s | %s | %s | %s | VERIFICAÇÃO COM ARGON2", request.remote_addr,request.path,request.method,username)
         else:
             continuar = False
         if continuar is False: #Usuário inexistente ou senha inválida
@@ -612,9 +644,7 @@ def verify_password(username, password):
             session['edital'] = 0
             return username
     except Exception as e:
-        logger.error(e)
-        logger.error("ERRO Na função check_auth. Ver consulta abaixo.")
-        logger.error(consulta2)
+        logger.error("ERRO Na função verify_password: %s. Ver consulta: %s", str(e), consulta2)
 
 @auth.get_user_roles
 def get_user_roles(user):
@@ -640,6 +670,7 @@ def logout():
 
 @app.route('/segredo')
 @auth.login_required
+@log_required
 def secret_page():
     return session['username']
 
@@ -654,9 +685,9 @@ def version():
 
 @app.route("/admin")
 @login_required(role='admin')
+@log_required
 def admin():
     if (autenticado() and int(session['permissao'])==0):
-        logger.info("[%s][/admin] Usuário %s acessou a página de administração.", request.remote_addr,session['username'])
         consulta = """SELECT id,nome FROM editais ORDER BY id"""
         editais,total = executarSelect(consulta)
         return render_template('index.html',editais=editais,versao=__version__)
@@ -664,6 +695,7 @@ def admin():
         return render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada")
 
 @app.route("/declaracao", methods=['GET', 'POST'])
+@log_required
 def declaracao():
     if request.method == "GET":
         if 'idProjeto' in request.args:
@@ -689,6 +721,7 @@ def declaracao():
             return "OK"
 
 @app.route("/projetosAluno", methods=['POST'])
+@log_required
 def projetos():
     try:
         projetosAluno,projetosAluno2019 = gerarProjetosPorAluno(str(request.form['txtNome']))
@@ -700,6 +733,7 @@ def projetos():
         return "Erro! Não utilize acentos ou caracteres especiais na busca."
 
 @app.route("/autenticacao", methods=['POST'])
+@log_required
 def autenticar():
     if not numero_valido(str(request.form['tipo'])):
         return "Tipo de autenticação inválido!"
@@ -713,6 +747,7 @@ def autenticar():
         return redirect("/pesquisa/declaracao?idProjeto=" + codigo)
 
 @app.route("/projetosPorOrientador", methods=['POST'])
+@log_required
 def projetosOrientador():
     if not username_valido(str(request.form['txtSiape'])):
         return "SIAPE do orientador inválido!"
@@ -720,6 +755,7 @@ def projetosOrientador():
     return render_template('projetos_orientador.html',listaProjetos=projetos_por_orientador)
 
 @app.route("/orientadorDeclaracao", methods=['GET'])
+@log_required
 def declaracaoOrientador():
     if not numero_valido(str(request.args['idProjeto'])):
         return "ID do projeto inválido!"
@@ -732,6 +768,7 @@ def declaracaoOrientador():
 
 @app.route("/cadastrarProjeto", methods=['GET', 'POST'])
 @login_required(role='user')
+@log_required
 def cadastrarProjeto():
     if request.method == "POST":
         #CADASTRAR DADOS DO PROPONENTE
@@ -913,10 +950,13 @@ def cadastrarProjeto():
         return render_template('cadastrarProjeto.html',abertos=editaisAbertos)
 
 @app.route("/scorelattes", methods=['GET'])
+@log_required
 def calcularScorelattesFromID():
     return (render_template('scorelattes.html'))
 
 @app.route("/score", methods=['GET', 'POST'])
+@log_required
+@limiter.limit("30/day;10/hour;3/minute",methods=["POST"])
 def getScoreLattesFromFile():
     area_capes = str(request.form['area_capes'])
     idlattes = str(request.form['idlattes'])
@@ -984,14 +1024,8 @@ def podeAvaliar(idProjeto):
     else: #Edital com avaliacoes em andamento
         return(True)
 
-#Gerar pagina de avaliacao (testes) para o avaliador
-@app.route("/testes", methods=['GET', 'POST'])
-def getPaginaAvaliacaoTeste():
-    arquivos = "TESTE"
-    #return render_template('avaliacao.html',arquivos=arquivos)
-    return "TESTES"
-
 @app.route("/avaliacao", methods=['GET', 'POST'])
+@log_required
 def getPaginaAvaliacao():
     """
     Página de avaliação de projetos.
@@ -1055,6 +1089,7 @@ def getPaginaAvaliacao():
         return "Método não permitido! Use GET para acessar esta página."
 
 @app.route("/avaliar", methods=['GET', 'POST'])
+@log_required
 def enviarAvaliacao():
     """
     Grava a avaliação do avaliador no banco de dados.
@@ -1142,10 +1177,12 @@ def enviar_declaracao_avaliador(url,destinatario):
             msg = Message(subject = "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
         try:
             mail.send(msg)
+            logger.info("E-mail enviado com sucesso para o avaliador: %s", calcula_hash(destinatario))
         except Exception as e:
-            logger.error("Erro ao enviar e-mail. [enviar declaração para avaliador]: %s", str(e))
+            logger.warning("Erro ao enviar e-mail: %s. [enviar declaração para avaliador]: %s", destinatario,str(e))
 
 @app.route("/declaracaoAvaliador/<tokenAvaliacao>", methods=['GET'])
+@log_required
 def getDeclaracaoAvaliador(tokenAvaliacao):
     """
     Gera a declaração de avaliação do avaliador.
@@ -1188,6 +1225,7 @@ def consultar(consulta):
     return (linhas)
 
 @app.route("/recusarConvite", methods=['GET', 'POST'])
+@log_required
 def recusarConvite():
     if request.method == "GET":
         tokenAvaliacao = str(request.args.get('token'))
@@ -1202,6 +1240,7 @@ def recusarConvite():
 
 @app.route("/avaliacoesNegadas", methods=['GET', 'POST'])
 @login_required(role='admin')
+@log_required
 def avaliacoesNegadas():
     if request.method == "GET":
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
@@ -1238,6 +1277,7 @@ def avaliacoesNegadas():
 
 @app.route("/inserirAvaliador", methods=['GET', 'POST'])
 @login_required(role='admin')
+@log_required
 def inserirAvaliador():
     """
     Atribuir avaliador a um projeto
@@ -1272,6 +1312,7 @@ def quantidades(consulta):
 
 @app.route("/estatisticas", methods=['GET', 'POST'])
 @login_required(role='admin')
+@log_required
 def estatisticas():
     if request.method == "GET":
         try:
@@ -1424,6 +1465,7 @@ def avaliacoesEncerradas(codigoEdital):
 
 @app.route("/resultados", methods=['GET', 'POST'])
 @login_required(role='admin')
+@log_required
 def resultados():
     if request.method == "GET":
         #Recuperando o código do edital
@@ -1596,6 +1638,7 @@ def gerarPDF(template):
 
 @app.route("/editalProjeto", methods=['GET', 'POST'])
 @login_required(role='admin')
+@log_required
 def editalProjeto():
     if (autenticado() and int(session['permissao'])==0):
         if request.method == "GET":
@@ -1680,6 +1723,7 @@ def editalProjeto():
         return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
 
 @app.route("/lattesDetalhado", methods=['GET', 'POST'])
+@log_required
 def lattesDetalhado():
     if request.method == "GET":
         #Recuperando o código do projeto
@@ -1703,6 +1747,7 @@ def lattesDetalhado():
 
 
 @app.route("/declaracoesPorServidor", methods=['GET', 'POST'])
+@log_required
 def declaracoesServidor():
     if request.method == "POST":
         if 'txtSiape' in request.form:
@@ -1724,6 +1769,7 @@ def declaracoesServidor():
         return("OK")
 
 @app.route("/declaracaoEvento", methods=['GET', 'POST'])
+@log_required
 def declaracaoEvento():
     if request.method == "GET":
         #Recuperando o código da declaração
@@ -1742,6 +1788,7 @@ def declaracaoEvento():
 
 @app.route("/meusProjetos", methods=['GET', 'POST'])
 @login_required(role='user')
+@log_required
 def meusProjetos():
     if 'siape' in request.args and 'senha' in request.args:
             siape = str(request.args.get('siape'))
@@ -1749,7 +1796,6 @@ def meusProjetos():
             if verify_password(siape,senha):
                 registrar_acesso(request.remote_addr,siape)
     if autenticado():        
-        logger.info("[%s][/meusProjetos] Acessando meusProjetos do orientador: %s",request.remote_addr,session['username'])
         consulta = """SELECT id,nome_do_coordenador,orientador_lotacao,titulo_do_projeto,DATE_FORMAT(inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(termino,'%d/%m/%Y') as fim,estudante_nome_completo,token FROM cadastro_geral WHERE siape='""" + str(session['username']) + """' ORDER BY inicio,titulo_do_projeto"""
         projetos,total = executarSelect(consulta)
         consulta_outros = """SELECT 
@@ -1790,6 +1836,7 @@ def meusProjetos():
         return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
 
 @app.route("/minhaDeclaracaoOrientador", methods=['GET', 'POST'])
+@log_required
 def minhaDeclaracao():
     if autenticado():
         if request.method == "GET":
@@ -1871,6 +1918,7 @@ def minhaDeclaracao():
         return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
 
 @app.route("/discente/minhaDeclaracao", methods=['GET', 'POST'])
+@log_required
 def minhaDeclaracaoDiscente():
     if request.method == "GET":
         #Recuperando o token da declaração
@@ -1906,6 +1954,7 @@ qrcode.png(app.config['PNG_DIR'] + 'qrcode.png',scale=3)
 '''
 
 @app.route("/discente/meuCertificado2018", methods=['GET', 'POST'])
+@log_required
 def meuCertificado2018():
     if request.method == "GET":
         #Recuperando o token da declaração
@@ -1958,6 +2007,7 @@ def meuCertificado2018():
         return("OK")
 
 @app.route("/discente/meuCertificado", methods=['GET', 'POST'])
+@log_required
 def meuCertificado():
     if request.method == "GET":
         #Recuperando o token da declaração
@@ -2010,6 +2060,7 @@ def meuCertificado():
 
 
 @app.route("/discente/minhaDeclaracao2019", methods=['GET', 'POST'])
+@log_required
 def minhaDeclaracaoDiscente2019():
     if request.method == "GET":
         #Recuperando o token da declaração
@@ -2045,6 +2096,7 @@ def minhaDeclaracaoDiscente2019():
         return("OK")
 
 @app.route("/meusPareceres", methods=['GET', 'POST'])
+@log_required
 @login_required(role='user')
 def meusPareceres():
     if request.method == "GET":
@@ -2072,6 +2124,7 @@ def meusPareceres():
         return("OK")
 
 @app.route("/usuario", methods=['GET', 'POST'])
+@log_required
 def usuario():
     session['PRODUCAO'] = PRODUCAO
     if autenticado():
@@ -2090,9 +2143,11 @@ def registrar_acesso(ip,usuario):
         valores = (str(ip),str(usuario))
         inserir(consulta,valores)
     except Exception as e:
-        logger.error("Erro ao registrar acesso: " + str(e))
+        logger.error("Erro ao registrar acesso: %s",str(e))
 
 @app.route("/login", methods=['POST','GET'])
+@log_required
+@limiter.limit("30/day;15/hour;5/minute",methods=["POST"])
 def login():
     '''
     Método que ativa a sessão com os dados do usuário
@@ -2107,14 +2162,15 @@ def login():
                 return(redirect(url_for('home')))
             else:
                 flash("Usuário ou senha inválidos. Tente novamente.","error")
-                return redirect(url_for('home'))
+                return redirect(url_for('login'))
         else:
             flash("Usuário ou senha inválidos. Tente novamente.","error")
-            return redirect(url_for('home'))
+            return redirect(url_for('login'))
     else: #GET
         return render_template('login.html')
 
 @app.route("/esqueciMinhaSenha", methods=['GET', 'POST'])
+@log_required
 def esqueciMinhaSenha():
     return(render_template('esqueciMinhaSenha.html'))
 
@@ -2122,10 +2178,13 @@ def thread_enviar_senha(msg):
     with app.app_context():
         try:
             mail.send(msg)
+            logger.info("E-mail enviado com sucesso. /enviarMinhaSenha")
         except Exception as e:
-            logger.error("[%s] Erro ao enviar e-mail: %s. /enviarMinhaSenha", request.remote_addr, str(e))
+            logger.error("Erro ao enviar e-mail: %s. /enviarMinhaSenha", str(e))
 
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
+@log_required
+@limiter.limit("3/day;2/hour;1/minute",methods=["POST"])
 def enviarMinhaSenha():
     if request.method == "POST":
         if ('email' in request.form):
@@ -2142,7 +2201,6 @@ def enviarMinhaSenha():
                 consulta = f"""UPDATE users SET password='{hash_senha}' WHERE id={idUsuario}"""
                 atualizar(consulta)
                 #Enviando e-mail
-                logger.info("[%s][/enviarMinhaSenha] Redefinição de senha do usuário: %s", request.remote_addr, idUsuario)
                 texto_mensagem = "Usuario: " + username + "\nSenha: " + senha + "\n" + USUARIO_SITE
                 msg = Message(subject = "Plataforma Yoko - Lembrete de senha",recipients=[email],body=texto_mensagem)
                 thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
@@ -2150,7 +2208,7 @@ def enviarMinhaSenha():
                 #Redirecionando para a página de login
                 return(render_template('login.html',mensagem='Senha enviada para o email: ' + email))
             else:
-                logger.warning("[%s][/enviarMinhaSenha]E-mail %s não cadastrado.", request.remote_addr, email)
+                logger.info("[%s][/enviarMinhaSenha]E-mail %s não cadastrado.", request.remote_addr, email)
                 flash("E-mail não cadastrado. Solicite seu cadastro no setor responsável.","error")
                 return redirect(url_for('home'))
         else:
@@ -2159,9 +2217,8 @@ def enviarMinhaSenha():
         return("OK")
 
 @app.route("/logout", methods=['GET', 'POST'])
+@log_required
 def encerrarSessao():
-    if 'username' in session:
-        logger.info("[%s][/logout]Usuário %s encerrou a sessão.", request.remote_addr,session['username'])    
     logout()
     return redirect(url_for('home'))
 
@@ -2185,6 +2242,7 @@ def projetoAprovado(idProjeto):
 
 @app.route("/prepararResultados", methods=['GET', 'POST'])
 @login_required(role='admin')
+@log_required
 def prepararResultados():
     if request.method == "GET":
         #Recuperando o código do edital
@@ -2299,6 +2357,7 @@ def tuplaDeEditais(ano):
 
 @app.route("/cruzarDados", methods=['GET', 'POST'])
 @login_required(role='admin')
+@log_required
 def cruzarDados():
     if request.method == "GET":
         #Recuperando o ano dos editais
@@ -2408,6 +2467,7 @@ def dataDeIndicacao(codigoEdital):
 
 @app.route("/indicacao", methods=['GET', 'POST'])
 @login_required(role='user')
+@log_required
 def indicacao():
     if request.method == "GET":
         #Recuperando o código do projeto
@@ -2468,6 +2528,7 @@ def encripta_e_apaga(arquivo):
 
 @app.route("/efetivarIndicacao", methods=['GET', 'POST'])
 @login_required(role='user')
+@log_required
 def efetivarIndicacao():
     if request.method == "POST":
         try:
@@ -2596,6 +2657,7 @@ def efetivarIndicacao():
 
 @app.route("/indicacoes", methods=['GET', 'POST'])
 @login_required(role='admin')
+@log_required
 def indicacoes():
     if request.method == "GET":
         #Recuperando código do edital
@@ -2650,6 +2712,7 @@ def esperar(arquivo):
 
 @app.route("/verArquivo", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
+@log_required
 def verArquivo():
     if request.method == "GET":
         #Recuperando arquivo
@@ -2669,6 +2732,7 @@ def verArquivo():
         return("OK")
     
 @app.route("/verArquivosProjeto/<filename>", methods=['GET', 'POST'])
+@log_required
 def verArquivosProjeto(filename):
     arquivo = secure_filename(filename) + ".gpg"
     if os.path.isfile(SUBMISSOES_DIR + arquivo):
@@ -2681,6 +2745,7 @@ def verArquivosProjeto(filename):
 
 @app.route("/situacaoIndicacoes", methods=['GET', 'POST'])
 @login_required(role='admin')
+@log_required
 def situacaoIndicacoes():
     if request.method == "GET":
         if 'edital' in request.args:
@@ -2760,6 +2825,7 @@ def jaEnviouFrequenciaAtual(idAluno,mes,ano):
 
 @app.route("/enviarFrequencia", methods=['GET', 'POST'])
 @login_required(role='user')
+@log_required
 def enviarFrequencia():
     if request.method == "GET":
         if 'id' in request.args:
@@ -2797,6 +2863,7 @@ def enviarFrequencia():
 
 @app.route("/cadastrarFrequencia", methods=['GET', 'POST'])
 @login_required(role='user')
+@log_required
 def cadastrarFrequencia():
     if request.method == "POST":
         s1 = str(request.form['s1'])
@@ -2824,6 +2891,7 @@ def thread_enviar_email(msg,rota):
     with app.app_context():
         try:
             mail.send(msg)
+            logger.info("E-mail enviado: %s",msg.subject)
         except Exception as e:
             logger.error(str(e))
             logger.error("Erro ao enviar e-mail. Rota: " + rota)
@@ -2887,14 +2955,15 @@ def enviar_lembrete_frequencia():
                 if PRODUCAO==1:
                     msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     try:
-                        mail.send(msg)            
+                        mail.send(msg)
+                        logger.info("E-mail enviado: Lembrete de frequência para %s",orientador)
                     except Exception as e:
-                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
-                        logger.error(str(e))
+                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: %s",str(e))
                 else:
                     msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisapython3.display999@passmail.net'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     try:
                         mail.send(msg)
+                        logger.info("E-mail enviado: Lembrete de frequência para %s",orientador)
                     except Exception as e:
                         logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
                         logger.error(str(e))
@@ -2903,6 +2972,7 @@ def enviar_lembrete_frequencia():
                     
 @app.route("/listaNegra/<email>", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
+@log_required
 def listaNegra(email):
     import datetime
     #Mes e ano atual
@@ -2955,6 +3025,7 @@ def timestamp():
 
 @app.route("/desligarIndicacao/<id_indicacao>", methods=['GET', 'POST'])
 @login_required(role='user')
+@log_required
 def desligarIndicacao(id_indicacao):
     idAluno = id_indicacao
     siape = session['username']
@@ -3009,6 +3080,7 @@ def enviar_email_desligamento_substituicao(msg):
     with app.app_context():
         try:
             mail.send(msg)
+            logger.info("E-mail enviado: %s",msg.subject)
         except Exception as e:
             logger.error("Erro ao enviar e-mail. enviar_email_desligamento_substituicao")
             logger.error(str(e))
@@ -3016,6 +3088,7 @@ def enviar_email_desligamento_substituicao(msg):
 
 @app.route("/substituirIndicacao/<id_indicacao>", methods=['GET', 'POST'])
 @login_required(role='user')
+@log_required
 def substituirIndicacao(id_indicacao):
     idAluno = id_indicacao
     siape = session['username']
@@ -3073,6 +3146,7 @@ def substituirIndicacao(id_indicacao):
 
 
 @app.route("/pub/consulta", methods=['GET', 'POST'])
+@log_required
 def consultas():
     if request.method == "POST":
         ua = str(request.form['ua'])
@@ -3129,6 +3203,7 @@ def consultas():
 
 @app.route("/substituicoes", methods=['GET', 'POST'])
 @login_required(role='admin')
+@log_required
 def substituicoes():
     if 'id' in request.args:
         id = str(request.args.get('id'))
@@ -3185,24 +3260,26 @@ def enviar_email_avaliadores():
         deadline = str(linha[11])
         nome_longo = str(linha[12])
         with app.app_context():
-            url_declaracao = url_for('getDeclaracaoAvaliador',tokenAvaliacao=token, _external=True)
+            #url_declaracao = url_for('getDeclaracaoAvaliador',tokenAvaliacao=token, _external=True)
+            url_declaracao = SERVER_URL + URL_PREFIX + '/declaracaoAvaliador/' + token
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
             msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 try:
                     mail.send(msg)
+                    logger.info("E-mail enviado: %s",msg.subject)
                 except Exception as e:
-                    logger.error("Erro ao enviar e-mail. enviar_email_avaliadores")
-                    logger.error(str(e))
+                    logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: %s",str(e))
                 consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
                 atualizar(consulta)    
             except Exception as e:
-                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s", email_avaliador)
-                logger.error(str(e))
+                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s - (%s)", email_avaliador,str(e))
                 return("Erro! Verifique o log!")
 
 @app.route("/emailSolicitarAvaliacao", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
+@log_required
+@limiter.limit("1 per day", key_func = lambda: 'global')
 def email_solicitar_avaliacao():
     t = threading.Thread(target=enviar_email_avaliadores)
     t.start()
@@ -3235,12 +3312,13 @@ def enviarPedidoAvaliacao(idProjeto):
                 msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[EMAIL_TESTES],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 mail.send(msg)
+                logger.info("E-mail enviado: %s",msg.subject)
             except Exception as e:
-                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s", email_avaliador)
-                logger.error(str(e))
+                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s - (%s)", email_avaliador,str(e))
 
 @app.route("/arquivar/<id_projeto>", methods=['GET', 'POST'])
 @login_required(role='admin')
+@log_required
 def arquivar_projeto(id_projeto):
     projeto = str(id_projeto)
     consulta = "UPDATE editalProjeto SET valendo=0 WHERE id=" + projeto
@@ -3250,6 +3328,7 @@ def arquivar_projeto(id_projeto):
 
 @app.route("/aprovar/projetos/<edital>", methods=['GET', 'POST'])
 @login_required(role='admin')
+@log_required
 def aprovar_projetos(edital):
     #RECOMENDADOS
     consulta1 = """UPDATE editalProjeto SET situacao=1 
@@ -3275,18 +3354,21 @@ def aprovar_projetos(edital):
 
 @app.route("/desligar/<id_indicacao>", methods=['GET', 'POST'])
 @login_required(role='user')
+@log_required
 def desligar(id_indicacao):
     action = url_for('desligarIndicacao',id_indicacao=id_indicacao)
     return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao="DESLIGAMENTO",action=action))
 
 @app.route("/substituir/<id_indicacao>", methods=['GET', 'POST'])
 @login_required(role='user')
+@log_required
 def substituir(id_indicacao):
     action = url_for('substituirIndicacao',id_indicacao=id_indicacao)
     return(render_template('desligamento_substituicao.html',id_indicacao=id_indicacao,operacao="SUBSTITUIÇÃO",action=action))
 
 @app.route("/get_bib/<siapes>", methods=['GET'])
 @auth.login_required(role=['user'])
+@log_required
 def get_bib(siapes):
     consulta = """
     SELECT UPPER(editalProjeto.nome),area_capes,UPPER(titulo), YEAR(editalProjeto.inicio) as ano,
@@ -3343,6 +3425,7 @@ def get_bib(siapes):
 
 @app.route("/auditoria_indicacoes", methods=['GET'])
 @auth.login_required(role=['admin'])
+@log_required
 def auditoria_indicacoes():
     
     from datetime import datetime
@@ -3375,6 +3458,7 @@ def auditoria_indicacoes():
     return(render_template('indicacoes_duplicadas.html',linhas=linhas,total=total,edital=edital,ano=ano_atual))
 
 @app.route("/indicacao/<cpf>", methods=['GET'])
+@log_required
 def get_dados_indicacao(cpf):
     cpf_corrigido = cpf
     cpf_corrigido = cpf_corrigido[:3] + '.' + cpf_corrigido[3:]
@@ -3406,6 +3490,8 @@ def get_dados_indicacao(cpf):
     return resp
 
 @app.route("/projetos_discente", methods=['GET','POST'])
+@log_required
+@limiter.limit("30/day;10/hour;3/minute",methods=["POST"])
 def get_projetos_discente():
     if request.method == "GET":
         return (render_template('projetos.html'))
@@ -3422,6 +3508,7 @@ def get_projetos_discente():
 
 @app.route("/argon2", methods=['GET'])
 @login_required(role='admin')
+@log_required
 def hash_passwords():
     consulta = """
     SELECT id,password FROM users 
@@ -3448,6 +3535,7 @@ def cadastrar_novo_usuario(siape, nome, email):
 
 @app.route("/cadastrar_usuario", methods=['GET', 'POST'])
 @login_required(role='admin')
+@log_required
 def cadastrar_usuario():
     if request.method == 'POST':
         #Recebendo siape, nome e email do formulário
@@ -3486,6 +3574,7 @@ def cadastrar_usuario():
 
 @app.route("/cadastrar_usuarios_projetos/<edital>", methods=['GET'])
 @login_required(role='admin')
+@log_required
 def cadastrar_usuarios_projetos(edital):
     """
     Cadastra novos usuários no sistema a partir dos dados dos 

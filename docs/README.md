@@ -1,9 +1,13 @@
 # 🎓 Módulo de Pesquisa
 
 [![Better Stack Badge](https://uptime.betterstack.com/status-badges/v1/monitor/1z0ga.svg)](https://yoko.betteruptime.com/pt)
-![GitHub last commit](https://img.shields.io/github/last-commit/rafaelperazzo/moduloPesquisaPRPI)
+![GitHub last commit (branch)](https://img.shields.io/github/last-commit/rafaelperazzo/moduloPesquisaPRPI/python3)
 ![GitHub Tag](https://img.shields.io/github/v/tag/rafaelperazzo/moduloPesquisaPRPI)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/rafaelperazzo/moduloPesquisaPRPI/update.yml?label=Update)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/rafaelperazzo/moduloPesquisaPRPI/backup.yml?label=Backup)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/rafaelperazzo/moduloPesquisaPRPI/frequencia.yml?label=Frequ%C3%AAncia)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/rafaelperazzo/moduloPesquisaPRPI/avaliacao.yml?label=Avalia%C3%A7%C3%A3o)
 
 ![Static Badge](https://img.shields.io/badge/Python%20-%203.13%20-%20blue)
 ![Flask](https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white)

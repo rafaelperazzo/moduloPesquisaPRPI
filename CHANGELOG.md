@@ -1,3 +1,23 @@
+	2025-06-27 09:18:03 -0300	feat: adicionados limites nas rotas públicas da página principal
+	2025-06-27 08:27:15 -0300	fix: Ratelimit da rota login ajustada
+	2025-06-26 13:02:17 -0300	fix: link da declaração do avaliador corrigido (no email convite)
+	2025-06-16 15:46:59 -0300	style: favicon atualizado
+	2025-06-16 15:43:28 -0300	docs: incluído favicon
+	2025-06-16 15:23:49 -0300	docs: Last commit branch python3 nos docs
+	2025-06-16 15:14:39 -0300	fix: Taliman em TESTE: desabilitado o CSP
+	2025-06-16 14:04:20 -0300	fix: Corrigido log da thread enviar_senha
+	2025-06-16 10:02:13 -0300	fix: Adicionados logs.info para todos os envios de emails
+	2025-06-16 08:51:09 -0300	fix: level de alguns loggers modificados para fins de monitoramento
+	2025-06-15 09:51:36 -0300	fix: HTML básico de Base_v3.html
+	2025-06-15 09:42:29 -0300	fix: incluidos nonces em login,meusProjetos e scorelattes
+	2025-06-14 15:17:43 -0300	feat: tentando implementar o CSP 3...
+	2025-06-14 15:17:08 -0300	feat: tentando implementar o CSP 2...
+	2025-06-14 15:17:03 -0300	feat: tentando implementar o CSP ...
+	2025-06-14 15:15:45 -0300	feat: tentando implementar o CSP ...
+	2025-06-13 10:52:17 -0300	feat: Todas as rotas estão com log ativado
+	2025-06-13 10:22:59 -0300	feat: Incluído decorator para logs em todas as rotas
+	2025-06-13 09:24:15 -0300	fix: ignorando logger do waitress.queue
+	2025-06-12 16:17:54 -0300	fix: /avaliacao - token é tratado em caso de None
 	2025-06-12 14:15:33 -0300	style: adicionado containers nos forms de login e esqueciminhasenha
 	2025-06-12 14:03:56 -0300	style: Incluído botão VOLTAR no footer
 	2025-06-12 13:45:43 -0300	feat: Adicionado o link da declaração do avaliador no e-mail solicitando a avaliação - com target=blank

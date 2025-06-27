@@ -1,12 +1,15 @@
-<!doctype html>
-<html lang="pt_BR">
+<!DOCTYPE html>
+<html lang="pt-BR">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Yoko - Pesquisa">
+    <meta name="keywords" content="html, css, js, site flask">
+    <meta name="robots" content="noindex">
     <title>Yoko - Pesquisa</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap-5.3.6-dist/css/bootstrap.min.css') }}">
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-    <script>
+    <link nonce="{{ csp_nonce() }}" rel="stylesheet" href="{{ url_for('static', filename='bootstrap-5.3.6-dist/css/bootstrap.min.css') }}">
+    <link nonce="{{ csp_nonce() }}" rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <script nonce="{{ csp_nonce() }}" src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script nonce="{{ csp_nonce() }}">
         function humano() {
         if (grecaptcha.getResponse() == ""){
             alert("Marque a caixa abaixo para continuar...");
@@ -16,8 +19,14 @@
             return (true);
             }
         }
-    </script>
 
+        function voltar() {
+            history.back();
+        }
+    </script>
+    {% block script %}
+
+    {% endblock %}
   </head>
   <body>
     
@@ -56,15 +65,7 @@
                     {% if category=='error' %}
                         <div class="alert alert-danger" role="alert">
                     {% else %}
-                        <div         function humano() {
-        if (grecaptcha.getResponse() == ""){
-            alert("Marque a caixa abaixo para continuar...");
-            return (false);
-        } else {
-                //alert("Thank you");
-            return (true);
-            }
-        }class="alert alert-success" role="alert">
+                        <div class="alert alert-success" role="alert">
                     {% endif %}
                             {{ message }}
                         </div>
@@ -86,7 +87,7 @@
                     
                     </div>
                     <div class="col">
-                        <button class="btn btn-link" onclick="history.back()">Voltar</button>
+                        <button class="btn btn-link" id="btnVoltar">Voltar</button>
                     </div>
                     <div class="col">
                         <figure class="text-end">
@@ -102,10 +103,29 @@
                     </div>
                 </div>
             </div>
-            
+            <script nonce="{{ csp_nonce() }}">
+                document.getElementById("btnVoltar").addEventListener("click", function() {
+                    window.history.back();
+                });
+                form = document.getElementById("form");
+                if (form) {
+                    form.addEventListener("submit", function(event) {
+                        if (typeof grecaptcha != 'undefined') {
+                            if (grecaptcha.getResponse() == "") {
+                                event.preventDefault();
+                                alert("Por favor, complete o reCAPTCHA.");
+                                return false;
+                            }
+                            else {
+                                return true;
+                            }
+                        }
+                    });
+                }
+            </script>
         {% endblock %}
     </div>    
-    <script src="{{ url_for('static',filename='bootstrap-5.3.6-dist/js/bootstrap.bundle.min.js') }}" ></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ url_for('static',filename='bootstrap-5.3.6-dist/js/bootstrap.bundle.min.js') }}" ></script>
   </body>
 </html>
 

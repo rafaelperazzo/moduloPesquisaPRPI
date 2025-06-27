@@ -41,6 +41,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_session import Session
 from redis import Redis
+from flask_apscheduler import APScheduler
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -103,6 +104,12 @@ app.config['SESSION_TYPE'] = 'redis'
 app.config['SESSION_REDIS'] = Redis.from_url('redis://redis:6379')
 app.config['SESSION_PERMANENT'] = False
 Session(app)
+
+app.config['SCHEDULER_API_ENABLED'] = True
+scheduler = APScheduler()
+scheduler.api_enabled = True
+scheduler.init_app(app)
+scheduler.start()
 
 SELF = "'self'"
 csp = {

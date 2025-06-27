@@ -1,3 +1,4 @@
+	2025-06-27 10:55:38 -0300	docs: Incluído badge da versão do python a partir do pipenv
 	2025-06-27 10:48:02 -0300	feat: Aplicados ratelimits para producao e migrado projeto para pipenv
 	2025-06-27 09:18:03 -0300	feat: adicionados limites nas rotas públicas da página principal
 	2025-06-27 08:27:15 -0300	fix: Ratelimit da rota login ajustada

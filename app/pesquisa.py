@@ -626,7 +626,7 @@ def verify_password(username, password):
                     logger.warning("%s | %s | %s | %s | SENHA INVÁLIDA", request.remote_addr,request.path,request.method,username)
             except Exception:
                 continuar = False
-                logger.error("%s | %s | %s | %s | VERIFICAÇÃO COM ARGON2", request.remote_addr,request.path,request.method,username)
+                logger.warning("%s | %s | %s | %s | VERIFICAÇÃO COM ARGON2", request.remote_addr,request.path,request.method,username)
         else:
             continuar = False
         if continuar is False: #Usuário inexistente ou senha inválida
@@ -2139,10 +2139,11 @@ def registrar_acesso(ip,usuario):
         valores = (str(ip),str(usuario))
         inserir(consulta,valores)
     except Exception as e:
-        logger.error("Erro ao registrar acesso: " + str(e))
+        logger.error("Erro ao registrar acesso: %s",str(e))
 
 @app.route("/login", methods=['POST','GET'])
 @log_required
+@limiter.limit("30/day;15/hour;5/minute",methods=["POST"])
 def login():
     '''
     Método que ativa a sessão com os dados do usuário
@@ -2157,10 +2158,10 @@ def login():
                 return(redirect(url_for('home')))
             else:
                 flash("Usuário ou senha inválidos. Tente novamente.","error")
-                return redirect(url_for('home'))
+                return redirect(url_for('login'))
         else:
             flash("Usuário ou senha inválidos. Tente novamente.","error")
-            return redirect(url_for('home'))
+            return redirect(url_for('login'))
     else: #GET
         return render_template('login.html')
 

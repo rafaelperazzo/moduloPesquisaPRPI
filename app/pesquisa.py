@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask import Flask
 from flask import render_template
-from flask import make_response, jsonify
 from flask import request,url_for,send_from_directory,redirect,session,flash
 from flask_httpauth import HTTPBasicAuth
 from waitress import serve
@@ -3279,8 +3278,8 @@ def enviar_email_avaliadores():
 
 @app.route("/emailSolicitarAvaliacao", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
-@limiter.limit("1 per day", key_func = lambda: 'global')
 @log_required
+@limiter.limit("1 per day", key_func = lambda: 'global')
 def email_solicitar_avaliacao():
     t = threading.Thread(target=enviar_email_avaliadores)
     t.start()

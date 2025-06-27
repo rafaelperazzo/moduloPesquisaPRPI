@@ -1,3 +1,4 @@
+	2025-06-27 09:18:03 -0300	feat: adicionados limites nas rotas públicas da página principal
 	2025-06-27 08:27:15 -0300	fix: Ratelimit da rota login ajustada
 	2025-06-26 13:02:17 -0300	fix: link da declaração do avaliador corrigido (no email convite)
 	2025-06-16 15:46:59 -0300	style: favicon atualizado

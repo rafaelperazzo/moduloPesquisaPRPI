@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from flask import Flask
 from flask import render_template
+from flask import make_response, jsonify
 from flask import request,url_for,send_from_directory,redirect,session,flash
 from flask_httpauth import HTTPBasicAuth
 from waitress import serve
@@ -488,6 +489,9 @@ def getData():
     resultado = str(dia) + " de " + mesExtenso + " de " + str(ano) + "."
     return resultado
 
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return (render_template('429.html', erro=e.description), 429)
 
 def gerarDeclaracao(identificador):
     #CONEXÃO COM BD
@@ -953,6 +957,7 @@ def calcularScorelattesFromID():
 
 @app.route("/score", methods=['GET', 'POST'])
 @log_required
+@limiter.limit("30/day;10/hour;3/minute",methods=["POST"])
 def getScoreLattesFromFile():
     area_capes = str(request.form['area_capes'])
     idlattes = str(request.form['idlattes'])
@@ -2180,6 +2185,7 @@ def thread_enviar_senha(msg):
 
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 @log_required
+@limiter.limit("3/day;2/hour;1/minute",methods=["POST"])
 def enviarMinhaSenha():
     if request.method == "POST":
         if ('email' in request.form):
@@ -3273,6 +3279,7 @@ def enviar_email_avaliadores():
 
 @app.route("/emailSolicitarAvaliacao", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
+@limiter.limit("1 per day", key_func = lambda: 'global')
 @log_required
 def email_solicitar_avaliacao():
     t = threading.Thread(target=enviar_email_avaliadores)
@@ -3485,6 +3492,7 @@ def get_dados_indicacao(cpf):
 
 @app.route("/projetos_discente", methods=['GET','POST'])
 @log_required
+@limiter.limit("30/day;10/hour;3/minute",methods=["POST"])
 def get_projetos_discente():
     if request.method == "GET":
         return (render_template('projetos.html'))

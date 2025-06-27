@@ -1,0 +1,13 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+
+<h1>Erro 429 - Limite de Requisições Excedido</h1>
+<h2>Você fez muitas requisições em um curto período de tempo.</h2>
+<hr>
+<h3>O que fazer?</h3>
+<p>Por favor, aguarde alguns minutos antes de tentar novamente.</p>
+<hr>
+<h4>Detalhes do Erro</h4>
+<span class="badge text-bg-danger">{{ erro }}</span>
+
+{% endblock %}

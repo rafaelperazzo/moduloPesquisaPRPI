@@ -109,7 +109,6 @@ app.config['SCHEDULER_API_ENABLED'] = True
 scheduler = APScheduler()
 scheduler.api_enabled = True
 scheduler.init_app(app)
-scheduler.start()
 
 SELF = "'self'"
 csp = {
@@ -3620,6 +3619,62 @@ def cadastrar_usuarios_projetos(edital):
     else:
         flash("Nenhum usuário encontrado para cadastro.")
         return redirect(url_for('admin'))
+
+def task_enviar_email_avaliadores():
+    gerarLinkAvaliacao()
+    consulta = """
+    SELECT e.id,e.titulo,e.resumo,a.avaliador,a.link,a.id,a.enviado,a.token,e.categoria,
+    e.tipo, DATEDIFF(NOW(),a.data_envio) as enviados,DATE_FORMAT(ed.deadline_avaliacao,'%d/%m/%Y') as deadline_avaliacao,ed.nome 
+    FROM editalProjeto as e, avaliacoes as a,editais as ed WHERE e.id=a.idProjeto AND e.tipo=ed.id AND e.valendo=1
+    AND a.finalizado=0 AND a.aceitou!=0 AND e.categoria=1 AND DATEDIFF(NOW(),a.data_envio)>1 
+    AND a.idProjeto 
+    IN (SELECT id FROM resumoGeralAvaliacoes WHERE ((aceites+rejeicoes<2) OR (aceites=rejeicoes)) 
+    AND tipo in (SELECT id from editais WHERE deadline_avaliacao>now() AND ADDDATE(deadline,5)<now()))
+    """
+    linhas,total = executarSelect(consulta)
+    for linha in linhas:
+        titulo = str(linha[1])
+        resumo = str(linha[2])
+        link = str(linha[4])
+        token = str(linha[7])
+        email_avaliador = str(linha[3])
+        if 'TESTE' in email_avaliador:
+            continue
+        link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
+        deadline = str(linha[11])
+        nome_longo = str(linha[12])
+        with scheduler.app.app_context():
+            #url_declaracao = url_for('getDeclaracaoAvaliador',tokenAvaliacao=token, _external=True)
+            url_declaracao = SERVER_URL + URL_PREFIX + '/declaracaoAvaliador/' + token
+            texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
+            msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+            try:
+                try:
+                    mail.send(msg)
+                    logger.info("E-mail enviado: %s",msg.subject)
+                except Exception as e:
+                    logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: %s",str(e))
+                consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
+                atualizar(consulta)    
+            except Exception as e:
+                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s - (%s)", email_avaliador,str(e))
+                return("Erro! Verifique o log!")
+    logger.info("Tarefa de envio de e-mails para avaliadores concluída com sucesso.")
+
+@scheduler.task('cron', id='do_job_enviar_email_avaliadores', week='*', day_of_week='2,4', hour='7', minute='45')
+def job_enviar_email_avaliadores():
+    """
+    Tarefa agendada para enviar e-mails de solicitação de avaliação
+    aos avaliadores cadastrados no sistema.
+    """
+    try:
+        logger.info("Iniciando tarefa de envio de e-mails para avaliadores.")
+        task_enviar_email_avaliadores()
+    except Exception as e:
+        logger.error("Erro ao executar tarefa de envio de e-mails para avaliadores: %s", str(e))
+
+if PRODUCAO==1:
+    scheduler.start()
 
 if __name__ == "__main__":
     prefixo = os.getenv('URL_PREFIX','/pesquisa')

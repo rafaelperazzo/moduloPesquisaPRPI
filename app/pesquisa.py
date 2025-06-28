@@ -3764,6 +3764,34 @@ def job_cobrar_frequencia():
     except Exception as e:
         logger.error("Erro ao executar tarefa de envio de lembretes de frequência: %s", str(e))
 
+@app.route("/ligarScheduler", methods=['GET'])
+@login_required(role='admin')
+@log_required
+def ligar_scheduler():
+    """
+    Liga o scheduler para execução de tarefas agendadas.
+    """
+    if PRODUCAO==1:
+        scheduler.start()
+        logger.info("Scheduler ligado.")
+        return "Scheduler ligado!"
+    else:
+        return "Scheduler não está ativo em ambiente de testes."
+
+@app.route("/desligarScheduler", methods=['GET'])
+@login_required(role='admin')
+@log_required
+def desligar_scheduler():
+    """
+    Desliga o scheduler para não executar mais tarefas agendadas.
+    """
+    if PRODUCAO==1:
+        scheduler.shutdown()
+        logger.info("Scheduler desligado.")
+        return "Scheduler desligado!"
+    else:
+        return "Scheduler não está ativo em ambiente de testes."
+
 if PRODUCAO==1:
     scheduler.start()
 

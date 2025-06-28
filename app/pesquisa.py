@@ -187,6 +187,10 @@ if PRODUCAO==1:
     logger.setLevel(logging.INFO)
     logger.handlers = []
     logger.addHandler(handler)
+    logging.getLogger('flask-limiter').setLevel(logging.INFO)
+    logging.getLogger('apscheduler.scheduler').setLevel(logging.INFO)
+    logging.getLogger('flask-limiter').addHandler(handler)
+    logging.getLogger('apscheduler.scheduler').addHandler(handler)
 
 #Obtendo senhas
 PASSWORD = os.getenv("DB_PASSWORD", "World")
@@ -3672,6 +3676,93 @@ def job_enviar_email_avaliadores():
         task_enviar_email_avaliadores()
     except Exception as e:
         logger.error("Erro ao executar tarefa de envio de e-mails para avaliadores: %s", str(e))
+
+def task_enviar_lembrete_frequencia():
+    import datetime
+    #Mes e ano atual
+    ano = str(datetime.date.today().year)
+    mes = str(datetime.date.today().month-1)
+    if mes==1:
+        ano = ano - 1
+    nome_mes = {
+            '1': 'janeiro',
+            '2': 'fevereiro',
+            '3': 'marco',
+            '4': 'abril',
+            '5': 'maio',
+            '6': 'junho',
+            '7': 'julho',
+            '8': 'agosto',
+            '9': 'setembro',
+            '10': 'outubro',
+            '11': 'novembro',
+            '12': 'dezembro'        
+        }
+    with scheduler.app.app_context():
+        consulta = """SELECT 
+        GROUP_CONCAT(editalProjeto.id ORDER BY editalProjeto.id),
+        editalProjeto.nome,
+        GROUP_CONCAT(editalProjeto.titulo), 
+        GROUP_CONCAT(indicacoes.id ORDER BY indicacoes.idProjeto,indicacoes.id),
+        editalProjeto.email,
+        editalProjeto.siape
+        from editalProjeto
+        INNER JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
+        WHERE indicacoes.fim>NOW() AND indicacoes.situacao=0 and MONTH(indicacoes.inicio)!=Month(now())
+        GROUP BY editalProjeto.nome"""
+        linhas,total = executarSelect(consulta)
+        for linha in linhas:
+            id_projetos = str(linha[0]).split(',')
+            orientador = str(linha[1])
+            siape = str(linha[5])
+            senha = obterColunaUnica('users','password','username',siape)
+            titulos = str(linha[2]).split(',')
+            indicacoes = str(linha[3]).split(',')
+            nao_enviados = []
+            for indicacao in indicacoes:
+                subconsulta = """SELECT 
+                idIndicacao 
+                FROM frequencias 
+                WHERE mes=%s AND ano=%s AND idIndicacao=%s 
+                LIMIT 1
+                """ % (mes,ano,indicacao)
+                frequencias,totalFrequencias = executarSelect(subconsulta)
+                if totalFrequencias==0: #Não foi enviada a frequência para este discente
+                    nome_indicado = obterColunaUnica('indicacoes','nome','id',indicacao)
+                    nao_enviados.append(nome_indicado)
+            if (len(nao_enviados)!=0):
+                
+                texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
+                if PRODUCAO==1:
+                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                    try:
+                        mail.send(msg)
+                        logger.info("E-mail enviado: Lembrete de frequência para %s",orientador)
+                    except Exception as e:
+                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: %s",str(e))
+                else:
+                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisapython3.display999@passmail.net'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                    try:
+                        mail.send(msg)
+                        logger.info("E-mail enviado: Lembrete de frequência para %s",orientador)
+                    except Exception as e:
+                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
+                        logger.error(str(e))
+                    finally:
+                        continue
+
+@scheduler.task('cron', id='do_job_cobrar_frequencia', week='*', day='5-30/5', hour='7', minute='59')
+def job_cobrar_frequencia():
+    """
+    Tarefa agendada para enviar lembretes de frequência aos orientadores
+    dos projetos de pesquisa.
+    """
+    try:
+        logger.info("Iniciando tarefa de envio de lembretes de frequência.")
+        task_enviar_lembrete_frequencia()
+        logger.info("Tarefa de envio de lembretes de frequência concluída com sucesso.")
+    except Exception as e:
+        logger.error("Erro ao executar tarefa de envio de lembretes de frequência: %s", str(e))
 
 if PRODUCAO==1:
     scheduler.start()

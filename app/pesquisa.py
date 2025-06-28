@@ -41,6 +41,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_session import Session
 from redis import Redis
+from flask_apscheduler import APScheduler
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -103,6 +104,11 @@ app.config['SESSION_TYPE'] = 'redis'
 app.config['SESSION_REDIS'] = Redis.from_url('redis://redis:6379')
 app.config['SESSION_PERMANENT'] = False
 Session(app)
+
+app.config['SCHEDULER_API_ENABLED'] = True
+scheduler = APScheduler()
+scheduler.api_enabled = True
+scheduler.init_app(app)
 
 SELF = "'self'"
 csp = {
@@ -181,6 +187,10 @@ if PRODUCAO==1:
     logger.setLevel(logging.INFO)
     logger.handlers = []
     logger.addHandler(handler)
+    logging.getLogger('flask-limiter').setLevel(logging.INFO)
+    logging.getLogger('apscheduler.scheduler').setLevel(logging.INFO)
+    logging.getLogger('flask-limiter').addHandler(handler)
+    logging.getLogger('apscheduler.scheduler').addHandler(handler)
 
 #Obtendo senhas
 PASSWORD = os.getenv("DB_PASSWORD", "World")
@@ -3613,6 +3623,177 @@ def cadastrar_usuarios_projetos(edital):
     else:
         flash("Nenhum usuário encontrado para cadastro.")
         return redirect(url_for('admin'))
+
+def task_enviar_email_avaliadores():
+    gerarLinkAvaliacao()
+    consulta = """
+    SELECT e.id,e.titulo,e.resumo,a.avaliador,a.link,a.id,a.enviado,a.token,e.categoria,
+    e.tipo, DATEDIFF(NOW(),a.data_envio) as enviados,DATE_FORMAT(ed.deadline_avaliacao,'%d/%m/%Y') as deadline_avaliacao,ed.nome 
+    FROM editalProjeto as e, avaliacoes as a,editais as ed WHERE e.id=a.idProjeto AND e.tipo=ed.id AND e.valendo=1
+    AND a.finalizado=0 AND a.aceitou!=0 AND e.categoria=1 AND DATEDIFF(NOW(),a.data_envio)>1 
+    AND a.idProjeto 
+    IN (SELECT id FROM resumoGeralAvaliacoes WHERE ((aceites+rejeicoes<2) OR (aceites=rejeicoes)) 
+    AND tipo in (SELECT id from editais WHERE deadline_avaliacao>now() AND ADDDATE(deadline,5)<now()))
+    """
+    linhas,total = executarSelect(consulta)
+    for linha in linhas:
+        titulo = str(linha[1])
+        resumo = str(linha[2])
+        link = str(linha[4])
+        token = str(linha[7])
+        email_avaliador = str(linha[3])
+        if 'TESTE' in email_avaliador:
+            continue
+        link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
+        deadline = str(linha[11])
+        nome_longo = str(linha[12])
+        with scheduler.app.app_context():
+            #url_declaracao = url_for('getDeclaracaoAvaliador',tokenAvaliacao=token, _external=True)
+            url_declaracao = SERVER_URL + URL_PREFIX + '/declaracaoAvaliador/' + token
+            texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
+            msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+            try:
+                try:
+                    mail.send(msg)
+                    logger.info("E-mail enviado: %s",msg.subject)
+                except Exception as e:
+                    logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: %s",str(e))
+                consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
+                atualizar(consulta)    
+            except Exception as e:
+                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s - (%s)", email_avaliador,str(e))
+                return("Erro! Verifique o log!")
+    logger.info("Tarefa de envio de e-mails para avaliadores concluída com sucesso.")
+
+@scheduler.task('cron', id='do_job_enviar_email_avaliadores', week='*', day_of_week='2,4', hour='7', minute='45')
+def job_enviar_email_avaliadores():
+    """
+    Tarefa agendada para enviar e-mails de solicitação de avaliação
+    aos avaliadores cadastrados no sistema.
+    """
+    try:
+        logger.info("Iniciando tarefa de envio de e-mails para avaliadores.")
+        task_enviar_email_avaliadores()
+    except Exception as e:
+        logger.error("Erro ao executar tarefa de envio de e-mails para avaliadores: %s", str(e))
+
+def task_enviar_lembrete_frequencia():
+    import datetime
+    #Mes e ano atual
+    ano = str(datetime.date.today().year)
+    mes = str(datetime.date.today().month-1)
+    if mes==1:
+        ano = ano - 1
+    nome_mes = {
+            '1': 'janeiro',
+            '2': 'fevereiro',
+            '3': 'marco',
+            '4': 'abril',
+            '5': 'maio',
+            '6': 'junho',
+            '7': 'julho',
+            '8': 'agosto',
+            '9': 'setembro',
+            '10': 'outubro',
+            '11': 'novembro',
+            '12': 'dezembro'        
+        }
+    with scheduler.app.app_context():
+        consulta = """SELECT 
+        GROUP_CONCAT(editalProjeto.id ORDER BY editalProjeto.id),
+        editalProjeto.nome,
+        GROUP_CONCAT(editalProjeto.titulo), 
+        GROUP_CONCAT(indicacoes.id ORDER BY indicacoes.idProjeto,indicacoes.id),
+        editalProjeto.email,
+        editalProjeto.siape
+        from editalProjeto
+        INNER JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
+        WHERE indicacoes.fim>NOW() AND indicacoes.situacao=0 and MONTH(indicacoes.inicio)!=Month(now())
+        GROUP BY editalProjeto.nome"""
+        linhas,total = executarSelect(consulta)
+        for linha in linhas:
+            id_projetos = str(linha[0]).split(',')
+            orientador = str(linha[1])
+            siape = str(linha[5])
+            senha = obterColunaUnica('users','password','username',siape)
+            titulos = str(linha[2]).split(',')
+            indicacoes = str(linha[3]).split(',')
+            nao_enviados = []
+            for indicacao in indicacoes:
+                subconsulta = """SELECT 
+                idIndicacao 
+                FROM frequencias 
+                WHERE mes=%s AND ano=%s AND idIndicacao=%s 
+                LIMIT 1
+                """ % (mes,ano,indicacao)
+                frequencias,totalFrequencias = executarSelect(subconsulta)
+                if totalFrequencias==0: #Não foi enviada a frequência para este discente
+                    nome_indicado = obterColunaUnica('indicacoes','nome','id',indicacao)
+                    nao_enviados.append(nome_indicado)
+            if (len(nao_enviados)!=0):
+                
+                texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
+                if PRODUCAO==1:
+                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                    try:
+                        mail.send(msg)
+                        logger.info("E-mail enviado: Lembrete de frequência para %s",orientador)
+                    except Exception as e:
+                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: %s",str(e))
+                else:
+                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisapython3.display999@passmail.net'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                    try:
+                        mail.send(msg)
+                        logger.info("E-mail enviado: Lembrete de frequência para %s",orientador)
+                    except Exception as e:
+                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
+                        logger.error(str(e))
+                    finally:
+                        continue
+
+@scheduler.task('cron', id='do_job_cobrar_frequencia', week='*', day='5-30/5', hour='7', minute='59')
+def job_cobrar_frequencia():
+    """
+    Tarefa agendada para enviar lembretes de frequência aos orientadores
+    dos projetos de pesquisa.
+    """
+    try:
+        logger.info("Iniciando tarefa de envio de lembretes de frequência.")
+        task_enviar_lembrete_frequencia()
+        logger.info("Tarefa de envio de lembretes de frequência concluída com sucesso.")
+    except Exception as e:
+        logger.error("Erro ao executar tarefa de envio de lembretes de frequência: %s", str(e))
+
+@app.route("/ligarScheduler", methods=['GET'])
+@login_required(role='admin')
+@log_required
+def ligar_scheduler():
+    """
+    Liga o scheduler para execução de tarefas agendadas.
+    """
+    if PRODUCAO==1:
+        scheduler.start()
+        logger.info("Scheduler ligado.")
+        return "Scheduler ligado!"
+    else:
+        return "Scheduler não está ativo em ambiente de testes."
+
+@app.route("/desligarScheduler", methods=['GET'])
+@login_required(role='admin')
+@log_required
+def desligar_scheduler():
+    """
+    Desliga o scheduler para não executar mais tarefas agendadas.
+    """
+    if PRODUCAO==1:
+        scheduler.shutdown()
+        logger.info("Scheduler desligado.")
+        return "Scheduler desligado!"
+    else:
+        return "Scheduler não está ativo em ambiente de testes."
+
+if PRODUCAO==1:
+    scheduler.start()
 
 if __name__ == "__main__":
     prefixo = os.getenv('URL_PREFIX','/pesquisa')

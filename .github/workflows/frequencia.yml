@@ -4,8 +4,8 @@ name: Solicitar envio de frequencia dos bolsistas
 
 on: 
   workflow_dispatch:
-  schedule:
-    - cron: '59 10 5-30/5 * *' # Executa a cada 5 dias entre os dias 5-30 as 10:59 (UTC)
+  #schedule:
+  #  - cron: '59 10 5-30/5 * *' # Executa a cada 5 dias entre os dias 5-30 as 10:59 (UTC)
   
 permissions:
   contents: read

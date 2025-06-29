@@ -42,6 +42,7 @@ from flask_limiter.util import get_remote_address
 from flask_session import Session
 from redis import Redis
 from flask_apscheduler import APScheduler
+from loguru import logger
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -77,6 +78,7 @@ BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
 BS_HOST = os.getenv("BS_HOST", "")
 
 if PRODUCAO==1:
+    # CONFIGURANDO SENTRY
     ignore_logger("waitress")
     ignore_logger("waitress.queue")
     sentry_sdk.init(
@@ -167,30 +169,44 @@ AES_KEY = os.getenv("AES_KEY", "000000")
 GPG_KEY = os.getenv("GPG_KEY", "000000")
 cripto = SecCripto(AES_KEY)
 
-logger = logging.getLogger('pesquisa')
-
-if PRODUCAO==1:
-    logging.basicConfig(filename=WORKING_DIR + 'app.log',
-                    filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
-else:
-    logging.basicConfig(filename=WORKING_DIR + 'app.log',
-                    filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+#logger = logging.getLogger('pesquisa')
 
 if PRODUCAO==1:
     handler = LogtailHandler(
         source_token=BS_SOURCE_TOKEN,
         host=BS_HOST,
     )
+    logger.disable("waitress.queue")
+    logger.disable("waitress")
+    logger.add("app.log", rotation="20 MB", retention=30, backtrace=False,
+               diagnose=False, level="INFO", serialize=True,mode='a',
+               format="{name} | {time} | {level} | {message}")
+    logger.add(handler, format="{name} | {time} | {level} | {message}", level="INFO",
+               serialize=True,backtrace=False, diagnose=False)
+    #logging.basicConfig(filename=WORKING_DIR + 'app.log',
+    #                filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
+    #                level=logging.INFO)
+else:
+    logger.add("app.log", rotation="20 MB", retention=30, backtrace=False,
+               diagnose=False, level="INFO", serialize=False,mode='w',
+               format="{name} | {time} | {level} | {message}")
+    #logging.basicConfig(filename=WORKING_DIR + 'app.log',
+    #                filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
+    #                level=logging.INFO)
 
-    logger.setLevel(logging.INFO)
-    logger.handlers = []
-    logger.addHandler(handler)
-    logging.getLogger('flask-limiter').setLevel(logging.INFO)
-    logging.getLogger('apscheduler.scheduler').setLevel(logging.INFO)
-    logging.getLogger('flask-limiter').addHandler(handler)
-    logging.getLogger('apscheduler.scheduler').addHandler(handler)
+#if PRODUCAO==1:
+#    handler = LogtailHandler(
+#        source_token=BS_SOURCE_TOKEN,
+#        host=BS_HOST,
+#    )
+
+#    logger.setLevel(logging.INFO)
+#    logger.handlers = []
+#    logger.addHandler(handler)
+#    logging.getLogger('flask-limiter').setLevel(logging.INFO)
+#    logging.getLogger('apscheduler.scheduler').setLevel(logging.INFO)
+#    logging.getLogger('flask-limiter').addHandler(handler)
+#    logging.getLogger('apscheduler.scheduler').addHandler(handler)
 
 #Obtendo senhas
 PASSWORD = os.getenv("DB_PASSWORD", "World")
@@ -237,9 +253,9 @@ def log_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get('username') is None:
-            logger.info("%s | %s | %s |N/A | N/A",request.remote_addr,request.path,request.method)
+            logger.info("{} | {} | {} | N/A | N/A",request.remote_addr,request.path,request.method)
         else:
-            logger.info("%s | %s | %s | %s | N/A",request.remote_addr,request.path,request.method,session['username'])
+            logger.info("{} | {} | {} | {} | N/A",request.remote_addr,request.path,request.method,session['username'])
         return f(*args, **kwargs)
     return decorated_function
 
@@ -296,6 +312,9 @@ def salvarCV(idlattes):
             zip_ref.extractall(XML_DIR)
         if os.path.exists(idlattes + '.zip'):
             os.remove(idlattes + '.zip')
+
+#Search: logger\.(info|warning|error)(\(".*)(%s)(.*)
+#Replace: logger.$1$2{}$4
 
 def processarPontuacaoLattes(cpf,area,idProjeto,dados):
     processou_scoreLattes = False
@@ -633,13 +652,13 @@ def verify_password(username, password):
             try:
                 if cripto.hash_argon2id_verify(hash_senha, password):
                     continuar = True
-                    logger.info("%s | %s | %s | %s | AUTENTICADO", request.remote_addr,request.path,request.method,username)
+                    logger.info(f"{request.remote_addr} | {request.path} | {request.method} | {username} | AUTENTICADO")
                 else:
                     continuar = False
-                    logger.warning("%s | %s | %s | %s | SENHA INVÁLIDA", request.remote_addr,request.path,request.method,username)
+                    logger.warning(f"{request.remote_addr} | {request.path} | {request.method} | {username} | SENHA INVÁLIDA")
             except Exception:
                 continuar = False
-                logger.warning("%s | %s | %s | %s | VERIFICAÇÃO COM ARGON2", request.remote_addr,request.path,request.method,username)
+                logger.warning(f"{request.remote_addr} | {request.path} | {request.method} | {username} | VERIFICAÇÃO COM ARGON2")
         else:
             continuar = False
         if continuar is False: #Usuário inexistente ou senha inválida
@@ -1095,7 +1114,7 @@ def getPaginaAvaliacao():
         else:
             return "ID Inválido ou prazo de avaliação expirado!"
     else:
-        logging.warning("[/avaliacao] Método não permitido: %s !",request.method)
+        logger.warning("[/avaliacao] Método não permitido: %s !",request.method)
         return "Método não permitido! Use GET para acessar esta página."
 
 @app.route("/avaliar", methods=['GET', 'POST'])

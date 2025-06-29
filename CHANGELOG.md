@@ -1,3 +1,4 @@
+	2025-06-29 09:16:24 -0300	fix: Desativada API do Scheduler
 	2025-06-28 18:45:23 -0300	feat: Adicionado recurso de scheduler das frequências e avaliadores, assim como as rotas para ligar/desligar o scheduler
 	2025-06-28 17:20:20 -0300	feat: adicionada tarefa de cobrança de frequência diretamente no código (sem testar)
 	2025-06-27 19:19:12 -0300	feat: Incluída funcionalidade (não testada) de solicitação de avaliação pelos avaliadores com o Scheduler

@@ -105,7 +105,7 @@ app.config['SESSION_REDIS'] = Redis.from_url('redis://redis:6379')
 app.config['SESSION_PERMANENT'] = False
 Session(app)
 
-app.config['SCHEDULER_API_ENABLED'] = True
+app.config['SCHEDULER_API_ENABLED'] = False
 scheduler = APScheduler()
 scheduler.api_enabled = True
 scheduler.init_app(app)
@@ -128,7 +128,7 @@ limiter = Limiter(
     get_remote_address,
     app=app,
     storage_uri="redis://redis:6379",
-    default_limits=["200 per day", "50 per hour"],
+    default_limits=["300 per day", "80 per hour"],
     storage_options={"socket_connect_timeout": 30},
     strategy="fixed-window",
 )

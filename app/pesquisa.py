@@ -43,6 +43,7 @@ from flask_session import Session
 from redis import Redis
 from flask_apscheduler import APScheduler
 from loguru import logger
+from flask import jsonify
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -180,8 +181,9 @@ if PRODUCAO==1:
     logger.disable("waitress")
     logger.add("app.log", rotation="20 MB", retention=30, backtrace=False,
                diagnose=False, level="INFO", serialize=True,mode='a',
-               format="{time} {name} - {level} - {message}")
-    logger.add(handler, format="{time} {name} - {level} - {message}", level="INFO",
+               format="{time} | {name} | {level} | {message}",
+               compression='gz')
+    logger.add(handler, format="{time} | {name} | {level} | {message}", level="INFO",
                serialize=True,backtrace=False, diagnose=False)
     #logging.basicConfig(filename=WORKING_DIR + 'app.log',
     #                filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
@@ -189,7 +191,8 @@ if PRODUCAO==1:
 else:
     logger.add("app.log", rotation="20 MB", retention=30, backtrace=True,
                diagnose=True, level="INFO", serialize=True,mode='w',
-               format="{time} {name} - {level} - {message}")
+               format="{time} | {name} | {level} | {message}",
+               compression='gz')
     #logging.basicConfig(filename=WORKING_DIR + 'app.log',
     #                filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
     #                level=logging.INFO)
@@ -3811,9 +3814,32 @@ def desligar_scheduler():
     else:
         return "Scheduler não está ativo em ambiente de testes."
 
+@app.route("/schedulerJobs", methods=['GET'])
+@login_required(role='admin')
+@log_required
+def scheduler_jobs():
+    """
+    Retorna os jobs do scheduler e seu status.
+    """
+    if scheduler.running:    
+        jobs = scheduler.get_jobs()
+        jobs_info = []
+        for job in jobs:
+            job_info = {
+                'id': job.id,
+                'name': job.name,
+                'next_run_time': str(job.next_run_time),
+                'trigger': str(job.trigger),
+            }
+            jobs_info.append(job_info)
+        return jsonify(jobs_info)
+    else:
+        return jsonify({'message': 'Scheduler não está em execução.'})
+
 if PRODUCAO==1:
     scheduler.start()
 
 if __name__ == "__main__":
     prefixo = os.getenv('URL_PREFIX','/pesquisa')
-    serve(app, host='0.0.0.0', port=80, url_prefix=prefixo,trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')
+    with logger.catch():
+        serve(app, host='0.0.0.0', port=80, url_prefix=prefixo,trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')

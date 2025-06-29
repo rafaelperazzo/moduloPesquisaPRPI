@@ -1,3 +1,4 @@
+	2025-06-29 17:31:46 -0300	fix: Corrigidas strings dos logs de %s para {} - compatibilidade com loguru
 	2025-06-29 15:04:54 -0300	feat: Iniciada migração para loguru
 	2025-06-29 09:16:24 -0300	fix: Desativada API do Scheduler
 	2025-06-28 18:45:23 -0300	feat: Adicionado recurso de scheduler das frequências e avaliadores, assim como as rotas para ligar/desligar o scheduler

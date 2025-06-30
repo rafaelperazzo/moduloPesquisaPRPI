@@ -10,7 +10,6 @@ import hashlib
 import os
 import string
 import random
-import logging
 import sys
 import re
 import pdfkit
@@ -33,7 +32,8 @@ from functools import wraps
 from datetime import timedelta
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
-from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.integrations.loguru import LoguruIntegration
+from sentry_sdk.integrations.loguru import LoggingLevels
 from sentry_sdk.integrations.logging import ignore_logger
 from logtail import LogtailHandler
 from flask_talisman import Talisman
@@ -44,6 +44,28 @@ from redis import Redis
 from flask_apscheduler import APScheduler
 from loguru import logger
 from flask import jsonify
+import logging
+import inspect
+
+class InterceptHandler(logging.Handler):
+    def emit(self, record: logging.LogRecord) -> None:
+        # Get corresponding Loguru level if it exists.
+        level: str | int
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+
+        # Find caller from where originated the logged message.
+        frame, depth = inspect.currentframe(), 0
+        while frame and (depth == 0 or frame.f_code.co_filename == logging.__file__):
+            frame = frame.f_back
+            depth += 1
+
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+
+logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
+
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -91,9 +113,10 @@ if PRODUCAO==1:
             FlaskIntegration(
                 transaction_style="url",
             ),
-            LoggingIntegration(
-                level=logging.INFO,        # Capture info and above as breadcrumbs
-                event_level=logging.ERROR   # Send records as events
+            LoguruIntegration(
+                level=LoggingLevels.INFO.value,
+                event_level=LoggingLevels.ERROR.value,
+                sentry_logs_level=LoggingLevels.INFO.value,
             ),
         ],
         send_default_pii=True,
@@ -177,10 +200,6 @@ if PRODUCAO==1:
         source_token=BS_SOURCE_TOKEN,
         host=BS_HOST,
     )
-    logger.disable("waitress.queue")
-    logger.disable("waitress")
-    logger.enable("flask-limiter")
-    logger.enable("apscheduler.scheduler")
     logger.add("app.json", rotation="20 MB", retention=30, backtrace=False,
                diagnose=False, level="INFO", serialize=True,mode='a',
                format="{time} | {name} | {level} | {message} | {extra}",
@@ -191,8 +210,8 @@ if PRODUCAO==1:
     #                filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
     #                level=logging.INFO)
 else:
-    logger.add("app.json", rotation="20 MB", retention=30, backtrace=False,
-               diagnose=False, level="INFO", serialize=True,mode='w',
+    logger.add("app.log", rotation="20 MB", retention=30, backtrace=False,
+               diagnose=False, level="INFO", serialize=False,mode='w',
                format="{time} | {name} | {level} | {message} | {extra}",
                compression='gz')
     #logging.basicConfig(filename=WORKING_DIR + 'app.log',
@@ -212,6 +231,10 @@ else:
 #    logging.getLogger('apscheduler.scheduler').setLevel(logging.INFO)
 #    logging.getLogger('flask-limiter').addHandler(handler)
 #    logging.getLogger('apscheduler.scheduler').addHandler(handler)
+
+logger.enable("")
+logger.disable("waitress")
+logger.disable("waitress.queue")
 
 #Obtendo senhas
 PASSWORD = os.getenv("DB_PASSWORD", "World")

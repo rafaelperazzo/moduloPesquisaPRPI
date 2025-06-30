@@ -2,6 +2,7 @@
 *.gpg
 *.enc
 *.key
+app/*.json
 app/submissoes/*.gpg
 app/submissoes/*.pdf
 app/docs_indicacoes/*.gpg

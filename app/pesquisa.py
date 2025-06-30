@@ -42,6 +42,8 @@ from flask_limiter.util import get_remote_address
 from flask_session import Session
 from redis import Redis
 from flask_apscheduler import APScheduler
+from loguru import logger
+from flask import jsonify
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -77,6 +79,7 @@ BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
 BS_HOST = os.getenv("BS_HOST", "")
 
 if PRODUCAO==1:
+    # CONFIGURANDO SENTRY
     ignore_logger("waitress")
     ignore_logger("waitress.queue")
     sentry_sdk.init(
@@ -167,30 +170,46 @@ AES_KEY = os.getenv("AES_KEY", "000000")
 GPG_KEY = os.getenv("GPG_KEY", "000000")
 cripto = SecCripto(AES_KEY)
 
-logger = logging.getLogger('pesquisa')
-
-if PRODUCAO==1:
-    logging.basicConfig(filename=WORKING_DIR + 'app.log',
-                    filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
-else:
-    logging.basicConfig(filename=WORKING_DIR + 'app.log',
-                    filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+#logger = logging.getLogger('pesquisa')
 
 if PRODUCAO==1:
     handler = LogtailHandler(
         source_token=BS_SOURCE_TOKEN,
         host=BS_HOST,
     )
+    logger.disable("waitress.queue")
+    logger.disable("waitress")
+    logger.add("app.json", rotation="20 MB", retention=30, backtrace=False,
+               diagnose=False, level="INFO", serialize=True,mode='a',
+               format="{time} | {name} | {level} | {message} | {extra}",
+               compression='gz')
+    logger.add(handler, format="{time} | {name} | {level} | {message} | {extra}", level="INFO",
+               serialize=True,backtrace=False, diagnose=False)
+    #logging.basicConfig(filename=WORKING_DIR + 'app.log',
+    #                filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
+    #                level=logging.INFO)
+else:
+    logger.add("app.json", rotation="20 MB", retention=30, backtrace=False,
+               diagnose=False, level="INFO", serialize=True,mode='w',
+               format="{time} | {name} | {level} | {message} | {extra}",
+               compression='gz')
+    #logging.basicConfig(filename=WORKING_DIR + 'app.log',
+    #                filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
+    #                level=logging.INFO)
 
-    logger.setLevel(logging.INFO)
-    logger.handlers = []
-    logger.addHandler(handler)
-    logging.getLogger('flask-limiter').setLevel(logging.INFO)
-    logging.getLogger('apscheduler.scheduler').setLevel(logging.INFO)
-    logging.getLogger('flask-limiter').addHandler(handler)
-    logging.getLogger('apscheduler.scheduler').addHandler(handler)
+#if PRODUCAO==1:
+#    handler = LogtailHandler(
+#        source_token=BS_SOURCE_TOKEN,
+#        host=BS_HOST,
+#    )
+
+#    logger.setLevel(logging.INFO)
+#    logger.handlers = []
+#    logger.addHandler(handler)
+#    logging.getLogger('flask-limiter').setLevel(logging.INFO)
+#    logging.getLogger('apscheduler.scheduler').setLevel(logging.INFO)
+#    logging.getLogger('flask-limiter').addHandler(handler)
+#    logging.getLogger('apscheduler.scheduler').addHandler(handler)
 
 #Obtendo senhas
 PASSWORD = os.getenv("DB_PASSWORD", "World")
@@ -237,9 +256,10 @@ def log_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get('username') is None:
-            logger.info("%s | %s | %s |N/A | N/A",request.remote_addr,request.path,request.method)
+            logger.info("{} | {} | {} | N/A | N/A",request.remote_addr,request.path,request.method)
         else:
-            logger.info("%s | %s | %s | %s | N/A",request.remote_addr,request.path,request.method,session['username'])
+            with logger.contextualize(username=session['username']):
+                logger.info("{} | {} | {} | N/A",request.remote_addr,request.path,request.method)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -297,6 +317,9 @@ def salvarCV(idlattes):
         if os.path.exists(idlattes + '.zip'):
             os.remove(idlattes + '.zip')
 
+#Search: logger\.(info|warning|error)(\(".*)(%s)(.*)
+#Replace: logger.$1$2{}$4
+
 def processarPontuacaoLattes(cpf,area,idProjeto,dados):
     processou_scoreLattes = False
     try:
@@ -308,8 +331,8 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
         processou_scoreLattes = True
     except Exception as e:
         with app.app_context():
-            logger.error("Erro ao BAIXAR O XML: %s", e)
-            logger.error("Tentativa de BAIXAR o XML com o CPF: %s", cpf)
+            logger.error("Erro ao BAIXAR O XML: {}", e)
+            logger.error("Tentativa de BAIXAR o XML com o CPF: {}", cpf)
         processou_scoreLattes = False
     try:
         if processou_scoreLattes:
@@ -328,8 +351,8 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
             sumario = "ERRO AO PROCESSAR O SCORELATTES"
     except Exception as e:
         with app.app_context():
-            logger.error("Erro ao processar o scorelattes: %s", e)
-            logger.error("Tentativa de processar o scorelattes com CPF: %s", cpf)
+            logger.error("Erro ao processar o scorelattes: {}", e)
+            logger.error("Tentativa de processar o scorelattes com CPF: {}", cpf)
         pontuacao = -1
         sumario = "ERRO AO PROCESSAR O SCORELATTES"
 
@@ -339,8 +362,8 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
         atualizar2(consulta,valores=[pontuacao,idProjeto])
     except Exception as e:
         with app.app_context():
-            logger.error("Erro ao atualizar o scorelattes: %s", str(e))
-            logger.error("Tentativa de atualizar o scorelattes com CPF: %s", str(cpf))
+            logger.error("Erro ao atualizar o scorelattes: {}", str(e))
+            logger.error("Tentativa de atualizar o scorelattes com CPF: {}", str(cpf))
     with app.app_context():
         try:
             #ENVIAR E-MAIL DE CONFIRMAÇÃO
@@ -351,7 +374,7 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
                 msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
             try:
                 mail.send(msg)
-                logger.info("Email enviado com sucesso. processarPontuacaoLattes - IdProjeto: %s", idProjeto)
+                logger.info("Email enviado com sucesso. processarPontuacaoLattes - IdProjeto: {}", idProjeto)
             except Exception as e:
                 logger.error("Erro ao enviar e-mail. processarPontuacaoLattes")
                 logger.error(str(e))
@@ -633,13 +656,13 @@ def verify_password(username, password):
             try:
                 if cripto.hash_argon2id_verify(hash_senha, password):
                     continuar = True
-                    logger.info("%s | %s | %s | %s | AUTENTICADO", request.remote_addr,request.path,request.method,username)
+                    logger.info(f"{request.remote_addr} | {request.path} | {request.method} | {username} | AUTENTICADO")
                 else:
                     continuar = False
-                    logger.warning("%s | %s | %s | %s | SENHA INVÁLIDA", request.remote_addr,request.path,request.method,username)
+                    logger.warning(f"{request.remote_addr} | {request.path} | {request.method} | {username} | SENHA INVÁLIDA")
             except Exception:
                 continuar = False
-                logger.warning("%s | %s | %s | %s | VERIFICAÇÃO COM ARGON2", request.remote_addr,request.path,request.method,username)
+                logger.warning(f"{request.remote_addr} | {request.path} | {request.method} | {username} | VERIFICAÇÃO COM ARGON2")
         else:
             continuar = False
         if continuar is False: #Usuário inexistente ou senha inválida
@@ -654,7 +677,7 @@ def verify_password(username, password):
             session['edital'] = 0
             return username
     except Exception as e:
-        logger.error("ERRO Na função verify_password: %s. Ver consulta: %s", str(e), consulta2)
+        logger.error("ERRO Na função verify_password: {}. Ver consulta: {}", str(e), consulta2)
 
 @auth.get_user_roles
 def get_user_roles(user):
@@ -691,7 +714,7 @@ def home():
 
 @app.route("/version")
 def version():
-    return __version__
+    return jsonify({"version": __version__})
 
 @app.route("/admin")
 @login_required(role='admin')
@@ -978,7 +1001,7 @@ def getScoreLattesFromFile():
     try:
         salvarCV(idlattes)
     except Exception as e:
-        logger.warning("[/SCORE] Nao foi possivel baixar o curriculo do IDlattes (%s). Erro: %s",str(idlattes),str(e))
+        logger.warning("[/SCORE] Nao foi possivel baixar o curriculo do IDlattes ({}). Erro: {}",str(idlattes),str(e))
         return("[/SCORE] Não foi possível baixar o currículo. IDLattes inválido, ou problemas na comunicação com o CNPq. Tente novamente.")
     arquivo = XML_DIR + idlattes + ".xml"
     try:
@@ -989,7 +1012,7 @@ def getScoreLattesFromFile():
         sumario = str(score.sumario())
         return(sumario)
     except Exception as e:
-        logger.error("[SCORELATTES] Erro ao calcular o scorelattes: %s", str(e))
+        logger.error("[SCORELATTES] Erro ao calcular o scorelattes: {}", str(e))
         return("Erro ao calcular pontuacao!")
 
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam
@@ -1050,7 +1073,7 @@ def getPaginaAvaliacao():
         try:
             idProjeto = str(request.args.get('id'))
         except Exception as e:
-            logger.warning("[/avaliacao] Erro ao obter ID do projeto: %s",str(e))
+            logger.warning("[/avaliacao] Erro ao obter ID do projeto: {}",str(e))
             return "ID do projeto não informado!"
         if not numero_valido(idProjeto):
             logger.warning("[/avaliacao] ID do projeto inválido!")
@@ -1063,7 +1086,7 @@ def getPaginaAvaliacao():
                 else:
                     tokenAvaliacao = str(tokenAvaliacao)
             except Exception as e:
-                logger.warning("[/avaliacao] Erro ao obter token de avaliação: %s", str(e))
+                logger.warning("[/avaliacao] Erro ao obter token de avaliação: {}", str(e))
                 return "Token de avaliação não informado!"
             if not token_valido(tokenAvaliacao):
                 return "Token de avaliação inválido!"
@@ -1088,14 +1111,14 @@ def getPaginaAvaliacao():
                 idProjeto = obterColunaUnica_str("avaliacoes","idProjeto","token",tokenAvaliacao)
                 edital = obterColunaUnica("editalProjeto","tipo","id",idProjeto)
                 modalidade = int(obterColunaUnica("editais","modalidade","id",edital))
-                logger.info("[%s][/avaliacao] Avaliador abriu formulário de avaliação do projeto %s.", request.remote_addr,str(idProjeto))
+                logger.info("[{}][/avaliacao] Avaliador abriu formulário de avaliação do projeto {}.", request.remote_addr,str(idProjeto))
                 return render_template('avaliacao.html',arquivos=links,modalidade=modalidade)
             else:
                 return("Projeto já foi avaliado! Não é possível modificar a avaliação!")
         else:
             return "ID Inválido ou prazo de avaliação expirado!"
     else:
-        logging.warning("[/avaliacao] Método não permitido: %s !",request.method)
+        logger.warning("[/avaliacao] Método não permitido: {} !",request.method)
         return "Método não permitido! Use GET para acessar esta página."
 
 @app.route("/avaliar", methods=['GET', 'POST'])
@@ -1149,18 +1172,18 @@ def enviarAvaliacao():
             atualizar2(consulta, valores=[c7,token])
             consulta = "UPDATE avaliacoes SET cepa= ? WHERE token= ? "
             atualizar2(consulta, valores=[comite,token])
-            logger.info("[%s][/avaliar] Avaliação do projeto %s gravada com sucesso por %s", request.remote_addr,str(idProjeto),str(nome_avaliador))
+            logger.info("[{}][/avaliar] Avaliação do projeto {} gravada com sucesso por {}", request.remote_addr,str(idProjeto),str(nome_avaliador))
             if modalidade==2:
                 inovacao = str(request.form['inovacao'])
                 consulta = "UPDATE avaliacoes SET inovacao= ? WHERE token= ? "
                 atualizar2(consulta, valores=[inovacao,token])
         except Exception as e:
-            logger.error("[AVALIACAO] ERRO ao gravar a avaliação: %s - (%s)", token, str(e))
+            logger.error("[AVALIACAO] ERRO ao gravar a avaliação: {} - ({})", token, str(e))
             return("Não foi possível gravar a avaliação. Favor entrar contactar " + DEFAULT_EMAIL)
         try:
             return (redirect(url_for('getDeclaracaoAvaliador',tokenAvaliacao=token)))
         except Exception as e:
-            logger.error("[/avaliar] ERRO ao gerar a declaração: %s - (%s)",token, str(e))
+            logger.error("[/avaliar] ERRO ao gerar a declaração: {} - ({})",token, str(e))
             return("Não foi possível gerar a declaração.")
     else:
         return("OK")
@@ -1187,9 +1210,9 @@ def enviar_declaracao_avaliador(url,destinatario):
             msg = Message(subject = "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
         try:
             mail.send(msg)
-            logger.info("E-mail enviado com sucesso para o avaliador: %s", calcula_hash(destinatario))
+            logger.info("E-mail enviado com sucesso para o avaliador: {}", calcula_hash(destinatario))
         except Exception as e:
-            logger.warning("Erro ao enviar e-mail: %s. [enviar declaração para avaliador]: %s", destinatario,str(e))
+            logger.warning("Erro ao enviar e-mail: {}. [enviar declaração para avaliador]: {}", destinatario,str(e))
 
 @app.route("/declaracaoAvaliador/<tokenAvaliacao>", methods=['GET'])
 @log_required
@@ -1198,7 +1221,7 @@ def getDeclaracaoAvaliador(tokenAvaliacao):
     Gera a declaração de avaliação do avaliador.
     """
     if not token_valido(tokenAvaliacao):
-        logger.error("[/declaracaoAvaliador] Token inválido: %s", tokenAvaliacao)
+        logger.error("[/declaracaoAvaliador] Token inválido: {}", tokenAvaliacao)
         return "Token inválido!"
     consulta = f"""
     SELECT nome_avaliador,idProjeto,avaliador FROM avaliacoes WHERE token="{tokenAvaliacao}" 
@@ -1240,7 +1263,7 @@ def recusarConvite():
     if request.method == "GET":
         tokenAvaliacao = str(request.args.get('token'))
         if not token_valido(tokenAvaliacao):
-            logger.warning("[/recusarConvite] Token inválido: %s", tokenAvaliacao)
+            logger.warning("[/recusarConvite] Token inválido: {}", tokenAvaliacao)
             return "Token inválido!"
         consulta = "UPDATE avaliacoes SET aceitou=0 WHERE token=\"" + tokenAvaliacao + "\""
         atualizar(consulta)
@@ -1259,12 +1282,12 @@ def avaliacoesNegadas():
         if 'edital' in request.args:
             codigoEdital = str(request.args.get('edital'))
             if not numero_valido(codigoEdital):
-                logger.warning("[/avaliacoesNegadas] Código do edital inválido: %s", codigoEdital)
+                logger.warning("[/avaliacoesNegadas] Código do edital inválido: {}", codigoEdital)
                 return "Código do edital inválido!"
             if 'id' in request.args:
                 idProjeto = str(request.args.get('id'))
                 if not numero_valido(idProjeto):
-                    logger.warning("[/avaliacoesNegadas] ID do projeto inválido: %s", idProjeto)
+                    logger.warning("[/avaliacoesNegadas] ID do projeto inválido: {}", idProjeto)
                     return "ID do projeto inválido!"
                 consulta = "SELECT resumoGeralAvaliacoes.id,CONCAT(SUBSTRING(resumoGeralAvaliacoes.titulo,1,80),\" - (\",resumoGeralAvaliacoes.nome,\" )\"),(resumoGeralAvaliacoes.aceites+resumoGeralAvaliacoes.rejeicoes) as resultado,resumoGeralAvaliacoes.indefinido FROM resumoGeralAvaliacoes WHERE ((aceites+rejeicoes<10) OR (aceites=rejeicoes)) AND tipo=" + codigoEdital + " AND id = " + idProjeto +" ORDER BY aceites+rejeicoes, id"
             else:
@@ -1328,7 +1351,7 @@ def estatisticas():
         try:
             codigoEdital = str(request.args.get('edital'))
         except Exception as e:
-            logger.warning("[/estatisticas] Erro ao obter código do edital: %s", str(e))
+            logger.warning("[/estatisticas] Erro ao obter código do edital: {}", str(e))
             return "Código do edital não informado!"
         if not numero_valido(codigoEdital):
             return "Código do edital inválido!"
@@ -1434,7 +1457,7 @@ def executarSelect(consulta,tipo=0):
             resultado = cursor.fetchone()
         return (resultado,total)
     except Exception as e:
-        logger.error("ERRO Na função executarSelect: %s", str(e))
+        logger.error("ERRO Na função executarSelect: {}", str(e))
     finally:
         cursor.close()
         conn.close()
@@ -1455,7 +1478,7 @@ def executarSelect2(consulta,tipo=0,valores=()):
             resultado = cursor.fetchone()
         return (resultado,total)
     except Exception as e:
-        logger.error("ERRO Na função executarSelect2: %s", str(e))
+        logger.error("ERRO Na função executarSelect2: {}", str(e))
     finally:
         cursor.close()
         conn.close()
@@ -1602,7 +1625,7 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
             resultado = str(linha[0])
         return(resultado)
     except Exception as e:
-        logger.error("ERRO Na função obtercolunaUnica: %s", str(e))
+        logger.error("ERRO Na função obtercolunaUnica: {}", str(e))
     finally:
         cursor.close()
         conn.close()
@@ -2153,7 +2176,7 @@ def registrar_acesso(ip,usuario):
         valores = (str(ip),str(usuario))
         inserir(consulta,valores)
     except Exception as e:
-        logger.error("Erro ao registrar acesso: %s",str(e))
+        logger.error("Erro ao registrar acesso: {}",str(e))
 
 @app.route("/login", methods=['POST','GET'])
 @log_required
@@ -2190,7 +2213,7 @@ def thread_enviar_senha(msg):
             mail.send(msg)
             logger.info("E-mail enviado com sucesso. /enviarMinhaSenha")
         except Exception as e:
-            logger.error("Erro ao enviar e-mail: %s. /enviarMinhaSenha", str(e))
+            logger.error("Erro ao enviar e-mail: {}. /enviarMinhaSenha", str(e))
 
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 @log_required
@@ -2218,7 +2241,7 @@ def enviarMinhaSenha():
                 #Redirecionando para a página de login
                 return(render_template('login.html',mensagem='Senha enviada para o email: ' + email))
             else:
-                logger.info("[%s][/enviarMinhaSenha]E-mail %s não cadastrado.", request.remote_addr, email)
+                logger.info("[{}][/enviarMinhaSenha]E-mail {} não cadastrado.", request.remote_addr, email)
                 flash("E-mail não cadastrado. Solicite seu cadastro no setor responsável.","error")
                 return redirect(url_for('home'))
         else:
@@ -2901,7 +2924,7 @@ def thread_enviar_email(msg,rota):
     with app.app_context():
         try:
             mail.send(msg)
-            logger.info("E-mail enviado: %s",msg.subject)
+            logger.info("E-mail enviado: {}",msg.subject)
         except Exception as e:
             logger.error(str(e))
             logger.error("Erro ao enviar e-mail. Rota: " + rota)
@@ -2966,14 +2989,14 @@ def enviar_lembrete_frequencia():
                     msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     try:
                         mail.send(msg)
-                        logger.info("E-mail enviado: Lembrete de frequência para %s",orientador)
+                        logger.info("E-mail enviado: Lembrete de frequência para {}",orientador)
                     except Exception as e:
-                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: %s",str(e))
+                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: {}",str(e))
                 else:
                     msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisapython3.display999@passmail.net'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     try:
                         mail.send(msg)
-                        logger.info("E-mail enviado: Lembrete de frequência para %s",orientador)
+                        logger.info("E-mail enviado: Lembrete de frequência para {}",orientador)
                     except Exception as e:
                         logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
                         logger.error(str(e))
@@ -3090,7 +3113,7 @@ def enviar_email_desligamento_substituicao(msg):
     with app.app_context():
         try:
             mail.send(msg)
-            logger.info("E-mail enviado: %s",msg.subject)
+            logger.info("E-mail enviado: {}",msg.subject)
         except Exception as e:
             logger.error("Erro ao enviar e-mail. enviar_email_desligamento_substituicao")
             logger.error(str(e))
@@ -3277,13 +3300,13 @@ def enviar_email_avaliadores():
             try:
                 try:
                     mail.send(msg)
-                    logger.info("E-mail enviado: %s",msg.subject)
+                    logger.info("E-mail enviado: {}",msg.subject)
                 except Exception as e:
-                    logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: %s",str(e))
+                    logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: {}",str(e))
                 consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
                 atualizar(consulta)    
             except Exception as e:
-                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s - (%s)", email_avaliador,str(e))
+                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: {} - ({})", email_avaliador,str(e))
                 return("Erro! Verifique o log!")
 
 @app.route("/emailSolicitarAvaliacao", methods=['GET', 'POST'])
@@ -3322,9 +3345,9 @@ def enviarPedidoAvaliacao(idProjeto):
                 msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[EMAIL_TESTES],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 mail.send(msg)
-                logger.info("E-mail enviado: %s",msg.subject)
+                logger.info("E-mail enviado: {}",msg.subject)
             except Exception as e:
-                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s - (%s)", email_avaliador,str(e))
+                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: {} - ({})", email_avaliador,str(e))
 
 @app.route("/arquivar/<id_projeto>", methods=['GET', 'POST'])
 @login_required(role='admin')
@@ -3655,14 +3678,14 @@ def task_enviar_email_avaliadores():
             try:
                 try:
                     mail.send(msg)
-                    logger.info("E-mail enviado: %s",msg.subject)
+                    logger.info("E-mail enviado: {}",msg.subject)
                 except Exception as e:
-                    logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: %s",str(e))
+                    logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: {}",str(e))
                 consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
-                atualizar(consulta)    
+                atualizar(consulta)
             except Exception as e:
-                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: %s - (%s)", email_avaliador,str(e))
-                return("Erro! Verifique o log!")
+                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: {} - ({})", email_avaliador,str(e))
+                continue
     logger.info("Tarefa de envio de e-mails para avaliadores concluída com sucesso.")
 
 @scheduler.task('cron', id='do_job_enviar_email_avaliadores', week='*', day_of_week='2,4', hour='7', minute='45')
@@ -3675,7 +3698,7 @@ def job_enviar_email_avaliadores():
         logger.info("Iniciando tarefa de envio de e-mails para avaliadores.")
         task_enviar_email_avaliadores()
     except Exception as e:
-        logger.error("Erro ao executar tarefa de envio de e-mails para avaliadores: %s", str(e))
+        logger.error("Erro ao executar tarefa de envio de e-mails para avaliadores: {}", str(e))
 
 def task_enviar_lembrete_frequencia():
     import datetime
@@ -3737,17 +3760,16 @@ def task_enviar_lembrete_frequencia():
                     msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     try:
                         mail.send(msg)
-                        logger.info("E-mail enviado: Lembrete de frequência para %s",orientador)
+                        logger.info("E-mail enviado: Lembrete de frequência {}/{} para {}",nome_mes[str(mes)],ano,orientador)
                     except Exception as e:
-                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: %s",str(e))
+                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: {}",str(e))
                 else:
                     msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisapython3.display999@passmail.net'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     try:
                         mail.send(msg)
-                        logger.info("E-mail enviado: Lembrete de frequência para %s",orientador)
+                        logger.info("E-mail enviado: Lembrete de frequência para {}",orientador)
                     except Exception as e:
-                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
-                        logger.error(str(e))
+                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: {}",str(e))
                     finally:
                         continue
 
@@ -3762,7 +3784,7 @@ def job_cobrar_frequencia():
         task_enviar_lembrete_frequencia()
         logger.info("Tarefa de envio de lembretes de frequência concluída com sucesso.")
     except Exception as e:
-        logger.error("Erro ao executar tarefa de envio de lembretes de frequência: %s", str(e))
+        logger.error("Erro ao executar tarefa de envio de lembretes de frequência: {}", str(e))
 
 @app.route("/ligarScheduler", methods=['GET'])
 @login_required(role='admin')
@@ -3792,9 +3814,32 @@ def desligar_scheduler():
     else:
         return "Scheduler não está ativo em ambiente de testes."
 
+@app.route("/schedulerJobs", methods=['GET'])
+@login_required(role='admin')
+@log_required
+def scheduler_jobs():
+    """
+    Retorna os jobs do scheduler e seu status.
+    """
+    if scheduler.running:    
+        jobs = scheduler.get_jobs()
+        jobs_info = []
+        for job in jobs:
+            job_info = {
+                'id': job.id,
+                'name': job.name,
+                'next_run_time': str(job.next_run_time),
+                'trigger': str(job.trigger),
+            }
+            jobs_info.append(job_info)
+        return jsonify(jobs_info)
+    else:
+        return jsonify({'message': 'Scheduler não está em execução.'})
+
 if PRODUCAO==1:
     scheduler.start()
 
 if __name__ == "__main__":
     prefixo = os.getenv('URL_PREFIX','/pesquisa')
-    serve(app, host='0.0.0.0', port=80, url_prefix=prefixo,trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')
+    with logger.catch():
+        serve(app, host='0.0.0.0', port=80, url_prefix=prefixo,trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')

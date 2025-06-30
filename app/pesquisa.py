@@ -189,7 +189,7 @@ if PRODUCAO==1:
     #                filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
     #                level=logging.INFO)
 else:
-    logger.add("app.log", rotation="20 MB", retention=30, backtrace=False,
+    logger.add("app.json", rotation="20 MB", retention=30, backtrace=False,
                diagnose=False, level="INFO", serialize=True,mode='w',
                format="{time} | {name} | {level} | {message} | {extra}",
                compression='gz')

@@ -1,3 +1,4 @@
+	2025-06-30 16:39:09 -0300	fix: Todos os logs encaminhados para o loguru
 	2025-06-30 14:26:43 -0300	fix: Ativado logs do flask-limiter e do apscheduler
 	2025-06-30 14:03:37 -0300	feat: Loguru configurado
 	2025-06-30 10:45:29 -0300	fix: Ajustes no root.html

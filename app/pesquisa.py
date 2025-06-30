@@ -116,12 +116,14 @@ if PRODUCAO==1:
             LoguruIntegration(
                 level=LoggingLevels.INFO.value,
                 event_level=LoggingLevels.ERROR.value,
-                sentry_logs_level=LoggingLevels.INFO.value,
+                #sentry_logs_level=LoggingLevels.INFO.value,
             ),
         ],
         send_default_pii=True,
     )
-
+    ignore_logger("waitress")
+    ignore_logger("waitress.queue")
+    
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 csrf = CSRFProtect(app)
@@ -206,31 +208,11 @@ if PRODUCAO==1:
                compression='gz')
     logger.add(handler, format="{time} | {name} | {level} | {message} | {extra}", level="INFO",
                serialize=True,backtrace=False, diagnose=False)
-    #logging.basicConfig(filename=WORKING_DIR + 'app.log',
-    #                filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
-    #                level=logging.INFO)
 else:
     logger.add("app.log", rotation="20 MB", retention=30, backtrace=False,
                diagnose=False, level="INFO", serialize=False,mode='w',
                format="{time} | {name} | {level} | {message} | {extra}",
                compression='gz')
-    #logging.basicConfig(filename=WORKING_DIR + 'app.log',
-    #                filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
-    #                level=logging.INFO)
-
-#if PRODUCAO==1:
-#    handler = LogtailHandler(
-#        source_token=BS_SOURCE_TOKEN,
-#        host=BS_HOST,
-#    )
-
-#    logger.setLevel(logging.INFO)
-#    logger.handlers = []
-#    logger.addHandler(handler)
-#    logging.getLogger('flask-limiter').setLevel(logging.INFO)
-#    logging.getLogger('apscheduler.scheduler').setLevel(logging.INFO)
-#    logging.getLogger('flask-limiter').addHandler(handler)
-#    logging.getLogger('apscheduler.scheduler').addHandler(handler)
 
 logger.enable("")
 logger.disable("waitress")

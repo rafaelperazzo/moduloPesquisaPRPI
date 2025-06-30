@@ -121,8 +121,6 @@ if PRODUCAO==1:
         ],
         send_default_pii=True,
     )
-    ignore_logger("waitress")
-    ignore_logger("waitress.queue")
     
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -214,9 +212,10 @@ else:
                format="{time} | {name} | {level} | {message} | {extra}",
                compression='gz')
 
-logger.enable("")
 logger.disable("waitress")
 logger.disable("waitress.queue")
+logger.enable("apscheduler.scheduler")
+logger.enable("flask-limiter")
 
 #Obtendo senhas
 PASSWORD = os.getenv("DB_PASSWORD", "World")

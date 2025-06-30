@@ -179,6 +179,8 @@ if PRODUCAO==1:
     )
     logger.disable("waitress.queue")
     logger.disable("waitress")
+    logger.enable("flask-limiter")
+    logger.enable("apscheduler.scheduler")
     logger.add("app.json", rotation="20 MB", retention=30, backtrace=False,
                diagnose=False, level="INFO", serialize=True,mode='a',
                format="{time} | {name} | {level} | {message} | {extra}",

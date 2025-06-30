@@ -47,6 +47,7 @@ from flask import jsonify
 import logging
 import inspect
 
+logger.remove()
 class InterceptHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         # Get corresponding Loguru level if it exists.
@@ -100,28 +101,6 @@ DSN_SENTRY = os.getenv("DSN_SENTRY", "")
 BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
 BS_HOST = os.getenv("BS_HOST", "")
 
-if PRODUCAO==1:
-    # CONFIGURANDO SENTRY
-    ignore_logger("waitress")
-    ignore_logger("waitress.queue")
-    sentry_sdk.init(
-        dsn=DSN_SENTRY,
-        _experiments={
-            "enable_logs": True
-        },
-        integrations = [
-            FlaskIntegration(
-                transaction_style="url",
-            ),
-            LoguruIntegration(
-                level=LoggingLevels.INFO.value,
-                event_level=LoggingLevels.ERROR.value,
-                #sentry_logs_level=LoggingLevels.INFO.value,
-            ),
-        ],
-        send_default_pii=True,
-    )
-    
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 csrf = CSRFProtect(app)
@@ -217,6 +196,30 @@ logger.disable("waitress.queue")
 logger.enable("apscheduler.scheduler")
 logger.enable("flask-limiter")
 
+if PRODUCAO==1:
+    # CONFIGURANDO SENTRY
+    ignore_logger("waitress")
+    ignore_logger("waitress.queue")
+    ignore_logger("apscheduler.scheduler")
+    ignore_logger("flask-limiter")
+    sentry_sdk.init(
+        dsn=DSN_SENTRY,
+        _experiments={
+            "enable_logs": True
+        },
+        integrations = [
+            FlaskIntegration(
+                transaction_style="url",
+            ),
+            LoguruIntegration(
+                level=LoggingLevels.INFO.value,
+                event_level=LoggingLevels.ERROR.value,
+                sentry_logs_level=LoggingLevels.INFO.value,
+            ),
+        ],
+        send_default_pii=True,
+    )
+    
 #Obtendo senhas
 PASSWORD = os.getenv("DB_PASSWORD", "World")
 GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD", "World")

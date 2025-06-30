@@ -1,3 +1,4 @@
+	2025-06-30 14:03:37 -0300	feat: Loguru configurado
 	2025-06-30 10:45:29 -0300	fix: Ajustes no root.html
 	2025-06-29 19:00:18 -0300	fix: Colocado logger.catch na aplicação inteira
 	2025-06-29 17:31:46 -0300	fix: Corrigidas strings dos logs de %s para {} - compatibilidade com loguru

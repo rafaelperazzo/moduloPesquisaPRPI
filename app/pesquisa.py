@@ -179,19 +179,19 @@ if PRODUCAO==1:
     )
     logger.disable("waitress.queue")
     logger.disable("waitress")
-    logger.add("app.log", rotation="20 MB", retention=30, backtrace=False,
+    logger.add("app.json", rotation="20 MB", retention=30, backtrace=False,
                diagnose=False, level="INFO", serialize=True,mode='a',
-               format="{time} | {name} | {level} | {message}",
+               format="{time} | {name} | {level} | {message} | {extra}",
                compression='gz')
-    logger.add(handler, format="{time} | {name} | {level} | {message}", level="INFO",
+    logger.add(handler, format="{time} | {name} | {level} | {message} | {extra}", level="INFO",
                serialize=True,backtrace=False, diagnose=False)
     #logging.basicConfig(filename=WORKING_DIR + 'app.log',
     #                filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
     #                level=logging.INFO)
 else:
-    logger.add("app.log", rotation="20 MB", retention=30, backtrace=True,
-               diagnose=True, level="INFO", serialize=True,mode='w',
-               format="{time} | {name} | {level} | {message}",
+    logger.add("app.log", rotation="20 MB", retention=30, backtrace=False,
+               diagnose=False, level="INFO", serialize=True,mode='w',
+               format="{time} | {name} | {level} | {message} | {extra}",
                compression='gz')
     #logging.basicConfig(filename=WORKING_DIR + 'app.log',
     #                filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
@@ -258,7 +258,8 @@ def log_required(f):
         if session.get('username') is None:
             logger.info("{} | {} | {} | N/A | N/A",request.remote_addr,request.path,request.method)
         else:
-            logger.info("{} | {} | {} | {} | N/A",request.remote_addr,request.path,request.method,session['username'])
+            with logger.contextualize(username=session['username']):
+                logger.info("{} | {} | {} | N/A",request.remote_addr,request.path,request.method)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -713,7 +714,7 @@ def home():
 
 @app.route("/version")
 def version():
-    return __version__
+    return jsonify({"version": __version__})
 
 @app.route("/admin")
 @login_required(role='admin')
@@ -3681,10 +3682,10 @@ def task_enviar_email_avaliadores():
                 except Exception as e:
                     logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: {}",str(e))
                 consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
-                atualizar(consulta)    
+                atualizar(consulta)
             except Exception as e:
                 logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: {} - ({})", email_avaliador,str(e))
-                return("Erro! Verifique o log!")
+                continue
     logger.info("Tarefa de envio de e-mails para avaliadores concluída com sucesso.")
 
 @scheduler.task('cron', id='do_job_enviar_email_avaliadores', week='*', day_of_week='2,4', hour='7', minute='45')
@@ -3759,7 +3760,7 @@ def task_enviar_lembrete_frequencia():
                     msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
                     try:
                         mail.send(msg)
-                        logger.info("E-mail enviado: Lembrete de frequência para {}",orientador)
+                        logger.info("E-mail enviado: Lembrete de frequência {}/{} para {}",nome_mes[str(mes)],ano,orientador)
                     except Exception as e:
                         logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: {}",str(e))
                 else:
@@ -3768,8 +3769,7 @@ def task_enviar_lembrete_frequencia():
                         mail.send(msg)
                         logger.info("E-mail enviado: Lembrete de frequência para {}",orientador)
                     except Exception as e:
-                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
-                        logger.error(str(e))
+                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: {}",str(e))
                     finally:
                         continue
 

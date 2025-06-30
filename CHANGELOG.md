@@ -1,3 +1,4 @@
+	2025-06-29 19:00:18 -0300	fix: Colocado logger.catch na aplicação inteira
 	2025-06-29 17:31:46 -0300	fix: Corrigidas strings dos logs de %s para {} - compatibilidade com loguru
 	2025-06-29 15:04:54 -0300	feat: Iniciada migração para loguru
 	2025-06-29 09:16:24 -0300	fix: Desativada API do Scheduler

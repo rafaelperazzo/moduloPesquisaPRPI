@@ -39,8 +39,25 @@ Página administrativa
         </tr>
     {% endfor %}
 </table>
-<p><a href="/pesquisa/emailSolicitarAvaliacao">ENVIAR OS E-MAILs PARA OS AVALIADORES</a></p>
-<p><a href="/pesquisa/cadastrar_usuario">CADASTRAR NOVO USUÁRIO</a></p>
-<p><a href="{{url_for('ligar_scheduler')}}">Ligar Scheduler</a></p>
-<p><a href="{{url_for('desligar_scheduler')}}">Desligar Scheduler</a></p>
+<hr>
+<div class="container text-center">
+  <div class="row">
+    <div class="col">
+      <a href="{{url_for('email_solicitar_avaliacao')}}">ENVIAR OS E-MAILs PARA OS AVALIADORES</a>
+    </div>
+    <div class="col">
+      <a href="{{url_for('cadastrar_usuario')}}">CADASTRAR NOVO USUÁRIO</a>
+    </div>
+    <div class="col">
+      <a href="{{url_for('ligar_scheduler')}}">Ligar Scheduler</a>
+    </div>
+    <div class="col">
+      <a href="{{url_for('desligar_scheduler')}}">Desligar Scheduler</a>
+    </div>
+    <div class="col">
+      <a href="{{url_for('scheduler_jobs')}}">Tarefas agendadas</a>
+    </div>
+  </div>
+</div>
+
 {% endblock %}

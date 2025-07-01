@@ -1,3 +1,4 @@
+	2025-06-30 19:04:08 -0300	fix: Tentando corrigir os logs duplicados no sentry sem afetar o betterstack
 	2025-06-30 17:16:22 -0300	fix: Habilitando apenas os logs requeridos e não todos
 	2025-06-30 16:58:40 -0300	fix: Sentry com logs duplicados
 	2025-06-30 16:39:09 -0300	fix: Todos os logs encaminhados para o loguru

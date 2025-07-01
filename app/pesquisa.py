@@ -48,6 +48,7 @@ import logging
 import inspect
 
 logger.remove()
+
 class InterceptHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         # Get corresponding Loguru level if it exists.
@@ -66,7 +67,6 @@ class InterceptHandler(logging.Handler):
         logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
-
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -172,7 +172,9 @@ AES_KEY = os.getenv("AES_KEY", "000000")
 GPG_KEY = os.getenv("GPG_KEY", "000000")
 cripto = SecCripto(AES_KEY)
 
-#logger = logging.getLogger('pesquisa')
+ignore_logger("waitress")
+logger.disable("waitress")
+logger.disable("sentry_sdk")
 
 if PRODUCAO==1:
     handler = LogtailHandler(
@@ -191,17 +193,8 @@ else:
                format="{time} | {name} | {level} | {message} | {extra}",
                compression='gz')
 
-logger.disable("waitress")
-logger.disable("waitress.queue")
-logger.enable("apscheduler.scheduler")
-logger.enable("flask-limiter")
-
 if PRODUCAO==1:
     # CONFIGURANDO SENTRY
-    ignore_logger("waitress")
-    ignore_logger("waitress.queue")
-    ignore_logger("apscheduler.scheduler")
-    ignore_logger("flask-limiter")
     sentry_sdk.init(
         dsn=DSN_SENTRY,
         _experiments={
@@ -268,7 +261,8 @@ def log_required(f):
             logger.info("{} | {} | {} | N/A | N/A",request.remote_addr,request.path,request.method)
         else:
             with logger.contextualize(username=session['username']):
-                logger.info("{} | {} | {} | N/A",request.remote_addr,request.path,request.method)
+                logger.info("{} | {} | {} | {} | N/A",request.remote_addr,
+                            request.path,request.method,session['username'])
         return f(*args, **kwargs)
     return decorated_function
 

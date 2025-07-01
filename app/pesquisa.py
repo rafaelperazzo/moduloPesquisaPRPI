@@ -258,9 +258,10 @@ def log_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get('username') is None:
-            logger.info("{} | {} | {} | N/A | N/A",request.remote_addr,request.path,request.method)
+            with logger.contextualize(ip=request.remote_addr,username="N/A",rota=request.path,metodo=request.method):
+                logger.info("{} | {} | {} | N/A | N/A",request.remote_addr,request.path,request.method)
         else:
-            with logger.contextualize(username=session['username']):
+            with logger.contextualize(ip=request.remote_addr,username=session['username'],rota=request.path,metodo=request.method):
                 logger.info("{} | {} | {} | {} | N/A",request.remote_addr,
                             request.path,request.method,session['username'])
         return f(*args, **kwargs)
@@ -659,13 +660,16 @@ def verify_password(username, password):
             try:
                 if cripto.hash_argon2id_verify(hash_senha, password):
                     continuar = True
-                    logger.info(f"{request.remote_addr} | {request.path} | {request.method} | {username} | AUTENTICADO")
+                    with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
+                        logger.info("Usuário autenticado com sucesso")
                 else:
                     continuar = False
-                    logger.warning(f"{request.remote_addr} | {request.path} | {request.method} | {username} | SENHA INVÁLIDA")
-            except Exception:
+                    with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
+                        logger.warning("Usuário/Senha inválida")
+            except Exception as e:
                 continuar = False
-                logger.warning(f"{request.remote_addr} | {request.path} | {request.method} | {username} | VERIFICAÇÃO COM ARGON2")
+                with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=str(e)):
+                    logger.warning("Senha inválida. Erro no Argon2")
         else:
             continuar = False
         if continuar is False: #Usuário inexistente ou senha inválida
@@ -680,7 +684,8 @@ def verify_password(username, password):
             session['edital'] = 0
             return username
     except Exception as e:
-        logger.error("ERRO Na função verify_password: {}. Ver consulta: {}", str(e), consulta2)
+        with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=str(e),consulta=consulta2):
+            logger.error("ERRO Na função verify_password")
 
 @auth.get_user_roles
 def get_user_roles(user):
@@ -1004,7 +1009,8 @@ def getScoreLattesFromFile():
     try:
         salvarCV(idlattes)
     except Exception as e:
-        logger.warning("[/SCORE] Nao foi possivel baixar o curriculo do IDlattes ({}). Erro: {}",str(idlattes),str(e))
+        with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,erro=str(e),idlattes=idlattes):
+            logger.warning("[/SCORE] Nao foi possivel baixar o curriculo do IDlattes")
         return("[/SCORE] Não foi possível baixar o currículo. IDLattes inválido, ou problemas na comunicação com o CNPq. Tente novamente.")
     arquivo = XML_DIR + idlattes + ".xml"
     try:
@@ -1015,7 +1021,8 @@ def getScoreLattesFromFile():
         sumario = str(score.sumario())
         return(sumario)
     except Exception as e:
-        logger.error("[SCORELATTES] Erro ao calcular o scorelattes: {}", str(e))
+        with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,erro=str(e),idlattes=idlattes):
+            logger.error("[SCORELATTES] Erro ao calcular o scorelattes")
         return("Erro ao calcular pontuacao!")
 
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam

@@ -1,3 +1,4 @@
+	2025-07-01 11:07:43 -0300	fix: corrigidos logs do verify_password e score
 	2025-07-01 10:53:10 -0300	feat: adicionados novos campos ao extra do log_required
 	2025-07-01 10:40:57 -0300	fix: Configuração do loguru e sentry em conflito foi resolvida. Apenas os logs da aplicação serão registrados.
 	2025-06-30 19:04:08 -0300	fix: Tentando corrigir os logs duplicados no sentry sem afetar o betterstack

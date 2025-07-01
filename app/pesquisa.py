@@ -1021,7 +1021,8 @@ def getScoreLattesFromFile():
         sumario = str(score.sumario())
         return(sumario)
     except Exception as e:
-        logger.error("[SCORELATTES] Erro ao calcular o scorelattes: {}", str(e))
+        with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,erro=str(e),idlattes=idlattes):
+            logger.error("[SCORELATTES] Erro ao calcular o scorelattes")
         return("Erro ao calcular pontuacao!")
 
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam

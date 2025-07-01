@@ -89,6 +89,6 @@ Este projeto Flask foi desenvolvido com atenção às melhores práticas de segu
   - Configuração de cabeçalhos de segurança (HSTS, X-Frame-Options, etc.) com **Flask-Talisman**.
 
 - **Auditoria e Monitoramento**
-  - Registro de logs de acesso e erros com **Flask-Logging**, **BetterStack** e **Sentry** .
+  - Registro de logs de acesso e erros com **Loguru** estruturado, **BetterStack** e **Sentry** .
   - Monitoramento de erros, desempenho e disponibilidade com **BetterStack** e **Sentry**.
   

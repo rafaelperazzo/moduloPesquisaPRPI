@@ -47,6 +47,8 @@ from flask import jsonify
 import logging
 import inspect
 
+logger.remove()
+
 class InterceptHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         # Get corresponding Loguru level if it exists.
@@ -65,7 +67,6 @@ class InterceptHandler(logging.Handler):
         logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
-
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
@@ -99,28 +100,6 @@ LINK_AVALIACAO = ROOT_SITE + URL_PREFIX + "/avaliacao"
 DSN_SENTRY = os.getenv("DSN_SENTRY", "")
 BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
 BS_HOST = os.getenv("BS_HOST", "")
-
-if PRODUCAO==1:
-    # CONFIGURANDO SENTRY
-    ignore_logger("waitress")
-    ignore_logger("waitress.queue")
-    sentry_sdk.init(
-        dsn=DSN_SENTRY,
-        _experiments={
-            "enable_logs": True
-        },
-        integrations = [
-            FlaskIntegration(
-                transaction_style="url",
-            ),
-            LoguruIntegration(
-                level=LoggingLevels.INFO.value,
-                event_level=LoggingLevels.ERROR.value,
-                sentry_logs_level=LoggingLevels.INFO.value,
-            ),
-        ],
-        send_default_pii=True,
-    )
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -193,7 +172,9 @@ AES_KEY = os.getenv("AES_KEY", "000000")
 GPG_KEY = os.getenv("GPG_KEY", "000000")
 cripto = SecCripto(AES_KEY)
 
-#logger = logging.getLogger('pesquisa')
+ignore_logger("waitress")
+logger.disable("waitress")
+logger.disable("sentry_sdk")
 
 if PRODUCAO==1:
     handler = LogtailHandler(
@@ -206,36 +187,32 @@ if PRODUCAO==1:
                compression='gz')
     logger.add(handler, format="{time} | {name} | {level} | {message} | {extra}", level="INFO",
                serialize=True,backtrace=False, diagnose=False)
-    #logging.basicConfig(filename=WORKING_DIR + 'app.log',
-    #                filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
-    #                level=logging.INFO)
 else:
     logger.add("app.log", rotation="20 MB", retention=30, backtrace=False,
                diagnose=False, level="INFO", serialize=False,mode='w',
                format="{time} | {name} | {level} | {message} | {extra}",
                compression='gz')
-    #logging.basicConfig(filename=WORKING_DIR + 'app.log',
-    #                filemode='w', format='%(asctime)s %(name)s - %(levelname)s - %(message)s',
-    #                level=logging.INFO)
 
-#if PRODUCAO==1:
-#    handler = LogtailHandler(
-#        source_token=BS_SOURCE_TOKEN,
-#        host=BS_HOST,
-#    )
-
-#    logger.setLevel(logging.INFO)
-#    logger.handlers = []
-#    logger.addHandler(handler)
-#    logging.getLogger('flask-limiter').setLevel(logging.INFO)
-#    logging.getLogger('apscheduler.scheduler').setLevel(logging.INFO)
-#    logging.getLogger('flask-limiter').addHandler(handler)
-#    logging.getLogger('apscheduler.scheduler').addHandler(handler)
-
-logger.enable("")
-logger.disable("waitress")
-logger.disable("waitress.queue")
-
+if PRODUCAO==1:
+    # CONFIGURANDO SENTRY
+    sentry_sdk.init(
+        dsn=DSN_SENTRY,
+        _experiments={
+            "enable_logs": True
+        },
+        integrations = [
+            FlaskIntegration(
+                transaction_style="url",
+            ),
+            LoguruIntegration(
+                level=LoggingLevels.INFO.value,
+                event_level=LoggingLevels.ERROR.value,
+                sentry_logs_level=LoggingLevels.INFO.value,
+            ),
+        ],
+        send_default_pii=True,
+    )
+    
 #Obtendo senhas
 PASSWORD = os.getenv("DB_PASSWORD", "World")
 GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD", "World")
@@ -284,7 +261,8 @@ def log_required(f):
             logger.info("{} | {} | {} | N/A | N/A",request.remote_addr,request.path,request.method)
         else:
             with logger.contextualize(username=session['username']):
-                logger.info("{} | {} | {} | N/A",request.remote_addr,request.path,request.method)
+                logger.info("{} | {} | {} | {} | N/A",request.remote_addr,
+                            request.path,request.method,session['username'])
         return f(*args, **kwargs)
     return decorated_function
 

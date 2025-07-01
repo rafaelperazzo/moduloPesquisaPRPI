@@ -258,9 +258,10 @@ def log_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get('username') is None:
-            logger.info("{} | {} | {} | N/A | N/A",request.remote_addr,request.path,request.method)
+            with logger.contextualize(ip=request.remote_addr,username="N/A",rota=request.path,metodo=request.method):
+                logger.info("{} | {} | {} | N/A | N/A",request.remote_addr,request.path,request.method)
         else:
-            with logger.contextualize(username=session['username']):
+            with logger.contextualize(ip=request.remote_addr,username=session['username'],rota=request.path,metodo=request.method):
                 logger.info("{} | {} | {} | {} | N/A",request.remote_addr,
                             request.path,request.method,session['username'])
         return f(*args, **kwargs)

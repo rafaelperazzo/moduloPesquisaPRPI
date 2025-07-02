@@ -175,6 +175,8 @@ cripto = SecCripto(AES_KEY)
 ignore_logger("waitress")
 logger.disable("waitress")
 logger.disable("sentry_sdk")
+logger.enable("apscheduler")
+logger.enable("flask-limiter")
 
 if PRODUCAO==1:
     handler = LogtailHandler(
@@ -259,11 +261,10 @@ def log_required(f):
     def decorated_function(*args, **kwargs):
         if session.get('username') is None:
             with logger.contextualize(ip=request.remote_addr,username="N/A",rota=request.path,metodo=request.method):
-                logger.info("{} | {} | {} | N/A | N/A",request.remote_addr,request.path,request.method)
+                logger.info("Acesso a recurso (NÃO AUTENTICADO)")
         else:
             with logger.contextualize(ip=request.remote_addr,username=session['username'],rota=request.path,metodo=request.method):
-                logger.info("{} | {} | {} | {} | N/A",request.remote_addr,
-                            request.path,request.method,session['username'])
+                logger.info("Acesso a recurso (AUTENTICADO)")
         return f(*args, **kwargs)
     return decorated_function
 
@@ -668,7 +669,7 @@ def verify_password(username, password):
                         logger.warning("Usuário/Senha inválida")
             except Exception as e:
                 continuar = False
-                with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=str(e)):
+                with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=str(e),classe_erro=type(e).__name__):
                     logger.warning("Senha inválida. Erro no Argon2")
         else:
             continuar = False
@@ -684,7 +685,7 @@ def verify_password(username, password):
             session['edital'] = 0
             return username
     except Exception as e:
-        with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=str(e),consulta=consulta2):
+        with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=str(e),consulta=consulta2,classe_erro=type(e).__name__):
             logger.error("ERRO Na função verify_password")
 
 @auth.get_user_roles
@@ -1009,7 +1010,7 @@ def getScoreLattesFromFile():
     try:
         salvarCV(idlattes)
     except Exception as e:
-        with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,erro=str(e),idlattes=idlattes):
+        with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,erro=str(e),idlattes=idlattes,classe_erro=type(e).__name__):
             logger.warning("[/SCORE] Nao foi possivel baixar o curriculo do IDlattes")
         return("[/SCORE] Não foi possível baixar o currículo. IDLattes inválido, ou problemas na comunicação com o CNPq. Tente novamente.")
     arquivo = XML_DIR + idlattes + ".xml"
@@ -2190,7 +2191,7 @@ def registrar_acesso(ip,usuario):
 
 @app.route("/login", methods=['POST','GET'])
 @log_required
-@limiter.limit("30/day;15/hour;5/minute",methods=["POST"])
+@limiter.limit("30/day;15/hour;3/minute",methods=["POST"])
 def login():
     '''
     Método que ativa a sessão com os dados do usuário
@@ -2223,7 +2224,8 @@ def thread_enviar_senha(msg):
             mail.send(msg)
             logger.info("E-mail enviado com sucesso. /enviarMinhaSenha")
         except Exception as e:
-            logger.error("Erro ao enviar e-mail: {}. /enviarMinhaSenha", str(e))
+            with logger.contextualize(rota='/enviarMinhaSenha',erro=str(e),classe_erro=type(e).__name__):
+                logger.error("Erro ao enviar e-mail de redefinição de senha")
 
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 @log_required
@@ -2251,7 +2253,8 @@ def enviarMinhaSenha():
                 #Redirecionando para a página de login
                 return(render_template('login.html',mensagem='Senha enviada para o email: ' + email))
             else:
-                logger.info("[{}][/enviarMinhaSenha]E-mail {} não cadastrado.", request.remote_addr, email)
+                with logger.contextualize(ip=request.remote_addr,rota=request.path,email=email):
+                    logger.info("Redefinição de senha para e-mail não cadastrado")
                 flash("E-mail não cadastrado. Solicite seu cadastro no setor responsável.","error")
                 return redirect(url_for('home'))
         else:

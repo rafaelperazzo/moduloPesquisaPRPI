@@ -1,3 +1,4 @@
+	2025-07-01 15:47:12 -0300	docs: Readme atualizado para Loguru
 	2025-07-01 11:09:43 -0300	fix: corrigido log final do /score
 	2025-07-01 11:07:43 -0300	fix: corrigidos logs do verify_password e score
 	2025-07-01 10:53:10 -0300	feat: adicionados novos campos ao extra do log_required

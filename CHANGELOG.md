@@ -1,3 +1,4 @@
+	2025-07-03 08:40:30 -0300	fix: Adicionado backup do CPPGI ao script de backup
 	2025-07-02 14:11:00 -0300	fix: Formato do log atualizado para melhor visualização
 	2025-07-01 15:47:12 -0300	docs: Readme atualizado para Loguru
 	2025-07-01 11:09:43 -0300	fix: corrigido log final do /score

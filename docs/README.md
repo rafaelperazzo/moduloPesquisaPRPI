@@ -38,7 +38,7 @@ Sistema web desenvolvido para auxiliar no gerenciamento e acompanhamento de proj
 
 [![Static Badge](https://img.shields.io/badge/Dashboard%20-%20LOGS%20-%20blue)](https://telemetry.betterstack.com/dashboards/5Y3xD2)
 
-[![Static Badge](https://img.shields.io/badge/Dashboard%20-%20LOGS%20-%20blue)](https://telemetry.betterstack.com/dashboards/PIrf6r)
+[![Static Badge](https://img.shields.io/badge/Dashboard%20-%20INFRA%20-%20blue)](https://telemetry.betterstack.com/dashboards/13w7Sq)
 
 ## 📌 Funcionalidades
 

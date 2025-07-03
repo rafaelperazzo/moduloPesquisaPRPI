@@ -1,3 +1,4 @@
+	2025-07-03 13:09:45 -0300	docs: Adicionado dashboard do servidor sci01
 	2025-07-03 09:28:58 -0300	fix: Adicionado backup do MARIADB ao script de backup
 	2025-07-03 08:55:02 -0300	fix: Adicionado backup do DOCS ao script de backup
 	2025-07-03 08:40:30 -0300	fix: Adicionado backup do CPPGI ao script de backup

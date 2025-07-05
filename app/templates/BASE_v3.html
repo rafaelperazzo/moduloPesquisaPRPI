@@ -74,6 +74,18 @@
         {% endwith %}
     </div>
 
+    <div class="container">
+        {%if session['mensagens'] %}
+            <hr>
+                {% for mensagem in session['mensagens'] %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ mensagem }}
+                    </div>
+                {% endfor %}
+            <hr>
+        {% endif %}
+    </div>
+
     <div id="content">
         {% block content %}{% endblock %}
     </div>

@@ -2203,6 +2203,7 @@ def login():
             senha = senha[:64]  # Limitar o tamanho da senha para evitar problemas ataques DoS
             if verify_password(siape,senha):
                 registrar_acesso(request.remote_addr,siape)
+                #TODO: Carregar mensagens para a sessão do usuário
                 return(redirect(url_for('home')))
             else:
                 flash("Usuário ou senha inválidos. Tente novamente.","error")
@@ -3848,6 +3849,40 @@ def scheduler_jobs():
         return jsonify(jobs_info)
     else:
         return jsonify({'message': 'Scheduler não está em execução.'})
+
+def carregar_mensagens():
+    """
+    Carrega as mensagens do banco de dados para exibição.
+    """
+    consulta = """SELECT mensagem,validade FROM mensagens WHERE validade>NOW() ORDER BY data DESC"""
+    linhas,total = executarSelect(consulta)
+    lista = []
+    for linha in linhas:
+        mensagem = {
+            'mensagem': linha[1],
+            'validade': str(linha[2]),
+        }
+        lista.append(mensagem)
+    return lista
+
+@app.route("/mensagens", methods=['GET', 'POST'])
+@login_required(role='admin')
+@log_required
+def mensagens():
+    """
+    Página para enviar mensagens aos usuários do sistema.
+    """
+    if request.method == 'POST':
+        mensagem = str(request.form['mensagem'])
+        validade = str(request.form['validade'])
+        consulta = """INSERT INTO mensagens (mensagem,validade,data) 
+        VALUES (?, ?, NOW())"""
+        #TODO: Implementar envio de mensagens para usuários
+        #atualizar2(consulta, valores=[mensagem,validade])
+        flash("Recurso não implementado no momento.")
+        return redirect(url_for('home'))
+    else:
+        return render_template('mensagens.html')
 
 if PRODUCAO==1:
     scheduler.start()

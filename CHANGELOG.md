@@ -1,3 +1,4 @@
+	2025-07-05 18:52:56 -0300	fix: Corrigidos dados das mensagens no template BASE3
 	2025-07-05 18:51:33 -0300	fix: Corrigidos dados do carregar_mensagens()
 	2025-07-05 18:50:35 -0300	feat: Recurso de adicionar mensagens - inserido no /login
 	2025-07-05 18:45:45 -0300	feat: Iniciada implementação do recurso de mensagens gerais

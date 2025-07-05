@@ -2203,7 +2203,6 @@ def login():
             senha = senha[:64]  # Limitar o tamanho da senha para evitar problemas ataques DoS
             if verify_password(siape,senha):
                 registrar_acesso(request.remote_addr,siape)
-                #TODO: Carregar mensagens para a sessão do usuário
                 session['mensagens'] = carregar_mensagens()
                 return(redirect(url_for('home')))
             else:
@@ -3877,12 +3876,11 @@ def mensagens():
     if request.method == 'POST':
         mensagem = str(request.form['mensagem'])
         validade = str(request.form['validade'])
-        consulta = """INSERT INTO mensagens (mensagem,validade,data) 
-        VALUES (?, ?, NOW())"""
-        #TODO: Implementar envio de mensagens para usuários
-        #atualizar2(consulta, valores=[mensagem,validade])
-        flash("Recurso não implementado no momento.")
-        return redirect(url_for('home'))
+        consulta = """INSERT INTO mensagens (mensagem,validade) 
+        VALUES (?, ?)"""
+        atualizar2(consulta, valores=[mensagem,validade])
+        flash("Mensagem enviada com sucesso!")
+        return redirect(url_for('admin'))
     else:
         return render_template('mensagens.html')
 

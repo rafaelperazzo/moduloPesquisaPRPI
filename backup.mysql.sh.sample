@@ -20,6 +20,6 @@ rm -f `ls -t *.gz| awk 'NR>21'`
 rm -f `ls -t *.gpg| awk 'NR>21'`
 echo "Backup para proton..."
 rclone sync --progress /backup/pesquisa3/share/ remote:SISTEMAS/PESQUISA/BACKUP/
-rclone sync --progress /backup/cppgi/share/ remote:SISTEMAS/CPPGI/BACKUP/
-rclone sync --progress /backup/docs.sci01/share/ remote:SISTEMAS/DOCS/BACKUP/
-rclone sync --progress /backup/mariadb01/share/ remote:SISTEMAS/MARIADB/BACKUP/
+#rclone sync --progress /backup/cppgi/share/ remote:SISTEMAS/CPPGI/BACKUP/
+#rclone sync --progress /backup/docs.sci01/share/ remote:SISTEMAS/DOCS/BACKUP/
+#rclone sync --progress /backup/mariadb01/share/ remote:SISTEMAS/MARIADB/BACKUP/

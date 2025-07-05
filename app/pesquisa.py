@@ -3855,13 +3855,14 @@ def carregar_mensagens():
     """
     Carrega as mensagens do banco de dados para exibição.
     """
-    consulta = """SELECT mensagem,validade FROM mensagens WHERE validade>NOW() ORDER BY data DESC"""
+    consulta = """SELECT mensagem,validade,data FROM mensagens WHERE validade>NOW() ORDER BY data DESC"""
     linhas,total = executarSelect(consulta)
     lista = []
     for linha in linhas:
         mensagem = {
-            'mensagem': linha[1],
-            'validade': str(linha[2]),
+            'mensagem': linha[0],
+            'validade': str(linha[1]),
+            'data': str(linha[2]),
         }
         lista.append(mensagem)
     return lista

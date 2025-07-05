@@ -1,3 +1,4 @@
+	2025-07-05 18:50:35 -0300	feat: Recurso de adicionar mensagens - inserido no /login
 	2025-07-05 18:45:45 -0300	feat: Iniciada implementação do recurso de mensagens gerais
 	2025-07-05 12:56:56 -0300	fix: script backup.mysql preparado para migração para a yokoapps
 	2025-07-03 13:12:28 -0300	docs: Adicionado dashboard do servidor sci01 - corrigido

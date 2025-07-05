@@ -79,7 +79,7 @@
             <hr>
                 {% for mensagem in session['mensagens'] %}
                     <div class="alert alert-danger" role="alert">
-                        {{ mensagem }}
+                        [{{mensagem.data}}]{{ mensagem.mensagem }} - Válida até: {{ mensagem.validade }}
                     </div>
                 {% endfor %}
             <hr>

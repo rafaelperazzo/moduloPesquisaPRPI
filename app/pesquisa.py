@@ -2204,6 +2204,7 @@ def login():
             if verify_password(siape,senha):
                 registrar_acesso(request.remote_addr,siape)
                 #TODO: Carregar mensagens para a sessão do usuário
+                session['mensagens'] = carregar_mensagens()
                 return(redirect(url_for('home')))
             else:
                 flash("Usuário ou senha inválidos. Tente novamente.","error")

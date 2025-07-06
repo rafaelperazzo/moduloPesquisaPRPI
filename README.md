@@ -48,7 +48,7 @@ Sistema web desenvolvido para auxiliar no gerenciamento e acompanhamento de proj
 
 ## 🛠️ Tecnologias Utilizadas
 
-- **Linguagem:** Python 3.13.4 (container)
+- **Linguagem:** Python 3.13.5 (container)
 - **Framework Web:** Flask  3.1.1
 - **Banco de Dados:** (MariaDB 11.7.2)
 

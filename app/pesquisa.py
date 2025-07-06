@@ -46,6 +46,7 @@ from loguru import logger
 from flask import jsonify
 import logging
 import inspect
+from openvpnclient import OpenVPNClient
 
 logger.remove()
 
@@ -170,6 +171,7 @@ app.config['TEMP_FOLDER'] = DECLARACOES_DIR
 
 AES_KEY = os.getenv("AES_KEY", "000000")
 GPG_KEY = os.getenv("GPG_KEY", "000000")
+OPENVPN_KEY = os.getenv("OPENVPN_KEY", "000000")
 cripto = SecCripto(AES_KEY)
 
 ignore_logger("waitress")
@@ -719,7 +721,8 @@ def secret_page():
 @app.route("/")
 def home():
     session['PRODUCAO'] = PRODUCAO
-    return render_template('root.html')
+    mensagens = carregar_mensagens()
+    return render_template('root.html',mensagens=mensagens)
 
 @app.route("/version")
 def version():
@@ -2203,7 +2206,6 @@ def login():
             senha = senha[:64]  # Limitar o tamanho da senha para evitar problemas ataques DoS
             if verify_password(siape,senha):
                 registrar_acesso(request.remote_addr,siape)
-                session['mensagens'] = carregar_mensagens()
                 return(redirect(url_for('home')))
             else:
                 flash("Usuário ou senha inválidos. Tente novamente.","error")
@@ -3864,6 +3866,7 @@ def carregar_mensagens():
             'data': str(linha[2]),
         }
         lista.append(mensagem)
+    logger.info(lista)
     return lista
 
 @app.route("/mensagens", methods=['GET', 'POST'])

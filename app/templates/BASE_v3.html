@@ -75,11 +75,10 @@
     </div>
 
     <div class="container">
-        {%if session['mensagens'] %}
-            <hr>
-                {% for mensagem in session['mensagens'] %}
-                    <div class="alert alert-danger" role="alert">
-                        [{{mensagem.data}}]{{ mensagem.mensagem }} - Válida até: {{ mensagem.validade }}
+        {%if mensagens %}
+                {% for mensagem in mensagens %}
+                    <div class="alert alert-warning" role="alert">
+                        {{ mensagem.mensagem }}
                     </div>
                 {% endfor %}
             <hr>

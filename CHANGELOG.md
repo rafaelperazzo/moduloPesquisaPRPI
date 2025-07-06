@@ -1,3 +1,4 @@
+	2025-07-06 14:10:06 -0300	feat: Adicionado mmdb de IPs geolite2
 	2025-07-06 13:52:47 -0300	fix: removido código vpn
 	2025-07-06 10:21:07 -0300	fix: removido openvpn por conta da imagem ainda não estar preparada para conectar ao openvpn
 	2025-07-06 10:00:57 -0300	feat: Incluída classe para conexão com servidor openvpn e recurso de envio de mensagens funcionando

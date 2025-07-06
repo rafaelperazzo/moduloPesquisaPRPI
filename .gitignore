@@ -1,3 +1,4 @@
+app/*.gpg
 .vscode/
 *.gpg
 *.enc

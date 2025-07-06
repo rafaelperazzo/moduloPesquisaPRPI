@@ -46,7 +46,8 @@ from loguru import logger
 from flask import jsonify
 import logging
 import inspect
-from openvpnclient import OpenVPNClient
+#from openvpnclient import OpenVPNClient
+#import requests
 
 logger.remove()
 
@@ -3886,6 +3887,21 @@ def mensagens():
         return redirect(url_for('admin'))
     else:
         return render_template('mensagens.html')
+
+'''
+@app.route("/vpn", methods=['GET'])
+@login_required(role='admin')
+@log_required
+def openvpn():
+    """
+    Página para acessar a VPN.
+    """
+    cripto.aes_gpg_decrypt_file(OPENVPN_KEY, 'flask.ovpn.gpg', 'flask.ovpn')
+    with OpenVPNClient('flask.ovpn') as vpn:
+        os.remove('flask.ovpn')
+        r = requests.get('https://ip.me',timeout=10)
+    return (r)
+'''
 
 if PRODUCAO==1:
     scheduler.start()

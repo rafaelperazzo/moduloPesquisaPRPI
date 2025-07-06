@@ -42,7 +42,7 @@ services:
     networks:
       - web  
   pesquisa:
-    image: ghcr.io/rafaelperazzo/python3:v1.2.0
+    image: ghcr.io/rafaelperazzo/python3:v1.1.0
     command: python3 pesquisa.py
     depends_on:
       db_pesquisa:

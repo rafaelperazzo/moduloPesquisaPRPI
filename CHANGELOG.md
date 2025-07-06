@@ -1,3 +1,4 @@
+	2025-07-06 10:00:57 -0300	feat: Incluída classe para conexão com servidor openvpn e recurso de envio de mensagens funcionando
 	2025-07-05 18:57:30 -0300	fix: Removidos TODO do recurso de envio de mensagens. Recurso ainda não testado
 	2025-07-05 18:52:56 -0300	fix: Corrigidos dados das mensagens no template BASE3
 	2025-07-05 18:51:33 -0300	fix: Corrigidos dados do carregar_mensagens()

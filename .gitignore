@@ -1,3 +1,5 @@
+app/*.mmdb
+app/*.gpg
 .vscode/
 *.gpg
 *.enc

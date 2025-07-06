@@ -78,6 +78,7 @@ services:
       DSN_SENTRY: ${DSN_SENTRY}
       BS_SOURCE_TOKEN: ${BS_SOURCE_TOKEN}
       BS_HOST: ${BS_HOST}
+      OPENVPN_KEY: ${OPENVPN_KEY}
     
     healthcheck:
       test: ["CMD", "curl", "-f", "http://ip.me"]

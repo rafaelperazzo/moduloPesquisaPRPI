@@ -170,6 +170,7 @@ app.config['TEMP_FOLDER'] = DECLARACOES_DIR
 
 AES_KEY = os.getenv("AES_KEY", "000000")
 GPG_KEY = os.getenv("GPG_KEY", "000000")
+OPENVPN_KEY = os.getenv("OPENVPN_KEY", "000000")
 cripto = SecCripto(AES_KEY)
 
 ignore_logger("waitress")
@@ -719,7 +720,8 @@ def secret_page():
 @app.route("/")
 def home():
     session['PRODUCAO'] = PRODUCAO
-    return render_template('root.html')
+    mensagens = carregar_mensagens()
+    return render_template('root.html',mensagens=mensagens)
 
 @app.route("/version")
 def version():
@@ -3848,6 +3850,41 @@ def scheduler_jobs():
         return jsonify(jobs_info)
     else:
         return jsonify({'message': 'Scheduler não está em execução.'})
+
+def carregar_mensagens():
+    """
+    Carrega as mensagens do banco de dados para exibição.
+    """
+    consulta = """SELECT mensagem,validade,data FROM mensagens WHERE validade>NOW() ORDER BY data DESC"""
+    linhas,total = executarSelect(consulta)
+    lista = []
+    for linha in linhas:
+        mensagem = {
+            'mensagem': linha[0],
+            'validade': str(linha[1]),
+            'data': str(linha[2]),
+        }
+        lista.append(mensagem)
+    logger.info(lista)
+    return lista
+
+@app.route("/mensagens", methods=['GET', 'POST'])
+@login_required(role='admin')
+@log_required
+def mensagens():
+    """
+    Página para enviar mensagens aos usuários do sistema.
+    """
+    if request.method == 'POST':
+        mensagem = str(request.form['mensagem'])
+        validade = str(request.form['validade'])
+        consulta = """INSERT INTO mensagens (mensagem,validade) 
+        VALUES (?, ?)"""
+        atualizar2(consulta, valores=[mensagem,validade])
+        flash("Mensagem enviada com sucesso!")
+        return redirect(url_for('admin'))
+    else:
+        return render_template('mensagens.html')
 
 if PRODUCAO==1:
     scheduler.start()

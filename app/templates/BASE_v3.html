@@ -74,6 +74,17 @@
         {% endwith %}
     </div>
 
+    <div class="container">
+        {%if mensagens %}
+                {% for mensagem in mensagens %}
+                    <div class="alert alert-warning" role="alert">
+                        {{ mensagem.mensagem }}
+                    </div>
+                {% endfor %}
+            <hr>
+        {% endif %}
+    </div>
+
     <div id="content">
         {% block content %}{% endblock %}
     </div>

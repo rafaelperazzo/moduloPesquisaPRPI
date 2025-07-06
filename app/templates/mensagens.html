@@ -1,0 +1,22 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+    <div class="container border shadow-none p-3 mb-5 bg-body-tertiary rounded">
+        <center><h2>Mensagens</h2></center>
+        <form method="post" action="{{ url_for('mensagens') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="mb-3">
+                <label for="mensagem" class="form-label">Mensagem</label>
+                <textarea class="form-control" id="mensagem" name="mensagem" rows="3" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="validade" class="form-label">Validade</label>
+                <input type="datetime-local" class="form-control" id="validade" name="validade" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Enviar</button>
+        </form>
+        {% if config['producao']==1 %}
+            <center><div class="g-recaptcha" data-sitekey="6Ldl_8MZAAAAADd_cg-jdWmz25_hrzwYIslPGvbl"></div></center>
+        {% endif %}
+        
+    </div>
+{% endblock %}

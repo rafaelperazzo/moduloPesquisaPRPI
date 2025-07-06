@@ -1,3 +1,15 @@
+	2025-07-06 14:16:44 -0300	fix: gitignore para mmdb
+	2025-07-06 14:10:06 -0300	feat: Adicionado mmdb de IPs geolite2
+	2025-07-06 13:52:47 -0300	fix: removido código vpn
+	2025-07-06 10:21:07 -0300	fix: removido openvpn por conta da imagem ainda não estar preparada para conectar ao openvpn
+	2025-07-06 10:00:57 -0300	feat: Incluída classe para conexão com servidor openvpn e recurso de envio de mensagens funcionando
+	2025-07-05 18:57:30 -0300	fix: Removidos TODO do recurso de envio de mensagens. Recurso ainda não testado
+	2025-07-05 18:52:56 -0300	fix: Corrigidos dados das mensagens no template BASE3
+	2025-07-05 18:51:33 -0300	fix: Corrigidos dados do carregar_mensagens()
+	2025-07-05 18:50:35 -0300	feat: Recurso de adicionar mensagens - inserido no /login
+	2025-07-05 18:45:45 -0300	feat: Iniciada implementação do recurso de mensagens gerais
+	2025-07-05 12:56:56 -0300	fix: script backup.mysql preparado para migração para a yokoapps
+	2025-07-03 13:12:28 -0300	docs: Adicionado dashboard do servidor sci01 - corrigido
 	2025-07-03 13:09:45 -0300	docs: Adicionado dashboard do servidor sci01
 	2025-07-03 09:28:58 -0300	fix: Adicionado backup do MARIADB ao script de backup
 	2025-07-03 08:55:02 -0300	fix: Adicionado backup do DOCS ao script de backup

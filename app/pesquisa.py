@@ -3879,7 +3879,6 @@ def carregar_mensagens():
             'data': str(linha[2]),
         }
         lista.append(mensagem)
-    logger.info(lista)
     return lista
 
 @app.route("/mensagens", methods=['GET', 'POST'])

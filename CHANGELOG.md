@@ -1,3 +1,9 @@
+	2025-07-07 15:48:27 -0300	fix: erro de merge
+	2025-07-07 15:46:22 -0300	fix: scorelattes
+	2025-07-07 15:44:02 -0300	fix: O scorelattes agorat tenta baixar o curriculo por 5 vezes antes de mostrar mensagem de erro.
+	2025-07-07 15:41:41 -0300	fix: O scorelattes agorat tenta baixar o curriculo por 5 vezes antes de mostrar mensagem de erro.
+	2025-07-07 08:57:43 -0300	fix: Removido log do cadastrar_mensagens
+	2025-07-06 18:58:02 -0300	docs: Atualizada versão do python nos docs para 3.13.5
 	2025-07-06 14:16:44 -0300	fix: gitignore para mmdb
 	2025-07-06 14:10:06 -0300	feat: Adicionado mmdb de IPs geolite2
 	2025-07-06 13:52:47 -0300	fix: removido código vpn

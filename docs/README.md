@@ -48,6 +48,7 @@ Sistema web desenvolvido para auxiliar no gerenciamento e acompanhamento de proj
 - 🧾 Consulta e visualização de resultados dos projetos
 - 👨‍🎓 Indicação e acompanhamento de discentes vinculados
 - 📤 Envio de folhas de frequência mensal
+- 🧾 Baixa automaticamento o Lattes a partir do IDLattes
 
 ---
 

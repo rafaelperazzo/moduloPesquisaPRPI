@@ -1,3 +1,4 @@
+	2025-07-06 18:58:02 -0300	docs: Atualizada versão do python nos docs para 3.13.5
 	2025-07-06 14:16:44 -0300	fix: gitignore para mmdb
 	2025-07-06 14:10:06 -0300	feat: Adicionado mmdb de IPs geolite2
 	2025-07-06 13:52:47 -0300	fix: removido código vpn

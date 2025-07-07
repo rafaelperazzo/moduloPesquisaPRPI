@@ -46,6 +46,7 @@ from loguru import logger
 from flask import jsonify
 import logging
 import inspect
+import requests
 
 logger.remove()
 
@@ -1009,12 +1010,25 @@ def getScoreLattesFromFile():
     periodo = int(str(request.form['periodo']))
     if not numero_valido(periodo) or periodo not in [5,7]:
         return "Período inválido! Informe um número inteiro positivo."
-    try:
-        salvarCV(idlattes)
-    except Exception as e:
-        with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,erro=str(e),idlattes=idlattes,classe_erro=type(e).__name__):
-            logger.warning("[/SCORE] Nao foi possivel baixar o curriculo do IDlattes")
-        return("[/SCORE] Não foi possível baixar o currículo. IDLattes inválido, ou problemas na comunicação com o CNPq. Tente novamente.")
+    continuar = False
+    for i in range(1,6,1):
+        try:
+            salvarCV(idlattes)
+            continuar = True
+            with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,idlattes=idlattes):
+                logger.info("Currículo do IDlattes {} baixado com sucesso em {} tentativa(s).", idlattes,i)
+        except requests.exceptions.ConnectionError as e:
+            with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,erro=str(e),idlattes=idlattes,classe_erro=type(e).__name__):
+                logger.warning("Erro de conexão ao baixar o currículo do IDlattes")
+            continuar = False
+        except Exception as e:
+            with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,erro=str(e),idlattes=idlattes,classe_erro=type(e).__name__):
+                logger.warning("Nao foi possivel baixar o curriculo do IDlattes")
+            continuar = False
+        if continuar:
+            break
+        else:
+            return("Não foi possível baixar o currículo. IDLattes inválido, ou problemas na comunicação com o CNPq. Tente novamente mais tarde.")
     arquivo = XML_DIR + idlattes + ".xml"
     try:
         from datetime import date

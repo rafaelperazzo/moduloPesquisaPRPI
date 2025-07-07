@@ -1,3 +1,4 @@
+	2025-07-07 15:44:02 -0300	fix: O scorelattes agorat tenta baixar o curriculo por 5 vezes antes de mostrar mensagem de erro.
 	2025-07-07 15:41:41 -0300	fix: O scorelattes agorat tenta baixar o curriculo por 5 vezes antes de mostrar mensagem de erro.
 	2025-07-06 18:58:02 -0300	docs: Atualizada versão do python nos docs para 3.13.5
 	2025-07-06 14:16:44 -0300	fix: gitignore para mmdb

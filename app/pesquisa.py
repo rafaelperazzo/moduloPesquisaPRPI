@@ -246,6 +246,12 @@ def utility_processor():
         return secrets.token_hex(16)
     return dict(gen_nonce=gen_nonce)
 
+@app.context_processor
+def inject_messages():
+    def get_messages():
+        return carregar_mensagens()
+    return dict(get_messages=get_messages)
+
 def login_required(role='admin'):
     def decorator_login_required(f):
         @wraps(f)
@@ -284,11 +290,19 @@ def getDados(ip):
                     'state': response.subdivisions.most_specific.name,
                 }
             except geoip2.errors.AddressNotFoundError:
-                return {
-                    'country': "NAO-ENCONTRADO",
-                    'city': "NAO-ENCONTRADO",
-                    'state': "NAO-ENCONTRADO",
-                }
+                if "10." in ip or "192.168." in ip or "172.16." in ip:
+                    # IPs privados não são geolocalizáveis
+                    return {
+                        'country': "INTERNO",
+                        'city': "INTERNO",
+                        'state': "INTERNO",
+                    }
+                else:
+                    return {
+                        'country': "NAO-ENCONTRADO",
+                        'city': "NAO-ENCONTRADO",
+                        'state': "NAO-ENCONTRADO",
+                    }
             except Exception as e:
                 with logger.contextualize(ip=ip,erro=str(e),classe_erro=type(e).__name__):
                     logger.error("Erro ao obter dados de geolocalização: {}", str(e))
@@ -757,7 +771,6 @@ def secret_page():
 @app.route("/")
 def home():
     session['PRODUCAO'] = PRODUCAO
-    mensagens = carregar_mensagens()
     return render_template('root.html',mensagens=mensagens)
 
 @app.route("/version")
@@ -3940,7 +3953,9 @@ def carregar_mensagens():
     """
     Carrega as mensagens do banco de dados para exibição.
     """
-    consulta = """SELECT mensagem,validade,data FROM mensagens WHERE validade>NOW() ORDER BY data DESC"""
+    consulta = """SELECT mensagem,validade,data 
+    FROM mensagens 
+    WHERE validade>NOW() ORDER BY data DESC LIMIT 1"""
     linhas,total = executarSelect(consulta)
     lista = []
     for linha in linhas:

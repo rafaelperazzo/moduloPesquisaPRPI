@@ -75,14 +75,12 @@
     </div>
 
     <div class="container">
-        {%if mensagens %}
-                {% for mensagem in mensagens %}
-                    <div class="alert alert-warning" role="alert">
-                        {{ mensagem.mensagem }}
-                    </div>
-                {% endfor %}
-            <hr>
-        {% endif %}
+            {% for mensagem in get_messages() %}
+                <div class="alert alert-warning" role="alert">
+                    <b>{{ mensagem.mensagem }}</b>
+                </div>
+                <hr>
+            {% endfor %}
     </div>
 
     <div id="content">

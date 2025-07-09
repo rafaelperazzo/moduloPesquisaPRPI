@@ -1,3 +1,4 @@
+	2025-07-07 15:50:37 -0300	fix: /score - tenta 5 vezes baixar o curriculo
 	2025-07-07 15:48:27 -0300	fix: erro de merge
 	2025-07-07 15:46:22 -0300	fix: scorelattes
 	2025-07-07 15:44:02 -0300	fix: O scorelattes agorat tenta baixar o curriculo por 5 vezes antes de mostrar mensagem de erro.

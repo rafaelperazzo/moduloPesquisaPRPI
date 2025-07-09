@@ -1915,7 +1915,12 @@ def minhaDeclaracao():
                         'margin-bottom': '1cm',
                         'margin-left': '2cm',
                     }
-                    pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                    try:
+                        pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                    except Exception as e:
+                        with logger.contextualize(rota=request.path,erro=str(e),classe_erro=type(e).__name__):
+                            logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                        return("Erro ao gerar declaração. Tente novamente mais tarde.")
                     return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
                     
                 else:
@@ -1940,7 +1945,12 @@ def minhaDeclaracao():
                             'margin-bottom': '1cm',
                             'margin-left': '2cm',
                         }
-                        pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                        try: 
+                            pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                        except Exception as e:
+                            with logger.contextualize(rota=request.path,erro=str(e),classe_erro=type(e).__name__):
+                                logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                            return("Erro ao gerar declaração. Tente novamente mais tarde.")
                         return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
                     else:
                         return("declaracao inexistente...")
@@ -1965,7 +1975,12 @@ def minhaDeclaracao():
                             'margin-bottom': '1cm',
                             'margin-left': '2cm',
                         }
-                        pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                        try:
+                            pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                        except Exception as e:
+                            with logger.contextualize(rota=request.path,erro=str(e),classe_erro=type(e).__name__):
+                                logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                            return("Erro ao gerar declaração. Tente novamente mais tarde.")
                         return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
                     else:
                         return("declaracao inexistente...")
@@ -1997,7 +2012,12 @@ def minhaDeclaracaoDiscente():
                     'margin-bottom': '1cm',
                     'margin-left': '2cm',
                 }
-                pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                try:
+                    pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                except Exception as e:
+                    with logger.contextualize(rota=request.path,erro=str(e),classe_erro=type(e).__name__):
+                        logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                    return("Erro ao gerar declaração. Tente novamente mais tarde.")
                 return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
                 
             else:
@@ -2057,7 +2077,12 @@ def meuCertificado2018():
                     ],
                     'no-outline': None
                 }
-                pdfkit.from_string(render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=token,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                try:
+                    pdfkit.from_string(render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=token,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                except Exception as e:
+                    with logger.contextualize(rota=request.path,erro=str(e),classe_erro=type(e).__name__):
+                        logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                    return("Erro ao gerar declaração. Tente novamente mais tarde.")
                 return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
                 return("declaração inexistente!")
@@ -2109,7 +2134,12 @@ def meuCertificado():
                     ],
                     'no-outline': None
                 }
-                pdfkit.from_string(render_template('certificado_discente.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                try:
+                    pdfkit.from_string(render_template('certificado_discente.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                except Exception as e:
+                    with logger.contextualize(rota=request.path,erro=str(e),classe_erro=type(e).__name__):
+                        logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                    return("Erro ao gerar declaração. Tente novamente mais tarde.")
                 return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
                 return("declaração inexistente!")
@@ -2146,7 +2176,12 @@ def minhaDeclaracaoDiscente2019():
                     'margin-bottom': '1cm',
                     'margin-left': '2cm',
                 }
-                pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                try:
+                    pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                except Exception as e:
+                    with logger.contextualize(rota=request.path,erro=str(e),classe_erro=type(e).__name__):
+                        logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                    return("Erro ao gerar declaração. Tente novamente mais tarde.")
                 return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
                 return("declaração inexistente!")
@@ -2241,7 +2276,7 @@ def thread_enviar_senha(msg):
             logger.info("E-mail enviado com sucesso. /enviarMinhaSenha")
         except Exception as e:
             with logger.contextualize(rota='/enviarMinhaSenha',erro=str(e),classe_erro=type(e).__name__):
-                logger.error("Erro ao enviar e-mail de redefinição de senha")
+                logger.warning("Erro ao enviar e-mail de redefinição de senha")
 
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 @log_required

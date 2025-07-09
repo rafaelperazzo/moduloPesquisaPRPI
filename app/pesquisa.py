@@ -47,6 +47,7 @@ from flask import jsonify
 import logging
 import inspect
 import requests
+import geoip2.database
 
 logger.remove()
 
@@ -193,7 +194,7 @@ if PRODUCAO==1:
                serialize=True,backtrace=False, diagnose=False)
 else:
     logger.add("app.log", rotation="20 MB", retention=30, backtrace=False,
-               diagnose=False, level="INFO", serialize=False,mode='w',
+               diagnose=False, level="INFO", serialize=True,mode='w',
                format="{time} | {name} | {level} | {message} | {extra}",
                compression='gz')
 
@@ -261,14 +262,49 @@ def login_required(role='admin'):
 def log_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        geolocalizacao = getDados(request.remote_addr)
         if session.get('username') is None:
-            with logger.contextualize(ip=request.remote_addr,username="N/A",rota=request.path,metodo=request.method):
+            with logger.contextualize(ip=request.remote_addr,username="N/A",rota=request.path,metodo=request.method,cidade=geolocalizacao['city'],estado=geolocalizacao['state'],pais=geolocalizacao['country']):
                 logger.info("Acesso a recurso (NÃO AUTENTICADO)")
         else:
-            with logger.contextualize(ip=request.remote_addr,username=session['username'],rota=request.path,metodo=request.method):
+            with logger.contextualize(ip=request.remote_addr,username=session['username'],rota=request.path,metodo=request.method,cidade=geolocalizacao['city'],estado=geolocalizacao['state'],pais=geolocalizacao['country']):
                 logger.info("Acesso a recurso (AUTENTICADO)")
         return f(*args, **kwargs)
     return decorated_function
+
+def getDados(ip):
+    """Obtém dados de geolocalização a partir de um IP."""
+    try:
+        with geoip2.database.Reader('geolite2-city.mmdb') as reader:
+            try:
+                response = reader.city(ip)
+                return {
+                    'country': response.country.name,
+                    'city': response.city.name,
+                    'state': response.subdivisions.most_specific.name,
+                }
+            except geoip2.errors.AddressNotFoundError:
+                return {
+                    'country': "NAO-ENCONTRADO",
+                    'city': "NAO-ENCONTRADO",
+                    'state': "NAO-ENCONTRADO",
+                }
+            except Exception as e:
+                with logger.contextualize(ip=ip,erro=str(e),classe_erro=type(e).__name__):
+                    logger.error("Erro ao obter dados de geolocalização: {}", str(e))
+                return {
+                    'country': "NAO-ENCONTRADO",
+                    'city': "NAO-ENCONTRADO",
+                    'state': "NAO-ENCONTRADO",
+                }
+    except Exception as e:
+        with logger.contextualize(ip=ip,erro=str(e),classe_erro=type(e).__name__):
+            logger.error("Erro ao abrir o banco de dados de geolocalização: {}", str(e))
+        return {
+            'country': "NAO-ENCONTRADO",
+            'city': "NAO-ENCONTRADO",
+            'state': "NAO-ENCONTRADO",
+        }
 
 def calcula_hash(mensagem):
     """

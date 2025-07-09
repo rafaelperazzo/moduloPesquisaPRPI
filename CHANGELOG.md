@@ -1,3 +1,4 @@
+	2025-07-09 14:39:40 -0300	fix: Inserido o IP no logger de todas as chamdas ao pdfkit
 	2025-07-09 14:37:48 -0300	fix: Colocado try-except em todas as chamdas ao pdfkit
 	2025-07-07 15:50:37 -0300	fix: /score - tenta 5 vezes baixar o curriculo
 	2025-07-07 15:48:27 -0300	fix: erro de merge

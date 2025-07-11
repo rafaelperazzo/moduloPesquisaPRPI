@@ -2534,62 +2534,68 @@ def idSiape(id,siape):
         else:
             return(False)
 
-'''
-Verifica quantos voluntários já foram indicados para o id do projeto
-'''
 def quantosVoluntariosIndicados(id):
+    '''
+    Verifica quantos voluntários já foram indicados para o id do projeto
+    '''
     consulta = """SELECT count(id) FROM indicacoes WHERE tipo_de_vaga=0 AND idProjeto=""" + id
     linhas,total = executarSelect(consulta,1)
     numero = int(linhas[0])
     return (numero)
 
-'''
-Verifica quantos voluntários adicionais já foram indicados para o id do projeto
-'''
 def quantosVoluntariosAdicionaisIndicados(id):
+    '''
+    Verifica quantos voluntários adicionais já foram indicados para o id do projeto
+    '''
     consulta = """SELECT count(id) FROM indicacoes WHERE tipo_de_vaga=0 AND arquivo_plano!='N/A' AND situacao=0 AND idProjeto=""" + id
     linhas,total = executarSelect(consulta,1)
     numero = int(linhas[0])
     return (numero)
 
-
-'''
-Verifica se um projeto pode indicar voluntários adicionais
-'''
 def podeIndicarVoluntariosAdicionais(id):
+    '''
+    Verifica se um projeto pode indicar voluntários adicionais
+    '''
     voluntariosAdicionaisIndicados = quantosVoluntariosAdicionaisIndicados(id)
     if (voluntariosAdicionaisIndicados<=2):
         return (True)
     else:
         return (False)
 
-'''
-Verifica se um projeto pode indicar voluntários
-'''
-def podeIndicarVoluntarios(id):
-    bolsas_obtidas = int(obterColunaUnica('editalProjeto','bolsas_concedidas','id',id))
-    bolsas_solicitadas = int(obterColunaUnica('editalProjeto','bolsas','id',id))
-    bolsistasIndicados = quantosBolsistasIndicados(id)
-    voluntariosIndicados = quantosVoluntariosIndicados(id)
-    totalDeVoluntarios = bolsas_solicitadas-bolsas_obtidas
+
+def podeIndicarVoluntarios(idProjeto):
+    '''
+    Verifica se um projeto pode indicar voluntários
+    '''
+    bolsas_obtidas = int(obterColunaUnica('editalProjeto','bolsas_concedidas','id',idProjeto))
+    bolsas_solicitadas = int(obterColunaUnica('editalProjeto','bolsas','id',idProjeto))
+    bolsistasIndicados = quantosBolsistasIndicados(idProjeto)
+    voluntariosIndicados = quantosVoluntariosIndicados(idProjeto)
+    tem_arquivo_plano3 = obterColunaUnica('editalProjeto','arquivo_plano3','id',idProjeto)
+    if tem_arquivo_plano3!='0':
+        tem_arquivo_plano3 = 1
+    else:
+        tem_arquivo_plano3 = 0
+    totalDeVoluntarios = bolsas_solicitadas-bolsas_obtidas + tem_arquivo_plano3
     if (voluntariosIndicados<totalDeVoluntarios):
         return (True)
     else:
         return (False)
 
-'''
-Verifica quantos bolsistas já foram indicados para o id do projeto
-'''
 def quantosBolsistasIndicados(id):
+    '''
+    Verifica quantos bolsistas já foram indicados para o id do projeto
+    '''
     consulta = """SELECT count(id) FROM indicacoes WHERE tipo_de_vaga=1 AND idProjeto=""" + id
     linhas,total = executarSelect(consulta,1)
     numero = int(linhas[0])
     return (numero)
 
-'''
-Verifica se um projeto pode indicar bolsistas
-'''
+
 def podeIndicarBolsistas(id):
+    '''
+    Verifica se um projeto pode indicar bolsistas
+    '''
     bolsas_obtidas = int(obterColunaUnica('editalProjeto','bolsas_concedidas','id',id))
     if bolsas_obtidas>0:
         #Verificar se ainda restam bolsistas a serem indicados
@@ -2600,10 +2606,10 @@ def podeIndicarBolsistas(id):
     else:
         return(False)
 
-'''
-Verifica se o edital está no prazo para indicação de bolsistas/voluntários
-'''
 def dataDeIndicacao(codigoEdital):
+    '''
+    Verifica se o edital está no prazo para indicação de bolsistas/voluntários
+    '''
     consulta = """SELECT id FROM editais WHERE NOW() BETWEEN indicacao_inicio AND indicacao_termino AND id=""" + codigoEdital
     linhas,total = executarSelect(consulta)
     if total==0:
@@ -2626,7 +2632,7 @@ def indicacao():
             indicacao_fim = str(obterColunaUnica('editais',"""DATE_FORMAT(indicacao_termino,'%d/%m/%Y')""",'id',str(edital)))
             modalidade = int(obterColunaUnica('editalProjeto','modalidade','id',idProjeto))
             if (autenticado()):
-                if idSiape(idProjeto,session['username']):
+                if idSiape(idProjeto,session['username']) or 'admin' in session['roles']:
                     if dataDeIndicacao(str(edital)):
                         if b==1: #INDICAÇÃO DE BOLSISTA
                             if podeIndicarBolsistas(idProjeto):
@@ -2637,10 +2643,7 @@ def indicacao():
                             if podeIndicarVoluntarios(idProjeto):
                                 return(render_template('indicacao.html',inicio=indicacao_inicio,fim=indicacao_fim,continua=1,modalidade=modalidade,vaga=b,idProjeto=idProjeto,plano=0,substituicao=0))
                             else:
-                                if podeIndicarVoluntariosAdicionais(idProjeto):
-                                    return(render_template('indicacao.html',inicio=indicacao_inicio,fim=indicacao_fim,continua=1,modalidade=modalidade,vaga=b,idProjeto=idProjeto,plano=1,substituicao=0))
-                                else:
-                                    return("Você já indicou todos os voluntários do projeto. Caso tenha havido algum engano, favor entrar em contato com a PRPI.")
+                                return("Você já indicou todos os voluntários do projeto. Caso tenha havido algum engano, favor entrar em contato com a PRPI.")
                     else:
                         return(render_template('indicacao.html',inicio=indicacao_inicio,fim=indicacao_fim,continua=0,substituicao=0))
                 else:

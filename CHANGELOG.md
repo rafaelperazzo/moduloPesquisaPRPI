@@ -1,3 +1,4 @@
+	2025-07-09 16:10:28 -0300	fix: Ajustes no template BASE_v3 com relação as mensagem mostradas no início da página
 	2025-07-09 15:08:20 -0300	feat: Adicionados dados de geolocalização nos logs
 	2025-07-09 14:39:40 -0300	fix: Inserido o IP no logger de todas as chamdas ao pdfkit
 	2025-07-09 14:37:48 -0300	fix: Colocado try-except em todas as chamdas ao pdfkit

@@ -47,6 +47,7 @@ from flask import jsonify
 import logging
 import inspect
 import requests
+import geoip2.database
 
 logger.remove()
 
@@ -193,7 +194,7 @@ if PRODUCAO==1:
                serialize=True,backtrace=False, diagnose=False)
 else:
     logger.add("app.log", rotation="20 MB", retention=30, backtrace=False,
-               diagnose=False, level="INFO", serialize=False,mode='w',
+               diagnose=False, level="INFO", serialize=True,mode='w',
                format="{time} | {name} | {level} | {message} | {extra}",
                compression='gz')
 
@@ -245,6 +246,12 @@ def utility_processor():
         return secrets.token_hex(16)
     return dict(gen_nonce=gen_nonce)
 
+@app.context_processor
+def inject_messages():
+    def get_messages():
+        return carregar_mensagens()
+    return dict(get_messages=get_messages)
+
 def login_required(role='admin'):
     def decorator_login_required(f):
         @wraps(f)
@@ -261,14 +268,57 @@ def login_required(role='admin'):
 def log_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        geolocalizacao = getDados(request.remote_addr)
         if session.get('username') is None:
-            with logger.contextualize(ip=request.remote_addr,username="N/A",rota=request.path,metodo=request.method):
+            with logger.contextualize(ip=request.remote_addr,username="N/A",rota=request.path,metodo=request.method,cidade=geolocalizacao['city'],estado=geolocalizacao['state'],pais=geolocalizacao['country']):
                 logger.info("Acesso a recurso (NÃO AUTENTICADO)")
         else:
-            with logger.contextualize(ip=request.remote_addr,username=session['username'],rota=request.path,metodo=request.method):
+            with logger.contextualize(ip=request.remote_addr,username=session['username'],rota=request.path,metodo=request.method,cidade=geolocalizacao['city'],estado=geolocalizacao['state'],pais=geolocalizacao['country']):
                 logger.info("Acesso a recurso (AUTENTICADO)")
         return f(*args, **kwargs)
     return decorated_function
+
+def getDados(ip):
+    """Obtém dados de geolocalização a partir de um IP."""
+    try:
+        with geoip2.database.Reader('geolite2-city.mmdb') as reader:
+            try:
+                response = reader.city(ip)
+                return {
+                    'country': response.country.name,
+                    'city': response.city.name,
+                    'state': response.subdivisions.most_specific.name,
+                }
+            except geoip2.errors.AddressNotFoundError:
+                if "10." in ip or "192.168." in ip or "172.16." in ip:
+                    # IPs privados não são geolocalizáveis
+                    return {
+                        'country': "INTERNO",
+                        'city': "INTERNO",
+                        'state': "INTERNO",
+                    }
+                else:
+                    return {
+                        'country': "NAO-ENCONTRADO",
+                        'city': "NAO-ENCONTRADO",
+                        'state': "NAO-ENCONTRADO",
+                    }
+            except Exception as e:
+                with logger.contextualize(ip=ip,erro=str(e),classe_erro=type(e).__name__):
+                    logger.error("Erro ao obter dados de geolocalização: {}", str(e))
+                return {
+                    'country': "NAO-ENCONTRADO",
+                    'city': "NAO-ENCONTRADO",
+                    'state': "NAO-ENCONTRADO",
+                }
+    except Exception as e:
+        with logger.contextualize(ip=ip,erro=str(e),classe_erro=type(e).__name__):
+            logger.error("Erro ao abrir o banco de dados de geolocalização: {}", str(e))
+        return {
+            'country': "NAO-ENCONTRADO",
+            'city': "NAO-ENCONTRADO",
+            'state': "NAO-ENCONTRADO",
+        }
 
 def calcula_hash(mensagem):
     """
@@ -721,7 +771,6 @@ def secret_page():
 @app.route("/")
 def home():
     session['PRODUCAO'] = PRODUCAO
-    mensagens = carregar_mensagens()
     return render_template('root.html',mensagens=mensagens)
 
 @app.route("/version")
@@ -1915,7 +1964,12 @@ def minhaDeclaracao():
                         'margin-bottom': '1cm',
                         'margin-left': '2cm',
                     }
-                    pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                    try:
+                        pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                    except Exception as e:
+                        with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
+                            logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                        return("Erro ao gerar declaração. Tente novamente mais tarde.")
                     return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
                     
                 else:
@@ -1940,7 +1994,12 @@ def minhaDeclaracao():
                             'margin-bottom': '1cm',
                             'margin-left': '2cm',
                         }
-                        pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                        try: 
+                            pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                        except Exception as e:
+                            with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
+                                logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                            return("Erro ao gerar declaração. Tente novamente mais tarde.")
                         return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
                     else:
                         return("declaracao inexistente...")
@@ -1965,7 +2024,12 @@ def minhaDeclaracao():
                             'margin-bottom': '1cm',
                             'margin-left': '2cm',
                         }
-                        pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                        try:
+                            pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                        except Exception as e:
+                            with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
+                                logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                            return("Erro ao gerar declaração. Tente novamente mais tarde.")
                         return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
                     else:
                         return("declaracao inexistente...")
@@ -1997,7 +2061,12 @@ def minhaDeclaracaoDiscente():
                     'margin-bottom': '1cm',
                     'margin-left': '2cm',
                 }
-                pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                try:
+                    pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                except Exception as e:
+                    with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
+                        logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                    return("Erro ao gerar declaração. Tente novamente mais tarde.")
                 return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
                 
             else:
@@ -2057,7 +2126,12 @@ def meuCertificado2018():
                     ],
                     'no-outline': None
                 }
-                pdfkit.from_string(render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=token,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                try:
+                    pdfkit.from_string(render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=token,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                except Exception as e:
+                    with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
+                        logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                    return("Erro ao gerar declaração. Tente novamente mais tarde.")
                 return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
                 return("declaração inexistente!")
@@ -2109,7 +2183,12 @@ def meuCertificado():
                     ],
                     'no-outline': None
                 }
-                pdfkit.from_string(render_template('certificado_discente.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                try:
+                    pdfkit.from_string(render_template('certificado_discente.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                except Exception as e:
+                    with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
+                        logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                    return("Erro ao gerar declaração. Tente novamente mais tarde.")
                 return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
                 return("declaração inexistente!")
@@ -2146,7 +2225,12 @@ def minhaDeclaracaoDiscente2019():
                     'margin-bottom': '1cm',
                     'margin-left': '2cm',
                 }
-                pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                try:
+                    pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                except Exception as e:
+                    with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
+                        logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                    return("Erro ao gerar declaração. Tente novamente mais tarde.")
                 return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
                 return("declaração inexistente!")
@@ -2241,7 +2325,7 @@ def thread_enviar_senha(msg):
             logger.info("E-mail enviado com sucesso. /enviarMinhaSenha")
         except Exception as e:
             with logger.contextualize(rota='/enviarMinhaSenha',erro=str(e),classe_erro=type(e).__name__):
-                logger.error("Erro ao enviar e-mail de redefinição de senha")
+                logger.warning("Erro ao enviar e-mail de redefinição de senha")
 
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 @log_required
@@ -2450,62 +2534,68 @@ def idSiape(id,siape):
         else:
             return(False)
 
-'''
-Verifica quantos voluntários já foram indicados para o id do projeto
-'''
 def quantosVoluntariosIndicados(id):
+    '''
+    Verifica quantos voluntários já foram indicados para o id do projeto
+    '''
     consulta = """SELECT count(id) FROM indicacoes WHERE tipo_de_vaga=0 AND idProjeto=""" + id
     linhas,total = executarSelect(consulta,1)
     numero = int(linhas[0])
     return (numero)
 
-'''
-Verifica quantos voluntários adicionais já foram indicados para o id do projeto
-'''
 def quantosVoluntariosAdicionaisIndicados(id):
+    '''
+    Verifica quantos voluntários adicionais já foram indicados para o id do projeto
+    '''
     consulta = """SELECT count(id) FROM indicacoes WHERE tipo_de_vaga=0 AND arquivo_plano!='N/A' AND situacao=0 AND idProjeto=""" + id
     linhas,total = executarSelect(consulta,1)
     numero = int(linhas[0])
     return (numero)
 
-
-'''
-Verifica se um projeto pode indicar voluntários adicionais
-'''
 def podeIndicarVoluntariosAdicionais(id):
+    '''
+    Verifica se um projeto pode indicar voluntários adicionais
+    '''
     voluntariosAdicionaisIndicados = quantosVoluntariosAdicionaisIndicados(id)
     if (voluntariosAdicionaisIndicados<=2):
         return (True)
     else:
         return (False)
 
-'''
-Verifica se um projeto pode indicar voluntários
-'''
-def podeIndicarVoluntarios(id):
-    bolsas_obtidas = int(obterColunaUnica('editalProjeto','bolsas_concedidas','id',id))
-    bolsas_solicitadas = int(obterColunaUnica('editalProjeto','bolsas','id',id))
-    bolsistasIndicados = quantosBolsistasIndicados(id)
-    voluntariosIndicados = quantosVoluntariosIndicados(id)
-    totalDeVoluntarios = bolsas_solicitadas-bolsas_obtidas
+
+def podeIndicarVoluntarios(idProjeto):
+    '''
+    Verifica se um projeto pode indicar voluntários
+    '''
+    bolsas_obtidas = int(obterColunaUnica('editalProjeto','bolsas_concedidas','id',idProjeto))
+    bolsas_solicitadas = int(obterColunaUnica('editalProjeto','bolsas','id',idProjeto))
+    bolsistasIndicados = quantosBolsistasIndicados(idProjeto)
+    voluntariosIndicados = quantosVoluntariosIndicados(idProjeto)
+    tem_arquivo_plano3 = obterColunaUnica('editalProjeto','arquivo_plano3','id',idProjeto)
+    if tem_arquivo_plano3!='0':
+        tem_arquivo_plano3 = 1
+    else:
+        tem_arquivo_plano3 = 0
+    totalDeVoluntarios = bolsas_solicitadas-bolsas_obtidas + tem_arquivo_plano3
     if (voluntariosIndicados<totalDeVoluntarios):
         return (True)
     else:
         return (False)
 
-'''
-Verifica quantos bolsistas já foram indicados para o id do projeto
-'''
 def quantosBolsistasIndicados(id):
+    '''
+    Verifica quantos bolsistas já foram indicados para o id do projeto
+    '''
     consulta = """SELECT count(id) FROM indicacoes WHERE tipo_de_vaga=1 AND idProjeto=""" + id
     linhas,total = executarSelect(consulta,1)
     numero = int(linhas[0])
     return (numero)
 
-'''
-Verifica se um projeto pode indicar bolsistas
-'''
+
 def podeIndicarBolsistas(id):
+    '''
+    Verifica se um projeto pode indicar bolsistas
+    '''
     bolsas_obtidas = int(obterColunaUnica('editalProjeto','bolsas_concedidas','id',id))
     if bolsas_obtidas>0:
         #Verificar se ainda restam bolsistas a serem indicados
@@ -2516,10 +2606,10 @@ def podeIndicarBolsistas(id):
     else:
         return(False)
 
-'''
-Verifica se o edital está no prazo para indicação de bolsistas/voluntários
-'''
 def dataDeIndicacao(codigoEdital):
+    '''
+    Verifica se o edital está no prazo para indicação de bolsistas/voluntários
+    '''
     consulta = """SELECT id FROM editais WHERE NOW() BETWEEN indicacao_inicio AND indicacao_termino AND id=""" + codigoEdital
     linhas,total = executarSelect(consulta)
     if total==0:
@@ -2542,7 +2632,7 @@ def indicacao():
             indicacao_fim = str(obterColunaUnica('editais',"""DATE_FORMAT(indicacao_termino,'%d/%m/%Y')""",'id',str(edital)))
             modalidade = int(obterColunaUnica('editalProjeto','modalidade','id',idProjeto))
             if (autenticado()):
-                if idSiape(idProjeto,session['username']):
+                if idSiape(idProjeto,session['username']) or 'admin' in session['roles']:
                     if dataDeIndicacao(str(edital)):
                         if b==1: #INDICAÇÃO DE BOLSISTA
                             if podeIndicarBolsistas(idProjeto):
@@ -2553,10 +2643,7 @@ def indicacao():
                             if podeIndicarVoluntarios(idProjeto):
                                 return(render_template('indicacao.html',inicio=indicacao_inicio,fim=indicacao_fim,continua=1,modalidade=modalidade,vaga=b,idProjeto=idProjeto,plano=0,substituicao=0))
                             else:
-                                if podeIndicarVoluntariosAdicionais(idProjeto):
-                                    return(render_template('indicacao.html',inicio=indicacao_inicio,fim=indicacao_fim,continua=1,modalidade=modalidade,vaga=b,idProjeto=idProjeto,plano=1,substituicao=0))
-                                else:
-                                    return("Você já indicou todos os voluntários do projeto. Caso tenha havido algum engano, favor entrar em contato com a PRPI.")
+                                return("Você já indicou todos os voluntários do projeto. Caso tenha havido algum engano, favor entrar em contato com a PRPI.")
                     else:
                         return(render_template('indicacao.html',inicio=indicacao_inicio,fim=indicacao_fim,continua=0,substituicao=0))
                 else:
@@ -3869,7 +3956,9 @@ def carregar_mensagens():
     """
     Carrega as mensagens do banco de dados para exibição.
     """
-    consulta = """SELECT mensagem,validade,data FROM mensagens WHERE validade>NOW() ORDER BY data DESC"""
+    consulta = """SELECT mensagem,validade,data 
+    FROM mensagens 
+    WHERE validade>NOW() ORDER BY data DESC LIMIT 1"""
     linhas,total = executarSelect(consulta)
     lista = []
     for linha in linhas:

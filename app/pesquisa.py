@@ -2660,7 +2660,7 @@ def podeSerIndicado(matricula):
     Verifica se o indicado já está indicado em outro projeto
     '''
     consulta = """
-        SELECT * FROM indicacoes WHERE fim>now() and matricula= ?
+        SELECT * FROM indicacoes WHERE fim>date_add(now(), INTERVAL 75 DAY) and matricula= ?
     """
     linhas,total = executarSelect2(consulta,valores=[matricula])
     if total>0:

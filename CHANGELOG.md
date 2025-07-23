@@ -1,3 +1,4 @@
+	2025-07-22 08:52:07 -0300	fix: correção na função podeSerIndicado e /efetivarIndicacao
 	2025-07-11 14:27:05 -0300	fix: Voluntários só podem ser indicados se tiver plano submetido no momento da submissão do projeto
 	2025-07-11 10:03:07 -0300	fix: Quantidade de voluntários que podem ser indicados de acordo com a quantidade de planos
 	2025-07-09 16:10:28 -0300	fix: Ajustes no template BASE_v3 com relação as mensagem mostradas no início da página

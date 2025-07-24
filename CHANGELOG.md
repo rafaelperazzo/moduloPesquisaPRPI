@@ -1,3 +1,4 @@
+	2025-07-23 13:52:59 -0300	fix: Função podeSerIndicado agora permite que discentes com até 75 dias de projeto ativo possam ser indicados
 	2025-07-22 08:52:07 -0300	fix: correção na função podeSerIndicado e /efetivarIndicacao
 	2025-07-11 14:27:05 -0300	fix: Voluntários só podem ser indicados se tiver plano submetido no momento da submissão do projeto
 	2025-07-11 10:03:07 -0300	fix: Quantidade de voluntários que podem ser indicados de acordo com a quantidade de planos

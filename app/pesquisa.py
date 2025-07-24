@@ -2660,9 +2660,9 @@ def podeSerIndicado(matricula):
     Verifica se o indicado já está indicado em outro projeto
     '''
     consulta = """
-        SELECT * FROM `indicacoes` WHERE fim>now() and matricula=%s
-    """ %(matricula)
-    linhas,total = executarSelect(consulta)
+        SELECT * FROM indicacoes WHERE fim>date_add(now(), INTERVAL 75 DAY) and matricula= ?
+    """
+    linhas,total = executarSelect2(consulta,valores=[matricula])
     if total>0:
         return (False)
     else:
@@ -2798,8 +2798,6 @@ def efetivarIndicacao():
                 return ("Você já indicou todos os bolsistas/voluntários. Entrar em contato através do e-mail atendimento.prpi@ufca.edu.br")
         except Exception as e:
             logger.error(e)
-            logger.error("ERRO Na função /efetivarIndicacao. Ver consulta abaixo.")
-            logger.error(consulta)
             return("ERRO!")
     else:
         return("OK")

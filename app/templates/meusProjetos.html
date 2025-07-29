@@ -156,11 +156,13 @@ tr:nth-child(even) {
         <td>
           
           {% for i in range(1,linha[12]+1) %}
-            <a href="/pesquisa/indicacao?id={{linha[0]}}&b=1">INDICAR BOLSISTA {{ i }}</a> <BR><BR>
+            <a href="/pesquisa/indicacao?id={{linha[0]}}&b=1">INDICAR BOLSISTA {{ i }}</a><BR><BR>
           {% endfor %}
-          
+          {% if linha[17] !='0' %}
+              <a href="/pesquisa/indicacao?id={{linha[0]}}&b=0">INDICAR VOLUNTÁRIO </a><BR><BR>
+          {% endif %}
           {% for i in range(1,linha[11]-linha[12]+1) %}
-            <a href="/pesquisa/indicacao?id={{linha[0]}}&b=0">INDICAR VOLUNTÁRIO {{ i }}</a> <BR><BR>
+            <a href="/pesquisa/indicacao?id={{linha[0]}}&b=0">INDICAR VOLUNTÁRIO {{ i }}</a><BR><BR>
           {% endfor %}
         </td>
         <td>

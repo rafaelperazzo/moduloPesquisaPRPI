@@ -1924,7 +1924,8 @@ def meusProjetos():
         categoria,
         editais.situacao,
         editais.id,
-        (SELECT GROUP_CONCAT(CONCAT('(',id,') - ',nome,' (',IF(tipo_de_vaga=0,'VOLUNTARIO(A)','BOLSISTA'),')',' (',IF(situacao=0,'OK',IF(situacao=1,'DESLIGADO(A)','SUBSTITUIDO(A)')), ')') ORDER BY nome SEPARATOR '<BR><BR>') FROM indicacoes WHERE idProjeto=editalProjeto.id GROUP BY idProjeto) as orientandos
+        (SELECT GROUP_CONCAT(CONCAT('(',id,') - ',nome,' (',IF(tipo_de_vaga=0,'VOLUNTARIO(A)','BOLSISTA'),')',' (',IF(situacao=0,'OK',IF(situacao=1,'DESLIGADO(A)','SUBSTITUIDO(A)')), ')') ORDER BY nome SEPARATOR '<BR><BR>') FROM indicacoes WHERE idProjeto=editalProjeto.id GROUP BY idProjeto) as orientandos,
+        arquivo_plano3
          FROM editalProjeto,editais WHERE valendo=1 AND editalProjeto.tipo=editais.id AND siape=""" + str(session['username']) + """ ORDER BY editalProjeto.data """
         projetos2019,total2019 = executarSelect(consulta_outros)
 

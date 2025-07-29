@@ -1,3 +1,4 @@
+	2025-07-24 14:10:28 -0300	fix: banner dos docs corrigido
 	2025-07-24 13:57:00 -0300	docs: Atualizada página do github com banner
 	2025-07-24 13:55:09 -0300	docs: Adicionado banner
 	2025-07-23 13:52:59 -0300	fix: Função podeSerIndicado agora permite que discentes com até 75 dias de projeto ativo possam ser indicados

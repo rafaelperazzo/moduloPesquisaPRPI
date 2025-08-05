@@ -1,3 +1,4 @@
+	2025-07-29 09:59:54 -0300	fix: Removida indicação de entregar documentação física e liberada indicação de voluntário
 	2025-07-24 14:10:28 -0300	fix: banner dos docs corrigido
 	2025-07-24 13:57:00 -0300	docs: Atualizada página do github com banner
 	2025-07-24 13:55:09 -0300	docs: Adicionado banner

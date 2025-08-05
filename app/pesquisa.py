@@ -2618,6 +2618,17 @@ def dataDeIndicacao(codigoEdital):
     else:
         return (True)
 
+def projeto_tem_impedimentos(idProjeto):
+    '''
+    Verifica se o projeto tem impedimentos
+    '''
+    consulta = """SELECT id FROM impedimentos WHERE idProjeto= ? AND resolvido=0"""
+    linhas,total = executarSelect2(consulta,valores=[idProjeto])
+    if total>0:
+        return (True)
+    else:
+        return (False)
+
 @app.route("/indicacao", methods=['GET', 'POST'])
 @login_required(role='user')
 @log_required
@@ -2626,6 +2637,8 @@ def indicacao():
         #Recuperando o código do projeto
         if (('id' in request.args) and ('b' in request.args)):
             idProjeto = str(request.args.get('id'))
+            if projeto_tem_impedimentos(idProjeto):
+                return("Este projeto possui pendências. Favor entrar em contato com a PRPI para resolver a situação.")
             #b = 1 (bolsista); b = 0 (voluntário)
             b = int(request.args.get('b'))
             edital = int(obterColunaUnica('editalProjeto','tipo','id',idProjeto))

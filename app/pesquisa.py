@@ -890,31 +890,23 @@ def cadastrarProjeto():
             justificativa = ""
         justificativa = removerAspas(justificativa)
         cpf = str(request.form['cpf'])
-        #CONEXÃO COM BD
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-        
-        conn.select_db(MYSQL_DATABASE)
-        cursor  = conn.cursor()
 
         #DADOS PESSOAIS E BÁSICOS DO PROJETO
         consulta = """INSERT INTO editalProjeto 
         (categoria,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,data,ods,inovacao,justificativa) 
         VALUES (?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP(),?,?,?)"""
         atualizar2(consulta, valores=[categoria_projeto,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,ods_projeto,inovacao,justificativa])
-        
-        lastID = "SELECT LAST_INSERT_ID()"
-        cursor.execute(lastID)
-        ultimo_id = int(cursor.fetchone()[0])
+        #RECUPERANDO O ID DO ÚLTIMO PROJETO CADASTRADO
+        consulta_ultimo_id = """SELECT max(id) 
+        FROM editalProjeto 
+        WHERE siape = ?"""
+        resultado, total = executarSelect2(consulta_ultimo_id, valores=[siape])
+        if total > 0:
+            ultimo_id = int(resultado[0][0])
+        else:
+            logger.error("Não foi possível obter o ID do último projeto cadastrado.")
+            return "ERRO INTERNO!"
         ultimo_id_str = "%03d" % (ultimo_id)
-        if tipo==0:
-            tipo_str = "Fluxo Continuo"
-        else:
-            tipo_str= "Edital"
-
-        if categoria_projeto==0:
-            categoria_str = "Projeto em andamento"
-        else:
-            categoria_str= "Projeto Novo"
 
         #CADASTRAR DADOS DO PROJETO
 

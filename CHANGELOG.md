@@ -1,3 +1,4 @@
+	2025-08-05 13:30:18 -0300	feat: Adicionado recurso que checa se o projeto possui pendências antes de permitir o prosseguimento de uma indicação
 	2025-07-29 09:59:54 -0300	fix: Removida indicação de entregar documentação física e liberada indicação de voluntário
 	2025-07-24 14:10:28 -0300	fix: banner dos docs corrigido
 	2025-07-24 13:57:00 -0300	docs: Atualizada página do github com banner

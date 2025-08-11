@@ -869,12 +869,7 @@ def cadastrarProjeto():
         tipo = int(request.form['tipo'])
         nome = str(request.form['nome'])
         categoria_projeto = int(request.form['categoria_projeto'])
-        try:
-            siape = int(removerTravessao(request.form['siape']))
-        except ValueError as e:
-            logger.error("Erro ao converter SIAPE para inteiro.")
-            logger.error(e)
-            siape = 0
+        siape = session['username']
         email = str(request.form['email'])
         ua = str(request.form['ua'])
         area_capes = str(request.form['area_capes'])
@@ -974,15 +969,16 @@ def cadastrarProjeto():
 
         if ('arquivo_plano3' in request.files):
             arquivo_plano3 = request.files['arquivo_plano3']
-            if arquivo_plano3 and allowed_file(arquivo_plano3.filename):
-                arquivo_plano3.filename = "plano3_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
-                filename = secure_filename(arquivo_plano3.filename)
-                submissoes.save(arquivo_plano3, name=filename)
-                encripta_e_apaga(SUBMISSOES_DIR + filename)
-                consulta = "UPDATE editalProjeto SET arquivo_plano3= ? WHERE id= ? "
-                atualizar2(consulta, valores=[filename,ultimo_id])
-            elif not allowed_file(arquivo_plano3.filename):
-                    return ("Arquivo de plano 3 de trabalho não permitido")
+            if arquivo_plano3.filename != '':
+                if arquivo_plano3 and allowed_file(arquivo_plano3.filename):
+                    arquivo_plano3.filename = "plano3_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
+                    filename = secure_filename(arquivo_plano3.filename)
+                    submissoes.save(arquivo_plano3, name=filename)
+                    encripta_e_apaga(SUBMISSOES_DIR + filename)
+                    consulta = "UPDATE editalProjeto SET arquivo_plano3= ? WHERE id= ? "
+                    atualizar2(consulta, valores=[filename,ultimo_id])
+                elif not allowed_file(arquivo_plano3.filename):
+                        return ("Arquivo de plano 3 de trabalho não permitido")
 
         #ARQUIVO DE COMPROVANTES
         if ('arquivo_comprovantes' in request.files):

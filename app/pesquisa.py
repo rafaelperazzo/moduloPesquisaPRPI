@@ -3414,6 +3414,7 @@ def enviar_email_avaliadores():
         with app.app_context():
             #url_declaracao = url_for('getDeclaracaoAvaliador',tokenAvaliacao=token, _external=True)
             url_declaracao = ROOT_SITE + "/pesquisa/declaracaoAvaliador/" + token
+            logger.info("URL de declaração gerada: {}", url_declaracao)
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
             msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:

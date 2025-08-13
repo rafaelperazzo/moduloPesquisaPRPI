@@ -1,3 +1,4 @@
+	2025-08-13 11:17:11 -0300	fix: link da declaração do avaliador corrigido
 	2025-08-13 11:05:38 -0300	fix: task_email_avaliadores corrigido
 	2025-08-11 15:41:51 -0300	fix: cobrança de frequência não cobra mais de futuros indicados, apenas para os que estão em andamento
 	2025-08-11 14:06:58 -0300	fix: /cadastrarProjeto agora não exige que o plano3 seja anexado

@@ -3419,7 +3419,7 @@ def enviar_email_avaliadores():
             try:
                 try:
                     mail.send(msg)
-                    logger.info("E-mail enviado: {}",msg.subject)
+                    logger.info("E-mail enviado: {} para o avaliador {}",msg.subject, email_avaliador)
                 except Exception as e:
                     logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: {}",str(e))
                 consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
@@ -3464,7 +3464,7 @@ def enviarPedidoAvaliacao(idProjeto):
                 msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[EMAIL_TESTES],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 mail.send(msg)
-                logger.info("E-mail enviado: {}",msg.subject)
+                logger.info("E-mail enviado: {} para avaliador {}",msg.subject, email_avaliador)
             except Exception as e:
                 logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: {} - ({})", email_avaliador,str(e))
 
@@ -3797,7 +3797,7 @@ def task_enviar_email_avaliadores():
             try:
                 try:
                     mail.send(msg)
-                    logger.info("E-mail enviado: {}",msg.subject)
+                    logger.info("E-mail enviado: {} para o avaliador {}",msg.subject, email_avaliador)
                 except Exception as e:
                     logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: {}",str(e))
                 consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
@@ -3850,7 +3850,10 @@ def task_enviar_lembrete_frequencia():
         editalProjeto.siape
         from editalProjeto
         INNER JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
-        WHERE indicacoes.fim>NOW() AND indicacoes.situacao=0 and MONTH(indicacoes.inicio)!=Month(now())
+        WHERE indicacoes.fim>NOW() 
+        AND indicacoes.situacao=0 
+        AND MONTH(indicacoes.inicio)!=Month(now()) 
+        AND indicacoes.inicio<NOW() 
         GROUP BY editalProjeto.nome"""
         linhas,total = executarSelect(consulta)
         for linha in linhas:

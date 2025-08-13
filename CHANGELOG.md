@@ -1,3 +1,4 @@
+	2025-08-11 15:41:51 -0300	fix: cobrança de frequência não cobra mais de futuros indicados, apenas para os que estão em andamento
 	2025-08-11 14:06:58 -0300	fix: /cadastrarProjeto agora não exige que o plano3 seja anexado
 	2025-08-11 10:44:18 -0300	fix: /cadastrarProjeto - corrigido problema da obtenção do id do projeto
 	2025-08-05 13:30:18 -0300	feat: Adicionado recurso que checa se o projeto possui pendências antes de permitir o prosseguimento de uma indicação

@@ -1,3 +1,4 @@
+	2025-08-13 11:24:53 -0300	incluido o |safe no link da declaração
 	2025-08-13 11:22:11 -0300	fix: Link do avaliador sem o _target=
 	2025-08-13 11:17:11 -0300	fix: link da declaração do avaliador corrigido
 	2025-08-13 11:05:38 -0300	fix: task_email_avaliadores corrigido

@@ -1,3 +1,4 @@
+	2025-08-13 11:55:32 -0300	fix: removido o safe do link da declaração
 	2025-08-13 11:54:27 -0300	incluído no logger o link da declaração
 	2025-08-13 11:32:42 -0300	fix: email convite do avaliador com o link diretamente na mensagem
 	2025-08-13 11:24:53 -0300	incluido o |safe no link da declaração

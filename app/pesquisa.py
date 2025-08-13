@@ -2136,7 +2136,8 @@ def meuCertificado():
         #Recuperando o token da declaração
         if 'id' in request.args:
             idIndicacao = str(request.args.get('id'))
-            consulta = """SELECT i.nome,i.cpf,IF(i.modalidade=1,'PIBIC',IF(i.modalidade=2,'PIBITI','PIBIC-EM')) as modalidade,
+            consulta = """SELECT i.nome,i.cpf,
+            IF(i.modalidade=1,'PIBIC',IF(i.modalidade=2,'PIBITI',IF(i.modalidade=3,'PIBIC-EM','PIBIC-AF'))) as modalidade,
             IF(i.tipo_de_vaga=1,'BOLSISTA','VOLUNTÁRIO') as vaga,
             e.nome,e.titulo,i.ch,DATE_FORMAT(i.inicio,'%d/%m/%Y') as inicio, DATE_FORMAT(i.fim,'%d/%m/%Y') as fim,
             ROUND((DATEDIFF(i.fim,i.inicio)/7)*i.ch) as ch_total

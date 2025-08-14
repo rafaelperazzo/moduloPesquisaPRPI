@@ -1,3 +1,17 @@
+	2025-08-13 15:41:46 -0300	fix: incluído PIBIC-AF nos certificados discente
+	2025-08-13 11:55:32 -0300	fix: removido o safe do link da declaração
+	2025-08-13 11:54:27 -0300	incluído no logger o link da declaração
+	2025-08-13 11:32:42 -0300	fix: email convite do avaliador com o link diretamente na mensagem
+	2025-08-13 11:24:53 -0300	incluido o |safe no link da declaração
+	2025-08-13 11:22:11 -0300	fix: Link do avaliador sem o _target=
+	2025-08-13 11:17:11 -0300	fix: link da declaração do avaliador corrigido
+	2025-08-13 11:05:38 -0300	fix: task_email_avaliadores corrigido
+	2025-08-11 15:41:51 -0300	fix: cobrança de frequência não cobra mais de futuros indicados, apenas para os que estão em andamento
+	2025-08-11 14:06:58 -0300	fix: /cadastrarProjeto agora não exige que o plano3 seja anexado
+	2025-08-11 10:44:18 -0300	fix: /cadastrarProjeto - corrigido problema da obtenção do id do projeto
+	2025-08-05 13:30:18 -0300	feat: Adicionado recurso que checa se o projeto possui pendências antes de permitir o prosseguimento de uma indicação
+	2025-07-29 09:59:54 -0300	fix: Removida indicação de entregar documentação física e liberada indicação de voluntário
+	2025-07-24 14:10:28 -0300	fix: banner dos docs corrigido
 	2025-07-24 13:57:00 -0300	docs: Atualizada página do github com banner
 	2025-07-24 13:55:09 -0300	docs: Adicionado banner
 	2025-07-23 13:52:59 -0300	fix: Função podeSerIndicado agora permite que discentes com até 75 dias de projeto ativo possam ser indicados

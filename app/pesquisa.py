@@ -869,12 +869,7 @@ def cadastrarProjeto():
         tipo = int(request.form['tipo'])
         nome = str(request.form['nome'])
         categoria_projeto = int(request.form['categoria_projeto'])
-        try:
-            siape = int(removerTravessao(request.form['siape']))
-        except ValueError as e:
-            logger.error("Erro ao converter SIAPE para inteiro.")
-            logger.error(e)
-            siape = 0
+        siape = session['username']
         email = str(request.form['email'])
         ua = str(request.form['ua'])
         area_capes = str(request.form['area_capes'])
@@ -890,31 +885,23 @@ def cadastrarProjeto():
             justificativa = ""
         justificativa = removerAspas(justificativa)
         cpf = str(request.form['cpf'])
-        #CONEXÃO COM BD
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
-        
-        conn.select_db(MYSQL_DATABASE)
-        cursor  = conn.cursor()
 
         #DADOS PESSOAIS E BÁSICOS DO PROJETO
         consulta = """INSERT INTO editalProjeto 
         (categoria,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,data,ods,inovacao,justificativa) 
         VALUES (?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP(),?,?,?)"""
         atualizar2(consulta, valores=[categoria_projeto,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,ods_projeto,inovacao,justificativa])
-        
-        lastID = "SELECT LAST_INSERT_ID()"
-        cursor.execute(lastID)
-        ultimo_id = int(cursor.fetchone()[0])
+        #RECUPERANDO O ID DO ÚLTIMO PROJETO CADASTRADO
+        consulta_ultimo_id = """SELECT max(id) 
+        FROM editalProjeto 
+        WHERE siape = ?"""
+        resultado, total = executarSelect2(consulta_ultimo_id, valores=[siape])
+        if total > 0:
+            ultimo_id = int(resultado[0][0])
+        else:
+            logger.error("Não foi possível obter o ID do último projeto cadastrado.")
+            return "ERRO INTERNO!"
         ultimo_id_str = "%03d" % (ultimo_id)
-        if tipo==0:
-            tipo_str = "Fluxo Continuo"
-        else:
-            tipo_str= "Edital"
-
-        if categoria_projeto==0:
-            categoria_str = "Projeto em andamento"
-        else:
-            categoria_str= "Projeto Novo"
 
         #CADASTRAR DADOS DO PROJETO
 
@@ -982,15 +969,16 @@ def cadastrarProjeto():
 
         if ('arquivo_plano3' in request.files):
             arquivo_plano3 = request.files['arquivo_plano3']
-            if arquivo_plano3 and allowed_file(arquivo_plano3.filename):
-                arquivo_plano3.filename = "plano3_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
-                filename = secure_filename(arquivo_plano3.filename)
-                submissoes.save(arquivo_plano3, name=filename)
-                encripta_e_apaga(SUBMISSOES_DIR + filename)
-                consulta = "UPDATE editalProjeto SET arquivo_plano3= ? WHERE id= ? "
-                atualizar2(consulta, valores=[filename,ultimo_id])
-            elif not allowed_file(arquivo_plano3.filename):
-                    return ("Arquivo de plano 3 de trabalho não permitido")
+            if arquivo_plano3.filename != '':
+                if arquivo_plano3 and allowed_file(arquivo_plano3.filename):
+                    arquivo_plano3.filename = "plano3_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
+                    filename = secure_filename(arquivo_plano3.filename)
+                    submissoes.save(arquivo_plano3, name=filename)
+                    encripta_e_apaga(SUBMISSOES_DIR + filename)
+                    consulta = "UPDATE editalProjeto SET arquivo_plano3= ? WHERE id= ? "
+                    atualizar2(consulta, valores=[filename,ultimo_id])
+                elif not allowed_file(arquivo_plano3.filename):
+                        return ("Arquivo de plano 3 de trabalho não permitido")
 
         #ARQUIVO DE COMPROVANTES
         if ('arquivo_comprovantes' in request.files):
@@ -1924,7 +1912,8 @@ def meusProjetos():
         categoria,
         editais.situacao,
         editais.id,
-        (SELECT GROUP_CONCAT(CONCAT('(',id,') - ',nome,' (',IF(tipo_de_vaga=0,'VOLUNTARIO(A)','BOLSISTA'),')',' (',IF(situacao=0,'OK',IF(situacao=1,'DESLIGADO(A)','SUBSTITUIDO(A)')), ')') ORDER BY nome SEPARATOR '<BR><BR>') FROM indicacoes WHERE idProjeto=editalProjeto.id GROUP BY idProjeto) as orientandos
+        (SELECT GROUP_CONCAT(CONCAT('(',id,') - ',nome,' (',IF(tipo_de_vaga=0,'VOLUNTARIO(A)','BOLSISTA'),')',' (',IF(situacao=0,'OK',IF(situacao=1,'DESLIGADO(A)','SUBSTITUIDO(A)')), ')') ORDER BY nome SEPARATOR '<BR><BR>') FROM indicacoes WHERE idProjeto=editalProjeto.id GROUP BY idProjeto) as orientandos,
+        arquivo_plano3
          FROM editalProjeto,editais WHERE valendo=1 AND editalProjeto.tipo=editais.id AND siape=""" + str(session['username']) + """ ORDER BY editalProjeto.data """
         projetos2019,total2019 = executarSelect(consulta_outros)
 
@@ -2147,7 +2136,8 @@ def meuCertificado():
         #Recuperando o token da declaração
         if 'id' in request.args:
             idIndicacao = str(request.args.get('id'))
-            consulta = """SELECT i.nome,i.cpf,IF(i.modalidade=1,'PIBIC',IF(i.modalidade=2,'PIBITI','PIBIC-EM')) as modalidade,
+            consulta = """SELECT i.nome,i.cpf,
+            IF(i.modalidade=1,'PIBIC',IF(i.modalidade=2,'PIBITI',IF(i.modalidade=3,'PIBIC-EM','PIBIC-AF'))) as modalidade,
             IF(i.tipo_de_vaga=1,'BOLSISTA','VOLUNTÁRIO') as vaga,
             e.nome,e.titulo,i.ch,DATE_FORMAT(i.inicio,'%d/%m/%Y') as inicio, DATE_FORMAT(i.fim,'%d/%m/%Y') as fim,
             ROUND((DATEDIFF(i.fim,i.inicio)/7)*i.ch) as ch_total
@@ -2617,6 +2607,17 @@ def dataDeIndicacao(codigoEdital):
     else:
         return (True)
 
+def projeto_tem_impedimentos(idProjeto):
+    '''
+    Verifica se o projeto tem impedimentos
+    '''
+    consulta = """SELECT id FROM impedimentos WHERE idProjeto= ? AND resolvido=0"""
+    linhas,total = executarSelect2(consulta,valores=[idProjeto])
+    if total>0:
+        return (True)
+    else:
+        return (False)
+
 @app.route("/indicacao", methods=['GET', 'POST'])
 @login_required(role='user')
 @log_required
@@ -2625,6 +2626,8 @@ def indicacao():
         #Recuperando o código do projeto
         if (('id' in request.args) and ('b' in request.args)):
             idProjeto = str(request.args.get('id'))
+            if projeto_tem_impedimentos(idProjeto):
+                return("Este projeto possui pendências. Favor entrar em contato com a PRPI para resolver a situação.")
             #b = 1 (bolsista); b = 0 (voluntário)
             b = int(request.args.get('b'))
             edital = int(obterColunaUnica('editalProjeto','tipo','id',idProjeto))
@@ -3074,7 +3077,10 @@ def enviar_lembrete_frequencia():
         editalProjeto.siape
         from editalProjeto
         INNER JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
-        WHERE indicacoes.fim>NOW() AND indicacoes.situacao=0 and MONTH(indicacoes.inicio)!=Month(now())
+        WHERE indicacoes.fim>NOW() 
+        AND indicacoes.situacao=0 
+        AND MONTH(indicacoes.inicio)!=Month(now()) 
+        AND indicacoes.inicio<NOW() 
         GROUP BY editalProjeto.nome"""
         linhas,total = executarSelect(consulta)
         for linha in linhas:
@@ -3408,13 +3414,14 @@ def enviar_email_avaliadores():
         nome_longo = str(linha[12])
         with app.app_context():
             #url_declaracao = url_for('getDeclaracaoAvaliador',tokenAvaliacao=token, _external=True)
-            url_declaracao = SERVER_URL + URL_PREFIX + '/declaracaoAvaliador/' + token
+            url_declaracao = ROOT_SITE + "/pesquisa/declaracaoAvaliador/" + token
+            logger.info("URL de declaração gerada: {}", url_declaracao)
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
             msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 try:
                     mail.send(msg)
-                    logger.info("E-mail enviado: {}",msg.subject)
+                    logger.info("E-mail enviado: {} para o avaliador {}",msg.subject, email_avaliador)
                 except Exception as e:
                     logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: {}",str(e))
                 consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
@@ -3459,7 +3466,7 @@ def enviarPedidoAvaliacao(idProjeto):
                 msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[EMAIL_TESTES],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 mail.send(msg)
-                logger.info("E-mail enviado: {}",msg.subject)
+                logger.info("E-mail enviado: {} para avaliador {}",msg.subject, email_avaliador)
             except Exception as e:
                 logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: {} - ({})", email_avaliador,str(e))
 
@@ -3792,7 +3799,7 @@ def task_enviar_email_avaliadores():
             try:
                 try:
                     mail.send(msg)
-                    logger.info("E-mail enviado: {}",msg.subject)
+                    logger.info("E-mail enviado: {} para o avaliador {}",msg.subject, email_avaliador)
                 except Exception as e:
                     logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: {}",str(e))
                 consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
@@ -3845,7 +3852,10 @@ def task_enviar_lembrete_frequencia():
         editalProjeto.siape
         from editalProjeto
         INNER JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
-        WHERE indicacoes.fim>NOW() AND indicacoes.situacao=0 and MONTH(indicacoes.inicio)!=Month(now())
+        WHERE indicacoes.fim>NOW() 
+        AND indicacoes.situacao=0 
+        AND MONTH(indicacoes.inicio)!=Month(now()) 
+        AND indicacoes.inicio<NOW() 
         GROUP BY editalProjeto.nome"""
         linhas,total = executarSelect(consulta)
         for linha in linhas:

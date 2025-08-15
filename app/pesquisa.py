@@ -2707,8 +2707,8 @@ def efetivarIndicacao():
                 banco = ""
                 agencia = ""
                 conta = ""
-                if podeSerIndicado(matricula)==False:
-                    return("Indicado ja esta em outro projeto. Nao foi possivel efetivar a indicacao.") 
+                #if podeSerIndicado(matricula)==False:
+                #    return("Indicado ja esta em outro projeto. Nao foi possivel efetivar a indicacao.") 
 
                 if vaga==0:
                     banco = "N/A"

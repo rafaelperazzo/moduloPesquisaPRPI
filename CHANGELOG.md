@@ -1,3 +1,4 @@
+	2025-08-15 08:18:56 -0300	fix: Adicionados novos cursos no formulário de indicação de bolsista
 	2025-08-14 08:20:46 -0300	feat: Adicionado recurso do actions para reiniciar o sistema diariamente as 03:00
 	2025-08-13 15:41:46 -0300	fix: incluído PIBIC-AF nos certificados discente
 	2025-08-13 11:55:32 -0300	fix: removido o safe do link da declaração

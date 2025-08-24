@@ -18,8 +18,11 @@ gpg -o $date-pesquisa.sql.gz.gpg --symmetric --armor --cipher-algo AES256 --pass
 rm -f $date-pesquisa.sql.gz
 rm -f `ls -t *.gz| awk 'NR>21'`
 rm -f `ls -t *.gpg| awk 'NR>21'`
-echo "Backup para proton..."
+echo "Backup para proton/s3..."
 rclone sync --progress /backup/pesquisa3/share/ remote:SISTEMAS/PESQUISA/BACKUP/
-#rclone sync --progress /backup/cppgi/share/ remote:SISTEMAS/CPPGI/BACKUP/
-#rclone sync --progress /backup/docs.sci01/share/ remote:SISTEMAS/DOCS/BACKUP/
-#rclone sync --progress /backup/mariadb01/share/ remote:SISTEMAS/MARIADB/BACKUP/
+aws s3 sync /backup/pesquisa3/share/ s3://rajardekalambur/pesquisa/backup/ --delete
+aws s3 sync /backup/pesquisa3/app/submissoes/ s3://rajardekalambur/pesquisa/submissoes/ --delete
+aws s3 sync /backup/pesquisa3/app/docs_indicacoes/ s3://rajardekalambur/pesquisa/docs_indicacoes/ --delete
+rclone sync --progress /backup/cppgi/share/ remote:SISTEMAS/CPPGI/BACKUP/
+rclone sync --progress /backup/docs.sci01/share/ remote:SISTEMAS/DOCS/BACKUP/
+rclone sync --progress /backup/mariadb01/share/ remote:SISTEMAS/MARIADB/BACKUP/

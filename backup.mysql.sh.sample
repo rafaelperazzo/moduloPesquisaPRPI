@@ -11,6 +11,7 @@ date=$(/usr/bin/date '+%Y-%m-%dT%H.%M')
 echo "Dump do BD"
 docker-compose exec -T db_pesquisa bash -c "mariadb-dump -u root -p$MYSQL_ROOT_PASSWORD --add-drop-database --add-drop-table --databases pesquisa > /share/$date-pesquisa.sql"
 cd /backup/pesquisa3/share/
+sed -i 's/\sDEFINER=`[^`]*`@`[^`]*`//g' $date-pesquisa.sql
 echo "Gz"
 gzip /backup/pesquisa3/share/$date-pesquisa.sql
 echo "Encriptando..."

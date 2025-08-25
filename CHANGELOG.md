@@ -1,3 +1,4 @@
+	2025-08-25 15:52:50 -0300	test: chave recaptch v3 no login
 	2025-08-25 14:38:20 -0300	fix: corrigido erro no atualizar_db
 	2025-08-25 14:33:25 -0300	fix: Corrigidos erros de execução do backup.mysql
 	2025-08-25 14:15:35 -0300	fix: Atualizado script de atualizar_db para backup na aws

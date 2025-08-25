@@ -1,3 +1,4 @@
+	2025-08-25 14:38:20 -0300	fix: corrigido erro no atualizar_db
 	2025-08-25 14:33:25 -0300	fix: Corrigidos erros de execução do backup.mysql
 	2025-08-25 14:15:35 -0300	fix: Atualizado script de atualizar_db para backup na aws
 	2025-08-25 13:51:03 -0300	fix: corrigido script backup.mysq.sh

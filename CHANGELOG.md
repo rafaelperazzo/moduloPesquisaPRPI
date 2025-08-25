@@ -1,3 +1,4 @@
+	2025-08-25 14:15:35 -0300	fix: Atualizado script de atualizar_db para backup na aws
 	2025-08-25 13:51:03 -0300	fix: corrigido script backup.mysq.sh
 	2025-08-25 13:46:47 -0300	fix: Incluída opção de ssl na conexão com o mariadb
 	2025-08-25 11:35:55 -0300	feat: Upload de arquivos de submissão de projetos e docs de indicações para o S3

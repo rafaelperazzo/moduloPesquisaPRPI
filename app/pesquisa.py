@@ -49,6 +49,7 @@ import inspect
 import requests
 import geoip2.database
 import boto3
+from botocore.exceptions import ClientError
 
 logger.remove()
 
@@ -2682,12 +2683,28 @@ def podeSerIndicado(matricula):
     else:
         return (True)
 
+def upload_s3(origem,destino):
+    try:
+        s3.upload_file(origem, AWS_S3_BUCKET, destino)
+        os.remove(origem)
+        logger.info("[S3] Upload de arquivo {} para o S3 concluído com sucesso.", origem)
+    except (ClientError,FileNotFoundError) as e:
+        logger.error("[S3] Erro ao fazer upload ({}, {}) para o S3: {}", origem, destino, e)
+
 def encripta_e_apaga(arquivo):
     """
     Encripta e apaga o arquivo
     """
+    separados = arquivo.split("/")
+    nome_arquivo = separados[1]
+    pasta = 'pesquisa/' + separados[0] + "/"
+    destino = pasta + nome_arquivo + '.gpg'
+    origem = arquivo + '.gpg'
     cripto.aes_gpg_encrypt_file(GPG_KEY,arquivo, arquivo + ".gpg")
     os.remove(arquivo)
+    #Faz o upload do gpg para o S3
+    thread_s3_upload = threading.Thread(target=upload_s3, args=(origem,destino,))
+    thread_s3_upload.start()
 
 @app.route("/efetivarIndicacao", methods=['GET', 'POST'])
 @login_required(role='user')

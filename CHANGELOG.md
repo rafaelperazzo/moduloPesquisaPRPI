@@ -1,3 +1,4 @@
+	2025-08-25 10:24:17 -0300	feat: verArquivoProjeto agora baixa do S3
 	2025-08-25 09:49:20 -0300	feat: Arquivos migrados para AWS S3 - /verArquivo
 	2025-08-24 17:42:50 -0300	feat: Incluído backup no s3
 	2025-08-15 13:12:26 -0300	fix: Removido bloqueio de indicações que já estão em outros projetos

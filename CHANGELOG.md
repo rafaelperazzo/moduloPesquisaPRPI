@@ -1,3 +1,4 @@
+	2025-08-25 16:02:40 -0300	fix: chave recaptcha do login corrigida
 	2025-08-25 16:01:28 -0300	test: chave recaptch v2 no login
 	2025-08-25 15:52:50 -0300	test: chave recaptch v3 no login
 	2025-08-25 14:38:20 -0300	fix: corrigido erro no atualizar_db

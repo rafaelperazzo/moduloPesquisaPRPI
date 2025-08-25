@@ -48,6 +48,7 @@ import logging
 import inspect
 import requests
 import geoip2.database
+import boto3
 
 logger.remove()
 
@@ -217,7 +218,17 @@ if PRODUCAO==1:
         ],
         send_default_pii=True,
     )
-    
+
+#AWS
+
+AWS_S3_KEY_ID = os.getenv("AWS_S3_KEY_ID", "default_key_id")
+AWS_S3_SECRET_KEY = os.getenv("AWS_S3_SECRET_KEY", "default_secret_key")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-2")
+AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET", "default_bucket")
+s3 = boto3.client('s3', region_name=AWS_REGION,
+                  aws_access_key_id=AWS_S3_KEY_ID,
+                  aws_secret_access_key=AWS_S3_SECRET_KEY)
+
 #Obtendo senhas
 PASSWORD = os.getenv("DB_PASSWORD", "World")
 GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD", "World")
@@ -2869,13 +2880,16 @@ def verArquivo():
         if 'file' in request.args:
             arquivo = str(request.args['file'])
             arquivo = secure_filename(arquivo) + ".gpg"
-            if os.path.isfile(ATTACHMENTS_DIR + arquivo):
+            #INCLUÍNDO CÓDIGO S3
+            try:
+                s3.download_file(AWS_S3_BUCKET, 'pesquisa/' + ATTACHMENTS_DIR + arquivo, ATTACHMENTS_DIR + arquivo)
                 cripto.aes_gpg_decrypt_file(GPG_KEY,ATTACHMENTS_DIR + arquivo, ATTACHMENTS_DIR + arquivo.replace(".gpg",""))
                 thread = threading.Thread(target=esperar,args=(ATTACHMENTS_DIR + arquivo.replace(".gpg",""),))
                 thread.start()
                 return(send_from_directory(app.config['UPLOADED_DOCUMENTS_DEST'], arquivo.replace(".gpg","")))
-            else:
+            except Exception:
                 return("Arquivo não encontrado!")
+            #FIM DO CÓDIGO S3
         else:
             return("OK")
     else:

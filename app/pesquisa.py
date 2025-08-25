@@ -2868,8 +2868,13 @@ def esperar(arquivo):
         try:
             os.remove(arquivo)
         except FileNotFoundError as e:
-            logger.error("Erro ao remover arquivo temporário (função esperar(arquivo)).")
-            logger.error(str(e))
+            logger.error("Erro ao remover arquivo temporário (função esperar({})):{}",arquivo,str(e))
+    if os.path.exists(arquivo + '.gpg'):
+        #remove file
+        try:
+            os.remove(arquivo + '.gpg')
+        except FileNotFoundError as e:
+            logger.error("Erro ao remover arquivo temporário (função esperar({})):{}",arquivo + '.gpg',str(e))
 
 @app.route("/verArquivo", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
@@ -2895,16 +2900,16 @@ def verArquivo():
     else:
         return("OK")
     
-@app.route("/verArquivosProjeto/<filename>", methods=['GET', 'POST'])
+@app.route("/verArquivosProjeto/<filename>", methods=['GET'])
 @log_required
 def verArquivosProjeto(filename):
     arquivo = secure_filename(filename) + ".gpg"
-    if os.path.isfile(SUBMISSOES_DIR + arquivo):
+    try:
+        s3.download_file(AWS_S3_BUCKET, 'pesquisa/' + SUBMISSOES_DIR + arquivo, SUBMISSOES_DIR + arquivo)
         cripto.aes_gpg_decrypt_file(GPG_KEY,SUBMISSOES_DIR + arquivo, SUBMISSOES_DIR + arquivo.replace(".gpg",""))
         thread = threading.Thread(target=esperar,args=(SUBMISSOES_DIR + arquivo.replace(".gpg",""),))
-        thread.start()
         return(send_from_directory(app.config['UPLOADED_SUBMISSOES_DEST'], arquivo.replace(".gpg","")))
-    else:
+    except Exception:
         return("Arquivo não encontrado!")
 
 @app.route("/situacaoIndicacoes", methods=['GET', 'POST'])

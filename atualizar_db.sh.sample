@@ -28,7 +28,7 @@ echo "DECRIPTANDO O ARQUIVO DO BANCO DE DADOS"
 gpg -o share/ultimo.sql.gz --decrypt --batch --yes --passphrase $GPG_KEY share/$arquivo
 gunzip -f share/ultimo.sql.gz
 arquivo=$(ls -t share | head -1)
-sed -i 's/\sDEFINER=`[^`]*`@`[^`]*`//g' $arquivo
+sed -i 's/\sDEFINER=`[^`]*`@`[^`]*`//g' share/$arquivo
 echo "ATUALIZANDO O BANCO DE DADOS"
 infisical run -- docker compose exec -T db_pesquisa bash -c "mariadb -u root -p$MYSQL_ROOT_PASSWORD < /share/$arquivo"
 echo "ATUALIZANDO O BANCO DE DADOS DA AWS"

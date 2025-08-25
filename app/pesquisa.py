@@ -462,7 +462,7 @@ def calcularScoreLattes(tipo,area,since,until,arquivo):
     return (s)
 
 def atualizar(consulta):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE) 
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required") 
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
@@ -482,7 +482,7 @@ def atualizar2(consulta,valores=()):
         consulta (str): consulta SQL
         valores (list, optional): Valores para consulta. Defaults to ().
     """
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE) 
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required") 
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
@@ -500,7 +500,7 @@ def atualizar2(consulta,valores=()):
         conn.close()
 
 def inserir(consulta,valores):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
@@ -596,7 +596,7 @@ def ratelimit_handler(e):
 
 def gerarDeclaracao(identificador):
     #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT nome,cpf,modalidade,orientador,projeto,inicio,fim,id,ch FROM alunos WHERE id=" + str(identificador)
@@ -624,7 +624,7 @@ def gerarDeclaracao(identificador):
 
 def gerarDeclaracaoOrientador(identificador):
     #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT id,coordenador,siape,titulo,inicio,fim FROM projetos WHERE id=" + identificador
@@ -648,7 +648,7 @@ def gerarDeclaracaoOrientador(identificador):
 
 def gerarProjetosPorAluno(cpf):
     try:
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
         conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
         consulta = """SELECT estudante_nome_completo,cpf,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,estudante_inicio,estudante_fim,token FROM cadastro_geral WHERE cpf = ? """
@@ -670,7 +670,7 @@ def gerarProjetosPorAluno(cpf):
 
 def gerarProjetosPorOrientador(identificador):
     #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT id,coordenador,titulo,inicio,fim FROM projetos WHERE SIAPE=" + str(identificador)
@@ -681,7 +681,7 @@ def gerarProjetosPorOrientador(identificador):
 
 def gerarAutenticacao(identificador):
     #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT a.nome,a.cpf,a.modalidade,a.orientador,a.projeto,a.inicio,a.fim,b.codigo FROM alunos a, autenticacao b WHERE a.id=b.idAluno and b.codigo=" + identificador + " ORDER BY b.data DESC LIMIT 1"
@@ -691,7 +691,7 @@ def gerarAutenticacao(identificador):
     return (linha)
 
 def getEditaisAbertos():
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = """SELECT id,nome,DATE_FORMAT(deadline,'%d/%m/%Y - %H:%i') FROM editais WHERE now()<deadline ORDER BY id DESC"""
@@ -1093,7 +1093,7 @@ def getScoreLattesFromFile():
 
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam
 def getFiles(idProjeto):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT arquivo_projeto,arquivo_plano1,arquivo_plano2 FROM editalProjeto WHERE id=" + idProjeto
@@ -1103,7 +1103,7 @@ def getFiles(idProjeto):
     return(linha)
 
 def naoEstaFinalizado(token):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT finalizado FROM avaliacoes WHERE token=\"" + token + "\""
@@ -1120,7 +1120,7 @@ def naoEstaFinalizado(token):
         return False
 
 def podeAvaliar(idProjeto):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     #consulta = "SELECT deadline_avaliacao,CURRENT_TIMESTAMP() FROM editais WHERE CURRENT_TIMESTAMP()<deadline_avaliacao AND id=" + codigoEdital
@@ -1265,7 +1265,7 @@ def enviarAvaliacao():
         return("OK")
 
 def descricaoEdital(codigoEdital):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT id,nome FROM editais WHERE id=" + codigoEdital
@@ -1325,7 +1325,7 @@ def getDeclaracaoAvaliador(tokenAvaliacao):
         return "PROJETO AINDA NÃO AVALIADO OU INEXISTENTE!"
     
 def consultar(consulta):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     cursor.execute(consulta)
@@ -1352,7 +1352,7 @@ def recusarConvite():
 @log_required
 def avaliacoesNegadas():
     if request.method == "GET":
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
         conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
         if 'edital' in request.args:
@@ -1411,7 +1411,7 @@ def inserirAvaliador():
 
 #Retorna a quantidade de linhas da consulta
 def quantidades(consulta):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     cursor.execute(consulta)
@@ -1433,7 +1433,7 @@ def estatisticas():
             return "Código do edital inválido!"
         #Resumo Geral
         consulta = "SELECT * FROM resumoGeralAvaliacoes WHERE tipo=" + codigoEdital + " ORDER BY ua, score DESC"
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
         conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
         cursor.execute(consulta)
@@ -1521,7 +1521,7 @@ def distribuir_bolsas(demanda,consulta):
                 atualizar(consulta)
         
 def executarSelect(consulta,tipo=0):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
@@ -1539,7 +1539,7 @@ def executarSelect(consulta,tipo=0):
         conn.close()
 
 def executarSelect2(consulta,tipo=0,valores=()):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
@@ -1560,7 +1560,7 @@ def executarSelect2(consulta,tipo=0,valores=()):
         conn.close()
 
 def avaliacoesEncerradas(codigoEdital):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT deadline_avaliacao,CURRENT_TIMESTAMP() FROM editais WHERE CURRENT_TIMESTAMP()<deadline_avaliacao AND id=" + codigoEdital
@@ -1586,7 +1586,7 @@ def resultados():
             return "Código do edital inválido!"
         #Recuperando o Resumo Geral
         consulta = "SELECT * FROM resumoGeralClassificacao WHERE tipo=" + codigoEdital + " ORDER BY ua, score DESC"
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
         conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
         cursor.execute(consulta)
@@ -1689,7 +1689,7 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
     '''
     Retorna uma coluna de uma linha única dado uma chave primária
     '''
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT " + coluna + " FROM " + tabela + " WHERE " + colunaId + "=" + valorId
@@ -1707,7 +1707,7 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
         conn.close()
         
 def obterColunaUnica_str(tabela,coluna,colunaId,valorId):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT " + coluna + " FROM " + tabela + " WHERE " + colunaId + "=\"" + valorId + "\""
@@ -1755,7 +1755,7 @@ def editalProjeto():
             if 'edital' in request.args:
                 codigoEdital = str(request.args.get('edital'))
                 session['edital'] = codigoEdital
-                conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+                conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
                 conn.select_db(MYSQL_DATABASE)
                 cursor  = conn.cursor()
                 tipo_classificacao = int(obterColunaUnica("editais","classificacao","id",codigoEdital))
@@ -1838,7 +1838,7 @@ def lattesDetalhado():
         #Recuperando o código do projeto
         if 'id' in request.args:
             idProjeto = str(request.args.get('id'))
-            conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+            conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
             conn.select_db(MYSQL_DATABASE)
             cursor  = conn.cursor()
             consulta = "SELECT id,scorelattes_detalhado FROM editalProjeto WHERE id=" + idProjeto + " AND valendo=1"

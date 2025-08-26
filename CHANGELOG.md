@@ -1,3 +1,4 @@
+	2025-08-26 09:11:10 -0300	fix: Alterado servidor para sci01 novamente
 	2025-08-26 09:10:34 -0300	fix: Alterado servidor para sci06
 	2025-08-25 16:07:51 -0300	fix: Ajustados todas as chaves recaptcha dos templates
 	2025-08-25 16:02:40 -0300	fix: chave recaptcha do login corrigida

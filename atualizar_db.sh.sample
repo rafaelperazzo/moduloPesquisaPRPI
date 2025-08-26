@@ -32,7 +32,7 @@ sed -i 's/\sDEFINER=`[^`]*`@`[^`]*`//g' share/$arquivo
 echo "ATUALIZANDO O BANCO DE DADOS"
 infisical run -- docker compose exec -T db_pesquisa bash -c "mariadb -u root -p$MYSQL_ROOT_PASSWORD < /share/$arquivo"
 echo "ATUALIZANDO O BANCO DE DADOS DA AWS"
-infisical run -- mariadb -h $AWS_MYSQL_HOST -P 3306 -u admin -p$AWS_MYSQL_PASSWORD --ssl < share/$arquivo
+infisical run -- docker run -it --rm mariadb:11 mariadb -h $AWS_MYSQL_HOST -P 3306 -u admin -p$AWS_MYSQL_PASSWORD --ssl < share/$arquivo
 echo "CLONANDO PARA BD DE TESTES"
 ./clonar.sh.run
 echo "APAGANDO ARQUIVOS"

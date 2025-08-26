@@ -1,3 +1,4 @@
+	2025-08-26 09:31:55 -0300	fix: atualizar_db para aws com docker
 	2025-08-26 09:23:32 -0300	fix: Atualizar db para AWS corrigido
 	2025-08-26 09:11:10 -0300	fix: Alterado servidor para sci01 novamente
 	2025-08-26 09:10:34 -0300	fix: Alterado servidor para sci06

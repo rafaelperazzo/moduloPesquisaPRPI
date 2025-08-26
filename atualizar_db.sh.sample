@@ -33,7 +33,7 @@ echo "ATUALIZANDO O BANCO DE DADOS"
 infisical run -- docker compose exec -T db_pesquisa bash -c "mariadb -u root -p$MYSQL_ROOT_PASSWORD < /share/$arquivo"
 echo "ATUALIZANDO O BANCO DE DADOS DA AWS"
 #infisical run -- mariadb -h $AWS_MYSQL_HOST -P 3306 -u admin -p$AWS_MYSQL_PASSWORD --ssl < share/$arquivo
-docker run --rm mariadb:11 mariadb -h database-1.cb4e02ocy6n1.us-east-2.rds.amazonaws.com --ssl -P 3306 -u admin -p$AWS_MYSQL_PASSWORD < share/$arquivo
+docker run -i --rm mariadb:11 mariadb -h database-1.cb4e02ocy6n1.us-east-2.rds.amazonaws.com --ssl -P 3306 -u admin -p$AWS_MYSQL_PASSWORD < share/$arquivo
 echo "CLONANDO PARA BD DE TESTES"
 ./clonar.sh.run
 echo "APAGANDO ARQUIVOS"

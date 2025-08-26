@@ -104,13 +104,14 @@ LINK_AVALIACAO = ROOT_SITE + URL_PREFIX + "/avaliacao"
 DSN_SENTRY = os.getenv("DSN_SENTRY", "")
 BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
 BS_HOST = os.getenv("BS_HOST", "")
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 csrf = CSRFProtect(app)
 app.config['producao'] = PRODUCAO
 app.config['SESSION_TYPE'] = 'redis'
-app.config['SESSION_REDIS'] = Redis.from_url('redis://redis:6379')
+app.config['SESSION_REDIS'] = Redis.from_url(f'redis://{REDIS_HOST}:6379')
 app.config['SESSION_PERMANENT'] = False
 Session(app)
 
@@ -136,7 +137,7 @@ else:
 limiter = Limiter(
     get_remote_address,
     app=app,
-    storage_uri="redis://redis:6379",
+    storage_uri=f"redis://{REDIS_HOST}:6379",
     default_limits=["300 per day", "80 per hour"],
     storage_options={"socket_connect_timeout": 30},
     strategy="fixed-window",

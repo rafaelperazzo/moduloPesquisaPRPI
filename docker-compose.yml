@@ -54,7 +54,7 @@ services:
       - .git:/git
     labels:
        - "traefik.enable=true"
-       - "traefik.http.routers.pesquisa.rule=PathPrefix(`/pesquisa`)&&Host(`sci01-ter-jne.ufca.edu.br`)"
+       - "traefik.http.routers.pesquisa.rule=PathPrefix(`/pesquisa`)&&Host(`sci06-ter-jne.ufca.edu.br`)"
        - "traefik.http.routers.pesquisa.tls=true"
        - "traefik.http.routers.pesquisa.tls.certresolver=certificado"
        - "traefik.http.routers.pesquisa.entrypoints=websecure"

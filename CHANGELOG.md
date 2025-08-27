@@ -1,3 +1,4 @@
+	2025-08-27 12:39:30 -0300	fix: Desabilitados logs do sentry
 	2025-08-27 10:44:51 -0300	fix: Atualizado requirements.txt
 	2025-08-27 10:34:19 -0300	feat: Adicionado load_dotenv
 	2025-08-27 09:10:27 -0300	fix: Corrigida variável de ambiente do mysql_password

@@ -50,6 +50,9 @@ import requests
 import geoip2.database
 import boto3
 from botocore.exceptions import ClientError
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger.remove()
 

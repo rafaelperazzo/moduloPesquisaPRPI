@@ -210,7 +210,7 @@ if PRODUCAO==1:
     sentry_sdk.init(
         dsn=DSN_SENTRY,
         _experiments={
-            "enable_logs": True
+            "enable_logs": False
         },
         integrations = [
             FlaskIntegration(

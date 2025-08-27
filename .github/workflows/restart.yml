@@ -18,14 +18,14 @@ jobs:
       - name: enviando comandos ssh
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
-          port: ${{ secrets.PORT }}
+          host: ${{ secrets.YOKO_HOST }}
+          username: ${{ secrets.YOKO_USERNAME }}
+          key: ${{ secrets.YOKO_KEY }}
+          port: ${{ secrets.YOKO_PORT }}
           script: |
             cd /backup/pesquisa3
             export INFISICAL_TOKEN=${{ secrets.INFISICAL_TOKEN }}
-            infisical run -- docker-compose down
-            infisical run -- docker-compose up -d
+            infisical run -- docker compose down
+            infisical run -- docker compose up -d
             history -c && history -w
             cat /dev/null > ~/.bash_history

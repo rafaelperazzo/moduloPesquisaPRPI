@@ -21,3 +21,17 @@ brseclabcripto
 beautifulsoup4
 apprise
 gitpython
+Flask-RESTful
+Flask-Cors
+sentry-sdk[flask,loguru]
+flask-login
+logtail-python
+Flask-SQLAlchemy
+Flask-Limiter[redis]
+Flask-Session
+flask-talisman
+loguru
+Flask-APScheduler
+geoip2
+minio
+boto3

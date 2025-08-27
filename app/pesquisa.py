@@ -74,6 +74,7 @@ logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
+SERVER_PORT = os.getenv("SERVER_PORT", "80")
 PRODUCAO=0
 try:
     PRODUCAO = int(os.getenv("PRODUCAO", "0"))
@@ -232,7 +233,7 @@ s3 = boto3.client('s3', region_name=AWS_REGION,
                   aws_secret_access_key=AWS_S3_SECRET_KEY)
 
 #Obtendo senhas
-PASSWORD = os.getenv("DB_PASSWORD", "World")
+PASSWORD = os.getenv("MYSQL_PASSWORD", "World")
 GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD", "World")
 app.config['SECRET_KEY'] = secrets.token_hex()
 app.config['MAIL_PASSWORD'] = GMAIL_PASSWORD
@@ -4039,4 +4040,4 @@ if PRODUCAO==1:
 if __name__ == "__main__":
     prefixo = os.getenv('URL_PREFIX','/pesquisa')
     with logger.catch():
-        serve(app, host='0.0.0.0', port=80, url_prefix=prefixo,trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')
+        serve(app, host='0.0.0.0', port=int(SERVER_PORT), url_prefix=prefixo,trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')

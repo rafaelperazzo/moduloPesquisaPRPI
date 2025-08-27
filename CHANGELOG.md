@@ -1,3 +1,4 @@
+	2025-08-27 10:34:19 -0300	feat: Adicionado load_dotenv
 	2025-08-27 09:10:27 -0300	fix: Corrigida variável de ambiente do mysql_password
 	2025-08-26 17:28:45 -0300	fix: Incluída variável de ambiente REDIS_HOST
 	2025-08-26 09:37:51 -0300	fix: corrigido parametro do docker para exportar para aws

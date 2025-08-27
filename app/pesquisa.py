@@ -48,6 +48,8 @@ import logging
 import inspect
 import requests
 import geoip2.database
+import boto3
+from botocore.exceptions import ClientError
 
 logger.remove()
 
@@ -102,13 +104,14 @@ LINK_AVALIACAO = ROOT_SITE + URL_PREFIX + "/avaliacao"
 DSN_SENTRY = os.getenv("DSN_SENTRY", "")
 BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
 BS_HOST = os.getenv("BS_HOST", "")
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 csrf = CSRFProtect(app)
 app.config['producao'] = PRODUCAO
 app.config['SESSION_TYPE'] = 'redis'
-app.config['SESSION_REDIS'] = Redis.from_url('redis://redis:6379')
+app.config['SESSION_REDIS'] = Redis.from_url(f'redis://{REDIS_HOST}:6379')
 app.config['SESSION_PERMANENT'] = False
 Session(app)
 
@@ -134,7 +137,7 @@ else:
 limiter = Limiter(
     get_remote_address,
     app=app,
-    storage_uri="redis://redis:6379",
+    storage_uri=f"redis://{REDIS_HOST}:6379",
     default_limits=["300 per day", "80 per hour"],
     storage_options={"socket_connect_timeout": 30},
     strategy="fixed-window",
@@ -217,7 +220,17 @@ if PRODUCAO==1:
         ],
         send_default_pii=True,
     )
-    
+
+#AWS
+
+AWS_S3_KEY_ID = os.getenv("AWS_S3_KEY_ID", "default_key_id")
+AWS_S3_SECRET_KEY = os.getenv("AWS_S3_SECRET_KEY", "default_secret_key")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-2")
+AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET", "default_bucket")
+s3 = boto3.client('s3', region_name=AWS_REGION,
+                  aws_access_key_id=AWS_S3_KEY_ID,
+                  aws_secret_access_key=AWS_S3_SECRET_KEY)
+
 #Obtendo senhas
 PASSWORD = os.getenv("DB_PASSWORD", "World")
 GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD", "World")
@@ -450,7 +463,7 @@ def calcularScoreLattes(tipo,area,since,until,arquivo):
     return (s)
 
 def atualizar(consulta):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE) 
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required") 
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
@@ -470,7 +483,7 @@ def atualizar2(consulta,valores=()):
         consulta (str): consulta SQL
         valores (list, optional): Valores para consulta. Defaults to ().
     """
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE) 
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required") 
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
@@ -488,7 +501,7 @@ def atualizar2(consulta,valores=()):
         conn.close()
 
 def inserir(consulta,valores):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
@@ -584,7 +597,7 @@ def ratelimit_handler(e):
 
 def gerarDeclaracao(identificador):
     #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT nome,cpf,modalidade,orientador,projeto,inicio,fim,id,ch FROM alunos WHERE id=" + str(identificador)
@@ -612,7 +625,7 @@ def gerarDeclaracao(identificador):
 
 def gerarDeclaracaoOrientador(identificador):
     #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT id,coordenador,siape,titulo,inicio,fim FROM projetos WHERE id=" + identificador
@@ -636,7 +649,7 @@ def gerarDeclaracaoOrientador(identificador):
 
 def gerarProjetosPorAluno(cpf):
     try:
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
         conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
         consulta = """SELECT estudante_nome_completo,cpf,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,estudante_inicio,estudante_fim,token FROM cadastro_geral WHERE cpf = ? """
@@ -658,7 +671,7 @@ def gerarProjetosPorAluno(cpf):
 
 def gerarProjetosPorOrientador(identificador):
     #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT id,coordenador,titulo,inicio,fim FROM projetos WHERE SIAPE=" + str(identificador)
@@ -669,7 +682,7 @@ def gerarProjetosPorOrientador(identificador):
 
 def gerarAutenticacao(identificador):
     #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT a.nome,a.cpf,a.modalidade,a.orientador,a.projeto,a.inicio,a.fim,b.codigo FROM alunos a, autenticacao b WHERE a.id=b.idAluno and b.codigo=" + identificador + " ORDER BY b.data DESC LIMIT 1"
@@ -679,7 +692,7 @@ def gerarAutenticacao(identificador):
     return (linha)
 
 def getEditaisAbertos():
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = """SELECT id,nome,DATE_FORMAT(deadline,'%d/%m/%Y - %H:%i') FROM editais WHERE now()<deadline ORDER BY id DESC"""
@@ -1081,7 +1094,7 @@ def getScoreLattesFromFile():
 
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam
 def getFiles(idProjeto):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT arquivo_projeto,arquivo_plano1,arquivo_plano2 FROM editalProjeto WHERE id=" + idProjeto
@@ -1091,7 +1104,7 @@ def getFiles(idProjeto):
     return(linha)
 
 def naoEstaFinalizado(token):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT finalizado FROM avaliacoes WHERE token=\"" + token + "\""
@@ -1108,7 +1121,7 @@ def naoEstaFinalizado(token):
         return False
 
 def podeAvaliar(idProjeto):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     #consulta = "SELECT deadline_avaliacao,CURRENT_TIMESTAMP() FROM editais WHERE CURRENT_TIMESTAMP()<deadline_avaliacao AND id=" + codigoEdital
@@ -1253,7 +1266,7 @@ def enviarAvaliacao():
         return("OK")
 
 def descricaoEdital(codigoEdital):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT id,nome FROM editais WHERE id=" + codigoEdital
@@ -1313,7 +1326,7 @@ def getDeclaracaoAvaliador(tokenAvaliacao):
         return "PROJETO AINDA NÃO AVALIADO OU INEXISTENTE!"
     
 def consultar(consulta):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     cursor.execute(consulta)
@@ -1340,7 +1353,7 @@ def recusarConvite():
 @log_required
 def avaliacoesNegadas():
     if request.method == "GET":
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
         conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
         if 'edital' in request.args:
@@ -1399,7 +1412,7 @@ def inserirAvaliador():
 
 #Retorna a quantidade de linhas da consulta
 def quantidades(consulta):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     cursor.execute(consulta)
@@ -1421,7 +1434,7 @@ def estatisticas():
             return "Código do edital inválido!"
         #Resumo Geral
         consulta = "SELECT * FROM resumoGeralAvaliacoes WHERE tipo=" + codigoEdital + " ORDER BY ua, score DESC"
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
         conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
         cursor.execute(consulta)
@@ -1509,7 +1522,7 @@ def distribuir_bolsas(demanda,consulta):
                 atualizar(consulta)
         
 def executarSelect(consulta,tipo=0):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
@@ -1527,7 +1540,7 @@ def executarSelect(consulta,tipo=0):
         conn.close()
 
 def executarSelect2(consulta,tipo=0,valores=()):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     try:
@@ -1548,7 +1561,7 @@ def executarSelect2(consulta,tipo=0,valores=()):
         conn.close()
 
 def avaliacoesEncerradas(codigoEdital):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT deadline_avaliacao,CURRENT_TIMESTAMP() FROM editais WHERE CURRENT_TIMESTAMP()<deadline_avaliacao AND id=" + codigoEdital
@@ -1574,7 +1587,7 @@ def resultados():
             return "Código do edital inválido!"
         #Recuperando o Resumo Geral
         consulta = "SELECT * FROM resumoGeralClassificacao WHERE tipo=" + codigoEdital + " ORDER BY ua, score DESC"
-        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
         conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
         cursor.execute(consulta)
@@ -1677,7 +1690,7 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
     '''
     Retorna uma coluna de uma linha única dado uma chave primária
     '''
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT " + coluna + " FROM " + tabela + " WHERE " + colunaId + "=" + valorId
@@ -1695,7 +1708,7 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
         conn.close()
         
 def obterColunaUnica_str(tabela,coluna,colunaId,valorId):
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
     consulta = "SELECT " + coluna + " FROM " + tabela + " WHERE " + colunaId + "=\"" + valorId + "\""
@@ -1743,7 +1756,7 @@ def editalProjeto():
             if 'edital' in request.args:
                 codigoEdital = str(request.args.get('edital'))
                 session['edital'] = codigoEdital
-                conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+                conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
                 conn.select_db(MYSQL_DATABASE)
                 cursor  = conn.cursor()
                 tipo_classificacao = int(obterColunaUnica("editais","classificacao","id",codigoEdital))
@@ -1826,7 +1839,7 @@ def lattesDetalhado():
         #Recuperando o código do projeto
         if 'id' in request.args:
             idProjeto = str(request.args.get('id'))
-            conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE)
+            conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
             conn.select_db(MYSQL_DATABASE)
             cursor  = conn.cursor()
             consulta = "SELECT id,scorelattes_detalhado FROM editalProjeto WHERE id=" + idProjeto + " AND valendo=1"
@@ -2671,12 +2684,28 @@ def podeSerIndicado(matricula):
     else:
         return (True)
 
+def upload_s3(origem,destino):
+    try:
+        s3.upload_file(origem, AWS_S3_BUCKET, destino)
+        os.remove(origem)
+        logger.info("[S3] Upload de arquivo {} para o S3 concluído com sucesso.", origem)
+    except (ClientError,FileNotFoundError) as e:
+        logger.error("[S3] Erro ao fazer upload ({}, {}) para o S3: {}", origem, destino, e)
+
 def encripta_e_apaga(arquivo):
     """
     Encripta e apaga o arquivo
     """
+    separados = arquivo.split("/")
+    nome_arquivo = separados[1]
+    pasta = 'pesquisa/' + separados[0] + "/"
+    destino = pasta + nome_arquivo + '.gpg'
+    origem = arquivo + '.gpg'
     cripto.aes_gpg_encrypt_file(GPG_KEY,arquivo, arquivo + ".gpg")
     os.remove(arquivo)
+    #Faz o upload do gpg para o S3
+    thread_s3_upload = threading.Thread(target=upload_s3, args=(origem,destino,))
+    thread_s3_upload.start()
 
 @app.route("/efetivarIndicacao", methods=['GET', 'POST'])
 @login_required(role='user')
@@ -2707,8 +2736,8 @@ def efetivarIndicacao():
                 banco = ""
                 agencia = ""
                 conta = ""
-                if podeSerIndicado(matricula)==False:
-                    return("Indicado ja esta em outro projeto. Nao foi possivel efetivar a indicacao.") 
+                #if podeSerIndicado(matricula)==False:
+                #    return("Indicado ja esta em outro projeto. Nao foi possivel efetivar a indicacao.") 
 
                 if vaga==0:
                     banco = "N/A"
@@ -2857,8 +2886,13 @@ def esperar(arquivo):
         try:
             os.remove(arquivo)
         except FileNotFoundError as e:
-            logger.error("Erro ao remover arquivo temporário (função esperar(arquivo)).")
-            logger.error(str(e))
+            logger.error("Erro ao remover arquivo temporário (função esperar({})):{}",arquivo,str(e))
+    if os.path.exists(arquivo + '.gpg'):
+        #remove file
+        try:
+            os.remove(arquivo + '.gpg')
+        except FileNotFoundError as e:
+            logger.error("Erro ao remover arquivo temporário (função esperar({})):{}",arquivo + '.gpg',str(e))
 
 @app.route("/verArquivo", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
@@ -2869,28 +2903,31 @@ def verArquivo():
         if 'file' in request.args:
             arquivo = str(request.args['file'])
             arquivo = secure_filename(arquivo) + ".gpg"
-            if os.path.isfile(ATTACHMENTS_DIR + arquivo):
+            #INCLUÍNDO CÓDIGO S3
+            try:
+                s3.download_file(AWS_S3_BUCKET, 'pesquisa/' + ATTACHMENTS_DIR + arquivo, ATTACHMENTS_DIR + arquivo)
                 cripto.aes_gpg_decrypt_file(GPG_KEY,ATTACHMENTS_DIR + arquivo, ATTACHMENTS_DIR + arquivo.replace(".gpg",""))
                 thread = threading.Thread(target=esperar,args=(ATTACHMENTS_DIR + arquivo.replace(".gpg",""),))
                 thread.start()
                 return(send_from_directory(app.config['UPLOADED_DOCUMENTS_DEST'], arquivo.replace(".gpg","")))
-            else:
+            except Exception:
                 return("Arquivo não encontrado!")
+            #FIM DO CÓDIGO S3
         else:
             return("OK")
     else:
         return("OK")
     
-@app.route("/verArquivosProjeto/<filename>", methods=['GET', 'POST'])
+@app.route("/verArquivosProjeto/<filename>", methods=['GET'])
 @log_required
 def verArquivosProjeto(filename):
     arquivo = secure_filename(filename) + ".gpg"
-    if os.path.isfile(SUBMISSOES_DIR + arquivo):
+    try:
+        s3.download_file(AWS_S3_BUCKET, 'pesquisa/' + SUBMISSOES_DIR + arquivo, SUBMISSOES_DIR + arquivo)
         cripto.aes_gpg_decrypt_file(GPG_KEY,SUBMISSOES_DIR + arquivo, SUBMISSOES_DIR + arquivo.replace(".gpg",""))
         thread = threading.Thread(target=esperar,args=(SUBMISSOES_DIR + arquivo.replace(".gpg",""),))
-        thread.start()
         return(send_from_directory(app.config['UPLOADED_SUBMISSOES_DEST'], arquivo.replace(".gpg","")))
-    else:
+    except Exception:
         return("Arquivo não encontrado!")
 
 @app.route("/situacaoIndicacoes", methods=['GET', 'POST'])

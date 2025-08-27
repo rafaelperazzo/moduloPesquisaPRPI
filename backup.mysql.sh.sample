@@ -9,17 +9,21 @@ export RCLONE_CONFIG_PASS=$(infisical secrets get RCLONE_CONFIG_PASS --plain)
 cd /backup/pesquisa3
 date=$(/usr/bin/date '+%Y-%m-%dT%H.%M')
 echo "Dump do BD"
-docker-compose exec -T db_pesquisa bash -c "mariadb-dump -u root -p$MYSQL_ROOT_PASSWORD --add-drop-database --add-drop-table --databases pesquisa > /share/$date-pesquisa.sql"
+infisical run -- docker-compose exec -T db_pesquisa bash -c "mariadb-dump -u root -p$MYSQL_ROOT_PASSWORD --add-drop-database --add-drop-table --databases pesquisa > /share/$date-pesquisa.sql"
 cd /backup/pesquisa3/share/
+sed -i 's/\sDEFINER=`[^`]*`@`[^`]*`//g' $date-pesquisa.sql
 echo "Gz"
 gzip /backup/pesquisa3/share/$date-pesquisa.sql
 echo "Encriptando..."
 gpg -o $date-pesquisa.sql.gz.gpg --symmetric --armor --cipher-algo AES256 --passphrase $GPG_KEY --batch --yes $date-pesquisa.sql.gz
 rm -f $date-pesquisa.sql.gz
-rm -f `ls -t *.gz| awk 'NR>21'`
+#rm -f `ls -t *.gz| awk 'NR>21'`
 rm -f `ls -t *.gpg| awk 'NR>21'`
-echo "Backup para proton..."
+echo "Backup para proton/s3..."
 rclone sync --progress /backup/pesquisa3/share/ remote:SISTEMAS/PESQUISA/BACKUP/
-#rclone sync --progress /backup/cppgi/share/ remote:SISTEMAS/CPPGI/BACKUP/
-#rclone sync --progress /backup/docs.sci01/share/ remote:SISTEMAS/DOCS/BACKUP/
-#rclone sync --progress /backup/mariadb01/share/ remote:SISTEMAS/MARIADB/BACKUP/
+aws s3 sync /backup/pesquisa3/share/ s3://rajardekalambur/pesquisa/backup/ --delete
+aws s3 sync /backup/pesquisa3/app/submissoes/ s3://rajardekalambur/pesquisa/submissoes/ --delete
+aws s3 sync /backup/pesquisa3/app/docs_indicacoes/ s3://rajardekalambur/pesquisa/docs_indicacoes/ --delete
+rclone sync --progress /backup/cppgi/share/ remote:SISTEMAS/CPPGI/BACKUP/
+rclone sync --progress /backup/docs.sci01/share/ remote:SISTEMAS/DOCS/BACKUP/
+rclone sync --progress /backup/mariadb01/share/ remote:SISTEMAS/MARIADB/BACKUP/

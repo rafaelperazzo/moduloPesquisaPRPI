@@ -1,3 +1,24 @@
+	2025-08-26 09:37:51 -0300	fix: corrigido parametro do docker para exportar para aws
+	2025-08-26 09:31:55 -0300	fix: atualizar_db para aws com docker
+	2025-08-26 09:23:32 -0300	fix: Atualizar db para AWS corrigido
+	2025-08-26 09:11:10 -0300	fix: Alterado servidor para sci01 novamente
+	2025-08-26 09:10:34 -0300	fix: Alterado servidor para sci06
+	2025-08-25 16:07:51 -0300	fix: Ajustados todas as chaves recaptcha dos templates
+	2025-08-25 16:02:40 -0300	fix: chave recaptcha do login corrigida
+	2025-08-25 16:01:28 -0300	test: chave recaptch v2 no login
+	2025-08-25 15:52:50 -0300	test: chave recaptch v3 no login
+	2025-08-25 14:38:20 -0300	fix: corrigido erro no atualizar_db
+	2025-08-25 14:33:25 -0300	fix: Corrigidos erros de execução do backup.mysql
+	2025-08-25 14:15:35 -0300	fix: Atualizado script de atualizar_db para backup na aws
+	2025-08-25 13:51:03 -0300	fix: corrigido script backup.mysq.sh
+	2025-08-25 13:46:47 -0300	fix: Incluída opção de ssl na conexão com o mariadb
+	2025-08-25 11:35:55 -0300	feat: Upload de arquivos de submissão de projetos e docs de indicações para o S3
+	2025-08-25 10:24:17 -0300	feat: verArquivoProjeto agora baixa do S3
+	2025-08-25 09:49:20 -0300	feat: Arquivos migrados para AWS S3 - /verArquivo
+	2025-08-24 17:42:50 -0300	feat: Incluído backup no s3
+	2025-08-15 13:12:26 -0300	fix: Removido bloqueio de indicações que já estão em outros projetos
+	2025-08-15 08:18:56 -0300	fix: Adicionados novos cursos no formulário de indicação de bolsista
+	2025-08-14 08:20:46 -0300	feat: Adicionado recurso do actions para reiniciar o sistema diariamente as 03:00
 	2025-08-13 15:41:46 -0300	fix: incluído PIBIC-AF nos certificados discente
 	2025-08-13 11:55:32 -0300	fix: removido o safe do link da declaração
 	2025-08-13 11:54:27 -0300	incluído no logger o link da declaração

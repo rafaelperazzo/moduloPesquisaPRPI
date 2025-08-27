@@ -42,7 +42,7 @@ services:
     networks:
       - web  
   pesquisa:
-    image: ghcr.io/rafaelperazzo/python3:v1.3.0
+    image: ghcr.io/rafaelperazzo/python3:v1.4.0
     command: python3 pesquisa.py
     depends_on:
       db_pesquisa:
@@ -79,7 +79,12 @@ services:
       BS_SOURCE_TOKEN: ${BS_SOURCE_TOKEN}
       BS_HOST: ${BS_HOST}
       OPENVPN_KEY: ${OPENVPN_KEY}
-    
+      AWS_S3_KEY_ID: ${AWS_S3_KEY_ID}
+      AWS_S3_SECRET_KEY: ${AWS_S3_SECRET_KEY}
+      AWS_REGION: ${AWS_REGION}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      REDIS_HOST: ${REDIS_HOST}
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://ip.me"]
       start_period: 15s

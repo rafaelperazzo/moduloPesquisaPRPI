@@ -1,3 +1,4 @@
+	2025-08-26 17:28:45 -0300	fix: Incluída variável de ambiente REDIS_HOST
 	2025-08-26 09:37:51 -0300	fix: corrigido parametro do docker para exportar para aws
 	2025-08-26 09:31:55 -0300	fix: atualizar_db para aws com docker
 	2025-08-26 09:23:32 -0300	fix: Atualizar db para AWS corrigido

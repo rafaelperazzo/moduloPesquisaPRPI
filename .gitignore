@@ -13,6 +13,7 @@ app/docs_indicacoes/*RG_CPF*
 app/static/files
 app/teste_cnpq.py
 env/
+app/staging.env
 .env
 cicd.sh
 cron

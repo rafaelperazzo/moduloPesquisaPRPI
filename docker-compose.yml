@@ -59,7 +59,7 @@ services:
        - "traefik.http.routers.pesquisa.tls.certresolver=certificado"
        - "traefik.http.routers.pesquisa.entrypoints=websecure"
     environment:
-      DB_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       GMAIL_PASSWORD: ${GMAIL_PASSWORD}
       SESSION_SECRET_KEY: ${SESSION_SECRET_KEY}
       MYSQL_HOST: ${MYSQL_HOST}
@@ -84,6 +84,7 @@ services:
       AWS_REGION: ${AWS_REGION}
       AWS_S3_BUCKET: ${AWS_S3_BUCKET}
       REDIS_HOST: ${REDIS_HOST}
+      SERVER_PORT: ${SERVER_PORT}
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://ip.me"]
@@ -94,7 +95,7 @@ services:
 
     restart: "always"
     ports:
-      - "9008:80"
+      - "9008:${SERVER_PORT}"
     networks:
       - web
   

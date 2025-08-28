@@ -2656,8 +2656,11 @@ def encripta_e_apaga(arquivo):
     cripto.aes_gpg_encrypt_file(GPG_KEY,arquivo, arquivo + ".gpg")
     os.remove(arquivo)
     #Faz o upload do gpg para o S3
-    thread_s3_upload = threading.Thread(target=upload_s3, args=(origem,destino,))
-    thread_s3_upload.start()
+    if PRODUCAO == 1:
+        thread_s3_upload = threading.Thread(target=upload_s3, args=(origem,destino,))
+        thread_s3_upload.start()
+    else:
+        os.remove(origem)
 
 @app.route("/efetivarIndicacao", methods=['GET', 'POST'])
 @login_required(role='user')

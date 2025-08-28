@@ -395,49 +395,27 @@ def salvarCV(idlattes):
 #Replace: logger.$1$2{}$4
 
 def processarPontuacaoLattes(cpf,area,idProjeto,dados):
-    processou_scoreLattes = False
+    periodo = "5"
+    url_score = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + cpf + "/" + area + "/" + periodo + "/" + "0"
+    url_sumario = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + cpf + "/" + area + "/" + periodo + "/" + "1"
+    sumario = ""
+    pontuacao = "0.0"
     try:
-        idlattes = getID(cpf)
-        salvarCV(idlattes)
-        arquivo = XML_DIR + idlattes + ".xml"
-        pontuacao = -100
-        sumario = "---"
-        processou_scoreLattes = True
+        sumario = requests.get(url_sumario,timeout=120).text
+        pontuacao = requests.get(url_score,timeout=120).text
+        pontuacao = json.loads(pontuacao)
+        pontuacao = pontuacao['score']
     except Exception as e:
-        with app.app_context():
-            logger.error("Erro ao BAIXAR O XML: {}", e)
-            logger.error("Tentativa de BAIXAR o XML com o CPF: {}", cpf)
-        processou_scoreLattes = False
-    try:
-        if processou_scoreLattes:
-            from datetime import date
-            ano_fim = date.today().year
-            ano_inicio = ano_fim - 5
-            if os.path.exists(arquivo):
-                score = scorerun.Score(arquivo, ano_inicio, ano_fim, area,2017,0,False)
-                pontuacao = float(score.get_score())
-                sumario = str(score.sumario())
-            else:
-                pontuacao = -1
-                sumario = "ERRO AO PROCESSAR O SCORELATTES. Erro ao digitar o CPF ?"
-        else:
-            pontuacao = -1
-            sumario = "ERRO AO PROCESSAR O SCORELATTES"
-    except Exception as e:
-        with app.app_context():
-            logger.error("Erro ao processar o scorelattes: {}", e)
-            logger.error("Tentativa de processar o scorelattes com CPF: {}", cpf)
-        pontuacao = -1
-        sumario = "ERRO AO PROCESSAR O SCORELATTES"
-
+        logger.warning("Erro ao processar a pontuação Lattes: {}", str(e))
+        sumario = "Erro ao processar a pontuacao lattes. Comunicação com o CNPq falhou."
+        pontuacao = "0.0"
     try:
         consulta = """UPDATE editalProjeto 
         SET scorelattes= ? WHERE id= ?"""
         atualizar2(consulta,valores=[pontuacao,idProjeto])
     except Exception as e:
         with app.app_context():
-            logger.error("Erro ao atualizar o scorelattes: {}", str(e))
-            logger.error("Tentativa de atualizar o scorelattes com CPF: {}", str(cpf))
+            logger.error("Erro ao atualizar o scorelattes: {} com o cpf: {}", str(e),str(cpf))
     with app.app_context():
         try:
             #ENVIAR E-MAIL DE CONFIRMAÇÃO
@@ -884,10 +862,12 @@ def cadastrarProjeto():
     if request.method == "POST":
         #CADASTRAR DADOS DO PROPONENTE
         tipo = int(request.form['tipo'])
-        nome = str(request.form['nome'])
+        nome = obterColunaUnica('users','nome','username',session['username'])
+        #nome = str(request.form['nome'])
         categoria_projeto = int(request.form['categoria_projeto'])
         siape = session['username']
-        email = str(request.form['email'])
+        email = obterColunaUnica('users','email','username',session['username'])
+        #email = str(request.form['email'])
         ua = str(request.form['ua'])
         area_capes = str(request.form['area_capes'])
         grande_area = str(request.form['grande_area'])

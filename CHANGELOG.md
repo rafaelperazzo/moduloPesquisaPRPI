@@ -1,3 +1,4 @@
+	2025-08-27 14:02:40 -0300	fix: Arquivos dos actions atualizados para yokoapps
 	2025-08-27 13:32:51 -0300	fix: Corrigido host no docker-compose
 	2025-08-27 12:39:30 -0300	fix: Desabilitados logs do sentry
 	2025-08-27 10:44:51 -0300	fix: Atualizado requirements.txt

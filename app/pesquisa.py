@@ -1053,49 +1053,17 @@ def cadastrarProjeto():
 def calcularScorelattesFromID():
     return (render_template('scorelattes.html'))
 
-@app.route("/score", methods=['GET', 'POST'])
+@app.route("/score", methods=['POST'])
 @log_required
 @limiter.limit("30/day;10/hour;3/minute",methods=["POST"])
 def getScoreLattesFromFile():
     area_capes = str(request.form['area_capes'])
-    idlattes = str(request.form['idlattes'])
-    if not token_valido(idlattes):
-        return "IDLattes inválido! Informe um IDLattes válido."
-    periodo = int(str(request.form['periodo']))
-    if not numero_valido(periodo) or periodo not in [5,7]:
-        return "Período inválido! Informe um número inteiro positivo."
-    continuar = False
-    for i in range(1,6,1):
-        try:
-            salvarCV(idlattes)
-            continuar = True
-            with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,idlattes=idlattes):
-                logger.info("Currículo do IDlattes {} baixado com sucesso em {} tentativa(s).", idlattes,i)
-        except requests.exceptions.ConnectionError as e:
-            with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,erro=str(e),idlattes=idlattes,classe_erro=type(e).__name__):
-                logger.warning("Erro de conexão ao baixar o currículo do IDlattes")
-            continuar = False
-        except Exception as e:
-            with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,erro=str(e),idlattes=idlattes,classe_erro=type(e).__name__):
-                logger.warning("Nao foi possivel baixar o curriculo do IDlattes")
-            continuar = False
-        if continuar:
-            break
-        else:
-            return("Não foi possível baixar o currículo. IDLattes inválido, ou problemas na comunicação com o CNPq. Tente novamente mais tarde.")
-    arquivo = XML_DIR + idlattes + ".xml"
-    try:
-        from datetime import date
-        ano_fim = date.today().year
-        ano_inicio = ano_fim - periodo
-        score = scorerun.Score(arquivo, ano_inicio, ano_fim, area_capes,2017,0,False)
-        sumario = str(score.sumario())
-        return(sumario)
-    except Exception as e:
-        with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,erro=str(e),idlattes=idlattes):
-            logger.error("[SCORELATTES] Erro ao calcular o scorelattes")
-        return("Erro ao calcular pontuacao!")
-
+    cpf = str(request.form['cpf'])
+    periodo = str(request.form['periodo'])
+    url_sumario = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + cpf + "/" + area_capes + "/" + periodo + "/" + "1"
+    sumario = requests.get(url_sumario,timeout=120).text
+    return (sumario)
+    
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam
 def getFiles(idProjeto):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")

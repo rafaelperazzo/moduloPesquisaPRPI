@@ -1,3 +1,7 @@
+	2025-08-28 11:07:05 -0300	fix: encripta_e_apaga so funciona em produção
+	2025-08-28 10:51:26 -0300	fix: score do cadastrar projeto corrigido. Removido nome e email do formulário de submissão.
+	2025-08-28 10:24:20 -0300	fix: Scorelattes agora obtem dados do sci01
+	2025-08-27 14:02:40 -0300	fix: Arquivos dos actions atualizados para yokoapps
 	2025-08-27 13:32:51 -0300	fix: Corrigido host no docker-compose
 	2025-08-27 12:39:30 -0300	fix: Desabilitados logs do sentry
 	2025-08-27 10:44:51 -0300	fix: Atualizado requirements.txt

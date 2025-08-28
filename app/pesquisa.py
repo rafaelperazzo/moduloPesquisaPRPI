@@ -395,49 +395,27 @@ def salvarCV(idlattes):
 #Replace: logger.$1$2{}$4
 
 def processarPontuacaoLattes(cpf,area,idProjeto,dados):
-    processou_scoreLattes = False
+    periodo = "5"
+    url_score = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + cpf + "/" + area + "/" + periodo + "/" + "0"
+    url_sumario = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + cpf + "/" + area + "/" + periodo + "/" + "1"
+    sumario = ""
+    pontuacao = "0.0"
     try:
-        idlattes = getID(cpf)
-        salvarCV(idlattes)
-        arquivo = XML_DIR + idlattes + ".xml"
-        pontuacao = -100
-        sumario = "---"
-        processou_scoreLattes = True
+        sumario = requests.get(url_sumario,timeout=120).text
+        pontuacao = requests.get(url_score,timeout=120).text
+        pontuacao = json.loads(pontuacao)
+        pontuacao = pontuacao['score']
     except Exception as e:
-        with app.app_context():
-            logger.error("Erro ao BAIXAR O XML: {}", e)
-            logger.error("Tentativa de BAIXAR o XML com o CPF: {}", cpf)
-        processou_scoreLattes = False
-    try:
-        if processou_scoreLattes:
-            from datetime import date
-            ano_fim = date.today().year
-            ano_inicio = ano_fim - 5
-            if os.path.exists(arquivo):
-                score = scorerun.Score(arquivo, ano_inicio, ano_fim, area,2017,0,False)
-                pontuacao = float(score.get_score())
-                sumario = str(score.sumario())
-            else:
-                pontuacao = -1
-                sumario = "ERRO AO PROCESSAR O SCORELATTES. Erro ao digitar o CPF ?"
-        else:
-            pontuacao = -1
-            sumario = "ERRO AO PROCESSAR O SCORELATTES"
-    except Exception as e:
-        with app.app_context():
-            logger.error("Erro ao processar o scorelattes: {}", e)
-            logger.error("Tentativa de processar o scorelattes com CPF: {}", cpf)
-        pontuacao = -1
-        sumario = "ERRO AO PROCESSAR O SCORELATTES"
-
+        logger.warning("Erro ao processar a pontuação Lattes: {}", str(e))
+        sumario = "Erro ao processar a pontuacao lattes. Comunicação com o CNPq falhou."
+        pontuacao = "0.0"
     try:
         consulta = """UPDATE editalProjeto 
         SET scorelattes= ? WHERE id= ?"""
         atualizar2(consulta,valores=[pontuacao,idProjeto])
     except Exception as e:
         with app.app_context():
-            logger.error("Erro ao atualizar o scorelattes: {}", str(e))
-            logger.error("Tentativa de atualizar o scorelattes com CPF: {}", str(cpf))
+            logger.error("Erro ao atualizar o scorelattes: {} com o cpf: {}", str(e),str(cpf))
     with app.app_context():
         try:
             #ENVIAR E-MAIL DE CONFIRMAÇÃO
@@ -884,10 +862,12 @@ def cadastrarProjeto():
     if request.method == "POST":
         #CADASTRAR DADOS DO PROPONENTE
         tipo = int(request.form['tipo'])
-        nome = str(request.form['nome'])
+        nome = obterColunaUnica('users','nome','username',session['username'])
+        #nome = str(request.form['nome'])
         categoria_projeto = int(request.form['categoria_projeto'])
         siape = session['username']
-        email = str(request.form['email'])
+        email = obterColunaUnica('users','email','username',session['username'])
+        #email = str(request.form['email'])
         ua = str(request.form['ua'])
         area_capes = str(request.form['area_capes'])
         grande_area = str(request.form['grande_area'])
@@ -1053,49 +1033,17 @@ def cadastrarProjeto():
 def calcularScorelattesFromID():
     return (render_template('scorelattes.html'))
 
-@app.route("/score", methods=['GET', 'POST'])
+@app.route("/score", methods=['POST'])
 @log_required
 @limiter.limit("30/day;10/hour;3/minute",methods=["POST"])
 def getScoreLattesFromFile():
     area_capes = str(request.form['area_capes'])
-    idlattes = str(request.form['idlattes'])
-    if not token_valido(idlattes):
-        return "IDLattes inválido! Informe um IDLattes válido."
-    periodo = int(str(request.form['periodo']))
-    if not numero_valido(periodo) or periodo not in [5,7]:
-        return "Período inválido! Informe um número inteiro positivo."
-    continuar = False
-    for i in range(1,6,1):
-        try:
-            salvarCV(idlattes)
-            continuar = True
-            with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,idlattes=idlattes):
-                logger.info("Currículo do IDlattes {} baixado com sucesso em {} tentativa(s).", idlattes,i)
-        except requests.exceptions.ConnectionError as e:
-            with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,erro=str(e),idlattes=idlattes,classe_erro=type(e).__name__):
-                logger.warning("Erro de conexão ao baixar o currículo do IDlattes")
-            continuar = False
-        except Exception as e:
-            with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,erro=str(e),idlattes=idlattes,classe_erro=type(e).__name__):
-                logger.warning("Nao foi possivel baixar o curriculo do IDlattes")
-            continuar = False
-        if continuar:
-            break
-        else:
-            return("Não foi possível baixar o currículo. IDLattes inválido, ou problemas na comunicação com o CNPq. Tente novamente mais tarde.")
-    arquivo = XML_DIR + idlattes + ".xml"
-    try:
-        from datetime import date
-        ano_fim = date.today().year
-        ano_inicio = ano_fim - periodo
-        score = scorerun.Score(arquivo, ano_inicio, ano_fim, area_capes,2017,0,False)
-        sumario = str(score.sumario())
-        return(sumario)
-    except Exception as e:
-        with logger.contextualize(ip=request.remote_addr,username="",rota=request.path,metodo=request.method,erro=str(e),idlattes=idlattes):
-            logger.error("[SCORELATTES] Erro ao calcular o scorelattes")
-        return("Erro ao calcular pontuacao!")
-
+    cpf = str(request.form['cpf'])
+    periodo = str(request.form['periodo'])
+    url_sumario = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + cpf + "/" + area_capes + "/" + periodo + "/" + "1"
+    sumario = requests.get(url_sumario,timeout=120).text
+    return (sumario)
+    
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam
 def getFiles(idProjeto):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
@@ -2708,8 +2656,11 @@ def encripta_e_apaga(arquivo):
     cripto.aes_gpg_encrypt_file(GPG_KEY,arquivo, arquivo + ".gpg")
     os.remove(arquivo)
     #Faz o upload do gpg para o S3
-    thread_s3_upload = threading.Thread(target=upload_s3, args=(origem,destino,))
-    thread_s3_upload.start()
+    if PRODUCAO == 1:
+        thread_s3_upload = threading.Thread(target=upload_s3, args=(origem,destino,))
+        thread_s3_upload.start()
+    else:
+        os.remove(origem)
 
 @app.route("/efetivarIndicacao", methods=['GET', 'POST'])
 @login_required(role='user')

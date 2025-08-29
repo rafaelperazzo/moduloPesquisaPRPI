@@ -1,3 +1,4 @@
+	2025-08-29 09:40:09 -0300	feat: incluída biblioteca weasyprint nos requirements
 	2025-08-28 15:40:41 -0300	fix: atualizar_db
 	2025-08-28 11:15:58 -0300	feat: Scorelattes agora funciona novamente
 	2025-08-28 11:07:05 -0300	fix: encripta_e_apaga so funciona em produção

@@ -24,7 +24,6 @@ import time
 from flask import Response
 import json
 from flask_wtf.csrf import CSRFProtect
-from modules import scorerun
 from brseclabcripto.cripto3 import SecCripto
 from git import Repo
 import secrets
@@ -51,6 +50,7 @@ import geoip2.database
 import boto3
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
+#from weasyprint import HTML
 
 load_dotenv()
 
@@ -1692,11 +1692,9 @@ def gerarPDF(template):
             'margin-left': '2cm',
         }
         pdfkit.from_string(template,arquivoDeclaracao,options=options)
-    except:
-        e = sys.exc_info()[0]
-        logger.error(e)
-        logger.error("ERRO Na função gerarPDF")
-    #return send_from_directory(app.config['TEMP_FOLDER'], 'resultados.pdf')
+        #HTML(string=template).write_pdf(arquivoDeclaracao)
+    except Exception as e:
+        logger.error("ERRO Na função gerarPDF: {}", str(e))
 
 @app.route("/editalProjeto", methods=['GET', 'POST'])
 @login_required(role='admin')
@@ -1920,6 +1918,8 @@ def minhaDeclaracao():
                     }
                     try:
                         pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                        #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE)
+                        #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
                     except Exception as e:
                         with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
                             logger.warning("Erro ao gerar declaração: {}", str(e)) 
@@ -1950,6 +1950,8 @@ def minhaDeclaracao():
                         }
                         try: 
                             pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                            #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE)
+                            #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
                         except Exception as e:
                             with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
                                 logger.warning("Erro ao gerar declaração: {}", str(e)) 
@@ -1980,6 +1982,8 @@ def minhaDeclaracao():
                         }
                         try:
                             pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                            #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE)
+                            #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
                         except Exception as e:
                             with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
                                 logger.warning("Erro ao gerar declaração: {}", str(e)) 

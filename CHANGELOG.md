@@ -1,3 +1,4 @@
+	2025-08-28 15:40:41 -0300	fix: atualizar_db
 	2025-08-28 11:15:58 -0300	feat: Scorelattes agora funciona novamente
 	2025-08-28 11:07:05 -0300	fix: encripta_e_apaga so funciona em produção
 	2025-08-28 10:51:26 -0300	fix: score do cadastrar projeto corrigido. Removido nome e email do formulário de submissão.

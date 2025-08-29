@@ -35,3 +35,4 @@ Flask-APScheduler
 geoip2
 minio
 boto3
+weasyprint

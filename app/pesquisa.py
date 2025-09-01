@@ -2804,7 +2804,7 @@ def indicacoes():
             descricao_edital = obterColunaUnica('editais','nome','id',codigoEdital)
             if 'tipo' in request.args:
                 tipo_de_vaga = str(request.args.get('tipo'))
-                consulta = """SELECT indicacoes.id,
+                consulta = f"""SELECT indicacoes.id,
                 indicacoes.idProjeto, 
                 indicacoes.nome,
                 IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
@@ -2821,8 +2821,16 @@ def indicacoes():
                 editalProjeto.nome,
                 editalProjeto.obs,
                 editalProjeto.tipo,
-                IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPQ','FUNCAP'))
-                FROM indicacoes,editalProjeto WHERE indicacoes.tipo_de_vaga=""" + tipo_de_vaga + """ AND indicacoes.idProjeto=editalProjeto.id AND tipo=""" + codigoEdital + """ ORDER BY editalProjeto.tipo,editalProjeto.nome,indicacoes.id """
+                IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPQ','FUNCAP')),
+                CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.endereco),'{AES_KEY}',iv,'AES-256-CBC'), CHAR),
+                CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.celular),'{AES_KEY}',iv,'AES-256-CBC'), CHAR),
+                CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.telefone),'{AES_KEY}',iv,'AES-256-CBC'), CHAR),
+                DATE_FORMAT(CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.nascimento),'{AES_KEY}',iv,'AES-256-CBC'), CHAR),'%d/%m/%Y'),
+                CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.rg),'{AES_KEY}',iv,'AES-256-CBC'), CHAR)
+                FROM indicacoes,editalProjeto 
+                WHERE indicacoes.tipo_de_vaga={tipo_de_vaga} 
+                AND indicacoes.idProjeto=editalProjeto.id AND tipo={codigoEdital} 
+                ORDER BY editalProjeto.tipo,editalProjeto.nome,indicacoes.id """
             else:
                 consulta = """SELECT indicacoes.id,indicacoes.idProjeto, indicacoes.nome,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
                 IF(tipo_de_vaga=1, 'BOLSISTA','VOLUNTÁRIO(A)'), nome_banco,agencia,conta, arquivo_cpf_rg,arquivo_extrato,

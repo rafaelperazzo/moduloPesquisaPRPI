@@ -35,7 +35,9 @@ p.ufca {
     <h2>{{descricao}}</h2>
     <table>
     <th>Edital</th><th>Id da indicação</th><th>idProjeto</th><th>Orientador</th><th>Bolsista</th><th>Fomento</th><th>Modalidade</th><th>Tipo de vaga</th><th>Banco</th><th>Agência</th><th>Conta</th>
-    <th>CPF/RG</th><th>Comprovante bancário</th><th>Histórico</th><th>Termo</th><th>Início</th><th>Fim</th><th>Obs</th>
+    <th>CPF/RG</th><th>Comprovante bancário</th><th>Histórico</th><th>Termo</th><th>Início</th><th>Fim</th><th>Endereço</th>
+    <th>Celular</th><th>Telefone</th><th>Nascimento</th><th>RG</th>
+    <th>Obs</th>
 
     <p>{% for linha in listaIndicacoes %}</p>
 
@@ -63,6 +65,11 @@ p.ufca {
       <td><a href='/pesquisa/verArquivo?file={{linha[11]}}'>{{linha[11]}}</a></td> <!--TERMO -->
       <td>{{linha[12]}}</td>
       <td>{{linha[13]}}</td>
+      <td>{{linha[18]}}</td>
+      <td>{{linha[19]}}</td>
+      <td>{{linha[20]}}</td>
+      <td>{{linha[21]}}</td>
+      <td>{{linha[22]}}</td>
       <td>{{linha[15]|safe}}</td>
     </tr>
 

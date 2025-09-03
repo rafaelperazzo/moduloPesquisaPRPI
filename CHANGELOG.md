@@ -1,3 +1,4 @@
+	2025-09-01 13:30:50 -0300	fix: Incluídas outras informações pessoais dos indicados para os gestores
 	2025-08-29 16:26:06 -0300	fix: voltei para o wkhtmltopdf
 	2025-08-29 09:55:00 -0300	feat: Atualizado pipfile para incluir o weasyprint
 	2025-08-29 09:40:09 -0300	feat: incluída biblioteca weasyprint nos requirements

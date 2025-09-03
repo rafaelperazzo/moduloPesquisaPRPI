@@ -3382,6 +3382,7 @@ def substituicoes():
         return("OK")
 
 def gerarLinkAvaliacao():
+    logger.info("Iniciando geração de links de avaliação...")
     consulta = """SELECT id,idProjeto,token FROM avaliacoes 
     WHERE idProjeto in (SELECT id FROM editalProjeto WHERE valendo=1) ORDER BY id """
     linhas,total = executarSelect(consulta)
@@ -3392,6 +3393,7 @@ def gerarLinkAvaliacao():
         link = LINK_AVALIACAO + "?id=" + idProjeto + "&token=" + token
         consulta = "UPDATE avaliacoes SET link=\"" + link + "\"" + " WHERE id=" + id
         atualizar(consulta)
+        logger.info("Link atualizado para avaliação do projeto {}",idProjeto)
 
 def enviar_email_avaliadores():
     gerarLinkAvaliacao()

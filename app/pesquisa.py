@@ -3393,7 +3393,7 @@ def gerarLinkAvaliacao():
         link = LINK_AVALIACAO + "?id=" + idProjeto + "&token=" + token
         consulta = "UPDATE avaliacoes SET link=\"" + link + "\"" + " WHERE id=" + id
         atualizar(consulta)
-        logger.info("Link atualizado para avaliação do projeto {}",idProjeto)
+    logger.info("Links de avaliação gerados com sucesso.")
 
 def enviar_email_avaliadores():
     gerarLinkAvaliacao()

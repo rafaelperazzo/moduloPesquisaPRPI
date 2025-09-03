@@ -3384,7 +3384,7 @@ def substituicoes():
 def gerarLinkAvaliacao():
     logger.info("Iniciando geração de links de avaliação...")
     consulta = """SELECT id,idProjeto,token FROM avaliacoes 
-    WHERE idProjeto in (SELECT id FROM editalProjeto WHERE valendo=1) ORDER BY id """
+    WHERE idProjeto in (SELECT id FROM editalProjeto WHERE valendo=1) AND link="" ORDER BY id """
     linhas,total = executarSelect(consulta)
     for linha in linhas:
         id = str(linha[0])

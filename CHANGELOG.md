@@ -1,3 +1,12 @@
+	2025-09-03 09:19:46 -0300	fix: Corrigida consulta do gerarLinkAvaliacao
+	2025-09-03 09:14:23 -0300	fix: Inserido log no gerarLinkAvaliacao no inicio e fim
+	2025-09-03 09:04:50 -0300	fix: Inserido log no gerarLinkAvaliacao
+	2025-09-01 13:30:50 -0300	fix: Incluídas outras informações pessoais dos indicados para os gestores
+	2025-08-29 16:26:06 -0300	fix: voltei para o wkhtmltopdf
+	2025-08-29 09:55:00 -0300	feat: Atualizado pipfile para incluir o weasyprint
+	2025-08-29 09:40:09 -0300	feat: incluída biblioteca weasyprint nos requirements
+	2025-08-28 15:40:41 -0300	fix: atualizar_db
+	2025-08-28 11:15:58 -0300	feat: Scorelattes agora funciona novamente
 	2025-08-28 11:07:05 -0300	fix: encripta_e_apaga so funciona em produção
 	2025-08-28 10:51:26 -0300	fix: score do cadastrar projeto corrigido. Removido nome e email do formulário de submissão.
 	2025-08-28 10:24:20 -0300	fix: Scorelattes agora obtem dados do sci01

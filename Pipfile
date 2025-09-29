@@ -101,6 +101,7 @@ flask-apscheduler = "*"
 sentry-sdk = {extras = ["flask", "loguru"], version = "*"}
 boto3 = "*"
 geoip2 = "*"
+weasyprint = "*"
 
 [dev-packages]
 

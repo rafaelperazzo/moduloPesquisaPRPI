@@ -24,7 +24,6 @@ import time
 from flask import Response
 import json
 from flask_wtf.csrf import CSRFProtect
-from modules import scorerun
 from brseclabcripto.cripto3 import SecCripto
 from git import Repo
 import secrets
@@ -51,6 +50,7 @@ import geoip2.database
 import boto3
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
+#from weasyprint import HTML
 
 load_dotenv()
 
@@ -1692,11 +1692,9 @@ def gerarPDF(template):
             'margin-left': '2cm',
         }
         pdfkit.from_string(template,arquivoDeclaracao,options=options)
-    except:
-        e = sys.exc_info()[0]
-        logger.error(e)
-        logger.error("ERRO Na função gerarPDF")
-    #return send_from_directory(app.config['TEMP_FOLDER'], 'resultados.pdf')
+        #HTML(string=template).write_pdf(arquivoDeclaracao)
+    except Exception as e:
+        logger.error("ERRO Na função gerarPDF: {}", str(e))
 
 @app.route("/editalProjeto", methods=['GET', 'POST'])
 @login_required(role='admin')
@@ -1920,6 +1918,8 @@ def minhaDeclaracao():
                     }
                     try:
                         pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                        #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE)
+                        #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
                     except Exception as e:
                         with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
                             logger.warning("Erro ao gerar declaração: {}", str(e)) 
@@ -1950,6 +1950,8 @@ def minhaDeclaracao():
                         }
                         try: 
                             pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                            #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE)
+                            #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
                         except Exception as e:
                             with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
                                 logger.warning("Erro ao gerar declaração: {}", str(e)) 
@@ -1980,6 +1982,8 @@ def minhaDeclaracao():
                         }
                         try:
                             pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                            #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE)
+                            #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
                         except Exception as e:
                             with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
                                 logger.warning("Erro ao gerar declaração: {}", str(e)) 
@@ -2800,7 +2804,7 @@ def indicacoes():
             descricao_edital = obterColunaUnica('editais','nome','id',codigoEdital)
             if 'tipo' in request.args:
                 tipo_de_vaga = str(request.args.get('tipo'))
-                consulta = """SELECT indicacoes.id,
+                consulta = f"""SELECT indicacoes.id,
                 indicacoes.idProjeto, 
                 indicacoes.nome,
                 IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
@@ -2817,8 +2821,16 @@ def indicacoes():
                 editalProjeto.nome,
                 editalProjeto.obs,
                 editalProjeto.tipo,
-                IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPQ','FUNCAP'))
-                FROM indicacoes,editalProjeto WHERE indicacoes.tipo_de_vaga=""" + tipo_de_vaga + """ AND indicacoes.idProjeto=editalProjeto.id AND tipo=""" + codigoEdital + """ ORDER BY editalProjeto.tipo,editalProjeto.nome,indicacoes.id """
+                IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPQ','FUNCAP')),
+                CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.endereco),'{AES_KEY}',iv,'AES-256-CBC'), CHAR),
+                CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.celular),'{AES_KEY}',iv,'AES-256-CBC'), CHAR),
+                CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.telefone),'{AES_KEY}',iv,'AES-256-CBC'), CHAR),
+                DATE_FORMAT(CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.nascimento),'{AES_KEY}',iv,'AES-256-CBC'), CHAR),'%d/%m/%Y'),
+                CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.rg),'{AES_KEY}',iv,'AES-256-CBC'), CHAR)
+                FROM indicacoes,editalProjeto 
+                WHERE indicacoes.tipo_de_vaga={tipo_de_vaga} 
+                AND indicacoes.idProjeto=editalProjeto.id AND tipo={codigoEdital} 
+                ORDER BY editalProjeto.tipo,editalProjeto.nome,indicacoes.id """
             else:
                 consulta = """SELECT indicacoes.id,indicacoes.idProjeto, indicacoes.nome,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
                 IF(tipo_de_vaga=1, 'BOLSISTA','VOLUNTÁRIO(A)'), nome_banco,agencia,conta, arquivo_cpf_rg,arquivo_extrato,
@@ -3370,8 +3382,9 @@ def substituicoes():
         return("OK")
 
 def gerarLinkAvaliacao():
+    logger.info("Iniciando geração de links de avaliação...")
     consulta = """SELECT id,idProjeto,token FROM avaliacoes 
-    WHERE idProjeto in (SELECT id FROM editalProjeto WHERE valendo=1) ORDER BY id """
+    WHERE idProjeto in (SELECT id FROM editalProjeto WHERE valendo=1) AND link="" ORDER BY id """
     linhas,total = executarSelect(consulta)
     for linha in linhas:
         id = str(linha[0])
@@ -3380,6 +3393,7 @@ def gerarLinkAvaliacao():
         link = LINK_AVALIACAO + "?id=" + idProjeto + "&token=" + token
         consulta = "UPDATE avaliacoes SET link=\"" + link + "\"" + " WHERE id=" + id
         atualizar(consulta)
+    logger.info("Links de avaliação gerados com sucesso.")
 
 def enviar_email_avaliadores():
     gerarLinkAvaliacao()
@@ -3390,7 +3404,7 @@ def enviar_email_avaliadores():
     AND a.finalizado=0 AND a.aceitou!=0 AND e.categoria=1 AND DATEDIFF(NOW(),a.data_envio)>1 
     AND a.idProjeto 
     IN (SELECT id FROM resumoGeralAvaliacoes WHERE ((aceites+rejeicoes<2) OR (aceites=rejeicoes)) 
-    AND tipo in (SELECT id from editais WHERE deadline_avaliacao>now() AND ADDDATE(deadline,5)<now()))
+    AND tipo in (SELECT id from editais WHERE deadline_avaliacao>now()))
     """
     linhas,total = executarSelect(consulta)
     for linha in linhas:

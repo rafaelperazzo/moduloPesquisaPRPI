@@ -3404,7 +3404,7 @@ def enviar_email_avaliadores():
     AND a.finalizado=0 AND a.aceitou!=0 AND e.categoria=1 AND DATEDIFF(NOW(),a.data_envio)>1 
     AND a.idProjeto 
     IN (SELECT id FROM resumoGeralAvaliacoes WHERE ((aceites+rejeicoes<2) OR (aceites=rejeicoes)) 
-    AND tipo in (SELECT id from editais WHERE deadline_avaliacao>now() AND ADDDATE(deadline,5)<now()))
+    AND tipo in (SELECT id from editais WHERE deadline_avaliacao>now()))
     """
     linhas,total = executarSelect(consulta)
     for linha in linhas:

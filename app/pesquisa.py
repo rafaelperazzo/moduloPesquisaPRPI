@@ -1722,15 +1722,15 @@ def editalProjeto():
                 ua,
                 titulo,
                 arquivo_projeto,
-                GROUP_CONCAT(avaliacoes.avaliador ORDER BY avaliador SEPARATOR '<BR>') as avaliadores,
+                IFNULL(GROUP_CONCAT(avaliacoes.avaliador ORDER BY avaliador SEPARATOR '<BR>'),"SEM AVALIADORES") as avaliadores,
                 GROUP_CONCAT(IF(avaliacoes.recomendacao=1,'RECOMENDADO',IF(avaliacoes.recomendacao=0,'***NÃO RECOMENDADO***','EM AVALIAÇÃO')) ORDER BY avaliador SEPARATOR '<BR>') as recomendacoes, 
-                GROUP_CONCAT(avaliacoes.enviado ORDER BY avaliador SEPARATOR '<BR>') as enviado,
+                IFNULL(GROUP_CONCAT(avaliacoes.enviado ORDER BY avaliador SEPARATOR '<BR>'),0) as enviado,
                 GROUP_CONCAT(IF(avaliacoes.aceitou=1,'ACEITOU',IF(avaliacoes.aceitou=0,'REJEITOU','NÃO RESPONDEU')) ORDER BY avaliador SEPARATOR '<BR>') as aceitou,
-                sum(avaliacoes.finalizado) as finalizados,
-                sum(if(recomendacao=-1,1,0)), 
+                IFNULL(sum(avaliacoes.finalizado),0) as finalizados,
+                IFNULL(sum(if(recomendacao=-1,1,0)),0), 
                 sum(if(recomendacao=0,1,0)),
                 sum(if(recomendacao=1,1,0)),palavras,
-                sum(avaliacoes.inovacao) as inovacao
+                IFNULL(sum(avaliacoes.inovacao),0) as inovacao
                 FROM editalProjeto
                 LEFT JOIN avaliacoes ON editalProjeto.id=avaliacoes.idProjeto
                 WHERE tipo=%s
@@ -1755,7 +1755,6 @@ def editalProjeto():
                     linhas_novos = cursor.fetchall()
                     cursor.execute(demanda)
                     linhas_demanda = cursor.fetchall()
-                    
                     if 'resultado' in request.args:
                         if 'pdf' in request.args:
                             mensagem = str(obterColunaUnica("editais","mensagem","id",codigoEdital))
@@ -1771,7 +1770,7 @@ def editalProjeto():
                 except Exception as e:
                     logger.error(str(e))
                     logger.error("ERRO Na função /editalProjeto. Ver consulta abaixo.")
-                    logger.error(consulta)
+                    logger.error(consulta_novos)
                     return("ERRO!")
                 finally:
                     cursor.close()

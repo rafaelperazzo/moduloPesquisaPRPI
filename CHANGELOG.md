@@ -1,3 +1,4 @@
+	2025-09-29 14:43:34 -0300	fix: removida restrição dos 5 dias após o deadline para enviar email para avaliadores
 	2025-09-03 09:19:46 -0300	fix: Corrigida consulta do gerarLinkAvaliacao
 	2025-09-03 09:14:23 -0300	fix: Inserido log no gerarLinkAvaliacao no inicio e fim
 	2025-09-03 09:04:50 -0300	fix: Inserido log no gerarLinkAvaliacao

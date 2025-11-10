@@ -2163,9 +2163,16 @@ def minhaDeclaracaoDiscente2019():
         #Recuperando o token da declaração
         if 'id' in request.args:
             idIndicacao = str(request.args.get('id'))
-            consulta = """SELECT indicacoes.nome,indicacoes.cpf,if(indicacoes.fim>NOW(),1,0) as verbo,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),editalProjeto.nome,editalProjeto.titulo,indicacoes.ch,DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'), indicacoes.id
-                        FROM indicacoes,editalProjeto
-                        WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.id=""" + idIndicacao
+            consulta = """SELECT 
+            indicacoes.nome,indicacoes.cpf,if(indicacoes.fim>NOW(),1,0) as verbo,
+            IF(indicacoes.modalidade=1,'PIBIC',
+            IF(indicacoes.modalidade=2,'PIBITI',
+            IF(indicacoes.modalidade=3,'PIBIC-EM','PIBIC-AF'))),
+            editalProjeto.nome,editalProjeto.titulo,indicacoes.ch,
+            DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),
+            DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'), indicacoes.id 
+            FROM indicacoes,editalProjeto 
+            WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.id=""" + idIndicacao
             from datetime import datetime
             projeto,total = executarSelect(consulta,1)
             inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')

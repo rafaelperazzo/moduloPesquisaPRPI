@@ -261,7 +261,14 @@ textarea {
 
       <h1 style="text-align: center;"> SUBMETER PROJETO DE PESQUISA PARA AVALIAÇÃO - Plataforma Yoko</h1><br>
       <center><i><font size="2">Sistema Experimental. Quaisquer erros ou problemas podem ser reportados ao e-mail atendimento.prpi@ufca.edu.br para correção(ões).</font></i></center><br>
-
+      <button id="helpBtn" class="help-btn">?</button>
+        <div id="tooltip" class="tooltip-box" style="display: none;">
+          <button id="closeBtn">✕</button>
+          <p>PIBIC - Programa que concede bolsas a estudantes de graduação para participação em projetos de pesquisa científica, sob orientação de um pesquisador qualificado. Busca desenvolver o pensamento científico e a formação acadêmica em diferentes áreas do conhecimento.</p>
+          <p>PIBIC-AF - Modalidade do PIBIC destinada a estudantes que ingressaram na universidade por meio de ações afirmativas. Incentiva a participação desses estudantes em projetos de pesquisa em qualquer área do conhecimento.</p>
+          <p>PIBITI - Programa voltado à iniciação em desenvolvimento tecnológico e inovação. Estimula estudantes de graduação a desenvolverem habilidades, métodos e conhecimentos relacionados à pesquisa tecnológica.</p>
+          <p>PIBIC-EM - Programa que integra estudantes do ensino médio às atividades de pesquisa desenvolvidas na universidade. Busca despertar o interesse pela ciência e pela formação científica desde a educação básica.</p>
+        </div>
       <label><b>Destino da Submissão</b>:
         <select name="tipo" required="required" onchange="tipo_projeto()">
           <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
@@ -269,9 +276,10 @@ textarea {
           <option value="{{linha[0]}}">{{linha[1]}} - Até: {{linha[2]}}</option>
           {% endfor %}
         </select>
+        
         <br>
-
       </label>
+      
       <label><b>Categoria de projeto</b>:
         <select name="categoria_projeto" onchange="categoria_do_projeto()" onblur="emAndamento()" required="required">
         <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
@@ -429,6 +437,9 @@ textarea {
         <b>Resumo do Projeto</b>: <br>
         <textarea name="descricao_resumida" cols="130" rows="20" required="required"
 maxlength="15000"></textarea><br>
+        <b>Pesquisadores Vinculados ao Projeto (nomes separados por vígula: Ex: João da Silva (UFC), Maria Oliveira (UFRJ))</b>: <br>
+        <textarea name="pesquisadores_vinculados" cols="130" rows="20" required="required"
+maxlength="15000"></textarea><br>
 <hr>
 <h2>Cronograma</h2><br>
 <b>Início do projeto:</b>
@@ -453,7 +464,7 @@ maxlength="15000"></textarea><br>
         <b>Plano de Trabalho 1 (pdf)</b>: <input name="arquivo_plano1" onchange="ValidateSingleInput(this);"
           type="file"><br>
         <b>Plano de Trabalho 2 (pdf)</b>: <input name="arquivo_plano2"  onchange="ValidateSingleInput(this);" type="file"><br>
-        <b>Plano de Trabalho 3 (voluntário adicional) (pdf)</b>: <input name="arquivo_plano3"  onchange="ValidateSingleInput(this);" type="file"><br>
+        <b>Plano de Trabalho 3 (pdf)</b>: <input name="arquivo_plano3"  onchange="ValidateSingleInput(this);" type="file"><br>
         <br>
         <b>O projeto precisa de transporte da UFCA ? Quantos dias aproximadamente ? (se não precisa, marque 0)</b> <br>
         <select name="transporte" required="required">
@@ -499,6 +510,23 @@ formenctype="multipart/form-data" type="submit"></label><br>
       </div>
       <br>
 </form>
+<script>
+      const btn     = document.getElementById('helpBtn');
+      const tooltip = document.getElementById('tooltip');
+
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (tooltip.style.display === 'none') {
+          tooltip.style.display = 'block';
+        } else {
+          tooltip.style.display = 'none';
+        }
+      });
+
+      document.addEventListener('click', function() {
+        tooltip.style.display = 'none';
+      });
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+	2026-03-16 09:06:50 -0300	fix: gh actions modificada para remover o cron
 	2025-11-10 10:06:02 -0300	fix: incluído pibic-af na declaração do discente
 	2025-10-29 10:18:21 -0300	fix: /editalProjeto - Valores NULL convertidos para 0
 	2025-09-29 14:43:34 -0300	fix: removida restrição dos 5 dias após o deadline para enviar email para avaliadores

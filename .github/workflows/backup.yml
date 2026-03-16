@@ -4,8 +4,8 @@ name: Backup do BD
 
 on: 
   workflow_dispatch:
-  schedule:
-    - cron: '45 3 * * *' # Executa diariamente as 03:45 (UTC)
+#  schedule:
+#    - cron: '45 3 * * *' # Executa diariamente as 03:45 (UTC)
   
 permissions:
   contents: read

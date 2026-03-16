@@ -5,8 +5,8 @@ name: Reiniciar sistema de Pesquisa
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 6 * * *' # Executa todos os dias às 06:00 (UTC)
+#  schedule:
+#    - cron: '0 6 * * *' # Executa todos os dias às 06:00 (UTC)
 
 permissions:
   contents: read

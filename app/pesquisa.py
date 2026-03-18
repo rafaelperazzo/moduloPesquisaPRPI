@@ -161,10 +161,10 @@ except Exception as e:
 
 mail = Mail(app)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
+app.config['MAIL_PORT'] = 587
 app.config['MAIL_USERNAME'] = DEFAULT_EMAIL
-app.config['MAIL_USE_TLS'] = False
-app.config['MAIL_USE_SSL'] = True
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_DEFAULT_SENDER'] = DEFAULT_EMAIL
 
 if PRODUCAO==1:
@@ -914,7 +914,11 @@ def cadastrarProjeto():
         else:
             bolsas = 0
         transporte = str(request.form['transporte'])
-        pesquisadores_vinculados = str(request.form['pesquisadores_vinculados'])
+        pesquisadores_vinculados = "N/A"
+        if 'pesquisadores_vinculados' in request.form:
+            pesquisadores_vinculados = str(request.form['pesquisadores_vinculados'])
+        else:
+            pesquisadores_vinculados = "N/A"
         consulta = """UPDATE editalProjeto 
         SET titulo= ?, validade= ? , palavras= ? , resumo= ? , bolsas= ?, pesquisadores_vinculados= ? WHERE id= ? """
         atualizar2(consulta, valores=[titulo,validade,palavras_chave,descricao_resumida,bolsas,pesquisadores_vinculados,ultimo_id])

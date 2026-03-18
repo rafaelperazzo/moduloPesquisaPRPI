@@ -1,3 +1,4 @@
+	2026-03-16 15:41:45 -0300	fix: Adicionados pesquisadores_vinculados - NÃO TESTADO
 	2026-03-16 09:06:50 -0300	fix: gh actions modificada para remover o cron
 	2025-11-10 10:06:02 -0300	fix: incluído pibic-af na declaração do discente
 	2025-10-29 10:18:21 -0300	fix: /editalProjeto - Valores NULL convertidos para 0

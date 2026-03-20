@@ -1,3 +1,4 @@
+	2026-03-18 09:54:06 -0300	fix: porta do gmail, incluido pesquisadores vinculados e incluído texto sobre o PIBITI no email
 	2026-03-16 15:41:45 -0300	fix: Adicionados pesquisadores_vinculados - NÃO TESTADO
 	2026-03-16 09:06:50 -0300	fix: gh actions modificada para remover o cron
 	2025-11-10 10:06:02 -0300	fix: incluído pibic-af na declaração do discente

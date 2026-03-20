@@ -423,6 +423,16 @@ textarea {
       <hr><br>
       <h2>Dados do projeto</h2>
       <p id="texto_projeto"></p>
+      <label for="autorizacoes">Autorização necessária para a pesquisa</label>
+      <select name="autorizacoes" id="autorizacoes" required="required">
+        <option value="N/A">Não se aplica</option>
+        <option value="CEUA">Comissão de Ética no Uso de Animais (CEUA)</option>
+        <option value="IBAMA">Instituto Brasileiro do Meio Ambiente e dos Recursos Naturais Renováveis (Ibama)</option>
+        <option value="FUNAI">Fundação Nacional do Índio (Funai)</option>
+        <option value="CNEN">Comissão Nacional de Energia Nuclear (CNEN)</option>
+        <option value="CTNBio">Comissão Técnica Nacional de Biossegurança (CTNBio)</option>
+        <option value="OUTRAS">Outras autorizações legais e institucionais pertinentes</option>
+      </select>
       <label><b>Título</b>: <br>
         <textarea name="titulo" cols="130" rows="3" required="required" maxlength="200"></textarea><br>
         <b>Validade</b> <b>(em anos):</b>

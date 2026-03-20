@@ -919,9 +919,14 @@ def cadastrarProjeto():
             pesquisadores_vinculados = str(request.form['pesquisadores_vinculados'])
         else:
             pesquisadores_vinculados = "N/A"
+        autorizacoes = "N/A"
+        if 'autorizacoes' in request.form:
+            autorizacoes = str(request.form['autorizacoes'])
+        else:            
+            autorizacoes = "N/A"
         consulta = """UPDATE editalProjeto 
-        SET titulo= ?, validade= ? , palavras= ? , resumo= ? , bolsas= ?, pesquisadores_vinculados= ? WHERE id= ? """
-        atualizar2(consulta, valores=[titulo,validade,palavras_chave,descricao_resumida,bolsas,pesquisadores_vinculados,ultimo_id])
+        SET titulo= ?, validade= ? , palavras= ? , resumo= ? , bolsas= ?, pesquisadores_vinculados= ?, autorizacoes= ? WHERE id= ? """
+        atualizar2(consulta, valores=[titulo,validade,palavras_chave,descricao_resumida,bolsas,pesquisadores_vinculados,autorizacoes,ultimo_id])
         consulta = "UPDATE editalProjeto SET transporte= ? WHERE id= ?"
         atualizar2(consulta, valores=[transporte,ultimo_id])
         inicio = str(request.form['inicio'])

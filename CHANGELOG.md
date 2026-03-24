@@ -1,3 +1,4 @@
+	2026-03-24 09:18:51 -0300	fix: update actions - atualizado host
 	2026-03-20 14:06:30 -0300	feat: Adicionado campo de autorizações no cadastro de projeto
 	2026-03-18 09:54:06 -0300	fix: porta do gmail, incluido pesquisadores vinculados e incluído texto sobre o PIBITI no email
 	2026-03-16 15:41:45 -0300	fix: Adicionados pesquisadores_vinculados - NÃO TESTADO

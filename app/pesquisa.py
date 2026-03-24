@@ -1051,7 +1051,13 @@ def getScoreLattesFromFile():
     cpf = str(request.form['cpf'])
     periodo = str(request.form['periodo'])
     url_sumario = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + cpf + "/" + area_capes + "/" + periodo + "/" + "1"
-    sumario = requests.get(url_sumario,timeout=120).text
+    sumario = "{}"
+    try:
+        sumario = requests.get(url_sumario,timeout=120).text
+    except Exception as e:
+        logger.warning(e)
+        logger.warning("Erro ao obter sumário do Lattes. Verifique se o CPF, a área CAPES e o período estão corretos.")
+        return "Erro ao obter sumário do Lattes. Falha na comunicação com o CNPq."
     return (sumario)
     
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam

@@ -18,15 +18,11 @@ jobs:
       - name: enviando comandos ssh
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.YOKO_HOST }}
-          username: ${{ secrets.YOKO_USERNAME }}
-          key: ${{ secrets.YOKO_KEY }}
-          port: ${{ secrets.YOKO_PORT }}
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_KEY }}
+          port: ${{ secrets.EC2_PORT }}
           script: |
-            cd /backup/pesquisa3
-            export INFISICAL_TOKEN=${{ secrets.INFISICAL_TOKEN }}
-            infisical run -- docker compose down
+            cd /home/admin/moduloPesquisaPRPI
             git pull origin python3 --tags
-            infisical run -- docker compose up -d
-            history -c && history -w
-            cat /dev/null > ~/.bash_history
+            sudo service pesquisa restart

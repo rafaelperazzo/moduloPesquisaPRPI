@@ -596,7 +596,7 @@
               <option value="CCAB">CCAB</option>
               <option value="IFE">IFE</option>
               <option value="IESA">IESA</option>
-              <option value="OUTRO">NÃO SE APLICA</option>
+              <option value="OUTRO">OUTROS</option>
             </select>
           </div>
 
@@ -683,20 +683,7 @@
       <div class="form-section">
         <h2 class="section-title"><span class="section-icon">③</span> Dados do Projeto</h2>
         <p id="texto_projeto"></p>
-
-        <div class="field-group">
-          <label class="field-label">Autorização Necessária para a Pesquisa</label>
-          <select name="autorizacoes" id="autorizacoes" required>
-            <option value="N/A">Não se aplica</option>
-            <option value="CEUA">Comissão de Ética no Uso de Animais (CEUA)</option>
-            <option value="IBAMA">Instituto Brasileiro do Meio Ambiente e dos Recursos Naturais Renováveis (Ibama)</option>
-            <option value="FUNAI">Fundação Nacional do Índio (Funai)</option>
-            <option value="CNEN">Comissão Nacional de Energia Nuclear (CNEN)</option>
-            <option value="CTNBio">Comissão Técnica Nacional de Biossegurança (CTNBio)</option>
-            <option value="OUTRAS">Outras autorizações legais e institucionais pertinentes</option>
-          </select>
-        </div>
-
+        
         <div class="field-group">
           <label class="field-label">Título do Projeto</label>
           <textarea name="titulo" rows="3" required maxlength="200" placeholder="Insira o título completo do projeto…"></textarea>
@@ -728,6 +715,38 @@
           <div class="info-note">Nomes separados por vírgula. Ex.: João da Silva (UFC), Maria Oliveira (UFRJ)</div>
           <textarea name="pesquisadores_vinculados" rows="5" required maxlength="15000">N/A</textarea>
         </div>
+
+        <label for="cb-group">
+          Autorizações necessárias para a pesquisa (se necessário)
+        </label>
+        <div class="cb-group" id="cb-group">
+          <div class="cb-item">
+            <input type="checkbox" id="CEUA" name="autorizacoes" value="CEUA">
+            <label for="CEUA">Comissão de Ética no Uso de Animais (CEUA)</label>
+          </div>
+          <div class="cb-item">
+            <input type="checkbox" id="IBAMA" name="autorizacoes" value="IBAMA">
+            <label for="IBAMA">Instituto Brasileiro do Meio Ambiente e dos Recursos Naturais Renováveis (Ibama)</label>
+          </div>
+          <div class="cb-item">
+            <input type="checkbox" id="FUNAI" name="autorizacoes" value="FUNAI">
+            <label for="FUNAI">Fundação Nacional do Índio (Funai)</label>
+          </div>
+          <div class="cb-item">
+            <input type="checkbox" id="CNEN" name="autorizacoes" value="CNEN">
+            <label for="CNEN">Comissão Nacional de Energia Nuclear (CNEN)</label>
+          </div>
+          <div class="cb-item">
+            <input type="checkbox" id="CTNBio" name="autorizacoes" value="CTNBio">
+            <label for="CTNBio">Comissão Técnica Nacional de Biossegurança (CTNBio)</label>
+          </div>
+          <div class="cb-item">
+            <input type="checkbox" id="OUTRAS" name="autorizacoes" value="OUTRAS">
+            <label for="OUTRAS">Outras autorizações legais e institucionais pertinentes</label>
+          </div>
+        </div>
+        <br>
+
       </div>
 
       <!-- ── 4. Cronograma ── -->
@@ -803,7 +822,7 @@
       <div class="form-section">
         <h2 class="section-title"><span class="section-icon">⑥</span> Comprovantes</h2>
         <div class="info-note">
-          Anexe os documentos complementares necessários em um único arquivo PDF. (Veja item 5.7 do Edital)
+          Anexe os documentos complementares necessários em um único arquivo PDF. (Veja item 4.7 do Edital)
         </div>
         <div class="field-group">
           <label class="field-label">Arquivo de Comprovantes (PDF)</label>

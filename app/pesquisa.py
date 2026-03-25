@@ -920,10 +920,13 @@ def cadastrarProjeto():
         else:
             pesquisadores_vinculados = "N/A"
         autorizacoes = "N/A"
+        autorizacoes_str = "N/A"
         if 'autorizacoes' in request.form:
-            autorizacoes = str(request.form['autorizacoes'])
-        else:            
-            autorizacoes = "N/A"
+            autorizacoes = request.form.getlist('autorizacoes')
+            autorizacoes_str = ', '.join(autorizacoes)
+        else:
+            autorizacoes_str = "N/A"
+        autorizacoes = autorizacoes_str
         consulta = """UPDATE editalProjeto 
         SET titulo= ?, validade= ? , palavras= ? , resumo= ? , bolsas= ?, pesquisadores_vinculados= ?, autorizacoes= ? WHERE id= ? """
         atualizar2(consulta, valores=[titulo,validade,palavras_chave,descricao_resumida,bolsas,pesquisadores_vinculados,autorizacoes,ultimo_id])
@@ -1919,7 +1922,16 @@ def minhaDeclaracao():
             #Recuperando o token da declaração
             if 'token' in request.args:
                 token = str(request.args.get('token'))
-                consulta = """SELECT nome_do_coordenador,siape,titulo_do_projeto,DATE_FORMAT(estudante_inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(estudante_fim,'%d/%m/%Y') as fim,estudante_nome_completo,token,if(estudante_fim<NOW(),"exerceu","exerce") as verbo FROM cadastro_geral WHERE token='""" + token + """' ORDER BY inicio,titulo_do_projeto"""
+                consulta = """SELECT 
+                nome_do_coordenador,
+                siape,
+                titulo_do_projeto,
+                DATE_FORMAT(estudante_inicio,'%d/%m/%Y') as inicio,
+                DATE_FORMAT(estudante_fim,'%d/%m/%Y') as fim,
+                estudante_nome_completo,
+                token,
+                if(estudante_fim<NOW(),"exerceu","exerce") as verbo 
+                FROM cadastro_geral WHERE token='""" + token + """' ORDER BY inicio,titulo_do_projeto"""
                 projeto,total = executarSelect(consulta,1)
                 data_agora = getData()
                 if total==1:
@@ -1946,10 +1958,18 @@ def minhaDeclaracao():
             else:
                 if 'id' in request.args:
                     idProjeto = str(request.args.get('id'))
-                    consulta = """SELECT DISTINCT editalProjeto.nome,editalProjeto.siape,editalProjeto.titulo,
-                    DATE_FORMAT(editalProjeto.inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(editalProjeto.fim,'%d/%m/%Y') as fim,
-                    (SELECT GROUP_CONCAT(indicacoes.nome,' (',year(indicacoes.inicio),'/',year(indicacoes.fim),') ' ORDER BY indicacoes.nome SEPARATOR ', ') from indicacoes WHERE indicacoes.idProjeto=editalProjeto.id GROUP BY indicacoes.idProjeto) as indicados,
-                    editalProjeto.id,if(editalProjeto.fim<NOW(),"exerceu","exerce") as verbo
+                    consulta = """SELECT DISTINCT 
+                    UPPER(editalProjeto.nome),
+                    editalProjeto.siape,
+                    UPPER(editalProjeto.titulo),
+                    DATE_FORMAT(editalProjeto.inicio,'%d/%m/%Y') as inicio,
+                    DATE_FORMAT(editalProjeto.fim,'%d/%m/%Y') as fim,
+                    (SELECT GROUP_CONCAT(indicacoes.nome,' (',year(indicacoes.inicio),'/',year(indicacoes.fim),') ' 
+                    ORDER BY indicacoes.nome SEPARATOR ', ') from indicacoes 
+                    WHERE indicacoes.idProjeto=editalProjeto.id GROUP BY indicacoes.idProjeto) as indicados,
+                    editalProjeto.id,
+                    if(editalProjeto.fim<NOW(),"exerceu","exerce") as verbo,
+                    UPPER(editalProjeto.pesquisadores_vinculados) as pesquisadores_vinculados
                     FROM editalProjeto,indicacoes
                     WHERE editalProjeto.id=indicacoes.idProjeto AND editalProjeto.id=""" + idProjeto + """ ORDER BY fim DESC"""
                     projeto,total = executarSelect(consulta,1)
@@ -3420,8 +3440,20 @@ def gerarLinkAvaliacao():
 def enviar_email_avaliadores():
     gerarLinkAvaliacao()
     consulta = """
-    SELECT e.id,e.titulo,e.resumo,a.avaliador,a.link,a.id,a.enviado,a.token,e.categoria,
-    e.tipo, DATEDIFF(NOW(),a.data_envio) as enviados,DATE_FORMAT(ed.deadline_avaliacao,'%d/%m/%Y') as deadline_avaliacao,ed.nome 
+    SELECT e.id,
+    e.titulo,
+    e.resumo,
+    a.avaliador,
+    a.link,
+    a.id,
+    a.enviado,
+    a.token,
+    e.categoria,
+    e.tipo, 
+    DATEDIFF(NOW(),a.data_envio) as enviados,
+    DATE_FORMAT(ed.deadline_avaliacao,'%d/%m/%Y') as deadline_avaliacao,
+    ed.nome,
+    e.justificativa  
     FROM editalProjeto as e, avaliacoes as a,editais as ed WHERE e.id=a.idProjeto AND e.tipo=ed.id AND e.valendo=1
     AND a.finalizado=0 AND a.aceitou!=0 AND e.categoria=1 AND DATEDIFF(NOW(),a.data_envio)>1 
     AND a.idProjeto 
@@ -3435,6 +3467,7 @@ def enviar_email_avaliadores():
         link = str(linha[4])
         token = str(linha[7])
         email_avaliador = str(linha[3])
+        justificativa = str(linha[13])
         if 'TESTE' in email_avaliador:
             continue
         link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
@@ -3444,7 +3477,7 @@ def enviar_email_avaliadores():
             #url_declaracao = url_for('getDeclaracaoAvaliador',tokenAvaliacao=token, _external=True)
             url_declaracao = ROOT_SITE + "/pesquisa/declaracaoAvaliador/" + token
             logger.info("URL de declaração gerada: {}", url_declaracao)
-            texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
+            texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao, justificativa=justificativa)
             msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
             try:
                 try:

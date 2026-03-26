@@ -1,3 +1,4 @@
+	2026-03-25 10:11:53 -0300	fix: Ajustes no cadastrarProjeto a pedido de Clarice, na declaração orientador e no email de solicitação de avaliação
 	2026-03-24 09:39:59 -0300	fix: Erro do /score resolvido. Estilo do cadastrar projeto modificado.
 	2026-03-24 09:18:51 -0300	fix: update actions - atualizado host
 	2026-03-20 14:06:30 -0300	feat: Adicionado campo de autorizações no cadastro de projeto

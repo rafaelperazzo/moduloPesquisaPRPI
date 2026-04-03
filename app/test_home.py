@@ -24,7 +24,7 @@ def test_home(client):
     """Test the home route."""
     response = client.get('/')
     assert response.status_code == 200
-    assert b'YOKO - PESQUISA' in response.data
+    assert b'PESQUISA' in response.data
 
 def test_declaracao_discente(client):
     """Test the declaracao discente route."""

@@ -1,106 +1,68 @@
 <!DOCTYPE html>
-
-<html>
+<html lang="pt-BR">
   <head>
-	  <style>
-table {
-    font-family: arial, sans-serif;
-    border-collapse: collapse;
-    width: 100%;
-}
-
-td, th {
-    border: 1px solid #dddddd;
-    text-align: center;
-    padding: 8px;
-}
-
-tr:nth-child(even) {
-    background-color: #dddddd;
-}
-
-table.novos {
-    font-family: arial, sans-serif;
-    border-collapse: collapse;
-    width: 50%;
-}
-
-td.novos, th.novos {
-    border: 1px solid #dddddd;
-    text-align: center;
-    padding: 8px;
-}
-
-tr.novos:nth-child(even) {
-    background-color: #CCFFCC;
-}
-
-p.definido {
-  color: green;
-}
-
-p.alerta1 {
-  color: orange;
-}
-
-p.alerta2 {
-  color: red;
-}
-
-.column {
-  float: left;
-  width: 45%;
-  padding: 5px;
-}
-
-/* Clearfix (clear floats) */
-.row::after {
-  content: "";
-  clear: both;
-  display: table;
-}
-
-</style>
-
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Situação das Indicações</title>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body>
-    <center><img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" width="120" height="130" alt=""></center>
-    <center>
-    MINISTÉRIO DA EDUCAÇÃO<br>
-    UNIVERSIDADE FEDERAL DO CARIRI<br>
-    PRÓ-REITORIA DE PESQUISA, INOVAÇÃO E PÓS-GRADUAÇÃO<br>
-    COORDENADORIA DE PESQUISA <br>
-    </center>
-    <hr>
-    <h1><b>Situação das Indicações</b></h1>
-    <h2>Edital(ais): {{edital}}</h2>
-    <table>
-      <th>Edital</th><th>id</th><th>Situação das indicações</th><th>Nome</th><th>UA</th><th>Título</th><th>Bolsas solicitadas</th>
-      <th>Bolsas Concedidas</th><th>Número de indicados</th><th>Nomes dos indicados</th>
-      {% for linha in linhas %}
-        <tr>
-          <td>{{linha[0]}}</td> <!--EDITAL -->
-          <td>{{linha[1]}}</td> <!--ID PROJETO -->
-          {% if linha[6]>linha[7] %}
-              <td><p class="alerta2">NÃO FINALIZOU AS INDICAÇÕES</p></td> <!--NOME -->
-          {% endif %}
-          {% if linha[6]==linha[7] %}
-              <td><p class="definido">FINALIZADO</p></td> <!--NOME -->
-          {% endif %}
-          <td>{{linha[2]}}</td>
-          <td>{{linha[3]}}</td> <!--UA -->
-          <td>{{linha[4]}}</td> <!--TÍTULO -->
-          <td>{{linha[5]}}</td> <!--BOLSAS SOLICITADAS -->
-          <td>{{linha[6]}}</td> <!--BOLSAS CONCEDIDAS -->
-          <td>{{linha[7]}}</td> <!--NÚMERO DE INDICADOS -->
-          <td>{{linha[8]|safe}}</td> <!--INDICADOS -->
-        </tr>
-      {% endfor %}
+  <body class="bg-gray-50 text-gray-900 font-sans">
+    <div class="container mx-auto px-4 max-w-screen-xl py-8">
+      <div class="flex justify-center mb-4">
+        <img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" width="80" height="87" alt="">
+      </div>
+      <div class="text-center text-sm text-gray-700 mb-4">
+        MINISTÉRIO DA EDUCAÇÃO<br>
+        UNIVERSIDADE FEDERAL DO CARIRI<br>
+        PRÓ-REITORIA DE PESQUISA, INOVAÇÃO E PÓS-GRADUAÇÃO<br>
+        COORDENADORIA DE PESQUISA
+      </div>
+      <hr class="border-gray-200 mb-6">
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">Situação das Indicações</h1>
+      <h2 class="text-lg text-gray-700 mb-6">Edital(ais): {{edital}}</h2>
 
-    </table>
-
-              Total: {{total}} projetos aptos para indicações de bolsistas.
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 font-semibold text-gray-700">Edital</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">id</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Situação das indicações</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Nome</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">UA</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Título</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Bolsas solicitadas</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Bolsas Concedidas</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Número de indicados</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Nomes dos indicados</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in linhas %}
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700">{{linha[0]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[1]}}</td>
+              <td class="px-4 py-3">
+                {% if linha[6]>linha[7] %}
+                  <span class="text-red-600 font-medium">NÃO FINALIZOU AS INDICAÇÕES</span>
+                {% endif %}
+                {% if linha[6]==linha[7] %}
+                  <span class="text-emerald-600 font-medium">FINALIZADO</span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-3 text-gray-700">{{linha[2]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[3]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[4]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[5]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[6]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[7]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[8]|safe}}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="text-gray-600 text-sm mt-4">Total: {{total}} projetos aptos para indicações de bolsistas.</p>
+    </div>
   </body>
 </html>

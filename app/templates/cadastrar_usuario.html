@@ -1,116 +1,59 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body {font-family: Arial, Helvetica, sans-serif;}
-form {border: 3px solid #f1f1f1;}
-
-input[type=text], input[type=password] {
-  width: 100%;
-  padding: 12px 20px;
-  margin: 8px 0;
-  display: inline-block;
-  border: 1px solid #ccc;
-  box-sizing: border-box;
-}
-
-button {
-  background-color: #4CAF50;
-  color: white;
-  padding: 14px 20px;
-  margin: 8px 0;
-  border: none;
-  cursor: pointer;
-  width: 100%;
-}
-
-button:hover {
-  opacity: 0.8;
-}
-
-.cancelbtn {
-  width: auto;
-  padding: 10px 18px;
-  background-color: #f44336;
-}
-
-.imgcontainer {
-  text-align: center;
-  margin: 24px 0 12px 0;
-}
-
-img.avatar {
-  width: 40%;
-  border-radius: 50%;
-}
-
-.container {
-  padding: 16px;
-}
-
-span.psw {
-  float: right;
-  padding-top: 16px;
-}
-
-/* Change styles for span and cancel button on extra small screens */
-@media screen and (max-width: 300px) {
-  span.psw {
-     display: block;
-     float: none;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cadastro de Usuário</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  <script>
+  function humano() {
+    if (grecaptcha.getResponse() == ""){
+      alert("Marque a caixa abaixo para continuar...");
+      return (false);
+    } else {
+      return (true);
+    }
   }
-  .cancelbtn {
-     width: 100%;
-  }
-}
-</style>
-<script src="https://www.google.com/recaptcha/api.js" async defer></script>
-<script>
-function humano() {
-   if (grecaptcha.getResponse() == ""){
-    alert("Marque a caixa abaixo para continuar...");
-    return (false);
-   } else {
-          //alert("Thank you");
-    return (true);
-     }
-}
-</script>
-
+  </script>
 </head>
-<body>
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <hr>
-        <ul class=flashes>
-        {% for message in messages %}
-        <li>{{ message }}</li>
-        {% endfor %}
-        </ul>
-    <hr>
-  {% endif %}
-{% endwith %}
-<h2>Cadastro de Usuário</h2>
-<form action="/pesquisa/cadastrar_usuario" METHOD="POST" onsubmit="return humano()">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-  <div class="container">
-    <label for="uname"><b>Usuário (siape)</b></label>
-    <input type="text" placeholder="SIAPE: " name="siape" required>
+<body class="bg-gray-50 text-gray-900 font-sans">
+  <div class="container mx-auto px-4 max-w-screen-xl py-8">
+    <div class="max-w-md mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          {% for message in messages %}
+            <div class="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-md mb-4">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
 
-    <label for="uname"><b>Nome</b></label>
-    <input type="text" placeholder="Nome completo" name="nome" required>
-
-    <label for="uname"><b>E-mail institucional</b></label>
-    <input type="email" placeholder="E-mail institucional" name="email" required>
-
-    <button type="submit">Cadastrar</button>
+      <h2 class="text-2xl font-semibold text-gray-800 mb-6">Cadastro de Usuário</h2>
+      <form action="/pesquisa/cadastrar_usuario" method="POST" onsubmit="return humano()">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1"><b>Usuário (siape)</b></label>
+          <input type="text" placeholder="SIAPE" name="siape" required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1"><b>Nome</b></label>
+          <input type="text" placeholder="Nome completo" name="nome" required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        </div>
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-1"><b>E-mail institucional</b></label>
+          <input type="email" placeholder="E-mail institucional" name="email" required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        </div>
+        <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium">Cadastrar</button>
+      </form>
+      {% if session['PRODUCAO']==1 %}
+        <div class="flex justify-center mt-4">
+          <div class="g-recaptcha" data-sitekey="6LcTP7IrAAAAAEGXU_wjThN5GsBZ3mZCy67tzQyH"></div>
+        </div>
+      {% endif %}
+    </div>
   </div>
-
-</form>
-{% if session['PRODUCAO']==1 %}
-    <center><div class="g-recaptcha" data-sitekey="6LcTP7IrAAAAAEGXU_wjThN5GsBZ3mZCy67tzQyH"></div></center>
-{% endif %}
-
 </body>
 </html>

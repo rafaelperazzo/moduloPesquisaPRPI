@@ -1,29 +1,36 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Inserir Avaliador</title>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body>
-    <i>Total de Projetos: {{ totalDeLinhas }}</i>
-    <form name="frmEnviar" action="/pesquisa/inserirAvaliador" method="POST"><br>
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-      <b>Projeto</b>:
-      <select name="txtProjeto" required="required">
-        {% for linha in listaProjetos %}
-        <option value="{{ linha[0] }}">(Id: {{ linha[0] }}){{ linha[1] }} - Concluídas: {{ linha[2] }} - Envios: {{ linha[3] }}</option>
-        {% endfor %}
-      </select>
-      <br>
-      <b>E-mail do avaliador</b>: <input name="txtEmail" required="required" size="80"
-        type="text"><br>
-      <div style="text-align: left;"><input name="btnEnviar" value="Enviar" type="submit"><br>
+  <body class="bg-gray-50 text-gray-900 font-sans">
+    <div class="container mx-auto px-4 max-w-screen-xl py-8">
+      <div class="max-w-2xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">Inserir Avaliador</h1>
+        <p class="text-gray-500 text-sm mb-6"><em>Total de Projetos: {{ totalDeLinhas }}</em></p>
+        <form name="frmEnviar" action="/pesquisa/inserirAvaliador" method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1"><b>Projeto</b></label>
+            <select name="txtProjeto" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+              {% for linha in listaProjetos %}
+              <option value="{{ linha[0] }}">(Id: {{ linha[0] }}){{ linha[1] }} - Concluídas: {{ linha[2] }} - Envios: {{ linha[3] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-1"><b>E-mail do avaliador</b></label>
+            <input name="txtEmail" required size="80" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+          <div class="flex items-center gap-4">
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium">Enviar</button>
+            <a href="/pesquisa/editalProjeto?edital={{codigoEdital}}" class="text-blue-600 hover:underline text-sm">VOLTAR PARA LISTA DE PROJETOS</a>
+          </div>
+        </form>
       </div>
-      <br>
-
-    </form>
-    <p><br>
-    </p>
-    <a href="/pesquisa/editalProjeto?edital={{codigoEdital}}"> VOLTAR PARA LISTA DE PROJETOS</a>
+    </div>
   </body>
 </html>

@@ -1,41 +1,45 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
-	  <style>
-table {
-    font-family: arial, sans-serif;
-    border-collapse: collapse;
-    width: 100%;
-}
-
-td, th {
-    border: 1px solid #dddddd;
-    text-align: left;
-    padding: 8px;
-}
-
-tr:nth-child(even) {
-    background-color: #dddddd;
-}
-</style>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Declarações por Servidor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body>
-    <h1><b>Declarações do Servidor</b></h1>
-    *Caso sua declaração não esteja listada abaixo, favor entrar em contato com a Coordenadoria de Pesquisa/PRPI (atendimento.prpi@ufca.edu.br).
-    <table>
-    <th>Id</th><th>Servidor</th><th>Evento</th><th>Modalidade</th>
-    <p>{% for linha in listaDeclaracoes %}</p>
+  <body class="bg-gray-50 text-gray-900">
+    <div class="container mx-auto px-4 max-w-screen-xl py-8">
 
-    <tr>
-    <td>{{ linha[0] }}</td><td>{{ linha[1] }}</td><td><pre><span class="cp"><a href="/pesquisa/declaracaoEvento?id={{ linha[0] }}">{{ linha[2] }}</a><br></span></pre></td><td>{{linha[3]}}</td>
-    </tr>
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">Declarações do Servidor</h1>
+      <p class="text-sm text-gray-500 mb-6">
+        *Caso sua declaração não esteja listada abaixo, favor entrar em contato com a Coordenadoria de Pesquisa/PRPI
+        (<a href="mailto:atendimento.prpi@ufca.edu.br" class="text-blue-600 hover:underline">atendimento.prpi@ufca.edu.br</a>).
+      </p>
 
-    <p><span class="cp">{% endfor %}</span></p>
+      <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 font-semibold text-gray-700">Id</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Servidor</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Evento</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Modalidade</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in listaDeclaracoes %}
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700">{{ linha[0] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[1] }}</td>
+              <td class="px-4 py-3 text-gray-700">
+                <a href="/pesquisa/declaracaoEvento?id={{ linha[0] }}" class="text-blue-600 hover:underline">{{ linha[2] }}</a>
+              </td>
+              <td class="px-4 py-3 text-gray-700">{{linha[3]}}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
-
-    </table>
-
+    </div>
   </body>
 </html>

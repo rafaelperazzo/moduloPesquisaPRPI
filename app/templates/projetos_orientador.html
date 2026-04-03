@@ -1,41 +1,37 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
-	  <style>
-table {
-    font-family: arial, sans-serif;
-    border-collapse: collapse;
-    width: 100%;
-}
-
-td, th {
-    border: 1px solid #dddddd;
-    text-align: left;
-    padding: 8px;
-}
-
-tr:nth-child(even) {
-    background-color: #dddddd;
-}
-</style>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Projetos - Orientadores</title>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body>
-    <h1><b>Projetos do orientador</b></h1>
-    *Caso seu projeto não esteja listado abaixo, favor entrar em contato com a Coordenadoria de Pesquisa/PRPI.
-    <table>
-    <th>Id</th><th>Orientador</th><th>Projeto</th>
-    <p>{% for linha in listaProjetos %}</p>
-    
-    <tr>	
-    <td>{{ linha[0] }}</td><td>{{ linha[1] }}</td><td><pre><span class="cp"><a href="/pesquisa/orientadorDeclaracao?idProjeto={{ linha[0] }}">{{ linha[2] }}</a><br></span></pre></td>
-    </tr>
-    
-    <p><span class="cp">{% endfor %}</span></p>
-    
-    
-    </table>
-    
+  <body class="bg-gray-50 text-gray-900 font-sans">
+    <div class="container mx-auto px-4 max-w-screen-xl py-8">
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">Projetos do orientador</h1>
+      <p class="text-gray-600 text-sm mb-6">*Caso seu projeto não esteja listado abaixo, favor entrar em contato com a Coordenadoria de Pesquisa/PRPI.</p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 font-semibold text-gray-700">Id</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Orientador</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Projeto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in listaProjetos %}
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700">{{ linha[0] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[1] }}</td>
+              <td class="px-4 py-3 text-gray-700">
+                <a href="/pesquisa/orientadorDeclaracao?idProjeto={{ linha[0] }}" class="text-blue-600 hover:underline">{{ linha[2] }}</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </body>
 </html>

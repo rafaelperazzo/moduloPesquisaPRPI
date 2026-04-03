@@ -1,133 +1,76 @@
 <!DOCTYPE html>
-
-<html>
+<html lang="pt-BR">
   <head>
-	  <style>
-table {
-    font-family: arial, sans-serif;
-    border-collapse: collapse;
-    width: 100%;
-}
-
-td, th {
-    border: 1px solid #dddddd;
-    text-align: center;
-    padding: 8px;
-}
-
-tr:nth-child(even) {
-    background-color: #dddddd;
-}
-
-table.novos {
-    font-family: arial, sans-serif;
-    border-collapse: collapse;
-    width: 50%;
-}
-
-td.novos, th.novos {
-    border: 1px solid #dddddd;
-    text-align: center;
-    padding: 8px;
-}
-
-tr.novos:nth-child(even) {
-    background-color: #CCFFCC;
-}
-
-p.aprovado {
-  color: green;
-}
-
-p.indefinido {
-  color: orange;
-}
-
-p.reprovado {
-  color: red;
-}
-
-.column {
-  float: left;
-  width: 45%;
-  padding: 5px;
-}
-
-/* Clearfix (clear floats) */
-.row::after {
-  content: "";
-  clear: both;
-  display: table;
-}
-
-</style>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
-<script>
-$(document).ready(function(){
- $("#myInput").on("keyup", function() {
-   var value = $(this).val().toLowerCase();
-   $("#myTable tr").filter(function() {
-     $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
-   });
- });
-});
-</script>
-
-<script>
-$(document).ready(function(){
- $("#txtNovos").on("keyup", function() {
-   var value = $(this).val().toLowerCase();
-   $("#tabelaNovos tr").filter(function() {
-     $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
-   });
- });
-});
-</script>
-
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Resultados da Consulta</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script>
+    $(document).ready(function(){
+      $("#myInput").on("keyup", function() {
+        var value = $(this).val().toLowerCase();
+        $("#myTable tr").filter(function() {
+          $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+      });
+    });
+    </script>
   </head>
-  <body>
-    <center><img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" width="120" height="130" alt=""></center>
-    <center>
-    MINISTÉRIO DA EDUCAÇÃO<br>
-    UNIVERSIDADE FEDERAL DO CARIRI<br>
-    PRÓ-REITORIA DE PESQUISA, INOVAÇÃO E PÓS-GRADUAÇÃO<br>
-    COORDENADORIA DE PESQUISA <br>
-    </center>
-    <hr>
-    <h1><b>Resultados da Consulta</b></h1>
-    <h3>Total de resultados: {{ total }} </h3>
+  <body class="bg-gray-50 text-gray-900 font-sans">
+    <div class="container mx-auto px-4 max-w-screen-xl py-8">
+      <div class="flex justify-center mb-4">
+        <img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" width="80" height="87" alt="">
+      </div>
+      <div class="text-center text-sm text-gray-700 mb-4">
+        MINISTÉRIO DA EDUCAÇÃO<br>
+        UNIVERSIDADE FEDERAL DO CARIRI<br>
+        PRÓ-REITORIA DE PESQUISA, INOVAÇÃO E PÓS-GRADUAÇÃO<br>
+        COORDENADORIA DE PESQUISA
+      </div>
+      <hr class="border-gray-200 mb-6">
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">Resultados da Consulta</h1>
+      <h3 class="text-base text-gray-700 mb-6">Total de resultados: {{ total }}</h3>
 
-    <h1>Lista de Projetos</h1>
-    <table>
-
-      <th>ID</th><th>Edital</th><th>Unidade Acadêmica</th><th>Título</th><th>Orientador</th><th>Indicações</th><th>Total de Indicações</th><th>Início</th><th>Fim</th>
-
-      {% for linha in linhas %}
-
-          <tr>
-            <td>{{linha[0]}}</td>
-            <td>{{linha[1]}}</td>
-            <td>{{linha[2]}}</td>
-            <td>{{linha[3]}}</td>
-            <td>{{linha[4]}}</td>
-            <td>
-              {% if linha[5]!=None %}
-                {{linha[5]| safe}}
-              {% else %}
-                Nenhuma indicação
-              {% endif %}
-
-            </td>
-            <td>{{linha[6]}}</td>
-            <td>{{linha[7]}}</td>
-            <td>{{linha[8]}}</td>
-          </tr>
-
-      {% endfor %}
-
-    </table>
-
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">Lista de Projetos</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 font-semibold text-gray-700">ID</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Edital</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Unidade Acadêmica</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Título</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Orientador</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Indicações</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Total de Indicações</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Início</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Fim</th>
+            </tr>
+          </thead>
+          <tbody id="myTable">
+            {% for linha in linhas %}
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700">{{linha[0]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[1]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[2]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[3]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[4]}}</td>
+              <td class="px-4 py-3 text-gray-700">
+                {% if linha[5]!=None %}
+                  {{linha[5]|safe}}
+                {% else %}
+                  Nenhuma indicação
+                {% endif %}
+              </td>
+              <td class="px-4 py-3 text-gray-700">{{linha[6]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[7]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[8]}}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </body>
 </html>

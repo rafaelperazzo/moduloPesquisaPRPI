@@ -1,22 +1,25 @@
 {% extends "BASE_v3.html" %}
 {% block content %}
-    <div class="container border shadow-none p-3 mb-5 bg-body-tertiary rounded">
-        <center><h2>Mensagens</h2></center>
-        <form method="post" action="{{ url_for('mensagens') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <div class="mb-3">
-                <label for="mensagem" class="form-label">Mensagem</label>
-                <textarea class="form-control" id="mensagem" name="mensagem" rows="3" required></textarea>
-            </div>
-            <div class="mb-3">
-                <label for="validade" class="form-label">Validade</label>
-                <input type="datetime-local" class="form-control" id="validade" name="validade" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Enviar</button>
-        </form>
-        {% if config['producao']==1 %}
-            <center><div class="g-recaptcha" data-sitekey="6LcTP7IrAAAAAEGXU_wjThN5GsBZ3mZCy67tzQyH"></div></center>
-        {% endif %}
-        
+  <div class="container mx-auto px-4 max-w-screen-xl py-8">
+    <div class="max-w-lg mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Mensagens</h2>
+      <form method="post" action="{{ url_for('mensagens') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="mb-4">
+          <label for="mensagem" class="block text-sm font-medium text-gray-700 mb-1">Mensagem</label>
+          <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" id="mensagem" name="mensagem" rows="3" required></textarea>
+        </div>
+        <div class="mb-4">
+          <label for="validade" class="block text-sm font-medium text-gray-700 mb-1">Validade</label>
+          <input type="datetime-local" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" id="validade" name="validade" required>
+        </div>
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium">Enviar</button>
+      </form>
+      {% if config['producao']==1 %}
+        <div class="flex justify-center mt-4">
+          <div class="g-recaptcha" data-sitekey="6LcTP7IrAAAAAEGXU_wjThN5GsBZ3mZCy67tzQyH"></div>
+        </div>
+      {% endif %}
     </div>
+  </div>
 {% endblock %}

@@ -12,343 +12,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cadastro de Projeto de Pesquisa - Plataforma Yoko</title>
   <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-
-  <style>
-    :root {
-      --primary: #1a5f8a;
-      --primary-mid: #2178aa;
-      --primary-light: #2e8fc7;
-      --accent: #3aabdc;
-      --accent-light: #80cef0;
-      --bg: #f0f7fc;
-      --bg-dark: #daeef8;
-      --text: #000000;
-      --text-muted: #333333;
-      --white: #ffffff;
-      --border: #b8ddf0;
-      --shadow: rgba(26, 95, 138, 0.12);
-      --radius: 6px;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-
-    body {
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 300;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.7;
-      min-height: 100vh;
-    }
-
-    /* ── Header (tema claro) ── */
-    .page-header {
-      background: var(--white);
-      color: var(--primary);
-      padding: 2.5rem 2rem 2rem;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      border-bottom: 2px solid var(--bg-dark);
-      box-shadow: 0 2px 16px rgba(26,95,138,0.07);
-    }
-    .page-header::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 40px,
-        rgba(58,171,220,0.05) 40px,
-        rgba(58,171,220,0.05) 41px
-      );
-    }
-    .header-inner { position: relative; z-index: 1; }
-    .institution-line {
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 400;
-      font-size: 0.78rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--primary-light);
-      opacity: 0.8;
-      margin-bottom: 0.2rem;
-    }
-    .page-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 300;
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      letter-spacing: 0.02em;
-      color: var(--primary);
-      line-height: 1.2;
-      margin-top: 1rem;
-    }
-    .page-title span { color: var(--accent); }
-    .platform-badge {
-      display: inline-block;
-      margin-top: 0.8rem;
-      padding: 0.3rem 1rem;
-      border: 1px solid var(--accent);
-      border-radius: 50px;
-      font-size: 0.72rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--accent);
-    }
-    .system-note {
-      margin-top: 1rem;
-      font-size: 0.76rem;
-      color: var(--text-muted);
-    }
-    .system-note a { color: var(--primary-light); }
-
-    /* ── Help Button ── */
-    .help-inline-wrap {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-    }
-    .help-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 1.6rem;
-      height: 1.6rem;
-      border-radius: 50%;
-      background: var(--accent);
-      color: var(--white);
-      border: none;
-      font-weight: 700;
-      font-size: 0.78rem;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(58,171,220,0.35);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .help-btn:hover { transform: scale(1.12); box-shadow: 0 4px 14px rgba(58,171,220,0.5); }
-    .tooltip-box {
-      position: absolute;
-      top: calc(100% + 0.5rem);
-      right: 0;
-      width: 340px;
-      background: var(--primary);
-      color: var(--white);
-      border-left: 3px solid var(--accent);
-      border-radius: var(--radius);
-      padding: 1.2rem 1.4rem;
-      font-size: 0.8rem;
-      line-height: 1.6;
-      z-index: 100;
-      box-shadow: 0 8px 32px var(--shadow);
-      display: none;
-    }
-    .tooltip-box p { margin-bottom: 0.7rem; }
-    .tooltip-box p:last-child { margin-bottom: 0; }
-    .tooltip-box strong { color: var(--accent-light); }
-    #closeBtn {
-      float: right;
-      background: none;
-      border: none;
-      color: var(--accent-light);
-      cursor: pointer;
-      font-size: 1rem;
-      margin-left: 0.5rem;
-    }
-
-    /* ── Form Layout ── */
-    .form-wrapper {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 2.5rem 1.5rem 4rem;
-    }
-
-    /* ── Sections ── */
-    .form-section {
-      background: var(--white);
-      border-radius: 10px;
-      padding: 2.2rem 2.5rem;
-      margin-bottom: 1.8rem;
-      box-shadow: 0 2px 16px var(--shadow);
-      border-top: 3px solid var(--accent);
-      animation: fadeUp 0.5s ease both;
-    }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .form-section:nth-child(1) { animation-delay: 0.05s; }
-    .form-section:nth-child(2) { animation-delay: 0.10s; }
-    .form-section:nth-child(3) { animation-delay: 0.15s; }
-    .form-section:nth-child(4) { animation-delay: 0.20s; }
-    .form-section:nth-child(5) { animation-delay: 0.25s; }
-    .form-section:nth-child(6) { animation-delay: 0.30s; }
-    .form-section:nth-child(7) { animation-delay: 0.35s; }
-    .form-section:nth-child(8) { animation-delay: 0.40s; }
-    .form-section:nth-child(9) { animation-delay: 0.45s; }
-
-    .section-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 600;
-      font-size: 1.45rem;
-      color: var(--primary);
-      margin-bottom: 1.5rem;
-      padding-bottom: 0.7rem;
-      border-bottom: 1px solid var(--bg-dark);
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-    }
-    .section-icon {
-      width: 28px; height: 28px;
-      background: var(--bg);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.85rem;
-      flex-shrink: 0;
-    }
-
-    /* ── Form Fields ── */
-    .field-group { margin-bottom: 1.4rem; }
-    .field-group:last-child { margin-bottom: 0; }
-
-    .field-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.2rem;
-    }
-    @media (max-width: 600px) { .field-row { grid-template-columns: 1fr; } }
-
-    label.field-label {
-      display: block;
-      font-size: 0.78rem;
-      font-weight: 500;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #000000;
-      margin-bottom: 0.4rem;
-    }
-
-    input[type=text],
-    input[type=email],
-    input[type=date],
-    select,
-    textarea {
-      width: 100%;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.92rem;
-      font-weight: 300;
-      color: var(--text);
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 0.7rem 1rem;
-      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-      outline: none;
-      appearance: none;
-    }
-    input[type=text]:focus,
-    input[type=email]:focus,
-    input[type=date]:focus,
-    select:focus,
-    textarea:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(58,171,220,0.18);
-      background: var(--white);
-    }
-    input[type=text]:disabled,
-    input[type=email]:disabled,
-    select:disabled,
-    textarea:disabled,
-    input[type=file]:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    select {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%233aabdc'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 1rem center;
-      padding-right: 2.5rem;
-    }
-
-    textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
-
-    input[type=file] {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      width: 100%;
-      padding: 0.5rem 0;
-      background: transparent;
-      border: none;
-    }
-    .file-hint {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      margin-top: 0.25rem;
-      font-style: italic;
-    }
-
-    /* ── Info note ── */
-    .info-note {
-      background: linear-gradient(135deg, #e8f4fb, #daeef8);
-      border-left: 3px solid var(--accent);
-      border-radius: var(--radius);
-      padding: 0.9rem 1.1rem;
-      font-size: 0.82rem;
-      color: var(--text-muted);
-      margin-bottom: 1.2rem;
-      line-height: 1.6;
-    }
-    .info-note a { color: var(--primary-light); }
-    #texto_projeto {
-      font-size: 0.82rem;
-      color: var(--text-muted);
-      font-style: italic;
-      margin-bottom: 0.8rem;
-    }
-
-    /* ── Submit ── */
-    .submit-area { text-align: center; padding: 2rem 0 0; }
-    .submit-note {
-      font-size: 0.82rem;
-      color: var(--text-muted);
-      margin-bottom: 1.2rem;
-      font-style: italic;
-    }
-    input[type=submit] {
-      background: var(--primary);
-      color: var(--white);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.9rem;
-      font-weight: 500;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 1rem 3.5rem;
-      border: 2px solid var(--primary);
-      border-radius: 50px;
-      cursor: pointer;
-      transition: background 0.25s, color 0.25s, transform 0.15s, box-shadow 0.25s;
-      box-shadow: 0 4px 20px var(--shadow);
-    }
-    input[type=submit]:hover {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: var(--white);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(58,171,220,0.35);
-    }
-
-    .recaptcha-wrap { display: flex; justify-content: center; margin: 1.5rem 0 0; }
-
-    .evaluator-subtext {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      font-style: italic;
-      margin-bottom: 1rem;
-    }
-    .evaluator-subtext span { display: block; margin-bottom: 0.3rem; }
-  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
 
   <script>
     var _validFileExtensions = [".pdf",".xml"];
@@ -476,43 +140,51 @@
   </script>
 </head>
 
-<body onload="iniciar()">
+<body class="bg-gray-50 text-gray-900 font-sans" onload="iniciar()">
 
-  <header class="page-header">
-    <div class="header-inner">
-      <div class="institution-line">Ministério da Educação · Universidade Federal do Cariri</div>
-      <div class="institution-line">Pró-reitoria de Pesquisa, Pós-graduação e Inovação</div>
-      <h1 class="page-title">Submissão de <span>Projeto de Pesquisa</span></h1>
-      <div class="platform-badge">Plataforma Yoko</div>
-      <div class="system-note">
-        pesquisa@ufca.edu.br
+  <nav class="bg-white border-b border-gray-200 shadow-sm mb-0">
+    <div class="container mx-auto px-4 max-w-screen-xl flex items-center justify-between h-14">
+      <span class="text-xl font-bold text-blue-600">YOKO — PESQUISA</span>
+      <div class="text-xs text-gray-500">
+        <span class="text-gray-400">Ministério da Educação · Universidade Federal do Cariri</span>
       </div>
     </div>
+  </nav>
+
+  <header class="bg-white border-b border-gray-100 py-8 text-center">
+    <p class="text-xs font-medium tracking-widest text-blue-400 uppercase mb-1">Ministério da Educação · Universidade Federal do Cariri</p>
+    <p class="text-xs font-medium tracking-widest text-blue-400 uppercase mb-3">Pró-reitoria de Pesquisa, Pós-graduação e Inovação</p>
+    <h1 class="text-3xl font-light text-blue-800">Submissão de <span class="text-blue-500">Projeto de Pesquisa</span></h1>
+    <span class="inline-block mt-3 px-4 py-1 border border-blue-300 rounded-full text-xs tracking-widest uppercase text-blue-400">Plataforma Yoko</span>
+    <p class="text-xs text-gray-400 mt-2">pesquisa@ufca.edu.br</p>
   </header>
 
-  <div class="form-wrapper">
+  <div class="max-w-3xl mx-auto px-4 py-8">
     <form name="frmCadastroProjeto" action="/pesquisa/cadastrarProjeto" onsubmit="return humano()" method="POST" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
-      <!-- ── 1. Classificação ── -->
-      <div class="form-section">
-        <h2 class="section-title">
-          <span class="section-icon">①</span> Classificação do Projeto
-          <div class="help-inline-wrap" style="margin-left:auto;">
-            <button id="helpBtn" class="help-btn" type="button">?</button>
-            <div id="tooltip" class="tooltip-box">
-              <button id="closeBtn" type="button">✕</button>
-              <p><strong>PIBIC</strong> — Programa que concede bolsas a estudantes de graduação para participação em projetos de pesquisa científica.</p>
-              <p><strong>PIBIC-AF</strong> — Modalidade do PIBIC destinada a estudantes que ingressaram por ações afirmativas.</p>
-              <p><strong>PIBITI</strong> — Voltado à iniciação em desenvolvimento tecnológico e inovação.</p>
-              <p><strong>PIBIC-EM</strong> — Integra estudantes do ensino médio às atividades de pesquisa.</p>
+      <!-- 1. Classificação -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6 border-t-4 border-t-blue-400">
+        <div class="flex items-center justify-between mb-5">
+          <h2 class="text-xl font-semibold text-blue-800 flex items-center gap-2">
+            <span class="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-sm">①</span>
+            Classificação do Projeto
+          </h2>
+          <div class="relative">
+            <button id="helpBtn" class="w-7 h-7 rounded-full bg-blue-400 text-white text-xs font-bold flex items-center justify-center hover:bg-blue-500" type="button">?</button>
+            <div id="tooltip" class="hidden absolute right-0 top-10 w-80 bg-blue-900 text-white border-l-4 border-blue-400 rounded-lg p-4 text-xs z-10 shadow-xl">
+              <button id="closeBtn" type="button" class="float-right text-blue-300 hover:text-white font-bold">✕</button>
+              <p class="mb-2"><strong class="text-blue-300">PIBIC</strong> — Programa que concede bolsas a estudantes de graduação para participação em projetos de pesquisa científica.</p>
+              <p class="mb-2"><strong class="text-blue-300">PIBIC-AF</strong> — Modalidade do PIBIC destinada a estudantes que ingressaram por ações afirmativas.</p>
+              <p class="mb-2"><strong class="text-blue-300">PIBITI</strong> — Voltado à iniciação em desenvolvimento tecnológico e inovação.</p>
+              <p><strong class="text-blue-300">PIBIC-EM</strong> — Integra estudantes do ensino médio às atividades de pesquisa.</p>
             </div>
           </div>
-        </h2>
+        </div>
 
-        <div class="field-group">
-          <label class="field-label">Destino da Submissão</label>
-          <select name="tipo" required onchange="tipo_projeto()">
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Destino da Submissão</label>
+          <select name="tipo" required onchange="tipo_projeto()" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
             <option disabled selected value="">— selecione —</option>
             {% for linha in abertos %}
             <option value="{{linha[0]}}">{{linha[1]}} – Até: {{linha[2]}}</option>
@@ -520,21 +192,21 @@
           </select>
         </div>
 
-        <div class="field-row">
-          <div class="field-group">
-            <label class="field-label">Categoria de Projeto</label>
-            <select name="categoria_projeto" onchange="categoria_do_projeto()" onblur="emAndamento()" required>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Categoria de Projeto</label>
+            <select name="categoria_projeto" onchange="categoria_do_projeto()" onblur="emAndamento()" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
               <option disabled selected value="">— selecione —</option>
               <option value="0">Projeto em andamento</option>
               <option value="1">Projeto novo</option>
             </select>
           </div>
-
-          <div class="field-group">
-            <label class="field-label">Potencial de Inovação?
-              <a href="https://sites.ufca.edu.br/prpi/propriedade-intelectual-na-ufca/" target="_blank" style="color:var(--accent);font-size:0.7rem;margin-left:4px;">ajuda</a>
+          <div>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">
+              Potencial de Inovação?
+              <a href="https://sites.ufca.edu.br/prpi/propriedade-intelectual-na-ufca/" target="_blank" class="text-blue-400 text-xs ml-1 normal-case">ajuda</a>
             </label>
-            <select name="inovacao" required>
+            <select name="inovacao" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
               <option disabled selected value="">— selecione —</option>
               <option value="1">Sim</option>
               <option value="0">Não</option>
@@ -542,9 +214,9 @@
           </div>
         </div>
 
-        <div class="field-group">
-          <label class="field-label">ODS Principal do Projeto</label>
-          <select name="ods_projeto" required>
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">ODS Principal do Projeto</label>
+          <select name="ods_projeto" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
             <option disabled selected value="">— selecione —</option>
             <option value="01">01 — Erradicação da Pobreza</option>
             <option value="02">02 — Fome Zero e Agricultura Sustentável</option>
@@ -566,28 +238,32 @@
           </select>
         </div>
 
-        <div class="field-group">
-          <label class="field-label">Justificativa PIBITI (se aplicável)</label>
-          <div class="info-note">
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Justificativa PIBITI (se aplicável)</label>
+          <div class="bg-blue-50 border-l-4 border-blue-300 rounded-md px-4 py-3 text-xs text-gray-600 mb-2">
             A proposta que solicitar bolsa(s) na modalidade PIBITI deve visar, obrigatoriamente, desenvolvimento tecnológico e processos de inovação. Pesquisador, justifique o enquadramento caso este seja o seu caso. Caso contrário, deixe em branco.
           </div>
-          <textarea id="justificativa" name="justificativa" maxlength="15000" rows="4"></textarea>
+          <textarea id="justificativa" name="justificativa" maxlength="15000" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50 resize-y"></textarea>
         </div>
       </div>
 
-      <!-- ── 2. Dados Pessoais ── -->
-      <div class="form-section">
-        <h2 class="section-title"><span class="section-icon">②</span> Dados Pessoais</h2>
+      <!-- 2. Dados Pessoais -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6 border-t-4 border-t-blue-400">
+        <h2 class="text-xl font-semibold text-blue-800 flex items-center gap-2 mb-5">
+          <span class="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-sm">②</span>
+          Dados Pessoais
+        </h2>
 
-        <div class="field-group">
-          <label class="field-label">CPF (somente números)</label>
-          <input name="cpf" id="cpf" type="text" required onblur="return TestaCPF(this.value)" placeholder="00000000000">
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">CPF (somente números)</label>
+          <input name="cpf" id="cpf" type="text" required onblur="return TestaCPF(this.value)" placeholder="00000000000"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
         </div>
 
-        <div class="field-row">
-          <div class="field-group">
-            <label class="field-label">Unidade Acadêmica</label>
-            <select name="ua" required>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Unidade Acadêmica</label>
+            <select name="ua" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
               <option disabled selected value="">— selecione —</option>
               <option value="CCT">CCT</option>
               <option value="FAMED">FAMED</option>
@@ -599,10 +275,9 @@
               <option value="OUTRO">OUTROS</option>
             </select>
           </div>
-
-          <div class="field-group">
-            <label class="field-label">Grande Área</label>
-            <select name="grande_area" required>
+          <div>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Grande Área</label>
+            <select name="grande_area" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
               <option disabled selected value="">— selecione —</option>
               <option value="Ciências Exatas e da Terra">Ciências Exatas e da Terra</option>
               <option value="Ciências Biológicas">Ciências Biológicas</option>
@@ -617,9 +292,9 @@
           </div>
         </div>
 
-        <div class="field-group">
-          <label class="field-label">Área CAPES</label>
-          <select name="area_capes">
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Área CAPES</label>
+          <select name="area_capes" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
             <option disabled selected value="">— selecione —</option>
             <option value="ADMINISTRACAO_PUBLICA_E_DE_EMPRESAS_CIENCIAS_CONTABEIS_E_TURISMO">Administração Pública, Ciências Contábeis e Turismo</option>
             <option value="ANTROPOLOGIA_ARQUEOLOGIA">Antropologia / Arqueologia</option>
@@ -673,110 +348,120 @@
           </select>
         </div>
 
-        <div class="field-group">
-          <label class="field-label">Grupo de Pesquisa CNPq</label>
-          <input name="grupo" required type="text" placeholder="Nome do grupo de pesquisa">
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Grupo de Pesquisa CNPq</label>
+          <input name="grupo" required type="text" placeholder="Nome do grupo de pesquisa"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
         </div>
       </div>
 
-      <!-- ── 3. Dados do Projeto ── -->
-      <div class="form-section">
-        <h2 class="section-title"><span class="section-icon">③</span> Dados do Projeto</h2>
-        <p id="texto_projeto"></p>
-        
-        <div class="field-group">
-          <label class="field-label">Título do Projeto</label>
-          <textarea name="titulo" rows="3" required maxlength="200" placeholder="Insira o título completo do projeto…"></textarea>
+      <!-- 3. Dados do Projeto -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6 border-t-4 border-t-blue-400">
+        <h2 class="text-xl font-semibold text-blue-800 flex items-center gap-2 mb-5">
+          <span class="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-sm">③</span>
+          Dados do Projeto
+        </h2>
+        <p id="texto_projeto" class="text-xs text-gray-500 italic mb-3"></p>
+
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Título do Projeto</label>
+          <textarea name="titulo" rows="3" required maxlength="200" placeholder="Insira o título completo do projeto…"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50 resize-y"></textarea>
         </div>
 
-        <div class="field-row">
-          <div class="field-group">
-            <label class="field-label">Validade (em anos)</label>
-            <select name="validade" required>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Validade (em anos)</label>
+            <select name="validade" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
               <option value="1">1 ano</option>
               <option value="2">2 anos</option>
               <option value="3" selected>3 anos</option>
             </select>
           </div>
-
-          <div class="field-group">
-            <label class="field-label">Palavras-chave</label>
-            <input name="palavras_chave" required type="text" placeholder="Ex.: biodiversidade, ecologia, sustentabilidade">
+          <div>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Palavras-chave</label>
+            <input name="palavras_chave" required type="text" placeholder="Ex.: biodiversidade, ecologia, sustentabilidade"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
           </div>
         </div>
 
-        <div class="field-group">
-          <label class="field-label">Resumo do Projeto</label>
-          <textarea name="descricao_resumida" rows="10" required maxlength="15000" placeholder="Descreva o projeto de forma resumida…"></textarea>
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Resumo do Projeto</label>
+          <textarea name="descricao_resumida" rows="10" required maxlength="15000" placeholder="Descreva o projeto de forma resumida…"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50 resize-y"></textarea>
         </div>
 
-        <div class="field-group">
-          <label class="field-label">Pesquisadores Vinculados ao Projeto</label>
-          <div class="info-note">Nomes separados por vírgula. Ex.: João da Silva (UFC), Maria Oliveira (UFRJ)</div>
-          <textarea name="pesquisadores_vinculados" rows="5" required maxlength="15000">N/A</textarea>
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Pesquisadores Vinculados ao Projeto</label>
+          <div class="bg-blue-50 border-l-4 border-blue-300 rounded-md px-4 py-2 text-xs text-gray-600 mb-2">Nomes separados por vírgula. Ex.: João da Silva (UFC), Maria Oliveira (UFRJ)</div>
+          <textarea name="pesquisadores_vinculados" rows="5" required maxlength="15000"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50 resize-y">N/A</textarea>
         </div>
 
-        <label for="cb-group">
-          Autorizações necessárias para a pesquisa (se necessário)
-        </label>
-        <div class="cb-group" id="cb-group">
-          <div class="cb-item">
-            <input type="checkbox" id="CEUA" name="autorizacoes" value="CEUA">
-            <label for="CEUA">Comissão de Ética no Uso de Animais (CEUA)</label>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Autorizações necessárias para a pesquisa (se necessário)</label>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="CEUA" name="autorizacoes" value="CEUA">
+              <label for="CEUA" class="text-sm text-gray-700">Comissão de Ética no Uso de Animais (CEUA)</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="IBAMA" name="autorizacoes" value="IBAMA">
+              <label for="IBAMA" class="text-sm text-gray-700">Instituto Brasileiro do Meio Ambiente e dos Recursos Naturais Renováveis (Ibama)</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="FUNAI" name="autorizacoes" value="FUNAI">
+              <label for="FUNAI" class="text-sm text-gray-700">Fundação Nacional do Índio (Funai)</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="CNEN" name="autorizacoes" value="CNEN">
+              <label for="CNEN" class="text-sm text-gray-700">Comissão Nacional de Energia Nuclear (CNEN)</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="CTNBio" name="autorizacoes" value="CTNBio">
+              <label for="CTNBio" class="text-sm text-gray-700">Comissão Técnica Nacional de Biossegurança (CTNBio)</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="OUTRAS" name="autorizacoes" value="OUTRAS">
+              <label for="OUTRAS" class="text-sm text-gray-700">Outras autorizações legais e institucionais pertinentes</label>
+            </div>
           </div>
-          <div class="cb-item">
-            <input type="checkbox" id="IBAMA" name="autorizacoes" value="IBAMA">
-            <label for="IBAMA">Instituto Brasileiro do Meio Ambiente e dos Recursos Naturais Renováveis (Ibama)</label>
-          </div>
-          <div class="cb-item">
-            <input type="checkbox" id="FUNAI" name="autorizacoes" value="FUNAI">
-            <label for="FUNAI">Fundação Nacional do Índio (Funai)</label>
-          </div>
-          <div class="cb-item">
-            <input type="checkbox" id="CNEN" name="autorizacoes" value="CNEN">
-            <label for="CNEN">Comissão Nacional de Energia Nuclear (CNEN)</label>
-          </div>
-          <div class="cb-item">
-            <input type="checkbox" id="CTNBio" name="autorizacoes" value="CTNBio">
-            <label for="CTNBio">Comissão Técnica Nacional de Biossegurança (CTNBio)</label>
-          </div>
-          <div class="cb-item">
-            <input type="checkbox" id="OUTRAS" name="autorizacoes" value="OUTRAS">
-            <label for="OUTRAS">Outras autorizações legais e institucionais pertinentes</label>
-          </div>
-        </div>
-        <br>
-
-      </div>
-
-      <!-- ── 4. Cronograma ── -->
-      <div class="form-section">
-        <h2 class="section-title"><span class="section-icon">④</span> Cronograma</h2>
-        <div class="field-row">
-          <div class="field-group">
-            <label class="field-label">Início do Projeto</label>
-            <input type="date" name="inicio" required>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Fim do Projeto</label>
-            <input type="date" name="fim" required>
-          </div>
-        </div>
-
-        <div class="field-group">
-          <label class="field-label">Arquivo do Projeto (PDF)</label>
-          <input name="arquivo_projeto" onchange="ValidateSingleInput(this);" type="file" accept=".pdf">
-          <p class="file-hint">Formatos aceitos: .pdf</p>
         </div>
       </div>
 
-      <!-- ── 5. Planos de Trabalho ── -->
-      <div class="form-section">
-        <h2 class="section-title"><span class="section-icon">⑤</span> Planos de Trabalho</h2>
+      <!-- 4. Cronograma -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6 border-t-4 border-t-blue-400">
+        <h2 class="text-xl font-semibold text-blue-800 flex items-center gap-2 mb-5">
+          <span class="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-sm">④</span>
+          Cronograma
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Início do Projeto</label>
+            <input type="date" name="inicio" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
+          </div>
+          <div>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Fim do Projeto</label>
+            <input type="date" name="fim" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Arquivo do Projeto (PDF)</label>
+          <input name="arquivo_projeto" onchange="ValidateSingleInput(this);" type="file" accept=".pdf" class="w-full text-sm text-gray-600">
+          <p class="text-xs text-gray-500 mt-1 italic">Formatos aceitos: .pdf</p>
+        </div>
+      </div>
 
-        <div class="field-group">
-          <label class="field-label">Bolsas Solicitadas</label>
-          <select name="numero_bolsas" required onchange="bolsas()">
+      <!-- 5. Planos de Trabalho -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6 border-t-4 border-t-blue-400">
+        <h2 class="text-xl font-semibold text-blue-800 flex items-center gap-2 mb-5">
+          <span class="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-sm">⑤</span>
+          Planos de Trabalho
+        </h2>
+
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Bolsas Solicitadas</label>
+          <select name="numero_bolsas" required onchange="bolsas()" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
             <option disabled selected value="">— selecione —</option>
             <option value="0">0</option>
             <option value="1">1</option>
@@ -784,27 +469,27 @@
           </select>
         </div>
 
-        <div class="field-group">
-          <label class="field-label">Plano de Trabalho 1 (PDF)</label>
-          <input name="arquivo_plano1" onchange="ValidateSingleInput(this);" type="file" accept=".pdf">
-          <p class="file-hint">Formatos aceitos: .pdf</p>
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Plano de Trabalho 1 (PDF)</label>
+          <input name="arquivo_plano1" onchange="ValidateSingleInput(this);" type="file" accept=".pdf" class="w-full text-sm text-gray-600">
+          <p class="text-xs text-gray-500 mt-1 italic">Formatos aceitos: .pdf</p>
         </div>
 
-        <div class="field-group">
-          <label class="field-label">Plano de Trabalho 2 (PDF)</label>
-          <input name="arquivo_plano2" onchange="ValidateSingleInput(this);" type="file" accept=".pdf">
-          <p class="file-hint">Formatos aceitos: .pdf</p>
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Plano de Trabalho 2 (PDF)</label>
+          <input name="arquivo_plano2" onchange="ValidateSingleInput(this);" type="file" accept=".pdf" class="w-full text-sm text-gray-600">
+          <p class="text-xs text-gray-500 mt-1 italic">Formatos aceitos: .pdf</p>
         </div>
 
-        <div class="field-group">
-          <label class="field-label">Plano de Trabalho 3 (PDF)</label>
-          <input name="arquivo_plano3" onchange="ValidateSingleInput(this);" type="file" accept=".pdf">
-          <p class="file-hint">Formatos aceitos: .pdf</p>
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Plano de Trabalho 3 (PDF)</label>
+          <input name="arquivo_plano3" onchange="ValidateSingleInput(this);" type="file" accept=".pdf" class="w-full text-sm text-gray-600">
+          <p class="text-xs text-gray-500 mt-1 italic">Formatos aceitos: .pdf</p>
         </div>
 
-        <div class="field-group">
-          <label class="field-label">Transporte da UFCA necessário? (dias aproximados)</label>
-          <select name="transporte" required>
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Transporte da UFCA necessário? (dias aproximados)</label>
+          <select name="transporte" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
             <option value="0" selected>0 — Não necessário</option>
             <option value="1">1 dia</option>
             <option value="2">2 dias</option>
@@ -818,52 +503,62 @@
         </div>
       </div>
 
-      <!-- ── 6. Comprovantes ── -->
-      <div class="form-section">
-        <h2 class="section-title"><span class="section-icon">⑥</span> Comprovantes</h2>
-        <div class="info-note">
+      <!-- 6. Comprovantes -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6 border-t-4 border-t-blue-400">
+        <h2 class="text-xl font-semibold text-blue-800 flex items-center gap-2 mb-5">
+          <span class="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-sm">⑥</span>
+          Comprovantes
+        </h2>
+        <div class="bg-blue-50 border-l-4 border-blue-300 rounded-md px-4 py-2 text-xs text-gray-600 mb-4">
           Anexe os documentos complementares necessários em um único arquivo PDF. (Veja item 4.7 do Edital)
         </div>
-        <div class="field-group">
-          <label class="field-label">Arquivo de Comprovantes (PDF)</label>
-          <input name="arquivo_comprovantes" type="file" accept=".pdf">
-          <p class="file-hint">Formatos aceitos: .pdf</p>
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Arquivo de Comprovantes (PDF)</label>
+          <input name="arquivo_comprovantes" type="file" accept=".pdf" class="w-full text-sm text-gray-600">
+          <p class="text-xs text-gray-500 mt-1 italic">Formatos aceitos: .pdf</p>
         </div>
       </div>
 
-      <!-- ── 7. Avaliadores ── -->
-      <div class="form-section">
-        <h2 class="section-title"><span class="section-icon">⑦</span> Avaliadores Externos Sugeridos</h2>
-        <div class="evaluator-subtext">
-          <span>Indique 3 avaliadores externos à UFCA, que não sejam colaboradores no projeto (sujeito a aprovação da Coordenadoria de Pesquisa).</span>
-          <span>Com título de doutor, preferencialmente bolsista de produtividade e/ou membro de programa de Pós-Graduação <em>Stricto sensu</em>.</span>
-          <span>Informe preferencialmente o e-mail institucional do avaliador.</span>
+      <!-- 7. Avaliadores -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6 border-t-4 border-t-blue-400">
+        <h2 class="text-xl font-semibold text-blue-800 flex items-center gap-2 mb-5">
+          <span class="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-sm">⑦</span>
+          Avaliadores Externos Sugeridos
+        </h2>
+        <div class="text-xs text-gray-500 italic mb-4 space-y-1">
+          <p>Indique 3 avaliadores externos à UFCA, que não sejam colaboradores no projeto (sujeito a aprovação da Coordenadoria de Pesquisa).</p>
+          <p>Com título de doutor, preferencialmente bolsista de produtividade e/ou membro de programa de Pós-Graduação Stricto sensu.</p>
+          <p>Informe preferencialmente o e-mail institucional do avaliador.</p>
         </div>
 
-        <div class="field-group">
-          <label class="field-label">E-mail do Avaliador 1</label>
-          <input name="avaliador1_email" maxlength="80" type="email" placeholder="avaliador1@instituicao.edu.br">
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">E-mail do Avaliador 1</label>
+          <input name="avaliador1_email" maxlength="80" type="email" placeholder="avaliador1@instituicao.edu.br"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
         </div>
-        <div class="field-group">
-          <label class="field-label">E-mail do Avaliador 2</label>
-          <input name="avaliador2_email" maxlength="80" type="email" placeholder="avaliador2@instituicao.edu.br">
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">E-mail do Avaliador 2</label>
+          <input name="avaliador2_email" maxlength="80" type="email" placeholder="avaliador2@instituicao.edu.br"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
         </div>
-        <div class="field-group">
-          <label class="field-label">E-mail do Avaliador 3</label>
-          <input name="avaliador3_email" maxlength="80" type="email" placeholder="avaliador3@instituicao.edu.br">
+        <div class="mb-4">
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">E-mail do Avaliador 3</label>
+          <input name="avaliador3_email" maxlength="80" type="email" placeholder="avaliador3@instituicao.edu.br"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
         </div>
       </div>
 
-      <!-- ── Submit ── -->
-      <div class="form-section" style="border-top-color: var(--primary);">
+      <!-- Submit -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6 border-t-4 border-t-blue-800">
         {% if session['PRODUCAO']==1 %}
-        <div class="recaptcha-wrap">
+        <div class="flex justify-center mb-4">
           <div class="g-recaptcha" data-sitekey="6LcTP7IrAAAAAEGXU_wjThN5GsBZ3mZCy67tzQyH"></div>
         </div>
         {% endif %}
-        <div class="submit-area">
-          <p class="submit-note">Clique em "Enviar" apenas uma vez e aguarde a conclusão da submissão — o processo pode demorar alguns minutos.</p>
-          <input name="btnEnviar" value="Enviar Projeto" formenctype="multipart/form-data" type="submit">
+        <div class="text-center">
+          <p class="text-xs text-gray-500 italic mb-4">Clique em "Enviar" apenas uma vez e aguarde a conclusão da submissão — o processo pode demorar alguns minutos.</p>
+          <input name="btnEnviar" value="Enviar Projeto" formenctype="multipart/form-data" type="submit"
+            class="px-10 py-3 bg-blue-800 text-white rounded-full font-medium tracking-widest uppercase text-sm hover:bg-blue-600 transition-colors cursor-pointer shadow-md">
         </div>
       </div>
 
@@ -877,14 +572,14 @@
 
     btn.addEventListener('click', function(e) {
       e.stopPropagation();
-      tooltip.style.display = tooltip.style.display === 'none' ? 'block' : 'none';
+      tooltip.classList.toggle('hidden');
     });
     closeBtn.addEventListener('click', function(e) {
       e.stopPropagation();
-      tooltip.style.display = 'none';
+      tooltip.classList.add('hidden');
     });
     document.addEventListener('click', function() {
-      tooltip.style.display = 'none';
+      tooltip.classList.add('hidden');
     });
     tooltip.addEventListener('click', function(e) {
       e.stopPropagation();

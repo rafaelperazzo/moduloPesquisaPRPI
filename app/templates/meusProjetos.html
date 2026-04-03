@@ -1,250 +1,267 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
-    <link nonce="{{ csp_nonce() }}"  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-    <link nonce="{{ csp_nonce() }}" rel="stylesheet" href="{{ url_for('static', filename='bootstrap-5.3.6-dist/css/bootstrap.min.css') }}">
-    <style nonce="{{ csp_nonce() }}">
-    p.aprovado {
-      color: green;
-    }
-
-    p.indefinido {
-      color: orange;
-    }
-
-    p.reprovado {
-      color: red;
-    }
-
-    a.fixed {
-
-    position: fixed;
-
-    right: 0;
-
-    top: 0;
-
-    width: 260px;
-
-    border: 0px solid black;
-
-    }
-
-    a.editalProjeto {
-
-    position: fixed;
-
-    right: 0;
-
-    top: 5;
-
-    width: 260px;
-
-    border: 0px solid black;
-
-    }
-
-table {
-    font-family: arial, sans-serif;
-    border-collapse: collapse;
-    width: 100%;
-}
-
-td, th {
-    border: 1px solid #dddddd;
-    text-align: center;
-    padding: 8px;
-}
-
-tr:nth-child(even) {
-    background-color: #dddddd;
-}
-</style>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Meus Projetos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <style nonce="{{ csp_nonce() }}">
+      .aprovado { color: #059669; }
+      .indefinido { color: #d97706; }
+      .reprovado { color: #dc2626; }
+    </style>
   </head>
-  <body>
-    <h1><b>Meus Projetos</b></h1>
-    <div class="container">
-            {% for mensagem in get_messages() %}
-                <div class="alert alert-warning" role="alert">
-                    <b>{{ mensagem.mensagem }}</b>
-                </div>
+  <body class="bg-gray-50 text-gray-900 font-sans">
+    <nav class="bg-white border-b border-gray-200 shadow-sm mb-6">
+      <div class="container mx-auto px-4 max-w-screen-xl flex items-center justify-between h-14">
+        <span class="text-xl font-bold text-blue-600">YOKO — PESQUISA</span>
+        <a href="/pesquisa/logout" class="text-blue-600 hover:underline text-sm">Sair</a>
+      </div>
+    </nav>
+
+    <div class="container mx-auto px-4 max-w-screen-xl">
+      <h1 class="text-2xl font-bold text-gray-800 mb-4">Meus Projetos</h1>
+
+      {% for mensagem in get_messages() %}
+        <div class="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-md mb-3" role="alert">
+          <b>{{ mensagem.mensagem }}</b>
+        </div>
+      {% endfor %}
+
+      <p class="text-gray-600 text-sm mb-4">*Caso seu projeto não esteja listado abaixo, favor entrar em contato com a Coordenadoria de Pesquisa/PRPI.</p>
+
+      <div class="overflow-x-auto mb-8">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Id</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Orientador</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Lotação</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Titulo</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Início</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Fim</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Discentes</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Declaração</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in projetos %}
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700">{{ linha[0] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[1] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[2] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[3] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[4] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[5] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[6]|safe }}</td>
+              <td class="px-4 py-3 text-gray-700">
+                <a href="/pesquisa/minhaDeclaracaoOrientador?token={{ linha[7] }}" class="text-blue-600 hover:underline">
+                  <i class="bi bi-filetype-pdf"></i>
+                </a>
+              </td>
+            </tr>
             {% endfor %}
-            <hr>
-    </div>
-    *Caso seu projeto não esteja listado abaixo, favor entrar em contato com a Coordenadoria de Pesquisa/PRPI.
-    <table>
-        <th>Id</th><th>Orientador</th><th>Lotação</th><th>Titulo</th><th>Início</th><th>Fim</th><th>Discentes</th><th>Declaração</th>
-        <p>{% for linha in projetos %}</p>
+          </tbody>
+        </table>
+      </div>
 
-        <tr>
-        <td>{{ linha[0] }}</td>
-        <td>{{ linha[1] }}</td>
-        <td>{{ linha[2] }}</td>
-        <td>{{ linha[3] }}</td>
-        <td>{{ linha[4] }}</td>
-        <td>{{ linha[5] }}</td>
-        <td>{{ linha[6]|safe }}</td>
-        <td><pre><span class="cp"><a href="/pesquisa/minhaDeclaracaoOrientador?token={{ linha[7] }}"><i class="bi bi-filetype-pdf"></i></a><br></span></pre></td>
-        </tr>
-        <p><span class="cp">{% endfor %}</span></p>
-
-    </table>
-
-    <hr>
-    <h2>Projetos submetidos a editais a partir de 2019</h2>
-    <table>
-
-      <th>Id</th><th>Declaração</th><th>Edital</th><th>Situação do Edital</th><th>Orientador</th><th>Lotação</th><th>Titulo</th><th>Início</th><th>Fim
-      </th><th>Situação do Projeto</th><th>Avaliações</th><th>Bolsas Solicitadas</th><th>Bolsas Concedidas</th>
-      <th>Indicações</th><th>Orientandos</th>
-      <p>{% for linha in projetos2019 %}</p>
-      <tr>
-        <td>{{linha[0]}}</td><td><a href="/pesquisa/minhaDeclaracaoOrientador?id={{ linha[0] }}"><i class="bi bi-filetype-pdf"></i></a></td>
-        {% if permissao==1 %}
-            <td>{{linha[1]}}</td>
-        {% else %}
-            <td><a href="/pesquisa/editalProjeto?edital={{linha[15]}}">{{linha[1]}}</a></td>
-        {% endif %}
-        <td>{{linha[14]}}</td>
-        <td>{{linha[2]}}</td>
-        <td>{{linha[3]}}</td>
-        {% if linha[7]==1 %} <!--Projeto Novo -->
-          <td><a href="/pesquisa/static/files/{{linha[8]}}">{{linha[4]}}</a></td>
-        {%else %} <!--Projeto em andamento -->
-            <td>{{linha[4]}}</td>
-        {% endif %}
-        <td>
-          {% if linha[5] is not none %}
-            {{linha[5]}}
-          {% else %}
-            -
-          {% endif %}
-        </td>
-        <td>
-          {% if linha[6] is not none %}
-            {{linha[6]}}
-          {% else %}
-            -
-          {% endif %}
-        </td>
-        <td>
-          {% if linha[13]==1 %}
-              {% if linha[9]+linha[10]>1 %}
-                    {% if linha[9]-linha[10]>0 %}
-                        <p class="aprovado">APROVADO</p>
-                    {% elif linha[10]-linha[9]>0 %}
-                        <p class="reprovado">NÃO APROVADO</p>
-                    {% else %}
-                        <p class="indefinido">INDEFINIDO</p>
-                    {% endif %}
+      <hr class="border-gray-200 my-6">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">Projetos submetidos a editais a partir de 2019</h2>
+      <div class="overflow-x-auto mb-8">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Id</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Declaração</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Edital</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Situação do Edital</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Orientador</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Lotação</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Titulo</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Início</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Fim</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Situação do Projeto</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Avaliações</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Bolsas Solicitadas</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Bolsas Concedidas</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Indicações</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Orientandos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in projetos2019 %}
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700">{{linha[0]}}</td>
+              <td class="px-4 py-3 text-gray-700">
+                <a href="/pesquisa/minhaDeclaracaoOrientador?id={{ linha[0] }}" class="text-blue-600 hover:underline">
+                  <i class="bi bi-filetype-pdf"></i>
+                </a>
+              </td>
+              {% if permissao==1 %}
+                <td class="px-4 py-3 text-gray-700">{{linha[1]}}</td>
               {% else %}
-                      <p class="indefinido">INDEFINIDO</p>
+                <td class="px-4 py-3 text-gray-700"><a href="/pesquisa/editalProjeto?edital={{linha[15]}}" class="text-blue-600 hover:underline">{{linha[1]}}</a></td>
               {% endif %}
-          {%else %}
-          <p class="aprovado">APROVADO</p>
-          {%endif %}
-        </td>
-        {% if linha[7]==1 %} <!--Projeto Novo -->
-          <td><a href="/pesquisa/meusPareceres?id={{linha[0]}}"><i class="bi bi-search"></i></a></td>
-        {%else %} <!--Projeto em andamento -->
-          <td>-</td>
-        {% endif %}
-        <td>{{linha[11]}}</td>
-        <td>{{linha[12]}}</td>
-        <td>
-          
-          {% for i in range(1,linha[12]+1) %}
-            <a href="/pesquisa/indicacao?id={{linha[0]}}&b=1">INDICAR BOLSISTA {{ i }}</a><BR><BR>
-          {% endfor %}
-          {% if linha[17] !='0' %}
-              <a href="/pesquisa/indicacao?id={{linha[0]}}&b=0">INDICAR VOLUNTÁRIO </a><BR><BR>
-          {% endif %}
-          {% for i in range(1,linha[11]-linha[12]+1) %}
-            <a href="/pesquisa/indicacao?id={{linha[0]}}&b=0">INDICAR VOLUNTÁRIO {{ i }}</a><BR><BR>
-          {% endfor %}
-        </td>
-        <td>
-          {% if linha[16] is not none %}
-            {{linha[16]|safe}}
-          {% else %}
-            Sem indicações até o momento
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </table>
-
-    <hr>
-    <h2>Meus orientandos atuais</h2>
-
-    <table>
-
-        <th>PROJETO</th><th>ID do orientando</th><th>Nome</th><th>Modalidade</th><th>Tipo</th><th>Inicio</th><th>Fim</th><th>Fomento</th><th>Frequência</th><th>Enviadas</th>
-        <th>Desligar discente</th><th>Substituir Discente <small>(é necessário preencher imediatamente o formulário de indicação com todas as informações do substituto)</small></th>
-
-      {% for linha in orientandos %}
-
-            <tr>
-                <td>{{linha[8]}} </td>
-                <td>{{linha[0]}} </td>
-                <td><a href="/pesquisa/minhaDeclaracaoOrientador?idAluno={{linha[0]}}">{{linha[1]}}</a> </td>
-                <td>{{linha[6]}} </td>
-                <td>{{linha[4]}} </td>
-                <td>{{linha[2]}} </td>
-                <td>{{linha[5]}} </td>
-                <td>{{linha[3]}} </td>
-                <td><a href="/pesquisa/enviarFrequencia?id={{linha[0]}}">Enviar Frequência</a></td>
-                <td> {% if linha[7] == None %}
-                          NENHUMA FREQUÊNCIA ENVIADA
-                     {% else %}
-                          {{linha[7]|safe}}
-                     {% endif %}
-                </td>
-                <td><a href="{{url_for('desligar',id_indicacao=linha[0])}}" onclick="return confirm('Tem certeza que deseja desligar o discente ?')">Desligar</a></td>
-                <td><a href="{{url_for('substituir',id_indicacao=linha[0])}}" onclick="return confirm('Tem certeza que deseja substituir o discente ?')">Substituir</a></td>
+              <td class="px-4 py-3 text-gray-700">{{linha[14]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[2]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[3]}}</td>
+              {% if linha[7]==1 %}
+                <td class="px-4 py-3 text-gray-700"><a href="/pesquisa/static/files/{{linha[8]}}" class="text-blue-600 hover:underline">{{linha[4]}}</a></td>
+              {% else %}
+                <td class="px-4 py-3 text-gray-700">{{linha[4]}}</td>
+              {% endif %}
+              <td class="px-4 py-3 text-gray-700">
+                {% if linha[5] is not none %}{{linha[5]}}{% else %}-{% endif %}
+              </td>
+              <td class="px-4 py-3 text-gray-700">
+                {% if linha[6] is not none %}{{linha[6]}}{% else %}-{% endif %}
+              </td>
+              <td class="px-4 py-3 text-gray-700">
+                {% if linha[13]==1 %}
+                  {% if linha[9]+linha[10]>1 %}
+                    {% if linha[9]-linha[10]>0 %}
+                      <span class="text-emerald-600 font-medium">APROVADO</span>
+                    {% elif linha[10]-linha[9]>0 %}
+                      <span class="text-red-600 font-medium">NÃO APROVADO</span>
+                    {% else %}
+                      <span class="text-amber-600 font-medium">INDEFINIDO</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-amber-600 font-medium">INDEFINIDO</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-emerald-600 font-medium">APROVADO</span>
+                {% endif %}
+              </td>
+              {% if linha[7]==1 %}
+                <td class="px-4 py-3 text-gray-700"><a href="/pesquisa/meusPareceres?id={{linha[0]}}" class="text-blue-600 hover:underline"><i class="bi bi-search"></i></a></td>
+              {% else %}
+                <td class="px-4 py-3 text-gray-700">-</td>
+              {% endif %}
+              <td class="px-4 py-3 text-gray-700">{{linha[11]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[12]}}</td>
+              <td class="px-4 py-3 text-gray-700">
+                {% for i in range(1,linha[12]+1) %}
+                  <a href="/pesquisa/indicacao?id={{linha[0]}}&b=1" class="text-blue-600 hover:underline block mb-1">INDICAR BOLSISTA {{ i }}</a>
+                {% endfor %}
+                {% if linha[17] !='0' %}
+                  <a href="/pesquisa/indicacao?id={{linha[0]}}&b=0" class="text-blue-600 hover:underline block mb-1">INDICAR VOLUNTÁRIO</a>
+                {% endif %}
+                {% for i in range(1,linha[11]-linha[12]+1) %}
+                  <a href="/pesquisa/indicacao?id={{linha[0]}}&b=0" class="text-blue-600 hover:underline block mb-1">INDICAR VOLUNTÁRIO {{ i }}</a>
+                {% endfor %}
+              </td>
+              <td class="px-4 py-3 text-gray-700">
+                {% if linha[16] is not none %}
+                  {{linha[16]|safe}}
+                {% else %}
+                  Sem indicações até o momento
+                {% endif %}
+              </td>
             </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
-      {% endfor %}
-
-    </table>
-
-    <hr>
-    <h2>Meus orientandos substituídos/ desligados/ encerrados</h2>
-
-    <table>
-
-        <th>PROJETO</th><th>ID do orientando</th><th>Nome</th><th>Modalidade</th><th>Tipo</th><th>Inicio</th><th>Fim</th><th>Fomento</th><th>Frequência</th><th>Enviadas</th>
-        <th>Desligar discente</th><th>Substituir Discente <small>(é necessário preencher imediatamente o formulário de indicação com todas as informações do substituto)</small></th>
-
-      {% for linha in orientandos_antigos %}
-
+      <hr class="border-gray-200 my-6">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">Meus orientandos atuais</h2>
+      <div class="overflow-x-auto mb-8">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
-                <td>{{linha[8]}} </td>
-                <td>{{linha[0]}} </td>
-                <td><a href="/pesquisa/minhaDeclaracaoOrientador?idAluno={{linha[0]}}">{{linha[1]}}</a> </td>
-                <td>{{linha[6]}} </td>
-                <td>{{linha[4]}} </td>
-                <td>{{linha[2]}} </td>
-                <td>{{linha[5]}} </td>
-                <td>{{linha[3]}} </td>
-                <td><a href="/pesquisa/enviarFrequencia?id={{linha[0]}}">Enviar Frequência</a></td>
-                <td> {% if linha[7] == None %}
-                          NENHUMA FREQUÊNCIA ENVIADA
-                     {% else %}
-                          {{linha[7]|safe}}
-                     {% endif %}
-                </td>
-                <td>-</td>
-                <td>-</td>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">PROJETO</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">ID do orientando</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Nome</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Modalidade</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Tipo</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Inicio</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Fim</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Fomento</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Frequência</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Enviadas</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Desligar discente</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Substituir Discente <small>(é necessário preencher imediatamente o formulário de indicação com todas as informações do substituto)</small></th>
             </tr>
+          </thead>
+          <tbody>
+            {% for linha in orientandos %}
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700">{{linha[8]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[0]}}</td>
+              <td class="px-4 py-3 text-gray-700"><a href="/pesquisa/minhaDeclaracaoOrientador?idAluno={{linha[0]}}" class="text-blue-600 hover:underline">{{linha[1]}}</a></td>
+              <td class="px-4 py-3 text-gray-700">{{linha[6]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[4]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[2]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[5]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[3]}}</td>
+              <td class="px-4 py-3 text-gray-700"><a href="/pesquisa/enviarFrequencia?id={{linha[0]}}" class="text-blue-600 hover:underline">Enviar Frequência</a></td>
+              <td class="px-4 py-3 text-gray-700">
+                {% if linha[7] == None %}
+                  NENHUMA FREQUÊNCIA ENVIADA
+                {% else %}
+                  {{linha[7]|safe}}
+                {% endif %}
+              </td>
+              <td class="px-4 py-3 text-gray-700">
+                <a href="{{url_for('desligar',id_indicacao=linha[0])}}" onclick="return confirm('Tem certeza que deseja desligar o discente ?')" class="px-2 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-xs font-medium">Desligar</a>
+              </td>
+              <td class="px-4 py-3 text-gray-700">
+                <a href="{{url_for('substituir',id_indicacao=linha[0])}}" onclick="return confirm('Tem certeza que deseja substituir o discente ?')" class="px-2 py-1 bg-amber-500 text-white rounded-md hover:bg-amber-600 text-xs font-medium">Substituir</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
-      {% endfor %}
-
-    </table>
-
-    <a class="fixed" href="/pesquisa/logout">Sair</a>
-    <script nonce="{{ csp_nonce() }}" src="{{ url_for('static',filename='bootstrap-5.3.6-dist/js/bootstrap.bundle.min.js') }}" ></script>
+      <hr class="border-gray-200 my-6">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">Meus orientandos substituídos/ desligados/ encerrados</h2>
+      <div class="overflow-x-auto mb-8">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">PROJETO</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">ID do orientando</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Nome</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Modalidade</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Tipo</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Inicio</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Fim</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Fomento</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Frequência</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Enviadas</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Desligar</th>
+              <th class="px-4 py-3 font-semibold text-gray-700 text-sm">Substituir</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in orientandos_antigos %}
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700">{{linha[8]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[0]}}</td>
+              <td class="px-4 py-3 text-gray-700"><a href="/pesquisa/minhaDeclaracaoOrientador?idAluno={{linha[0]}}" class="text-blue-600 hover:underline">{{linha[1]}}</a></td>
+              <td class="px-4 py-3 text-gray-700">{{linha[6]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[4]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[2]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[5]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[3]}}</td>
+              <td class="px-4 py-3 text-gray-700"><a href="/pesquisa/enviarFrequencia?id={{linha[0]}}" class="text-blue-600 hover:underline">Enviar Frequência</a></td>
+              <td class="px-4 py-3 text-gray-700">
+                {% if linha[7] == None %}
+                  NENHUMA FREQUÊNCIA ENVIADA
+                {% else %}
+                  {{linha[7]|safe}}
+                {% endif %}
+              </td>
+              <td class="px-4 py-3 text-gray-500">-</td>
+              <td class="px-4 py-3 text-gray-500">-</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </body>
 </html>

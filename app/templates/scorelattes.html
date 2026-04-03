@@ -1,75 +1,83 @@
 {% extends "BASE_v3.html" %}
 {% block content %}
-    <div class="container border shadow-none p-3 mb-5 bg-body-tertiary rounded">
-        <form name="frmLattes" id="form" action="/pesquisa/score" method="POST" enctype="multipart/form-data"><br>
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <b>Período</b>:
-          <select class="form-select" name="periodo">
+  <div class="container mx-auto px-4 max-w-screen-xl py-8">
+    <div class="max-w-2xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h2 class="text-2xl font-semibold text-gray-800 mb-6">Pontuação Lattes</h2>
+      <form name="frmLattes" id="form" action="/pesquisa/score" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1"><b>Período</b></label>
+          <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" name="periodo">
             <option value="5">Últimos 5 anos</option>
             <option value="7">Últimos 7 anos</option>
-          </select><br>
-          <b>CPF</b> <input name="cpf" class="form-control" required="required"
-            type="text"><br>
-            <b>Área CAPES</b>:
-            <select class="form-select" name="area_capes">
-              <option value="ADMINISTRACAO_PUBLICA_E_DE_EMPRESAS_CIENCIAS_CONTABEIS_E_TURISMO">ADMINISTRACAO_PUBLICA_E_DE_EMPRESAS_CIENCIAS_CONTABEIS_E_TURISMO</option>
-              <option value="ANTROPOLOGIA_ARQUEOLOGIA">ANTROPOLOGIA_ARQUEOLOGIA</option>
-              <option value="ARQUITETURA_URBANISMO_E_DESIGN">ARQUITETURA_URBANISMO_E_DESIGN</option>
-              <option value="ARTES">ARTES</option>
-              <option value="ASTRONOMIA_FISICA">ASTRONOMIA_FISICA</option>
-              <option value="BIODIVERSIDADE">BIODIVERSIDADE</option>
-              <option value="BIOTECNOLOGIA">BIOTECNOLOGIA</option>
-              <option value="CIENCIAS_AGRARIAS_I">CIENCIAS_AGRARIAS_I</option>
-              <option value="CIENCIAS_AMBIENTAIS">CIENCIAS_AMBIENTAIS</option>
-              <option value="CIENCIAS_BIOLOGICAS_I">CIENCIAS_BIOLOGICAS_I</option>
-              <option value="CIENCIAS_BIOLOGICAS_II">CIENCIAS_BIOLOGICAS_II</option>
-              <option value="CIENCIAS_BIOLOGICAS_III">CIENCIAS_BIOLOGICAS_III</option>
-              <option value="CIENCIAS_DA_RELIGIAO_E_TEOLOGIA">CIENCIAS_DA_RELIGIAO_E_TEOLOGIA</option>
-              <option value="CIENCIA_DA_COMPUTACAO">CIENCIA_DA_COMPUTACAO</option>
-              <option value="CIENCIA_DE_ALIMENTOS">CIENCIA_DE_ALIMENTOS</option>
-              <option value="CIENCIA_POLITICA_E_RELACOES_INTERNACIONAIS">CIENCIA_POLITICA_E_RELACOES_INTERNACIONAIS</option>
-              <option value="COMUNICACAO_E_INFORMACAO">COMUNICACAO_E_INFORMACAO</option>
-              <option value="DIREITO">DIREITO</option>
-              <option value="ECONOMIA">ECONOMIA</option>
-              <option value="EDUCACAO">EDUCACAO</option>
-              <option value="EDUCACAO_FISICA">EDUCACAO_FISICA</option>
-              <option value="ENFERMAGEM">ENFERMAGEM</option>
-              <option value="ENGENHARIAS_I">ENGENHARIAS_I</option>
-              <option value="ENGENHARIAS_II">ENGENHARIAS_II</option>
-              <option value="ENGENHARIAS_III">ENGENHARIAS_III</option>
-              <option value="ENGENHARIAS_IV">ENGENHARIAS_IV</option>
-              <option value="ENSINO">ENSINO</option>
-              <option value="FARMACIA">FARMACIA</option>
-              <option value="FILOSOFIA">FILOSOFIA</option>
-              <option value="GEOCIENCIAS">GEOCIENCIAS</option>
-              <option value="GEOGRAFIA">GEOGRAFIA</option>
-              <option value="HISTORIA">HISTORIA</option>
-              <option value="INTERDISCIPLINAR">INTERDISCIPLINAR</option>
-              <option value="LINGUISTICA_E_LITERATURA">LINGUISTICA_E_LITERATURA</option>
-              <option value="MATEMATICA_PROBABILIDADE_E_ESTATISTICA">MATEMATICA_PROBABILIDADE_E_ESTATISTICA</option>
-              <option value="MATERIAIS">MATERIAIS</option>
-              <option value="MEDICINA_I">MEDICINA_I</option>
-              <option value="MEDICINA_II">MEDICINA_II</option>
-              <option value="MEDICINA_III">MEDICINA_III</option>
-              <option value="MEDICINA_VETERINARIA">MEDICINA_VETERINARIA</option>
-              <option value="NUTRICAO">NUTRICAO</option>
-              <option value="ODONTOLOGIA">ODONTOLOGIA</option>
-              <option value="PLANEJAMENTO_URBANO_E_REGIONAL_DEMOGRAFIA">PLANEJAMENTO_URBANO_E_REGIONAL_DEMOGRAFIA</option>
-              <option value="PSICOLOGIA">PSICOLOGIA</option>
-              <option value="QUIMICA">QUIMICA</option>
-              <option value="SAUDE_COLETIVA">SAUDE_COLETIVA</option>
-              <option value="SERVICO_SOCIAL">SERVICO_SOCIAL</option>
-              <option value="SOCIOLOGIA">SOCIOLOGIA</option>
-              <option value="ZOOTECNIA_RECURSOS_PESQUEIROS">ZOOTECNIA_RECURSOS_PESQUEIROS</option>
-            </select>
-            <br>
-            <h4>Clique em "Calcular" apenas uma vez e aguarde a conclusão do processo (o processo pode demorar alguns minutos)!</h4>
-            <input name="btnEnviar" value="Calcular" class="btn btn-primary mb-3" type="submit"><br>
-          <br>
-        </form>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1"><b>CPF</b></label>
+          <input name="cpf" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" required type="text">
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1"><b>Área CAPES</b></label>
+          <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" name="area_capes">
+            <option value="ADMINISTRACAO_PUBLICA_E_DE_EMPRESAS_CIENCIAS_CONTABEIS_E_TURISMO">ADMINISTRACAO_PUBLICA_E_DE_EMPRESAS_CIENCIAS_CONTABEIS_E_TURISMO</option>
+            <option value="ANTROPOLOGIA_ARQUEOLOGIA">ANTROPOLOGIA_ARQUEOLOGIA</option>
+            <option value="ARQUITETURA_URBANISMO_E_DESIGN">ARQUITETURA_URBANISMO_E_DESIGN</option>
+            <option value="ARTES">ARTES</option>
+            <option value="ASTRONOMIA_FISICA">ASTRONOMIA_FISICA</option>
+            <option value="BIODIVERSIDADE">BIODIVERSIDADE</option>
+            <option value="BIOTECNOLOGIA">BIOTECNOLOGIA</option>
+            <option value="CIENCIAS_AGRARIAS_I">CIENCIAS_AGRARIAS_I</option>
+            <option value="CIENCIAS_AMBIENTAIS">CIENCIAS_AMBIENTAIS</option>
+            <option value="CIENCIAS_BIOLOGICAS_I">CIENCIAS_BIOLOGICAS_I</option>
+            <option value="CIENCIAS_BIOLOGICAS_II">CIENCIAS_BIOLOGICAS_II</option>
+            <option value="CIENCIAS_BIOLOGICAS_III">CIENCIAS_BIOLOGICAS_III</option>
+            <option value="CIENCIAS_DA_RELIGIAO_E_TEOLOGIA">CIENCIAS_DA_RELIGIAO_E_TEOLOGIA</option>
+            <option value="CIENCIA_DA_COMPUTACAO">CIENCIA_DA_COMPUTACAO</option>
+            <option value="CIENCIA_DE_ALIMENTOS">CIENCIA_DE_ALIMENTOS</option>
+            <option value="CIENCIA_POLITICA_E_RELACOES_INTERNACIONAIS">CIENCIA_POLITICA_E_RELACOES_INTERNACIONAIS</option>
+            <option value="COMUNICACAO_E_INFORMACAO">COMUNICACAO_E_INFORMACAO</option>
+            <option value="DIREITO">DIREITO</option>
+            <option value="ECONOMIA">ECONOMIA</option>
+            <option value="EDUCACAO">EDUCACAO</option>
+            <option value="EDUCACAO_FISICA">EDUCACAO_FISICA</option>
+            <option value="ENFERMAGEM">ENFERMAGEM</option>
+            <option value="ENGENHARIAS_I">ENGENHARIAS_I</option>
+            <option value="ENGENHARIAS_II">ENGENHARIAS_II</option>
+            <option value="ENGENHARIAS_III">ENGENHARIAS_III</option>
+            <option value="ENGENHARIAS_IV">ENGENHARIAS_IV</option>
+            <option value="ENSINO">ENSINO</option>
+            <option value="FARMACIA">FARMACIA</option>
+            <option value="FILOSOFIA">FILOSOFIA</option>
+            <option value="GEOCIENCIAS">GEOCIENCIAS</option>
+            <option value="GEOGRAFIA">GEOGRAFIA</option>
+            <option value="HISTORIA">HISTORIA</option>
+            <option value="INTERDISCIPLINAR">INTERDISCIPLINAR</option>
+            <option value="LINGUISTICA_E_LITERATURA">LINGUISTICA_E_LITERATURA</option>
+            <option value="MATEMATICA_PROBABILIDADE_E_ESTATISTICA">MATEMATICA_PROBABILIDADE_E_ESTATISTICA</option>
+            <option value="MATERIAIS">MATERIAIS</option>
+            <option value="MEDICINA_I">MEDICINA_I</option>
+            <option value="MEDICINA_II">MEDICINA_II</option>
+            <option value="MEDICINA_III">MEDICINA_III</option>
+            <option value="MEDICINA_VETERINARIA">MEDICINA_VETERINARIA</option>
+            <option value="NUTRICAO">NUTRICAO</option>
+            <option value="ODONTOLOGIA">ODONTOLOGIA</option>
+            <option value="PLANEJAMENTO_URBANO_E_REGIONAL_DEMOGRAFIA">PLANEJAMENTO_URBANO_E_REGIONAL_DEMOGRAFIA</option>
+            <option value="PSICOLOGIA">PSICOLOGIA</option>
+            <option value="QUIMICA">QUIMICA</option>
+            <option value="SAUDE_COLETIVA">SAUDE_COLETIVA</option>
+            <option value="SERVICO_SOCIAL">SERVICO_SOCIAL</option>
+            <option value="SOCIOLOGIA">SOCIOLOGIA</option>
+            <option value="ZOOTECNIA_RECURSOS_PESQUEIROS">ZOOTECNIA_RECURSOS_PESQUEIROS</option>
+          </select>
+        </div>
+        <p class="text-amber-700 font-medium mb-4">Clique em "Calcular" apenas uma vez e aguarde a conclusão do processo (o processo pode demorar alguns minutos)!</p>
+        <input name="btnEnviar" value="Calcular" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium cursor-pointer" type="submit">
+      </form>
+      {% if config['producao']==1 %}
+        <div class="flex justify-center mt-4">
+          <div class="g-recaptcha" data-sitekey="6LcTP7IrAAAAAEGXU_wjThN5GsBZ3mZCy67tzQyH"></div>
+        </div>
+      {% endif %}
     </div>
-  {% if config['producao']==1 %}
-    <center><div class="g-recaptcha" data-sitekey="6LcTP7IrAAAAAEGXU_wjThN5GsBZ3mZCy67tzQyH"></div></center>
-  {% endif %}
-
-  {% endblock %}
+  </div>
+{% endblock %}

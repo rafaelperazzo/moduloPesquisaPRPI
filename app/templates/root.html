@@ -1,84 +1,50 @@
 {% extends "BASE_v3.html" %}
 {% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
 
-<div class="container text-center">
-  <div class="row">
-    <div class="col">
-        <div class="card" style="width: 18rem;">
-            <div class="card-body">
-                <h5 class="card-title">Cadastrar Projeto de Pesquisa</h5>
-                <p class="card-text">Submeter projeto para edital aberto</p>
-                <a href="{{ url_for('cadastrarProjeto') }}">CADASTRAR PROJETO DE PESQUISA</a>
-            </div>
-        </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-lg font-semibold text-gray-800 mb-2">Cadastrar Projeto de Pesquisa</h5>
+      <p class="text-gray-600 text-sm mb-4">Submeter projeto para edital aberto</p>
+      <a href="{{ url_for('cadastrarProjeto') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm">CADASTRAR PROJETO DE PESQUISA</a>
     </div>
-    <div class="col">
-      <div class="card" style="width: 18rem;">
-            <div class="card-body">
-                <h5 class="card-title">Meus Projetos</h5>
-                <p class="card-text">Visualizar projetos submetidos, enviar frequências, gerar declarações, indicar, substituir ou desligar bolsista/voluntário</p>
-                <a href="{{ url_for('meusProjetos') }}">MEUS PROJETOS</a>
-            </div>
-        </div>
-    </div>
-    <div class="col">
-      <div class="card" style="width: 18rem;">
-            <div class="card-body">
-                <h5 class="card-title">Módulo gestor</h5>
-                <p class="card-text">Gerenciar projetos submetidos</p>
-                <a href="{{ url_for('admin') }}">MÓDULO GESTOR</a>
-            </div>
-        </div>
-    </div>
-  </div>
-  <br>
-  <div class="row">
-    <div class="col">
-      <div class="card" style="width: 18rem;">
-            <div class="card-body">
-                <h5 class="card-title">Declarações de discentes</h5>
-                <p class="card-text">Buscar declarações de discentes bolsistas/voluntários</p>
-                <a href="{{ url_for('get_projetos_discente') }}">BUSCAR PROJETOS DISCENTE</a>
-            </div>
-        </div>
-    </div>
-    <div class="col">
-      <div class="card" style="width: 18rem;">
-            <div class="card-body">
-                <h5 class="card-title">Redefinição de senha</h5>
-                <p class="card-text">Solicitar redefinição de senha esquecida</p>
-                <a href="{{ url_for('esqueciMinhaSenha') }}">REDEFINIR SENHA DE ACESSO</a>
-            </div>
-        </div>
-    </div>
-    <div class="col">
-      <div class="card" style="width: 18rem;">
-            <div class="card-body">
-                <h5 class="card-title">Solicitação de Cadastro</h5>
-                <p class="card-text">Solicitar cadastro para utilização do sistema</p>
-                Entrar em contato com o setor responsável informando nome completo, SIAPE e e-mail institucional.
-            </div>
-        </div>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col">
-        <div class="card" style="width: 18rem;">
-            <div class="card-body">
-                <h5 class="card-title">Scorelattes</h5>
-                <p class="card-text">Calcular pontuação do currículo lattes</p>
-                <a href="{{ url_for('calcularScorelattesFromID') }}"> Pontuação Lattes</a>
-            </div>
-        </div>
-    </div>
-    <div class="col">
-        
-    </div>
-    <div class="col">
-        
-    </div>
-  </div>
 
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-lg font-semibold text-gray-800 mb-2">Meus Projetos</h5>
+      <p class="text-gray-600 text-sm mb-4">Visualizar projetos submetidos, enviar frequências, gerar declarações, indicar, substituir ou desligar bolsista/voluntário</p>
+      <a href="{{ url_for('meusProjetos') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm">MEUS PROJETOS</a>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-lg font-semibold text-gray-800 mb-2">Módulo gestor</h5>
+      <p class="text-gray-600 text-sm mb-4">Gerenciar projetos submetidos</p>
+      <a href="{{ url_for('admin') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm">MÓDULO GESTOR</a>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-lg font-semibold text-gray-800 mb-2">Declarações de discentes</h5>
+      <p class="text-gray-600 text-sm mb-4">Buscar declarações de discentes bolsistas/voluntários</p>
+      <a href="{{ url_for('get_projetos_discente') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm">BUSCAR PROJETOS DISCENTE</a>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-lg font-semibold text-gray-800 mb-2">Redefinição de senha</h5>
+      <p class="text-gray-600 text-sm mb-4">Solicitar redefinição de senha esquecida</p>
+      <a href="{{ url_for('esqueciMinhaSenha') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm">REDEFINIR SENHA DE ACESSO</a>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-lg font-semibold text-gray-800 mb-2">Solicitação de Cadastro</h5>
+      <p class="text-gray-600 text-sm mb-4">Solicitar cadastro para utilização do sistema</p>
+      <p class="text-gray-500 text-sm">Entrar em contato com o setor responsável informando nome completo, SIAPE e e-mail institucional.</p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-lg font-semibold text-gray-800 mb-2">Scorelattes</h5>
+      <p class="text-gray-600 text-sm mb-4">Calcular pontuação do currículo lattes</p>
+      <a href="{{ url_for('calcularScorelattesFromID') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm">Pontuação Lattes</a>
+    </div>
+
+  </div>
 </div>
-
 {% endblock %}

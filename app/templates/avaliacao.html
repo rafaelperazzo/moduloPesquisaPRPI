@@ -1,20 +1,18 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
-    <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-164056633-1"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
       gtag('config', 'UA-164056633-1');
     </script>
-
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Avaliação de Projeto</title>
-
-<script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
     function recomendacao() {
        var c1 = parseInt(document.forms["frmAvaliacao"]["c1"].value);
        var c2 = parseInt(document.forms["frmAvaliacao"]["c2"].value);
@@ -25,254 +23,181 @@
        var c7 = parseInt(document.forms["frmAvaliacao"]["c7"].value);
        var total = c1+c2+c3+c4+c5+c6+c7;
        var totalStr = total.toString();
-       document.getElementById("total").innerHTML = "<h3>Pontuação total: " + totalStr + "</h3>";
+       document.getElementById("total").innerHTML = "<span class='text-lg font-semibold text-gray-800'>Pontuação total: " + totalStr + "</span>";
        if (total>=70) {
-          document.getElementById("resultado").innerHTML = "<h3>PROJETO RECOMENDADO (APROVADO)</h3>";
+          document.getElementById("resultado").innerHTML = "<span class='text-lg font-bold text-emerald-600'>PROJETO RECOMENDADO (APROVADO)</span>";
           document.getElementById("txtRecomendacao").value = 1;
-       }
-       else {
-         document.getElementById("resultado").innerHTML = "<h3>PROJETO <B>NÃO</B> RECOMENDADO (NÃO APROVADO)</h3>";
+       } else {
+         document.getElementById("resultado").innerHTML = "<span class='text-lg font-bold text-red-600'>PROJETO NÃO RECOMENDADO (NÃO APROVADO)</span>";
          document.getElementById("txtRecomendacao").value = 0;
        }
-     }
-
-
-
-</script>
+    }
+    </script>
   </head>
-  <style>
-table {
-font-family: arial, sans-serif;
-border-collapse: collapse;
-width: 100%;
-}
-
-td, th {
-border: 1px solid #dddddd;
-text-align: left;
-padding: 8px;
-}
-
-tr:nth-child(even) {
-background-color: #dddddd;
-}
-
-input[type=text], select {
-  width: 100%;
-  padding: 12px 20px;
-  margin: 8px 0;
-  display: inline-block;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
-}
-input[type=email], select {
-  width: 100%;
-  padding: 12px 20px;
-  margin: 8px 0;
-  display: inline-block;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
-}
-
-input[type=submit] {
-
-  background-color: #808080;
-  color: black;
-  padding: 14px 20px;
-  margin: 8px 0;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-input[type=submit]:hover {
-  background-color: #45a049;
-}
-
-textarea {
-  width: 100%;
-  height: 150px;
-  padding: 12px 20px;
-  box-sizing: border-box;
-  border: 2px solid #ccc;
-  border-radius: 4px;
-  background-color: #f8f8f8;
-  resize: none;
-}
-
-</style>
-  <body>
-    <center><img src="{{ url_for('static', filename='brasao.jpg')}}" width="8%" alt="" align="center"></center>
-    <br><center>
-    Ministério da Educação<BR>
-    Universidade Federal do Cariri<BR>
-    Pró-reitoria de Pesquisa, Pós-graduação e Inovação<BR></center>
-    <center><h1>Avaliação de Projeto de Pesquisa</h1><center>
-      <hr>
-      <h3>Informações importantes</h3>
-      <ol>
-        <li>A declaração de participação como consultor ad-hoc é gerada imediatamente após a submissão deste formulário de avaliação.</li>
-        <li>Os proponentes não tem acesso, em hipótese alguma, aos nomes dos avaliadores, ficando estes dados acessíveis apenas a coordenadoria de pesquisa para fins de controle das declarações.</li>
-        <li>Quaisquer dúvidas podem ser endereçadas a <b>pesquisa.prpi@ufca.edu.br</b>, ou pelo telefone <b>(88) 3221-9566</b></li>
-      </ol>
-
-
-    <form name="frmAvaliacao" action="/pesquisa/avaliar" method="POST">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-      <hr>
-      <h3>Arquivos do projeto</h3>
-      {{ arquivos|safe }} <br>
-
-      <hr>
-      <h2>FORMULÁRIO DE AVALIAÇÃO</h2>
-      <h3>O projeto é considerado APROVADO (recomendado) caso o somatório dos conceitos abaixo seja maior ou igual a 70.</h3>
-      <hr>
-      <b>Seu nome completo (para geração de declaração de avaliação):</b> <input name="txtNome"
-        required="required" size="80" type="text"><br>
-      <br>
-      <table style="width:100%">
-
-        <tr>
-          <th>Item</th><th>Critério de análise e julgamento</th><th>Pontuação</th>
-        </tr>
-
-        <tr>
-          <td>A</td><td>Clareza na apresentação do tema e delimitação do problema <b>(Máximo 15 pontos)</b></td>
-          <td>
-          <select name="c1" required="required">
-            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
-            {% for i in range(16) %}
-              <option value="{{ i }}">{{ i }}</option>
-            {% endfor %}
-          </select>
-          </td>
-        </tr>
-
-        <tr>
-          <td>B</td><td>Qualidade das referências bibliográficas utilizadas, considerando
-atualização, relevância e adequação ao tema de pesquisa <b>(Máximo 10 pontos)</b></td>
-          <td>
-          <select name="c2" required="required">
-            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
-            {% for i in range(11) %}
-              <option value="{{ i }}">{{ i }}</option>
-            {% endfor %}
-          </select>
-          </td>
-        </tr>
-
-        <tr>
-          <td>C</td><td>Clareza na definição dos objetivos e metas <b>(Máximo 10 pontos)</b></td>
-          <td>
-          <select name="c3" required="required">
-            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
-            {% for i in range(11) %}
-              <option value="{{ i }}">{{ i }}</option>
-            {% endfor %}
-          </select>
-          </td>
-        </tr>
-
-        <tr>
-          <td>D</td><td>Originalidade e/ou relevância da pesquisa para o desenvolvimento
-científico do país <b>(Máximo 20 pontos)</b></td>
-          <td>
-          <select name="c4" required="required">
-            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
-            {% for i in range(21) %}
-              <option value="{{ i }}">{{ i }}</option>
-            {% endfor %}
-          </select>
-          </td>
-        </tr>
-
-        <tr>
-          <td>E</td><td>Adequação da metodologia e do cronograma de execução ao(s)
-objetivo(s) proposto(s) <b>(Máximo 15 pontos)</b></td>
-          <td>
-          <select name="c5" required="required">
-            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
-            {% for i in range(16) %}
-              <option value="{{ i }}">{{ i }}</option>
-            {% endfor %}
-          </select>
-          </td>
-        </tr>
-
-        <tr>
-          <td>F</td><td>Potencial de impacto dos resultados do ponto de vista
-técnico-científico, difusão, socioeconômico, ambiental e cultural <b>(Máximo 15 pontos)</b></td>
-          <td>
-          <select name="c6" required="required">
-            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
-            {% for i in range(16) %}
-              <option value="{{ i }}">{{ i }}</option>
-            {% endfor %}
-          </select>
-          </td>
-        </tr>
-
-        <tr>
-          <td>G</td><td>No caso de projetos de pesquisa: potencial de avanço científico do
-projeto em relação à fronteira do conhecimento <b>(Máximo 15 pontos)</b></td>
-          <td>
-          <select name="c7" required="required">
-            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
-            {% for i in range(16) %}
-              <option value="{{ i }}">{{ i }}</option>
-            {% endfor %}
-          </select>
-          </td>
-        </tr>
-
-      </table>
-      <br>
-      <div align="right"
-      <p id="total"></p>
+  <body class="bg-gray-50 text-gray-900 font-sans">
+    <div class="container mx-auto px-4 max-w-screen-xl py-8">
+      <div class="flex justify-center mb-4">
+        <img src="{{ url_for('static', filename='brasao.jpg')}}" width="80" alt="">
       </div>
-      <BR>
-      <div align="right"
-      <p id="resultado"></p>
-    </div><br>
-      <b>Projeto necessita de parecer de comitê de ética ? </b>
-      <select name="comite" required="required">
-        <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
-        <option value="0">Não</option>
-        <option value="1">Sim</option>
-        <option value="2">Não sei responder</option>
-      </select><br>
-      
-      {% if modalidade==2 %}
-          <b>Projeto com potencial de desenvolvimento tecnológico e/ou processos de inovação?
-          </b>    
-          <select name="inovacao" required="required">
-            <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
-            <option value="0">Não</option>
-            <option value="1">Sim</option>
-          </select><br>
-      {% endif %}
-      <b>Comentários:<br>
-        <textarea name="txtComentarios" cols="120" rows="40" required="required" onfocus="recomendacao()"></textarea><br>
-
-        Recomendação:
-        <select id="txtRecomendacao" name="txtRecomendacao" required="required" onblur="recomendacao()" onfocus="recomendacao()" width="50%">
-          <option  disabled="disabled"  selected="selected" value=""> --selecione-- </option>
-          <option value="1">Recomendado</option>
-          <option value="0">Não recomendado</option>
-        </select>
-        <br>
-      </b>
-      <div style="text-align: center;"><br>
+      <div class="text-center text-sm text-gray-700 mb-4">
+        Ministério da Educação<br>
+        Universidade Federal do Cariri<br>
+        Pró-reitoria de Pesquisa, Pós-graduação e Inovação
       </div>
-      <b><input name="btnEnviar" value="Submeter Avaliação" type="submit"><br>
-      </b> </form>
-    <p><br>
-    </p>
-    <p><br>
-    </p>
-    <p><br>
-    </p>
+      <h1 class="text-2xl font-bold text-gray-800 text-center mb-6">Avaliação de Projeto de Pesquisa</h1>
+      <hr class="border-gray-200 mb-6">
+
+      <div class="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">Informações importantes</h3>
+        <ol class="list-decimal list-inside text-gray-700 text-sm space-y-2">
+          <li>A declaração de participação como consultor ad-hoc é gerada imediatamente após a submissão deste formulário de avaliação.</li>
+          <li>Os proponentes não tem acesso, em hipótese alguma, aos nomes dos avaliadores, ficando estes dados acessíveis apenas a coordenadoria de pesquisa para fins de controle das declarações.</li>
+          <li>Quaisquer dúvidas podem ser endereçadas a <b>pesquisa.prpi@ufca.edu.br</b>, ou pelo telefone <b>(88) 3221-9566</b></li>
+        </ol>
+      </div>
+
+      <div class="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <form name="frmAvaliacao" action="/pesquisa/avaliar" method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <h3 class="text-lg font-semibold text-gray-800 mb-3">Arquivos do projeto</h3>
+          <div class="text-gray-700 text-sm mb-6">{{ arquivos|safe }}</div>
+
+          <hr class="border-gray-200 mb-6">
+          <h2 class="text-xl font-bold text-gray-800 mb-2">FORMULÁRIO DE AVALIAÇÃO</h2>
+          <p class="text-gray-600 text-sm mb-6">O projeto é considerado APROVADO (recomendado) caso o somatório dos conceitos abaixo seja maior ou igual a 70.</p>
+
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-1"><b>Seu nome completo (para geração de declaração de avaliação):</b></label>
+            <input name="txtNome" required size="80" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+
+          <div class="overflow-x-auto mb-6">
+            <table class="w-full text-sm text-left border-collapse">
+              <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th class="px-4 py-3 font-semibold text-gray-700">Item</th>
+                  <th class="px-4 py-3 font-semibold text-gray-700">Critério de análise e julgamento</th>
+                  <th class="px-4 py-3 font-semibold text-gray-700">Pontuação</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-gray-100">
+                  <td class="px-4 py-3 text-gray-700 font-medium">A</td>
+                  <td class="px-4 py-3 text-gray-700">Clareza na apresentação do tema e delimitação do problema <b>(Máximo 15 pontos)</b></td>
+                  <td class="px-4 py-3">
+                    <select name="c1" required onchange="recomendacao()" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                      <option disabled selected value=""> --selecione-- </option>
+                      {% for i in range(16) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+                    </select>
+                  </td>
+                </tr>
+                <tr class="border-b border-gray-100">
+                  <td class="px-4 py-3 text-gray-700 font-medium">B</td>
+                  <td class="px-4 py-3 text-gray-700">Qualidade das referências bibliográficas utilizadas, considerando atualização, relevância e adequação ao tema de pesquisa <b>(Máximo 10 pontos)</b></td>
+                  <td class="px-4 py-3">
+                    <select name="c2" required onchange="recomendacao()" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                      <option disabled selected value=""> --selecione-- </option>
+                      {% for i in range(11) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+                    </select>
+                  </td>
+                </tr>
+                <tr class="border-b border-gray-100">
+                  <td class="px-4 py-3 text-gray-700 font-medium">C</td>
+                  <td class="px-4 py-3 text-gray-700">Clareza na definição dos objetivos e metas <b>(Máximo 10 pontos)</b></td>
+                  <td class="px-4 py-3">
+                    <select name="c3" required onchange="recomendacao()" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                      <option disabled selected value=""> --selecione-- </option>
+                      {% for i in range(11) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+                    </select>
+                  </td>
+                </tr>
+                <tr class="border-b border-gray-100">
+                  <td class="px-4 py-3 text-gray-700 font-medium">D</td>
+                  <td class="px-4 py-3 text-gray-700">Originalidade e/ou relevância da pesquisa para o desenvolvimento científico do país <b>(Máximo 20 pontos)</b></td>
+                  <td class="px-4 py-3">
+                    <select name="c4" required onchange="recomendacao()" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                      <option disabled selected value=""> --selecione-- </option>
+                      {% for i in range(21) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+                    </select>
+                  </td>
+                </tr>
+                <tr class="border-b border-gray-100">
+                  <td class="px-4 py-3 text-gray-700 font-medium">E</td>
+                  <td class="px-4 py-3 text-gray-700">Adequação da metodologia e do cronograma de execução ao(s) objetivo(s) proposto(s) <b>(Máximo 15 pontos)</b></td>
+                  <td class="px-4 py-3">
+                    <select name="c5" required onchange="recomendacao()" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                      <option disabled selected value=""> --selecione-- </option>
+                      {% for i in range(16) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+                    </select>
+                  </td>
+                </tr>
+                <tr class="border-b border-gray-100">
+                  <td class="px-4 py-3 text-gray-700 font-medium">F</td>
+                  <td class="px-4 py-3 text-gray-700">Potencial de impacto dos resultados do ponto de vista técnico-científico, difusão, socioeconômico, ambiental e cultural <b>(Máximo 15 pontos)</b></td>
+                  <td class="px-4 py-3">
+                    <select name="c6" required onchange="recomendacao()" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                      <option disabled selected value=""> --selecione-- </option>
+                      {% for i in range(16) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+                    </select>
+                  </td>
+                </tr>
+                <tr class="border-b border-gray-100">
+                  <td class="px-4 py-3 text-gray-700 font-medium">G</td>
+                  <td class="px-4 py-3 text-gray-700">No caso de projetos de pesquisa: potencial de avanço científico do projeto em relação à fronteira do conhecimento <b>(Máximo 15 pontos)</b></td>
+                  <td class="px-4 py-3">
+                    <select name="c7" required onchange="recomendacao()" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                      <option disabled selected value=""> --selecione-- </option>
+                      {% for i in range(16) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+                    </select>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="text-right mb-2"><p id="total"></p></div>
+          <div class="text-right mb-6"><p id="resultado"></p></div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1"><b>Projeto necessita de parecer de comitê de ética?</b></label>
+            <select name="comite" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm max-w-xs">
+              <option disabled selected value=""> --selecione-- </option>
+              <option value="0">Não</option>
+              <option value="1">Sim</option>
+              <option value="2">Não sei responder</option>
+            </select>
+          </div>
+
+          {% if modalidade==2 %}
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1"><b>Projeto com potencial de desenvolvimento tecnológico e/ou processos de inovação?</b></label>
+            <select name="inovacao" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm max-w-xs">
+              <option disabled selected value=""> --selecione-- </option>
+              <option value="0">Não</option>
+              <option value="1">Sim</option>
+            </select>
+          </div>
+          {% endif %}
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1"><b>Comentários:</b></label>
+            <textarea name="txtComentarios" rows="10" required onfocus="recomendacao()" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"></textarea>
+          </div>
+
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-1"><b>Recomendação:</b></label>
+            <select id="txtRecomendacao" name="txtRecomendacao" required onblur="recomendacao()" onfocus="recomendacao()" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm max-w-xs">
+              <option disabled selected value=""> --selecione-- </option>
+              <option value="1">Recomendado</option>
+              <option value="0">Não recomendado</option>
+            </select>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" name="btnEnviar" value="Submeter Avaliação" class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium">Submeter Avaliação</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </body>
 </html>

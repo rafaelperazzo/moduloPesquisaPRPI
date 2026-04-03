@@ -1,40 +1,45 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Confirmação de envio de projeto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body>
-    <center><img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" width="120" height="130" alt=""></center>
-    <center>
-    MINISTÉRIO DA EDUCAÇÃO<br>
-    UNIVERSIDADE FEDERAL DO CARIRI<br>
-    PRÓ-REITORIA DE PESQUISA, INOVAÇÃO E PÓS-GRADUAÇÃO<br>
-    COORDENADORIA DE PESQUISA <br>
-    </center>
-    <hr>
-    <h1 style="text-align: center;"><b>CONFIRMAÇÃO DE INDICAÇÃO DE
-      {% if vaga==1 %}
-        BOLSISTA
-      {% else %}
-        VOLUNTÁRIO
-      {% endif %} EM PROJETO DE PESQUISA</b></h1>
-    <hr>
-    <p><b>ID do projeto: </b>{{id_projeto}}<b><br>
-      </b></p>
-    <p><b>Orientador</b>: {{proponente}}</p>
-    <p><b>Titulo</b>: {{titulo}}</p>
-    <p><b>Indicado</b>: {{indicado}}</p>
-    <p><b>Código do Indicado</b>: {{idIndicacao}}</p>
-    <hr>
-    <p><br>
-    </p>
-    <p>Um e-mail de confirmação foi enviado para: {{email_proponente}}</p>
-    <p>Quaisquer dúvidas, enviar e-mail para atendimento.prpi@ufca.edu.br.</p>
-    <h2 style="text-align: center;"><a href="/pesquisa/meusProjetos">FINALIZAR</a></h2>
-    <p><br>
-    </p>
-    <p><br>
-    </p>
+  <body class="bg-gray-50 text-gray-900 font-sans">
+    <div class="container mx-auto px-4 max-w-screen-xl py-8">
+      <div class="flex justify-center mb-4">
+        <img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" width="80" height="87" alt="">
+      </div>
+      <div class="text-center text-sm text-gray-700 mb-4">
+        MINISTÉRIO DA EDUCAÇÃO<br>
+        UNIVERSIDADE FEDERAL DO CARIRI<br>
+        PRÓ-REITORIA DE PESQUISA, INOVAÇÃO E PÓS-GRADUAÇÃO<br>
+        COORDENADORIA DE PESQUISA
+      </div>
+      <hr class="border-gray-200 mb-6">
+
+      <div class="max-w-2xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <h1 class="text-2xl font-bold text-gray-800 text-center mb-6">
+          CONFIRMAÇÃO DE INDICAÇÃO DE
+          {% if vaga==1 %}BOLSISTA{% else %}VOLUNTÁRIO{% endif %}
+          EM PROJETO DE PESQUISA
+        </h1>
+        <hr class="border-gray-200 mb-6">
+        <div class="space-y-3 text-sm text-gray-700 mb-6">
+          <p><b>ID do projeto:</b> {{id_projeto}}</p>
+          <p><b>Orientador:</b> {{proponente}}</p>
+          <p><b>Titulo:</b> {{titulo}}</p>
+          <p><b>Indicado:</b> {{indicado}}</p>
+          <p><b>Código do Indicado:</b> {{idIndicacao}}</p>
+        </div>
+        <hr class="border-gray-200 mb-6">
+        <p class="text-gray-700 text-sm mb-2">Um e-mail de confirmação foi enviado para: {{email_proponente}}</p>
+        <p class="text-gray-700 text-sm mb-6">Quaisquer dúvidas, enviar e-mail para atendimento.prpi@ufca.edu.br.</p>
+        <div class="text-center">
+          <a href="/pesquisa/meusProjetos" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium">FINALIZAR</a>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

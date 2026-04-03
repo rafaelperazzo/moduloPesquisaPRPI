@@ -1,81 +1,82 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
-	  <style>
-table {
-    font-family: arial, sans-serif;
-    border-collapse: collapse;
-    width: 100%;
-}
-
-td, th {
-    border: 1px solid #dddddd;
-    text-align: left;
-    padding: 8px;
-}
-
-tr:nth-child(even) {
-    background-color: #dddddd;
-}
-
-p.cnpq {
-  color: green;
-}
-
-p.ufca {
-  color: orange;
-}
-
-</style>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Lista de indicações</title>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body>
-    <h1>Lista de indicações</h1>
-    <h2>{{descricao}}</h2>
-    <table>
-    <th>Edital</th><th>Id da indicação</th><th>idProjeto</th><th>Orientador</th><th>Bolsista</th><th>Fomento</th><th>Modalidade</th><th>Tipo de vaga</th><th>Banco</th><th>Agência</th><th>Conta</th>
-    <th>CPF/RG</th><th>Comprovante bancário</th><th>Histórico</th><th>Termo</th><th>Início</th><th>Fim</th><th>Endereço</th>
-    <th>Celular</th><th>Telefone</th><th>Nascimento</th><th>RG</th>
-    <th>Obs</th>
-
-    <p>{% for linha in listaIndicacoes %}</p>
-
-    <tr>
-      <td>{{linha[16]}}</td>
-      <td>{{linha[0]}}</td>
-      <td>
-        {% if 'CNPq' in linha[15] %}
-          <p class="cnpq">{{linha[1]}}</p>
-        {% else %}
-          {{linha[1]}}
-        {% endif %}
-      </td>
-      <td>{{linha[14]}}</td>
-      <td>{{linha[2]}}</td>
-      <td>{{linha[17]}}</td>
-      <td>{{linha[3]}}</td>
-      <td>{{linha[4]}}</td>
-      <td>{{linha[5]}}</td>
-      <td>{{linha[6]}}</td>
-      <td>{{linha[7]}}</td>
-      <td><a href='/pesquisa/verArquivo?file={{linha[8]}}'>{{linha[8]}}</a></td> <!--RG e CPF -->
-      <td><a href='/pesquisa/verArquivo?file={{linha[9]}}'>{{linha[9]}}</a></td> <!--Comprovante -->
-      <td><a href='/pesquisa/verArquivo?file={{linha[10]}}'>{{linha[10]}}</a></td> <!--HISTÓRICO -->
-      <td><a href='/pesquisa/verArquivo?file={{linha[11]}}'>{{linha[11]}}</a></td> <!--TERMO -->
-      <td>{{linha[12]}}</td>
-      <td>{{linha[13]}}</td>
-      <td>{{linha[18]}}</td>
-      <td>{{linha[19]}}</td>
-      <td>{{linha[20]}}</td>
-      <td>{{linha[21]}}</td>
-      <td>{{linha[22]}}</td>
-      <td>{{linha[15]|safe}}</td>
-    </tr>
-
-    {% endfor %}
-
-    </table>
-    Total de indicações: {{total}}
+  <body class="bg-gray-50 text-gray-900 font-sans">
+    <div class="container mx-auto px-4 max-w-screen-xl py-8">
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">Lista de indicações</h1>
+      <h2 class="text-lg text-gray-700 mb-6">{{descricao}}</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 font-semibold text-gray-700">Edital</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Id da indicação</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">idProjeto</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Orientador</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Bolsista</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Fomento</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Modalidade</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Tipo de vaga</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Banco</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Agência</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Conta</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">CPF/RG</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Comprovante bancário</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Histórico</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Termo</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Início</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Fim</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Endereço</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Celular</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Telefone</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Nascimento</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">RG</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Obs</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in listaIndicacoes %}
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700">{{linha[16]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[0]}}</td>
+              <td class="px-4 py-3 text-gray-700">
+                {% if 'CNPq' in linha[15] %}
+                  <span class="text-emerald-600 font-medium">{{linha[1]}}</span>
+                {% else %}
+                  {{linha[1]}}
+                {% endif %}
+              </td>
+              <td class="px-4 py-3 text-gray-700">{{linha[14]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[2]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[17]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[3]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[4]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[5]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[6]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[7]}}</td>
+              <td class="px-4 py-3 text-gray-700"><a href='/pesquisa/verArquivo?file={{linha[8]}}' class="text-blue-600 hover:underline">{{linha[8]}}</a></td>
+              <td class="px-4 py-3 text-gray-700"><a href='/pesquisa/verArquivo?file={{linha[9]}}' class="text-blue-600 hover:underline">{{linha[9]}}</a></td>
+              <td class="px-4 py-3 text-gray-700"><a href='/pesquisa/verArquivo?file={{linha[10]}}' class="text-blue-600 hover:underline">{{linha[10]}}</a></td>
+              <td class="px-4 py-3 text-gray-700"><a href='/pesquisa/verArquivo?file={{linha[11]}}' class="text-blue-600 hover:underline">{{linha[11]}}</a></td>
+              <td class="px-4 py-3 text-gray-700">{{linha[12]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[13]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[18]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[19]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[20]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[21]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[22]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{linha[15]|safe}}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="text-gray-600 text-sm mt-4">Total de indicações: {{total}}</p>
+    </div>
   </body>
 </html>

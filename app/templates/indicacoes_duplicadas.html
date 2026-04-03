@@ -1,70 +1,59 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
-	  <style>
-table {
-    font-family: arial, sans-serif;
-    border-collapse: collapse;
-    width: 100%;
-}
-
-td, th {
-    border: 1px solid #dddddd;
-    text-align: left;
-    padding: 8px;
-}
-
-tr:nth-child(even) {
-    background-color: #dddddd;
-}
-
-p.cnpq {
-  color: green;
-}
-
-p.ufca {
-  color: orange;
-}
-
-</style>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lista de indicações com possíveis problemas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body>
-    <h1>Lista de indicações com possíveis problemas</h1>
-    <h2>A partir do código do edital: {{edital}}</h2>
-    <h2>Ano referência: {{ano}}</h2>
-    <p style="color: black; background-color: #f0f0f0;">
+  <body class="bg-gray-50 text-gray-900">
+    <div class="container mx-auto px-4 max-w-screen-xl py-8">
+
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">Lista de indicações com possíveis problemas</h1>
+      <h2 class="text-lg text-gray-600 mb-1">A partir do código do edital: <span class="font-semibold text-gray-800">{{edital}}</span></h2>
+      <h2 class="text-lg text-gray-600 mb-4">Ano referência: <span class="font-semibold text-gray-800">{{ano}}</span></h2>
+
+      <div class="bg-gray-100 border border-gray-200 rounded-md px-4 py-3 mb-6 text-sm text-gray-700">
         Observe que quando um discente é indicado várias vezes para um mesmo código de projeto,
         possivelmente trata-se de duplicidade de indicação em um mesmo projeto. Um possível problema
-        acontece quando um mesmo discente é indicado para diferentes projetos (ids de projetos diferentes)
-    </p>
-    <table>
-    <th>Editais</th>
-    <th style="color: white;background-color: #0000ff;">***IDs dos projetos***</th>
-    <th>Vínculo</th>
-    <th>Fomento</th>
-    <th>Total de indicações</th>
-    <th>Nome do indicado</th>
-    <th>IDs do indicado</th>
-    <th>Orientadores</th>
-    <th>Titulos</th>
+        acontece quando um mesmo discente é indicado para diferentes projetos (ids de projetos diferentes).
+      </div>
 
-    {% for indicacao in linhas %}
-    <tr>
-      <td>{{indicacao[0]}}</td>
-      <td>{{indicacao[1]}}</td>
-      <td>{{indicacao[2]}}</td>
-      <td>{{indicacao[3]}}</td>
-      <td>{{indicacao[4]}}</td>
-      <td>{{indicacao[5]}}</td>
-      <td>{{indicacao[6]}}</td>
-      <td>{{indicacao[8]}}</td>
-      <td>{{indicacao[7]}}</td>
-    </tr>
-    {%endfor%}
+      <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 font-semibold text-gray-700">Editais</th>
+              <th class="px-4 py-3 font-semibold text-white bg-blue-600">***IDs dos projetos***</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Vínculo</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Fomento</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Total de indicações</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Nome do indicado</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">IDs do indicado</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Orientadores</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Títulos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for indicacao in linhas %}
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700">{{indicacao[0]}}</td>
+              <td class="px-4 py-3 text-gray-700 font-medium">{{indicacao[1]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{indicacao[2]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{indicacao[3]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{indicacao[4]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{indicacao[5]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{indicacao[6]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{indicacao[8]}}</td>
+              <td class="px-4 py-3 text-gray-700">{{indicacao[7]}}</td>
+            </tr>
+            {%endfor%}
+          </tbody>
+        </table>
+      </div>
 
-    </table>
-    <h3>{{total}}</h3>
+      <p class="mt-4 text-base font-semibold text-gray-800">{{total}}</p>
+
+    </div>
   </body>
 </html>

@@ -1,93 +1,154 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Estatísticas por edital</title>
-    <style>
-table {
-  font-family: arial, sans-serif;
-  border-collapse: collapse;
-  width: 100%;
-}
-
-td, th {
-  border: 1px solid #dddddd;
-  text-align: left;
-  padding: 8px;
-}
-
-tr:nth-child(even) {
-  background-color: #dddddd;
-}
-</style>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body>
-    <p><b><h1>Edital em Números</b></h1></p>
-    <p><b><h2>{{ nomeEdital }}</h2><br></b></p>
+  <body class="bg-gray-50 text-gray-900 font-sans">
+    <div class="container mx-auto px-4 max-w-screen-xl py-8">
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">Edital em Números</h1>
+      <h2 class="text-lg text-gray-700 mb-6">{{ nomeEdital }}</h2>
 
-    <table style="width:100%">
-      <caption><h2>Resumo Geral dos Projetos Novos</h2></caption>
-      <tr>
-        <th>Id do Projeto</th><th>Título</th><th>Unidade Academica</th><th>Proponente</th><th>Score Lattes</th><th>Recomendações</th><th>Não recomendado</th>
-        <th>Sem resposta</th><th>Não aceitou avaliar</th>
-      </tr>
-      {% for linha in linhasResumo %}
-      <tr>
-        <td>{{ linha[1] }}</td><td>{{ linha[2] }}</td><td>{{ linha[3] }}</td><td>{{ linha[4] }}</td><td>{{ linha[9] }}</td><td>{{ linha[5] }}</td><td>{{ linha[6] }}</td>
-        <td>{{ linha[7] }}</td><td>{{ linha[8] }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-    <p><br>
+      <div class="overflow-x-auto mb-8">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Resumo Geral dos Projetos Novos</h2>
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 font-semibold text-gray-700">Id do Projeto</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Título</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Unidade Academica</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Proponente</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Score Lattes</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Recomendações</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Não recomendado</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Sem resposta</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Não aceitou avaliar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in linhasResumo %}
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700">{{ linha[1] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[2] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[3] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[4] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[9] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[5] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[6] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[7] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[8] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
-      <br>
-      <hr>
-      <table style="width:100%">
-        <caption><h2>Projetos Novos Aprovados</h2></caption>
-        <tr>
-          <th>Id do Projeto</th><th>Título</th><th>Unidade Academica</th><th>Proponente</th><th>Score Lattes</th><th>Recomendações</th><th>Não recomendado</th>
-          <th>Sem resposta</th><th>Não aceitou avaliar</th>
-        </tr>
-        {% for linha in projetosAprovados %}
-        <tr>
-          <td>{{ linha[1] }}</td><td>{{ linha[2] }}</td><td>{{ linha[3] }}</td><td>{{ linha[4] }}</td><td>{{ linha[9] }}</td><td>{{ linha[5] }}</td><td>{{ linha[6] }}</td>
-          <td>{{ linha[7] }}</td><td>{{ linha[8] }}</td>
-        </tr>
-        {% endfor %}
-      </table>
+      <hr class="border-gray-200 mb-6">
+      <div class="overflow-x-auto mb-8">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Projetos Novos Aprovados</h2>
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 font-semibold text-gray-700">Id do Projeto</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Título</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Unidade Academica</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Proponente</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Score Lattes</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Recomendações</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Não recomendado</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Sem resposta</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Não aceitou avaliar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in projetosAprovados %}
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700">{{ linha[1] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[2] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[3] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[4] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[9] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[5] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[6] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[7] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[8] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
-      <br>
-      <hr>
-      <table style="width:100%">
-        <caption><h2>Projetos novos com pendencias de avaliação</h2></caption>
-        <tr>
-          <th>Id do Projeto</th><th>Título</th><th>Unidade Academica</th><th>Proponente</th><th>Score Lattes</th><th>Recomendações</th><th>Não recomendado</th>
-          <th>Sem resposta</th><th>Não aceitou avaliar</th>
-        </tr>
-        {% for linha in projetosPendentes %}
-        <tr>
-          <td>{{ linha[1] }}</td><td>{{ linha[2] }}</td><td>{{ linha[3] }}</td><td>{{ linha[4] }}</td><td>{{ linha[9] }}</td><td>{{ linha[5] }}</td><td>{{ linha[6] }}</td>
-          <td>{{ linha[7] }}</td><td>{{ linha[8] }}</td>
-        </tr>
-        {% endfor %}
-      </table>
+      <hr class="border-gray-200 mb-6">
+      <div class="overflow-x-auto mb-8">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Projetos novos com pendencias de avaliação</h2>
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 font-semibold text-gray-700">Id do Projeto</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Título</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Unidade Academica</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Proponente</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Score Lattes</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Recomendações</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Não recomendado</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Sem resposta</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Não aceitou avaliar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in projetosPendentes %}
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700">{{ linha[1] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[2] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[3] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[4] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[9] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[5] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[6] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[7] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[8] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
-      <br>
-      <hr>
-      <table style="width:100%">
-        <caption><h2>Projetos Novos NÃO recomendados</h2></caption>
-        <tr>
-          <th>Id do Projeto</th><th>Título</th><th>Unidade Academica</th><th>Proponente</th><th>Score Lattes</th><th>Recomendações</th><th>Não recomendado</th>
-          <th>Sem resposta</th><th>Não aceitou avaliar</th>
-        </tr>
-        {% for linha in projetosReprovados %}
-        <tr>
-          <td>{{ linha[1] }}</td><td>{{ linha[2] }}</td><td>{{ linha[3] }}</td><td>{{ linha[4] }}</td><td>{{ linha[9] }}</td><td>{{ linha[5] }}</td><td>{{ linha[6] }}</td>
-          <td>{{ linha[7] }}</td><td>{{ linha[8] }}</td>
-        </tr>
-        {% endfor %}
-      </table>
-
-    </p>
+      <hr class="border-gray-200 mb-6">
+      <div class="overflow-x-auto mb-8">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Projetos Novos NÃO recomendados</h2>
+        <table class="w-full text-sm text-left border-collapse">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="px-4 py-3 font-semibold text-gray-700">Id do Projeto</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Título</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Unidade Academica</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Proponente</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Score Lattes</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Recomendações</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Não recomendado</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Sem resposta</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">Não aceitou avaliar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in projetosReprovados %}
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700">{{ linha[1] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[2] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[3] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[4] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[9] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[5] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[6] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[7] }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ linha[8] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </body>
 </html>

@@ -523,7 +523,7 @@
       <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6 border-t-4 border-t-blue-400">
         <h2 class="text-xl font-semibold text-blue-800 flex items-center gap-2 mb-5">
           <span class="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-sm">⑦</span>
-          Avaliadores Externos Sugeridos
+          Avaliadores Externos Sugeridos (opcional)
         </h2>
         <div class="text-xs text-gray-500 italic mb-4 space-y-1">
           <p>Indique 3 avaliadores externos à UFCA, que não sejam colaboradores no projeto (sujeito a aprovação da Coordenadoria de Pesquisa).</p>
@@ -555,6 +555,10 @@
           <div class="g-recaptcha" data-sitekey="6LcTP7IrAAAAAEGXU_wjThN5GsBZ3mZCy67tzQyH"></div>
         </div>
         {% endif %}
+        <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-800">
+          <p class="mb-2">O Qualis dos periódicos é extraído da <a href="https://sucupira-legado.capes.gov.br/sucupira/public/consultas/coleta/veiculoPublicacaoQualis/listaConsultaGeralPeriodicos.jsf" target="_blank" class="underline font-medium hover:text-blue-600">Plataforma Sucupira</a>, considerando o evento de classificação <strong>2021-2024</strong>.</p>
+          <p>Para garantir a correta pontuação da produção, os <strong>ISSNs dos periódicos</strong> devem estar cadastrados na Plataforma Lattes.</p>
+        </div>
         <div class="text-center">
           <p class="text-xs text-gray-500 italic mb-4">Clique em "Enviar" apenas uma vez e aguarde a conclusão da submissão — o processo pode demorar alguns minutos.</p>
           <input name="btnEnviar" value="Enviar Projeto" formenctype="multipart/form-data" type="submit"

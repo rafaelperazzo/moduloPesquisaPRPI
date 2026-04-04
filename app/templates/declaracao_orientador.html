@@ -1,325 +1,222 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Declaração de Orientador – PRPI/UFCA</title>
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --primary:       #1a5f8a;
-      --primary-mid:   #2178aa;
-      --primary-light: #2e8fc7;
-      --accent:        #3aabdc;
-      --accent-light:  #80cef0;
-      --bg:            #f0f7fc;
-      --bg-dark:       #daeef8;
-      --text:          #000000;
-      --text-muted:    #333333;
-      --white:         #ffffff;
-      --border:        #b8ddf0;
-      --shadow:        rgba(26, 95, 138, 0.12);
-      --radius:        6px;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    @page {
+      size: A4;
+      margin: 20mm 22mm 18mm 22mm;
+    }
 
     body {
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 300;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.7;
-      min-height: 100vh;
+      font-family: 'Inter', sans-serif;
+      font-size: 10pt;
+      color: #1a1a1a;
+      background: white;
+      line-height: 1.5;
     }
 
-    /* ── Page wrapper ── */
-    .page-wrapper {
-      max-width: 800px;
-      margin: 2.5rem auto 4rem;
-      padding: 0 1.5rem;
-    }
-
-    /* ── Document card ── */
-    .doc-card {
-      background: var(--white);
-      border-radius: 10px;
-      box-shadow: 0 4px 32px var(--shadow);
-      border-top: 4px solid var(--accent);
-      overflow: hidden;
-      animation: fadeUp 0.5s ease both;
-    }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ── Institutional header ── */
-    .doc-header {
-      background: var(--white);
-      padding: 2.2rem 3rem 1.6rem;
+    /* ── Cabeçalho ── */
+    .header {
       text-align: center;
-      border-bottom: 1px solid var(--bg-dark);
-      position: relative;
+      padding-bottom: 10pt;
+      border-bottom: 0.5pt solid #999;
+      margin-bottom: 18pt;
     }
-    .doc-header::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 40px,
-        rgba(58,171,220,0.04) 40px,
-        rgba(58,171,220,0.04) 41px
-      );
-      pointer-events: none;
-    }
-    .header-inner { position: relative; z-index: 1; }
-
-    .doc-header img {
-      width: 90px;
+    .header img {
+      width: 52pt;
       height: auto;
-      margin-bottom: 1rem;
+      margin-bottom: 6pt;
     }
-
-    .institution-line {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.72rem;
-      font-weight: 400;
-      letter-spacing: 0.13em;
+    .header p {
+      font-size: 7.5pt;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--primary-light);
-      line-height: 1.9;
+      color: #444;
+      line-height: 1.8;
     }
 
-    /* ── Document title ── */
-    .doc-title-wrap {
-      padding: 2rem 3rem 0;
+    /* ── Título ── */
+    .title {
       text-align: center;
+      margin-bottom: 20pt;
     }
-    .doc-title {
-      font-family: 'Cormorant Garamond', serif;
+    .title h1 {
+      font-family: 'EB Garamond', serif;
+      font-size: 18pt;
       font-weight: 600;
-      font-size: 2rem;
-      letter-spacing: 0.22em;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: var(--primary);
+      color: #1a1a1a;
     }
-    .doc-title-divider {
-      width: 60px;
-      height: 2px;
-      background: linear-gradient(90deg, var(--accent), var(--accent-light));
-      margin: 0.8rem auto 0;
-      border-radius: 2px;
-    }
-
-    /* ── Body content ── */
-    .doc-body {
-      padding: 2.2rem 3rem 2rem;
+    .title hr {
+      width: 36pt;
+      border: none;
+      border-top: 0.75pt solid #888;
+      margin: 5pt auto 0;
     }
 
-    .doc-text {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.13rem;
-      font-weight: 400;
-      color: var(--text);
-      line-height: 1.95;
+    /* ── Corpo ── */
+    .body-text {
+      font-family: 'EB Garamond', serif;
+      font-size: 12pt;
+      line-height: 1.85;
       text-align: justify;
-      text-indent: 3em;
-    }
-    .doc-text b {
-      font-weight: 600;
-      color: var(--primary);
-    }
-    .doc-text i {
-      color: var(--text-muted);
+      text-indent: 2.5em;
+      margin-bottom: 20pt;
     }
 
-    /* ── Date ── */
-    .doc-date {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.88rem;
-      font-weight: 400;
-      color: var(--text-muted);
-      text-align: right;
-      margin-top: 2rem;
-    }
-
-    /* ── Signature block ── */
-    .signature-block {
-      margin-top: 3rem;
+    /* ── Data ── */
+    .date {
       text-align: center;
+      font-size: 9.5pt;
+      color: #444;
+      margin-bottom: 24pt;
     }
-    .signature-block img {
-      width: 220px;
+
+    /* ── Assinatura ── */
+    .signature {
+      text-align: center;
+      margin-bottom: 22pt;
+    }
+    .signature img {
+      width: 130pt;
       height: auto;
       display: block;
-      margin: 0 auto 0.3rem;
+      margin: 0 auto 4pt;
     }
     .signature-line {
-      width: 280px;
-      height: 1px;
-      background: var(--border);
-      margin: 0 auto 0.6rem;
+      width: 160pt;
+      border: none;
+      border-top: 0.5pt solid #aaa;
+      margin: 0 auto 5pt;
     }
-    .signer-name {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.05rem;
+    .signature p {
+      font-family: 'EB Garamond', serif;
+      font-size: 11pt;
       font-weight: 600;
-      color: var(--primary);
-      letter-spacing: 0.04em;
     }
-    .signer-role {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.76rem;
-      font-weight: 400;
-      letter-spacing: 0.08em;
+    .signature small {
+      font-size: 7.5pt;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--primary-light);
-      margin-top: 0.15rem;
-    }
-    .signer-siape {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      margin-top: 0.1rem;
+      color: #555;
+      display: block;
+      margin-top: 2pt;
     }
 
-    /* ── Auth code ── */
-    .auth-block {
-      margin: 2.8rem 3rem 0;
-      padding: 1rem 1.4rem;
-      background: var(--bg);
-      border-left: 3px solid var(--accent);
-      border-radius: var(--radius);
-    }
-    .auth-block small {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-    .auth-block a {
-      color: var(--primary-light);
-      text-decoration: none;
-    }
-    .auth-block a:hover { text-decoration: underline; }
-
-    /* ── Footer ── */
-    .doc-footer {
-      margin-top: 2.5rem;
-      padding: 1rem 3rem;
-      border-top: 1px solid var(--bg-dark);
+    /* ── Autenticação ── */
+    .auth {
+      font-size: 7.5pt;
+      color: #555;
       text-align: center;
-    }
-    .doc-footer small {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      line-height: 1.7;
+      border-top: 0.5pt solid #ddd;
+      padding-top: 8pt;
+      margin-bottom: 10pt;
     }
 
-    /* ── Print styles ── */
-    @media print {
-      body { background: white; }
-      .page-wrapper { margin: 0; padding: 0; max-width: 100%; }
-      .doc-card {
-        box-shadow: none;
-        border-radius: 0;
-        border-top: none;
-        animation: none;
+    /* ── Rodapé ── */
+    .footer {
+      font-size: 7pt;
+      color: #777;
+      text-align: center;
+      border-top: 0.5pt solid #ddd;
+      padding-top: 7pt;
+    }
+
+    /* Tela: simula folha A4 */
+    @media screen {
+      body {
+        background: #e8e8e8;
+        padding: 20px;
       }
-      .doc-header { padding: 1.5rem 2.5rem 1rem; }
-      .doc-body { padding: 1.5rem 2.5rem; }
-      .auth-block { margin: 2rem 2.5rem 0; }
-      .doc-footer { padding: 0.8rem 2.5rem; }
+      .page {
+        background: white;
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+        padding: 20mm 22mm 18mm;
+        box-shadow: 0 2px 12px rgba(0,0,0,.15);
+      }
+    }
+    @media print {
+      body { background: white; padding: 0; }
+      .page { box-shadow: none; padding: 0; width: auto; }
     }
   </style>
 </head>
-
 <body>
-  <div class="page-wrapper">
-    <div class="doc-card">
+<div class="page">
 
-      <!-- Institutional header -->
-      <header class="doc-header">
-        <div class="header-inner">
-          <img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" alt="Brasão da República">
-          <div class="institution-line">
-            Ministério da Educação<br>
-            Universidade Federal do Cariri<br>
-            Pró-Reitoria de Pesquisa, Inovação e Pós-Graduação<br>
-            Coordenadoria de Pesquisa
-          </div>
-        </div>
-      </header>
+  <!-- Cabeçalho -->
+  <header class="header">
+    <img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" alt="Brasão da República">
+    <p>
+      Ministério da Educação<br>
+      Universidade Federal do Cariri<br>
+      Pró-Reitoria de Pesquisa, Inovação e Pós-Graduação<br>
+      Coordenadoria de Pesquisa
+    </p>
+  </header>
 
-      <!-- Title -->
-      <div class="doc-title-wrap">
-        <h1 class="doc-title">Declaração</h1>
-        <div class="doc-title-divider"></div>
-      </div>
-
-      <!-- Body -->
-      <div class="doc-body">
-
-        {% if "N/A" in texto[8] %}
-          <p class="doc-text">
-            Declaramos, para os devidos fins, que o(a) professor(a) <b>{{ texto[0] }}</b>,
-            SIAPE: <b>{{ texto[1] }}</b>,
-            {{ texto[7] }} a função de <b>coordenador(a) do Projeto de Pesquisa</b>
-            intitulado <i>"{{ texto[2] }}"</i>, no período de <b>{{ texto[3] }} a {{ texto[4] }}</b>,
-            com orientação do(a)(s) bolsista(s): <i>{{ texto[5] }}</i>, no
-            Programa Institucional de Iniciação Científica e Tecnológica (PIICT).
-          </p>
-        {% else %}
-          <p class="doc-text">
-            Declaramos, para os devidos fins, que o(a) professor(a) <b>{{ texto[0] }}</b>,
-            SIAPE: <b>{{ texto[1] }}</b>,
-            {{ texto[7] }} a função de <b>coordenador(a) do Projeto de Pesquisa</b>
-            intitulado <i>"{{ texto[2] }}"</i>, no período de <b>{{ texto[3] }} a {{ texto[4] }}</b>,
-            com orientação do(a)(s) bolsista(s): <i>{{ texto[5] }}</i>, no
-            Programa Institucional de Iniciação Científica e Tecnológica (PIICT),
-            com a participação dos(as) pesquisadores(as) {{ texto[8] }}.
-          </p>
-        {% endif %}
-
-        <p class="doc-date">Juazeiro do Norte, {{ data }}</p>
-
-        <!-- Signature -->
-        <div class="signature-block">
-          <img src="{{raiz}}{{ url_for('static', filename='assinatura_laura.png')}}" alt="Assinatura">
-          <div class="signature-line"></div>
-          <p class="signer-name">Claudener Souza Teixeira</p>
-          <p class="signer-role">Pró-Reitor de Pesquisa, Pós-Graduação e Inovação</p>
-          <p class="signer-siape">SIAPE: 1250782</p>
-        </div>
-      </div>
-
-      <!-- Auth code -->
-      <div class="auth-block">
-        <small>
-          <strong>Código de Autenticação:</strong> {{ identificador }}.
-          A autenticidade pode ser verificada em
-          <a href="http://sites.ufca.edu.br/prpi/pesquisa/autenticacao-de-documentos/">prpi.ufca.edu.br</a>.
-        </small>
-      </div>
-
-      <!-- Footer -->
-      <footer class="doc-footer">
-        <small>
-          Rua Tenente Raimundo Rocha, 1639, Cidade Universitária, Juazeiro do Norte/CE &ndash; Tel: (88) 3221-9330<br>
-          Site: www.ufca.edu.br &nbsp;&middot;&nbsp; E-mail: pesquisa.prpi@ufca.edu.br
-        </small>
-      </footer>
-
-    </div>
+  <!-- Título -->
+  <div class="title">
+    <h1>Declaração</h1>
+    <hr>
   </div>
-</body>
 
+  <!-- Corpo -->
+  {% if "N/A" in texto[8] %}
+    <p class="body-text">
+      Declaramos, para os devidos fins, que o(a) professor(a) <strong>{{ texto[0] }}</strong>,
+      SIAPE: <strong>{{ texto[1] }}</strong>,
+      {{ texto[7] }} a função de <strong>coordenador(a) do Projeto de Pesquisa</strong>
+      intitulado <em>"{{ texto[2] }}"</em>, no período de <strong>{{ texto[3] }} a {{ texto[4] }}</strong>,
+      com orientação do(a)(s) bolsista(s): <em>{{ texto[5] }}</em>, no
+      Programa Institucional de Iniciação Científica e Tecnológica (PIICT).
+    </p>
+  {% else %}
+    <p class="body-text">
+      Declaramos, para os devidos fins, que o(a) professor(a) <strong>{{ texto[0] }}</strong>,
+      SIAPE: <strong>{{ texto[1] }}</strong>,
+      {{ texto[7] }} a função de <strong>coordenador(a) do Projeto de Pesquisa</strong>
+      intitulado <em>"{{ texto[2] }}"</em>, no período de <strong>{{ texto[3] }} a {{ texto[4] }}</strong>,
+      com orientação do(a)(s) bolsista(s): <em>{{ texto[5] }}</em>, no
+      Programa Institucional de Iniciação Científica e Tecnológica (PIICT),
+      com a participação dos(as) pesquisadores(as) {{ texto[8] }}.
+    </p>
+  {% endif %}
+
+  <!-- Data -->
+  <p class="date">Juazeiro do Norte, {{ data }}</p>
+
+  <!-- Assinatura -->
+  <div class="signature">
+    <img src="{{raiz}}{{ url_for('static', filename='assinatura_laura.png')}}" alt="Assinatura">
+    <hr class="signature-line">
+    <p>Claudener Souza Teixeira</p>
+    <small>Pró-Reitor de Pesquisa, Pós-Graduação e Inovação</small>
+    <small>SIAPE: 1250782</small>
+  </div>
+
+  <!-- Autenticação -->
+  <p class="auth">
+    <strong>Código de Autenticação:</strong> {{ identificador }}.
+    Autenticidade verificável em
+    <a href="http://sites.ufca.edu.br/prpi/pesquisa/autenticacao-de-documentos/">prpi.ufca.edu.br</a>.
+  </p>
+
+  <!-- Rodapé -->
+  <footer class="footer">
+    Rua Tenente Raimundo Rocha, 1639, Cidade Universitária, Juazeiro do Norte/CE &ndash; Tel: (88) 3221-9330
+    &nbsp;&middot;&nbsp; www.ufca.edu.br &nbsp;&middot;&nbsp; pesquisa.prpi@ufca.edu.br
+  </footer>
+
+</div>
+</body>
 </html>

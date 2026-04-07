@@ -1048,7 +1048,7 @@ def calcularScorelattesFromID():
 
 @app.route("/score", methods=['POST'])
 @log_required
-@limiter.limit("500/day;200/hour;100/minute",methods=["POST"])
+#@limiter.limit("500/day;200/hour;100/minute",methods=["POST"])
 def getScoreLattesFromFile():
     area_capes = str(request.form['area_capes'])
     cpf = str(request.form['cpf'])

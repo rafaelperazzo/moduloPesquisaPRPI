@@ -142,7 +142,7 @@ limiter = Limiter(
     get_remote_address,
     app=app,
     storage_uri=f"redis://{REDIS_HOST}:6379",
-    default_limits=["300 per day", "80 per hour"],
+    default_limits=["1000 per day", "500 per hour"],
     storage_options={"socket_connect_timeout": 30},
     strategy="fixed-window",
 )

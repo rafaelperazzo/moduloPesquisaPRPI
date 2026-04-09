@@ -100,6 +100,12 @@
       document.forms["frmCadastroProjeto"]["arquivo_projeto"].disabled = true;
     }
     function humano() {
+      var autorizacoes = document.querySelectorAll('input[name="autorizacoes"]:checked');
+      if (autorizacoes.length === 0) {
+        alert("Selecione ao menos uma opção em Autorizações necessárias para a pesquisa.");
+        document.getElementById("NAO_SE_APLICA").scrollIntoView();
+        return false;
+      }
       if (grecaptcha.getResponse() == "") {
         alert("Marque a caixa abaixo para continuar...");
         return false;
@@ -183,7 +189,7 @@
         </div>
 
         <div class="mb-4">
-          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Destino da Submissão</label>
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Destino da Submissão <span class="text-red-500">*</span></label>
           <select name="tipo" required onchange="tipo_projeto()" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
             <option disabled selected value="">— selecione —</option>
             {% for linha in abertos %}
@@ -194,7 +200,7 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
-            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Categoria de Projeto</label>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Categoria de Projeto <span class="text-red-500">*</span></label>
             <select name="categoria_projeto" onchange="categoria_do_projeto()" onblur="emAndamento()" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
               <option disabled selected value="">— selecione —</option>
               <option value="0">Projeto em andamento</option>
@@ -203,7 +209,7 @@
           </div>
           <div>
             <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">
-              Potencial de Inovação?
+              Potencial de Inovação? <span class="text-red-500">*</span>
               <a href="https://sites.ufca.edu.br/prpi/propriedade-intelectual-na-ufca/" target="_blank" class="text-blue-400 text-xs ml-1 normal-case">ajuda</a>
             </label>
             <select name="inovacao" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
@@ -215,7 +221,7 @@
         </div>
 
         <div class="mb-4">
-          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">ODS Principal do Projeto</label>
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">ODS Principal do Projeto <span class="text-red-500">*</span></label>
           <select name="ods_projeto" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
             <option disabled selected value="">— selecione —</option>
             <option value="01">01 — Erradicação da Pobreza</option>
@@ -255,14 +261,14 @@
         </h2>
 
         <div class="mb-4">
-          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">CPF (somente números)</label>
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">CPF (somente números) <span class="text-red-500">*</span></label>
           <input name="cpf" id="cpf" type="text" required onblur="return TestaCPF(this.value)" placeholder="00000000000"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
-            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Unidade Acadêmica</label>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Unidade Acadêmica <span class="text-red-500">*</span></label>
             <select name="ua" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
               <option disabled selected value="">— selecione —</option>
               <option value="CCT">CCT</option>
@@ -276,7 +282,7 @@
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Grande Área</label>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Grande Área <span class="text-red-500">*</span></label>
             <select name="grande_area" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
               <option disabled selected value="">— selecione —</option>
               <option value="Ciências Exatas e da Terra">Ciências Exatas e da Terra</option>
@@ -349,7 +355,7 @@
         </div>
 
         <div class="mb-4">
-          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Grupo de Pesquisa CNPq</label>
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Grupo de Pesquisa CNPq <span class="text-red-500">*</span></label>
           <input name="grupo" required type="text" placeholder="Nome do grupo de pesquisa"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
         </div>
@@ -364,14 +370,14 @@
         <p id="texto_projeto" class="text-xs text-gray-500 italic mb-3"></p>
 
         <div class="mb-4">
-          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Título do Projeto</label>
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Título do Projeto <span class="text-red-500">*</span></label>
           <textarea name="titulo" rows="3" required maxlength="200" placeholder="Insira o título completo do projeto…"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50 resize-y"></textarea>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
-            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Validade (em anos)</label>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Validade (em anos) <span class="text-red-500">*</span></label>
             <select name="validade" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
               <option value="1">1 ano</option>
               <option value="2">2 anos</option>
@@ -379,28 +385,32 @@
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Palavras-chave</label>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Palavras-chave <span class="text-red-500">*</span></label>
             <input name="palavras_chave" required type="text" placeholder="Ex.: biodiversidade, ecologia, sustentabilidade"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
           </div>
         </div>
 
         <div class="mb-4">
-          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Resumo do Projeto</label>
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Resumo do Projeto <span class="text-red-500">*</span></label>
           <textarea name="descricao_resumida" rows="10" required maxlength="15000" placeholder="Descreva o projeto de forma resumida…"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50 resize-y"></textarea>
         </div>
 
         <div class="mb-4">
-          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Pesquisadores Vinculados ao Projeto</label>
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Pesquisadores Vinculados ao Projeto <span class="text-red-500">*</span></label>
           <div class="bg-blue-50 border-l-4 border-blue-300 rounded-md px-4 py-2 text-xs text-gray-600 mb-2">Nomes separados por vírgula. Ex.: João da Silva (UFC), Maria Oliveira (UFRJ)</div>
           <textarea name="pesquisadores_vinculados" rows="5" required maxlength="15000"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50 resize-y">N/A</textarea>
         </div>
 
         <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Autorizações necessárias para a pesquisa (se necessário)</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Autorizações necessárias para a pesquisa <span class="text-red-500">*</span></label>
           <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="NAO_SE_APLICA" name="autorizacoes" value="NAO_SE_APLICA">
+              <label for="NAO_SE_APLICA" class="text-sm text-gray-700">Não se aplica a este projeto</label>
+            </div>
             <div class="flex items-center gap-2">
               <input type="checkbox" id="CEUA" name="autorizacoes" value="CEUA">
               <label for="CEUA" class="text-sm text-gray-700">Comissão de Ética no Uso de Animais (CEUA)</label>
@@ -437,11 +447,11 @@
         </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
-            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Início do Projeto</label>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Início do Projeto <span class="text-red-500">*</span></label>
             <input type="date" name="inicio" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
           </div>
           <div>
-            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Fim do Projeto</label>
+            <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Fim do Projeto <span class="text-red-500">*</span></label>
             <input type="date" name="fim" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
           </div>
         </div>
@@ -460,7 +470,7 @@
         </h2>
 
         <div class="mb-4">
-          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Bolsas Solicitadas</label>
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Bolsas Solicitadas <span class="text-red-500">*</span></label>
           <select name="numero_bolsas" required onchange="bolsas()" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
             <option disabled selected value="">— selecione —</option>
             <option value="0">0</option>
@@ -488,7 +498,7 @@
         </div>
 
         <div class="mb-4">
-          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Transporte da UFCA necessário? (dias aproximados)</label>
+          <label class="block text-xs font-medium uppercase tracking-wide text-gray-800 mb-1">Transporte da UFCA necessário? (dias aproximados) <span class="text-red-500">*</span></label>
           <select name="transporte" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50">
             <option value="0" selected>0 — Não necessário</option>
             <option value="1">1 dia</option>

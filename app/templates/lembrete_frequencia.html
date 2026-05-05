@@ -1,64 +1,161 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
   <head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <title>Lembrete de Frequência</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lembrete de Envio de Frequência</title>
+    <!--[if mso]>
+    <noscript>
+      <xml>
+        <o:OfficeDocumentSettings>
+          <o:PixelsPerInch>96</o:PixelsPerInch>
+        </o:OfficeDocumentSettings>
+      </xml>
+    </noscript>
+    <![endif]-->
   </head>
-  <body>
-    <h1 style="text-align: center;"><b>LEMBRETE DE ENVIO DE FREQUÊNCIA</b></h1>
+  <body style="margin:0; padding:0; background-color:#f3f4f6; font-family:Arial, Helvetica, sans-serif;">
 
-    <hr>
-    <p style='background-color: cyan;font-weight: bold;text-align: center;'>(E-MAIL AUTOMÁTICO - NÃO RESPONDA ESTE E-MAIL)</p>
-    <hr>
-      <p>
-      Prezado(a) orientador(a), <BR>
-      Gostaríamos de lembrá-lo(a) sobre o envio da(s) frequência(s) do(a)(s) bolsista(s) listados
-      abaixo, referente ao mês <b>{{mes}}</b> de <b>{{ano}}</b>, com prazo até o último dia do mês corrente. </p>
-      <p>
-      O procedimento é digital, através de preenchimento de formulário disponível na URL abaixo.
-      </p>
-      <p style='background-color: yellow;font-weight: bold;text-align: center;'>
-        Todos os(as) bolsistas e voluntários(as) devem 
-      ter a frequência registrada pelo orientador.
-      </p>
-      <hr>
-      <h3>Dados de acesso</h3>
-      <p>
-        <ul>
-            <li>URL: <a href='https://sci01-ter-jne.ufca.edu.br/pesquisa/meusProjetos'>https://sci01-ter-jne.ufca.edu.br/pesquisa/meusProjetos</a></li>
-            <li>Usuário: <b>{{usuario}}</b></li>
-            <li>Senha: <b>Por motivos de segurança, a senha não pode ser 
-              enviada através deste
-              email, pois a mesma é armazenada no sistema de forma criptografada. 
-              Caso não lembre a senha, acesse o sistema e solicite a 
-              alteração da senha em: <a href='https://sci01-ter-jne.ufca.edu.br/pesquisa/esqueciMinhaSenha'>ALTERAÇÃO DE SENHA</a></b></li>
-            </b></li>
-        </ul>
-      </p>
-      <hr>
-      <h3>Período</h3>
-      <p>
-        <h4>{{mes}} de {{ano}}</h4>
-      </p>
-      <h3>Discente(s)</h3>
-      <p>
-        <ul>
-            {% for nome in nomes %}
-              <li>{{nome}}</li>
-            {%endfor%}
-        </ul>
-      </p>
-      <hr>
-      <p style='background-color: yellow;font-weight: bold;text-align: center;'>
-        ESTE É UM EMAIL AUTOMÁTICO, NÃO RESPONDA ESTE E-MAIL.
-      </p>
-      <hr>
-      <p> Ficamos a disposição para eventuais dúvidas,</p>
-      <p>
-          Atenciosamente,
-      </p>
-      <p>
-      Coordenadoria de Pesquisa/UFCA</p>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+
+          <!-- Container principal -->
+          <table width="620" cellpadding="0" cellspacing="0" border="0" style="max-width:620px; width:100%;">
+
+            <!-- Cabeçalho -->
+            <tr>
+              <td style="background-color:#1e3a5f; border-radius:8px 8px 0 0; padding:28px 36px; text-align:center;">
+                <p style="margin:0 0 6px 0; color:#93c5fd; font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase;">Universidade Federal do Cariri</p>
+                <h1 style="margin:0; color:#ffffff; font-size:20px; font-weight:700; line-height:1.3; text-transform:uppercase; letter-spacing:1px;">Lembrete de Envio de Frequência</h1>
+              </td>
+            </tr>
+
+            <!-- Corpo -->
+            <tr>
+              <td style="background-color:#ffffff; padding:32px 36px;">
+
+                <!-- Saudação -->
+                <p style="margin:0 0 16px 0; font-size:14px; color:#374151; line-height:1.7;">
+                  Prezado(a) orientador(a),
+                </p>
+                <p style="margin:0 0 24px 0; font-size:13px; color:#374151; line-height:1.7;">
+                  Gostaríamos de lembrá-lo(a) sobre o envio da(s) frequência(s) do(a)(s) bolsista(s) listados
+                  abaixo, referente ao mês <strong>{{mes}}</strong> de <strong>{{ano}}</strong>,
+                  com prazo até o último dia do mês corrente. O procedimento é digital, através de
+                  preenchimento de formulário disponível no link abaixo.
+                </p>
+
+                <!-- Caixa de atenção -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+                  <tr>
+                    <td style="background-color:#fff8e1; border-left:4px solid #f0a500; border-radius:4px; padding:14px 18px; font-size:13px; color:#374151; line-height:1.6; font-weight:700; text-align:center;">
+                      Todos os(as) bolsistas e voluntários(as) devem ter a frequência registrada pelo orientador.
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Divider -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+                  <tr><td style="border-top:1px solid #e5e7eb;"></td></tr>
+                </table>
+
+                <!-- Seção: Período e Discentes -->
+                <p style="margin:0 0 14px 0; font-size:12px; font-weight:700; color:#1e3a5f; text-transform:uppercase; letter-spacing:0.5px; border-left:4px solid #1e3a5f; padding-left:10px;">
+                  Período e Discentes
+                </p>
+
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; font-size:13px; margin-bottom:28px;">
+                  <tr>
+                    <td width="35%" style="padding:10px 12px; background-color:#f9fafb; border:1px solid #e5e7eb; font-weight:700; color:#6b7280; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; vertical-align:top; white-space:nowrap;">
+                      Mês de Referência
+                    </td>
+                    <td width="65%" style="padding:10px 12px; background-color:#ffffff; border:1px solid #e5e7eb; border-left:none; color:#111827; font-weight:700; vertical-align:top;">
+                      {{mes}} de {{ano}}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="35%" style="padding:10px 12px; background-color:#f9fafb; border:1px solid #e5e7eb; border-top:none; font-weight:700; color:#6b7280; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; vertical-align:top; white-space:nowrap;">
+                      Discente(s)
+                    </td>
+                    <td width="65%" style="padding:10px 12px; background-color:#ffffff; border:1px solid #e5e7eb; border-top:none; border-left:none; color:#111827; vertical-align:top;">
+                      {% for nome in nomes %}
+                        <p style="margin:0 0 4px 0; font-size:13px; padding-left:10px;">&#8226; {{nome}}</p>
+                      {% endfor %}
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Divider -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+                  <tr><td style="border-top:1px solid #e5e7eb;"></td></tr>
+                </table>
+
+                <!-- Seção: Dados de Acesso -->
+                <p style="margin:0 0 14px 0; font-size:12px; font-weight:700; color:#1e3a5f; text-transform:uppercase; letter-spacing:0.5px; border-left:4px solid #1e3a5f; padding-left:10px;">
+                  Dados de Acesso
+                </p>
+
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; font-size:13px; margin-bottom:20px;">
+                  <tr>
+                    <td width="35%" style="padding:10px 12px; background-color:#f9fafb; border:1px solid #e5e7eb; font-weight:700; color:#6b7280; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; vertical-align:middle; white-space:nowrap;">
+                      Sistema
+                    </td>
+                    <td width="65%" style="padding:10px 12px; background-color:#ffffff; border:1px solid #e5e7eb; border-left:none; vertical-align:middle;">
+                      <table cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                          <td style="background-color:#1e3a5f; border-radius:5px; padding:10px 20px;">
+                            <a href="https://sci01-ter-jne.ufca.edu.br/pesquisa/meusProjetos" style="color:#ffffff; text-decoration:none; font-size:13px; font-weight:700; letter-spacing:0.5px; display:inline-block;">Acessar Meus Projetos</a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="35%" style="padding:10px 12px; background-color:#f9fafb; border:1px solid #e5e7eb; border-top:none; font-weight:700; color:#6b7280; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; vertical-align:top; white-space:nowrap;">
+                      Usuário
+                    </td>
+                    <td width="65%" style="padding:10px 12px; background-color:#ffffff; border:1px solid #e5e7eb; border-top:none; border-left:none; color:#111827; font-weight:700; vertical-align:top;">
+                      {{usuario}}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="35%" style="padding:10px 12px; background-color:#f9fafb; border:1px solid #e5e7eb; border-top:none; font-weight:700; color:#6b7280; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; vertical-align:top; white-space:nowrap;">
+                      Senha
+                    </td>
+                    <td width="65%" style="padding:10px 12px; background-color:#ffffff; border:1px solid #e5e7eb; border-top:none; border-left:none; color:#374151; line-height:1.6; vertical-align:top; font-size:12px;">
+                      Por motivos de segurança, a senha não pode ser enviada por e-mail, pois é armazenada de forma criptografada.
+                      Caso não lembre a senha, acesse:
+                      <a href="https://sci01-ter-jne.ufca.edu.br/pesquisa/esqueciMinhaSenha" style="color:#1e3a5f; font-weight:700; text-decoration:none;">Alteração de Senha</a>.
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Encerramento -->
+                <p style="margin:0 0 4px 0; font-size:13px; color:#374151; line-height:1.7;">Ficamos à disposição para eventuais dúvidas.</p>
+                <p style="margin:0; font-size:13px; color:#374151;">Atenciosamente,<br><strong>Coordenadoria de Pesquisa/UFCA</strong></p>
+
+              </td>
+            </tr>
+
+            <!-- Rodapé -->
+            <tr>
+              <td style="background-color:#f9fafb; border-top:1px solid #e5e7eb; border-radius:0 0 8px 8px; padding:18px 36px; text-align:center;">
+                <p style="margin:0 0 6px 0; font-size:12px; color:#6b7280;">Esta mensagem foi enviada automaticamente. <strong>Não responda este e-mail.</strong></p>
+                <p style="margin:0 0 6px 0; font-size:12px; color:#6b7280;">
+                  Dúvidas? Entre em contato:
+                  <a href="mailto:atendimento.prpi@ufca.edu.br" style="color:#1e3a5f; text-decoration:none; font-weight:700;">atendimento.prpi@ufca.edu.br</a>
+                </p>
+                <p style="margin:0; font-size:12px;">
+                  <a href="https://prpi.ufca.edu.br" style="color:#1e3a5f; text-decoration:none;">https://prpi.ufca.edu.br</a>
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
 
   </body>
 </html>

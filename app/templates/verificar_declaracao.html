@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Verificação de Autenticidade – PRPI/UFCA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-50 text-gray-900 font-sans min-h-screen">
+    <div class="max-w-2xl mx-auto px-4 py-12">
+
+      <!-- Cabeçalho -->
+      <div class="text-center mb-8">
+        <p class="text-xs font-semibold tracking-widest text-gray-500 uppercase mb-1">Universidade Federal do Cariri</p>
+        <h1 class="text-2xl font-bold text-gray-800">Verificação de Autenticidade</h1>
+        <p class="text-sm text-gray-500 mt-1">Declarações de Projeto de Pesquisa – PRPI/UFCA</p>
+      </div>
+
+      <!-- Formulário -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+        <form method="POST" action="{{ url_for('verificarDeclaracao') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="mb-4">
+            <label for="id_projeto" class="block text-sm font-semibold text-gray-700 mb-1">
+              ID do Projeto <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="id_projeto" name="id_projeto"
+                   inputmode="numeric" pattern="[0-9]+"
+                   placeholder="Ex: 123"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   required>
+          </div>
+
+          <div class="mb-6">
+            <label for="codigo" class="block text-sm font-semibold text-gray-700 mb-1">
+              Código de Autenticação <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="codigo" name="codigo"
+                   placeholder="64 caracteres hexadecimais"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   maxlength="64" required>
+            <p class="text-xs text-gray-400 mt-1">O código está impresso na seção de autenticação do documento.</p>
+          </div>
+
+          <button type="submit"
+                  class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors">
+            Verificar Autenticidade
+          </button>
+        </form>
+      </div>
+
+      <!-- Resultado: válido -->
+      {% if resultado == 'valido' %}
+      <div class="bg-white rounded-xl border border-green-200 shadow-sm p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-bold text-green-700 text-base">Documento Autêntico</p>
+            <p class="text-sm text-green-600">Este documento foi emitido pelo sistema da PRPI/UFCA.</p>
+          </div>
+        </div>
+        <hr class="border-gray-100 mb-4">
+        <dl class="space-y-2 text-sm">
+          <div class="flex gap-2">
+            <dt class="font-semibold text-gray-500 w-32 shrink-0">ID do Projeto</dt>
+            <dd class="text-gray-800">{{ projeto[6] }}</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-semibold text-gray-500 w-32 shrink-0">Coordenador(a)</dt>
+            <dd class="text-gray-800">{{ projeto[0] }}</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-semibold text-gray-500 w-32 shrink-0">SIAPE</dt>
+            <dd class="text-gray-800">{{ projeto[1] }}</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-semibold text-gray-500 w-32 shrink-0">Título</dt>
+            <dd class="text-gray-800">{{ projeto[2] }}</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-semibold text-gray-500 w-32 shrink-0">Período</dt>
+            <dd class="text-gray-800">{{ projeto[3] }} a {{ projeto[4] }}</dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="font-semibold text-gray-500 w-32 shrink-0">Discente(s)</dt>
+            <dd class="text-gray-800">{{ projeto[5] }}</dd>
+          </div>
+        </dl>
+      </div>
+      {% endif %}
+
+      <!-- Resultado: inválido -->
+      {% if resultado == 'invalido' %}
+      <div class="bg-white rounded-xl border border-red-200 shadow-sm p-6">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-bold text-red-700 text-base">Documento Inválido</p>
+            <p class="text-sm text-red-600">{{ erro }}</p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Rodapé -->
+      <p class="text-center text-xs text-gray-400 mt-8">
+        Dúvidas? Entre em contato: <a href="mailto:atendimento.prpi@ufca.edu.br" class="text-blue-600 hover:underline">atendimento.prpi@ufca.edu.br</a>
+      </p>
+
+    </div>
+  </body>
+</html>

@@ -7,6 +7,7 @@ from waitress import serve
 import mariadb as MySQLdb
 from werkzeug.utils import secure_filename
 import hashlib
+import hmac
 import os
 import string
 import random
@@ -181,6 +182,13 @@ AES_KEY = os.getenv("AES_KEY", "000000")
 GPG_KEY = os.getenv("GPG_KEY", "000000")
 OPENVPN_KEY = os.getenv("OPENVPN_KEY", "000000")
 cripto = SecCripto(AES_KEY)
+
+def gerar_codigo_auth(identificador, titulo):
+    msg = f"declaracao_orientador:{identificador}:{titulo}".encode()
+    return hmac.new(AES_KEY.encode(), msg, hashlib.sha256).hexdigest()
+
+def verificar_codigo_auth(identificador, titulo, codigo):
+    return hmac.compare_digest(gerar_codigo_auth(identificador, titulo), codigo)
 
 ignore_logger("waitress")
 logger.disable("waitress")
@@ -852,6 +860,37 @@ def autenticar():
         return redirect("/pesquisa/orientadorDeclaracao?idProjeto=" + codigo)
     else:
         return redirect("/pesquisa/declaracao?idProjeto=" + codigo)
+
+@app.route("/verificarDeclaracao", methods=['GET', 'POST'])
+@log_required
+def verificarDeclaracao():
+    if request.method == 'GET':
+        return render_template('verificar_declaracao.html', resultado=None, projeto=None, erro=None)
+    id_projeto = str(request.form.get('id_projeto', '')).strip()
+    codigo = str(request.form.get('codigo', '')).strip().lower()
+    if not numero_valido(id_projeto):
+        return render_template('verificar_declaracao.html', resultado='invalido', projeto=None, erro="ID do projeto inválido.")
+    if not re.match(r'^[0-9a-f]{64}$', codigo):
+        return render_template('verificar_declaracao.html', resultado='invalido', projeto=None, erro="Código de autenticação inválido.")
+    consulta = """SELECT DISTINCT
+        UPPER(editalProjeto.nome),
+        editalProjeto.siape,
+        UPPER(editalProjeto.titulo),
+        DATE_FORMAT(editalProjeto.inicio,'%d/%m/%Y') as inicio,
+        DATE_FORMAT(editalProjeto.fim,'%d/%m/%Y') as fim,
+        COALESCE((SELECT GROUP_CONCAT(indicacoes.nome ORDER BY indicacoes.nome SEPARATOR ', ')
+                  FROM indicacoes WHERE indicacoes.idProjeto=editalProjeto.id
+                  GROUP BY indicacoes.idProjeto), 'N/A') as indicados,
+        editalProjeto.id
+        FROM editalProjeto WHERE editalProjeto.id=?"""
+    resultado_db, total = executarSelect2(consulta, tipo=0, valores=(id_projeto,))
+    if not resultado_db:
+        return render_template('verificar_declaracao.html', resultado='invalido', projeto=None, erro="Projeto não encontrado.")
+    linha = resultado_db[0]
+    titulo = linha[2]
+    if verificar_codigo_auth(id_projeto, titulo, codigo):
+        return render_template('verificar_declaracao.html', resultado='valido', projeto=linha, erro=None)
+    return render_template('verificar_declaracao.html', resultado='invalido', projeto=None, erro="Código inválido. Este documento pode não ter sido emitido pelo sistema.")
 
 @app.route("/projetosPorOrientador", methods=['POST'])
 @log_required
@@ -1962,7 +2001,7 @@ def minhaDeclaracao():
                         'margin-left': '2cm',
                     }
                     try:
-                        pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                        pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(token,projeto[2]),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
                         #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE)
                         #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
                     except Exception as e:
@@ -2002,12 +2041,12 @@ def minhaDeclaracao():
                             'margin-left': '2cm',
                         }
                         try: 
-                            pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
-                            #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE)
+                            pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idProjeto,projeto[2]),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                            #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idProjeto,projeto[2]),raiz=ROOT_SITE)
                             #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
                         except Exception as e:
                             with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
-                                logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                                logger.warning("Erro ao gerar declaração: {}", str(e))
                             return("Erro ao gerar declaração. Tente novamente mais tarde.")
                         return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
                     else:
@@ -2034,12 +2073,12 @@ def minhaDeclaracao():
                             'margin-left': '2cm',
                         }
                         try:
-                            pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
-                            #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=idProjeto,raiz=ROOT_SITE)
+                            pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idProjeto,projeto[2]),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                            #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idProjeto,projeto[2]),raiz=ROOT_SITE)
                             #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
                         except Exception as e:
                             with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
-                                logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                                logger.warning("Erro ao gerar declaração: {}", str(e))
                             return("Erro ao gerar declaração. Tente novamente mais tarde.")
                         return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
                     else:

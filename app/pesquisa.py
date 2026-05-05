@@ -394,6 +394,21 @@ def salvarCV(idlattes):
 #Search: logger\.(info|warning|error)(\(".*)(%s)(.*)
 #Replace: logger.$1$2{}$4
 
+def extrair_modalidade(texto):
+    opcoes = [
+    r"PIBIC-Ensino Médio", 
+    r"PIBIC-Ensino Medio", 
+    r"PIBIC-Acoes Afirmativas", 
+    r"PIBITI", 
+    r"PIBIC"
+    ]
+    padrao = "|".join(opcoes)
+    try:
+        resultado = re.search(padrao, texto,re.IGNORECASE).group()
+    except AttributeError:
+        resultado = "-"
+    return resultado.upper()
+
 def processarPontuacaoLattes(cpf,area,idProjeto,dados):
     periodo = "5"
     url_score = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + cpf + "/" + area + "/" + periodo + "/" + "0"
@@ -419,7 +434,10 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
     with app.app_context():
         try:
             #ENVIAR E-MAIL DE CONFIRMAÇÃO
-            texto_email = render_template('confirmacao_submissao.html',email_proponente=dados[0],id_projeto=idProjeto,proponente=dados[1],titulo_projeto=dados[2],resumo_projeto=dados[3],score=pontuacao,sumario=sumario)
+            codigo_do_edital = str(obterColunaUnica("editalProjeto","tipo","id",idProjeto))
+            descricao_do_edital = str(obterColunaUnica("editais","nome","id",codigo_do_edital))
+            modalidade = extrair_modalidade(descricao_do_edital)
+            texto_email = render_template('confirmacao_submissao.html',email_proponente=dados[0],id_projeto=idProjeto,proponente=dados[1],titulo_projeto=dados[2],resumo_projeto=dados[3],score=pontuacao,sumario=sumario,modalidade=modalidade)
             if PRODUCAO==1:
                 msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=[dados[0]],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
             else:

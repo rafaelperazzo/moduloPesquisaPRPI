@@ -3,146 +3,12 @@
 <head>
   <meta charset="utf-8">
   <title>Declaração de Orientador – PRPI/UFCA</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    @page {
-      size: A4;
-      margin: 20mm 22mm 18mm 22mm;
-    }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      font-size: 10pt;
-      color: #1a1a1a;
-      background: white;
-      line-height: 1.5;
-    }
-
-    /* ── Cabeçalho ── */
-    .header {
-      text-align: center;
-      padding-bottom: 10pt;
-      border-bottom: 0.5pt solid #999;
-      margin-bottom: 18pt;
-    }
-    .header img {
-      width: 52pt;
-      height: auto;
-      margin-bottom: 6pt;
-    }
-    .header p {
-      font-size: 7.5pt;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #444;
-      line-height: 1.8;
-    }
-
-    /* ── Título ── */
-    .title {
-      text-align: center;
-      margin-bottom: 20pt;
-    }
-    .title h1 {
-      font-family: 'EB Garamond', serif;
-      font-size: 18pt;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: #1a1a1a;
-    }
-    .title hr {
-      width: 36pt;
-      border: none;
-      border-top: 0.75pt solid #888;
-      margin: 5pt auto 0;
-    }
-
-    /* ── Corpo ── */
-    .body-text {
-      font-family: 'EB Garamond', serif;
-      font-size: 12pt;
-      line-height: 1.85;
-      text-align: justify;
-      text-indent: 2.5em;
-      margin-bottom: 20pt;
-    }
-
-    /* ── Data ── */
-    .date {
-      text-align: center;
-      font-size: 9.5pt;
-      color: #444;
-      margin-bottom: 24pt;
-    }
-
-    /* ── Assinatura ── */
-    .signature {
-      text-align: center;
-      margin-bottom: 22pt;
-    }
-    .signature img {
-      width: 130pt;
-      height: auto;
-      display: block;
-      margin: 0 auto 4pt;
-    }
-    .signature-line {
-      width: 160pt;
-      border: none;
-      border-top: 0.5pt solid #aaa;
-      margin: 0 auto 5pt;
-    }
-    .signature p {
-      font-family: 'EB Garamond', serif;
-      font-size: 11pt;
-      font-weight: 600;
-    }
-    .signature small {
-      font-size: 7.5pt;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #555;
-      display: block;
-      margin-top: 2pt;
-    }
-
-    /* ── Autenticação ── */
-    .auth {
-      font-size: 7.5pt;
-      color: #555;
-      text-align: center;
-      border-top: 0.5pt solid #ddd;
-      padding-top: 8pt;
-      margin-bottom: 10pt;
-    }
-
-    /* ── Rodapé ── */
-    .footer {
-      font-size: 7pt;
-      color: #777;
-      text-align: center;
-      border-top: 0.5pt solid #ddd;
-      padding-top: 7pt;
-    }
-
-    /* Tela: simula folha A4 */
+    @page { size: A4; margin: 20mm 22mm 18mm 22mm; }
     @media screen {
-      body {
-        background: #e8e8e8;
-        padding: 20px;
-      }
-      .page {
-        background: white;
-        width: 210mm;
-        min-height: 297mm;
-        margin: 0 auto;
-        padding: 20mm 22mm 18mm;
-        box-shadow: 0 2px 12px rgba(0,0,0,.15);
-      }
+      body { background: #e8e8e8; padding: 20px; }
+      .page { background: white; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 20mm 22mm 18mm; box-shadow: 0 2px 12px rgba(0,0,0,.15); }
     }
     @media print {
       body { background: white; padding: 0; }
@@ -150,13 +16,14 @@
     }
   </style>
 </head>
-<body>
+<body style="font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #1a1a1a; line-height: 1.5; background: white;">
 <div class="page">
 
   <!-- Cabeçalho -->
-  <header class="header">
-    <img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" alt="Brasão da República">
-    <p>
+  <header style="text-align: center; padding-bottom: 10pt; border-bottom: 0.5pt solid #999; margin-bottom: 18pt;">
+    <img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png') }}" alt="Brasão da República"
+         style="width: 52pt; height: auto; display: block; margin: 0 auto 6pt auto;">
+    <p style="font-size: 7.5pt; letter-spacing: 0.06em; text-transform: uppercase; color: #444; line-height: 1.8; margin: 0;">
       Ministério da Educação<br>
       Universidade Federal do Cariri<br>
       Pró-Reitoria de Pesquisa, Inovação e Pós-Graduação<br>
@@ -165,14 +32,14 @@
   </header>
 
   <!-- Título -->
-  <div class="title">
-    <h1>Declaração</h1>
-    <hr>
+  <div style="text-align: center; margin-bottom: 20pt;">
+    <h1 style="font-family: Georgia, 'Times New Roman', serif; font-size: 18pt; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: #1a1a1a; margin: 0;">Declaração</h1>
+    <hr style="width: 36pt; border: none; border-top: 0.75pt solid #888; margin: 5pt auto 0;">
   </div>
 
   <!-- Corpo -->
   {% if "N/A" in texto[8] %}
-    <p class="body-text">
+    <p style="font-family: Georgia, 'Times New Roman', serif; font-size: 12pt; line-height: 1.85; text-align: justify; text-indent: 2.5em; margin-bottom: 20pt;">
       Declaramos, para os devidos fins, que o(a) professor(a) <strong>{{ texto[0] }}</strong>,
       SIAPE: <strong>{{ texto[1] }}</strong>,
       {{ texto[7] }} a função de <strong>coordenador(a) do Projeto de Pesquisa</strong>
@@ -181,7 +48,7 @@
       Programa Institucional de Iniciação Científica e Tecnológica (PIICT).
     </p>
   {% else %}
-    <p class="body-text">
+    <p style="font-family: Georgia, 'Times New Roman', serif; font-size: 12pt; line-height: 1.85; text-align: justify; text-indent: 2.5em; margin-bottom: 20pt;">
       Declaramos, para os devidos fins, que o(a) professor(a) <strong>{{ texto[0] }}</strong>,
       SIAPE: <strong>{{ texto[1] }}</strong>,
       {{ texto[7] }} a função de <strong>coordenador(a) do Projeto de Pesquisa</strong>
@@ -193,26 +60,27 @@
   {% endif %}
 
   <!-- Data -->
-  <p class="date">Juazeiro do Norte, {{ data }}</p>
+  <p style="text-align: center; font-size: 9.5pt; color: #444; margin-bottom: 24pt;">Juazeiro do Norte, {{ data }}</p>
 
   <!-- Assinatura -->
-  <div class="signature">
-    <img src="{{raiz}}{{ url_for('static', filename='assinatura_laura.png')}}" alt="Assinatura">
-    <hr class="signature-line">
-    <p>Claudener Souza Teixeira</p>
-    <small>Pró-Reitor de Pesquisa, Pós-Graduação e Inovação</small>
-    <small>SIAPE: 1250782</small>
+  <div style="text-align: center; margin-bottom: 22pt;">
+    <img src="{{raiz}}{{ url_for('static', filename='assinatura_laura.png') }}" alt="Assinatura"
+         style="width: 130pt; height: auto; display: block; margin: 0 auto 4pt auto;">
+    <hr style="width: 160pt; border: none; border-top: 0.5pt solid #aaa; margin: 0 auto 5pt auto;">
+    <p style="font-family: Georgia, 'Times New Roman', serif; font-size: 11pt; font-weight: 600; margin: 0;">Claudener Souza Teixeira</p>
+    <span style="font-size: 7.5pt; letter-spacing: 0.06em; text-transform: uppercase; color: #555; display: block; margin-top: 2pt;">Pró-Reitor de Pesquisa, Pós-Graduação e Inovação</span>
+    <span style="font-size: 7.5pt; letter-spacing: 0.06em; text-transform: uppercase; color: #555; display: block; margin-top: 2pt;">SIAPE: 1250782</span>
   </div>
 
   <!-- Autenticação -->
-  <p class="auth">
+  <p style="font-size: 7.5pt; color: #555; text-align: center; border-top: 0.5pt solid #ddd; padding-top: 8pt; margin-bottom: 10pt;">
     <strong>Código de Autenticação:</strong> {{ identificador }}.
     Autenticidade verificável em
-    <a href="http://sites.ufca.edu.br/prpi/pesquisa/autenticacao-de-documentos/">prpi.ufca.edu.br</a>.
+    <a href="http://sites.ufca.edu.br/prpi/pesquisa/autenticacao-de-documentos/" style="color: #1e3a5f;">prpi.ufca.edu.br</a>.
   </p>
 
   <!-- Rodapé -->
-  <footer class="footer">
+  <footer style="font-size: 7pt; color: #777; text-align: center; border-top: 0.5pt solid #ddd; padding-top: 7pt;">
     Rua Tenente Raimundo Rocha, 1639, Cidade Universitária, Juazeiro do Norte/CE &ndash; Tel: (88) 3221-9330
     &nbsp;&middot;&nbsp; www.ufca.edu.br &nbsp;&middot;&nbsp; pesquisa.prpi@ufca.edu.br
   </footer>

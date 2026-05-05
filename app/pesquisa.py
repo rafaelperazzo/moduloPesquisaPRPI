@@ -355,7 +355,7 @@ def calcula_hash(mensagem):
 
 def generate_secure_password(length=16, include_uppercase=True,
                              include_numbers=True, include_special_chars=True):
-    # Define character sets
+    # Define character sets - Senhas seguras
     lowercase_letters = string.ascii_lowercase
     uppercase_letters = string.ascii_uppercase if include_uppercase else ""
     digits = string.digits if include_numbers else ""

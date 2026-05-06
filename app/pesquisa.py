@@ -4059,6 +4059,131 @@ def alterar_edital(id):
             return redirect(url_for('listar_editais'))
         return render_template('alterarEdital.html', edital=linhas[0])
 
+@app.route("/listarProjetos", methods=['GET'])
+@login_required(role='admin')
+@log_required
+def listar_projetos():
+    """
+    Lista os projetos de um edital (valendo=1), filtrado por ?edital=<id>.
+    """
+    codigoEdital = request.args.get('edital', '')
+    if not codigoEdital:
+        return redirect(url_for('admin'))
+    consulta = """SELECT id, nome, siape, ua,
+        LEFT(titulo, 60),
+        CASE categoria WHEN 1 THEN 'Novo' WHEN 0 THEN 'Em andamento' ELSE '-' END,
+        CASE situacao WHEN -1 THEN 'Não avaliado' WHEN 0 THEN 'Não recomendado'
+            WHEN 1 THEN 'Recomendado' ELSE '-' END,
+        IF(valendo=1,'Sim','Não')
+        FROM editalProjeto WHERE tipo=? AND valendo=1 ORDER BY ua, nome"""
+    linhas, total = executarSelect2(consulta, valores=[codigoEdital])
+    return render_template('listarProjetos.html', projetos=linhas, total=total, codigoEdital=codigoEdital)
+
+@app.route("/alterarProjeto/<int:id>", methods=['GET', 'POST'])
+@login_required(role='admin')
+@log_required
+def alterar_projeto(id):
+    """
+    Permite ao admin alterar os dados de um projeto existente.
+    """
+    if request.method == 'POST':
+        nome = str(request.form['nome'])
+        siape = int(request.form['siape'])
+        email = str(request.form['email'])
+        ua = str(request.form['ua'])
+        grande_area = str(request.form['grande_area'])
+        area_capes = str(request.form['area_capes'])
+        grupo = str(request.form['grupo'])
+        produtividade = int(request.form['produtividade'])
+        scorelattes = float(request.form['scorelattes'])
+        scorelattes_detalhado = str(request.form['scorelattes_detalhado'])
+        titulo = str(request.form['titulo'])
+        resumo = str(request.form['resumo'])
+        palavras = str(request.form['palavras'])
+        justificativa = str(request.form['justificativa'])
+        ods = str(request.form['ods'])
+        pesquisadores_vinculados = str(request.form['pesquisadores_vinculados'])
+        autorizacoes = str(request.form['autorizacoes'])
+        validade = int(request.form['validade'])
+        categoria = int(request.form['categoria'])
+        modalidade = int(request.form['modalidade'])
+        inicio = str(request.form['inicio'])
+        fim = str(request.form['fim'])
+        bolsas = int(request.form['bolsas'])
+        bolsas_concedidas = int(request.form['bolsas_concedidas'])
+        transporte = int(request.form['transporte'])
+        situacao = int(request.form['situacao'])
+        inovacao = int(request.form['inovacao'])
+        valendo = int(request.form['valendo'])
+        obs = str(request.form['obs'])
+        tipo = str(request.form.get('tipo_readonly', ''))
+        try:
+            consulta = """UPDATE editalProjeto SET
+                nome=?, siape=?, email=?, ua=?, grande_area=?, area_capes=?, grupo=?,
+                produtividade=?, scorelattes=?, scorelattes_detalhado=?,
+                titulo=?, resumo=?, palavras=?, justificativa=?, ods=?,
+                pesquisadores_vinculados=?, autorizacoes=?, validade=?,
+                categoria=?, modalidade=?, inicio=?, fim=?,
+                bolsas=?, bolsas_concedidas=?, transporte=?,
+                situacao=?, inovacao=?, valendo=?, obs=?
+                WHERE id=?"""
+            atualizar2(consulta, valores=[nome, siape, email, ua, grande_area, area_capes, grupo,
+                produtividade, scorelattes, scorelattes_detalhado,
+                titulo, resumo, palavras, justificativa, ods,
+                pesquisadores_vinculados, autorizacoes, validade,
+                categoria, modalidade, inicio, fim,
+                bolsas, bolsas_concedidas, transporte,
+                situacao, inovacao, valendo, obs, id])
+        except Exception as e:
+            logger.error("Erro ao alterar projeto id={}: {}", id, str(e))
+            flash("Erro ao alterar projeto.", 'error')
+            return redirect(url_for('alterar_projeto', id=id))
+        # Processamento dos arquivos
+        campos_arquivo = [
+            ('arquivo_projeto',      'projeto'),
+            ('arquivo_plano1',       'plano1'),
+            ('arquivo_plano2',       'plano2'),
+            ('arquivo_plano3',       'plano3'),
+            ('arquivo_lattes',       'lattes'),
+            ('arquivo_lattes_pdf',   'lattes_pdf'),
+            ('arquivo_comprovantes', 'comprovantes'),
+        ]
+        for campo, prefixo in campos_arquivo:
+            arq = request.files.get(campo)
+            if arq and arq.filename != '' and allowed_file(arq.filename):
+                filename_atual = str(request.form.get(campo + '_atual', '0'))
+                if not filename_atual or filename_atual == '0' or filename_atual == 'None':
+                    ext = arq.filename.rsplit('.', 1)[1].lower()
+                    filename = prefixo + "_" + str(id) + "_" + str(siape) + "_" + id_generator() + "." + ext
+                else:
+                    filename = filename_atual
+                arq.filename = filename
+                filename = secure_filename(filename)
+                try:
+                    submissoes.save(arq, name=filename)
+                    encripta_e_apaga(SUBMISSOES_DIR + filename)
+                    atualizar2("UPDATE editalProjeto SET " + campo + "=? WHERE id=?", valores=[filename, id])
+                except Exception as e:
+                    logger.error("Erro ao salvar arquivo {} do projeto id={}: {}", campo, id, str(e))
+                    flash("Erro ao salvar arquivo " + campo + ".", 'error')
+        flash("Projeto alterado com sucesso!")
+        return redirect(url_for('listar_projetos', edital=tipo))
+    else:
+        consulta = """SELECT id, nome, siape, email, ua, grande_area, area_capes, grupo,
+            produtividade, scorelattes, scorelattes_detalhado, titulo, resumo, palavras,
+            justificativa, ods, pesquisadores_vinculados, autorizacoes, validade,
+            categoria, modalidade,
+            DATE_FORMAT(inicio,'%Y-%m-%d'), DATE_FORMAT(fim,'%Y-%m-%d'),
+            bolsas, bolsas_concedidas, transporte, situacao, inovacao, valendo, obs, tipo,
+            arquivo_projeto, arquivo_plano1, arquivo_plano2, arquivo_plano3,
+            arquivo_lattes, arquivo_lattes_pdf, arquivo_comprovantes
+            FROM editalProjeto WHERE id=?"""
+        linhas, total = executarSelect2(consulta, valores=[id])
+        if total == 0:
+            flash("Projeto não encontrado.", 'error')
+            return redirect(url_for('admin'))
+        return render_template('alterarProjeto.html', projeto=linhas[0])
+
 def task_enviar_email_avaliadores():
     gerarLinkAvaliacao()
     consulta = """

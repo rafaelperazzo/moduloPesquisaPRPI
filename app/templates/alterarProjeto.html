@@ -1,0 +1,295 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+  <div class="max-w-3xl mx-auto">
+
+    <h2 class="text-2xl font-bold text-gray-800 mb-6">Alterar Projeto</h2>
+
+    <form action="{{ url_for('alterar_projeto', id=projeto[0]) }}" method="POST" enctype="multipart/form-data" id="form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="hidden" name="tipo_readonly" value="{{ projeto[30] }}"/>
+
+      <!-- IDs somente-leitura -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ID</label>
+          <input type="text" value="{{ projeto[0] }}" readonly
+            class="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-500 text-sm cursor-not-allowed">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Edital (tipo)</label>
+          <input type="text" value="{{ projeto[30] }}" readonly
+            class="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-500 text-sm cursor-not-allowed">
+        </div>
+      </div>
+
+      <!-- Seção 1: Dados do Proponente -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Dados do Proponente</h3>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nome <span class="text-red-500">*</span></label>
+          <input type="text" name="nome" value="{{ projeto[1] }}" required maxlength="150"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">SIAPE <span class="text-red-500">*</span></label>
+            <input type="number" name="siape" value="{{ projeto[2] }}" required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">E-mail <span class="text-red-500">*</span></label>
+            <input type="email" name="email" value="{{ projeto[3] }}" required maxlength="100"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">UA</label>
+            <input type="text" name="ua" value="{{ projeto[4] }}" maxlength="100"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Produtividade</label>
+            <select name="produtividade"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+              <option value="9" {% if projeto[8]|int == 9 %}selected{% endif %}>Nenhum</option>
+              <option value="0" {% if projeto[8]|int == 0 %}selected{% endif %}>CNPq</option>
+              <option value="1" {% if projeto[8]|int == 1 %}selected{% endif %}>BPI Funcap</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Grande Área</label>
+            <input type="text" name="grande_area" value="{{ projeto[5] }}" maxlength="100"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Área CAPES</label>
+            <input type="text" name="area_capes" value="{{ projeto[6] }}" maxlength="100"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Grupo</label>
+            <input type="text" name="grupo" value="{{ projeto[7] }}" maxlength="200"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">ScoreLattes</label>
+            <input type="number" step="0.01" name="scorelattes" value="{{ projeto[9] }}"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ScoreLattes Detalhado</label>
+          <textarea name="scorelattes_detalhado" rows="3" readonly
+            class="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-500 text-sm resize-none cursor-not-allowed">{{ projeto[10] }}</textarea>
+        </div>
+      </div>
+
+      <!-- Seção 2: Dados do Projeto -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Dados do Projeto</h3>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+            <select name="categoria"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+              <option value="1" {% if projeto[19]|int == 1 %}selected{% endif %}>Novo</option>
+              <option value="0" {% if projeto[19]|int == 0 %}selected{% endif %}>Em andamento</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Modalidade</label>
+            <select name="modalidade"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+              <option value="1" {% if projeto[20]|int == 1 %}selected{% endif %}>PIBIC</option>
+              <option value="2" {% if projeto[20]|int == 2 %}selected{% endif %}>PIBITI</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Validade (anos)</label>
+            <input type="number" name="validade" value="{{ projeto[18] }}" min="1"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Título</label>
+          <textarea name="titulo" rows="2" maxlength="500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-y">{{ projeto[11] }}</textarea>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Resumo</label>
+          <textarea name="resumo" rows="5"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-y">{{ projeto[12] }}</textarea>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Palavras-chave</label>
+          <input type="text" name="palavras" value="{{ projeto[13] }}" maxlength="200"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Justificativa</label>
+          <textarea name="justificativa" rows="4"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-y">{{ projeto[14] }}</textarea>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">ODS</label>
+          <input type="text" name="ods" value="{{ projeto[15] }}" maxlength="2000"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Pesquisadores Vinculados</label>
+          <textarea name="pesquisadores_vinculados" rows="3"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-y">{{ projeto[16] }}</textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Autorizações</label>
+          <input type="text" name="autorizacoes" value="{{ projeto[17] }}" maxlength="500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        </div>
+      </div>
+
+      <!-- Seção 3: Cronograma -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Cronograma</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Início</label>
+            <input type="date" name="inicio" value="{{ projeto[21] }}"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Fim</label>
+            <input type="date" name="fim" value="{{ projeto[22] }}"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+        </div>
+      </div>
+
+      <!-- Seção 4: Bolsas e Transporte -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Bolsas e Transporte</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Bolsas Solicitadas</label>
+            <input type="number" name="bolsas" value="{{ projeto[23] }}" min="0"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Bolsas Concedidas</label>
+            <input type="number" name="bolsas_concedidas" value="{{ projeto[24] }}" min="0"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Transporte</label>
+            <input type="number" name="transporte" value="{{ projeto[25] }}" min="0"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+        </div>
+      </div>
+
+      <!-- Seção 5: Arquivos -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Arquivos</h3>
+        <p class="text-xs text-gray-500 mb-4">Envie um novo arquivo para substituir o existente. Formatos aceitos: PDF, XML.</p>
+
+        {% set arquivos = [
+          ('arquivo_projeto',      'Arquivo do Projeto',         projeto[31]),
+          ('arquivo_plano1',       'Plano de Trabalho 1',        projeto[32]),
+          ('arquivo_plano2',       'Plano de Trabalho 2',        projeto[33]),
+          ('arquivo_plano3',       'Plano de Trabalho 3',        projeto[34]),
+          ('arquivo_lattes',       'Lattes (XML)',               projeto[35]),
+          ('arquivo_lattes_pdf',   'Lattes (PDF)',               projeto[36]),
+          ('arquivo_comprovantes', 'Comprovantes',               projeto[37])
+        ] %}
+
+        {% for campo, label, valor in arquivos %}
+        <div class="mb-5">
+          <label class="block text-sm font-medium text-gray-700 mb-1">{{ label }}</label>
+          <input type="hidden" name="{{ campo }}_atual" value="{{ valor }}">
+          {% if valor and valor != '0' and valor != None %}
+            <div class="flex items-center gap-3 mb-2">
+              <span class="text-xs text-gray-500 font-mono">{{ valor }}</span>
+              <a href="{{ url_for('verArquivosProjeto', filename=valor) }}"
+                 class="text-blue-600 hover:underline text-xs" target="_blank">Ver arquivo</a>
+            </div>
+          {% else %}
+            <p class="text-xs text-gray-400 mb-2">Nenhum arquivo enviado.</p>
+          {% endif %}
+          <input type="file" name="{{ campo }}" accept=".pdf,.xml"
+            class="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Seção 6: Avaliação / Status -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Avaliação / Status</h3>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Situação</label>
+            <select name="situacao"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+              <option value="-1" {% if projeto[26]|int == -1 %}selected{% endif %}>Não avaliado</option>
+              <option value="0"  {% if projeto[26]|int == 0  %}selected{% endif %}>Não recomendado</option>
+              <option value="1"  {% if projeto[26]|int == 1  %}selected{% endif %}>Recomendado</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Inovação</label>
+            <select name="inovacao"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+              <option value="-1" {% if projeto[27]|int == -1 %}selected{% endif %}>Indefinido</option>
+              <option value="0"  {% if projeto[27]|int == 0  %}selected{% endif %}>Não</option>
+              <option value="1"  {% if projeto[27]|int == 1  %}selected{% endif %}>Sim</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Válido</label>
+            <select name="valendo"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+              <option value="1" {% if projeto[28]|int == 1 %}selected{% endif %}>Válido</option>
+              <option value="0" {% if projeto[28]|int == 0 %}selected{% endif %}>Arquivado</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Observação</label>
+          <input type="text" name="obs" value="{{ projeto[29] }}" maxlength="300"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        </div>
+      </div>
+
+      <button type="submit"
+        class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium mb-4">
+        Salvar
+      </button>
+    </form>
+
+    <a href="{{ url_for('listar_projetos', edital=projeto[30]) }}" class="text-blue-600 hover:underline text-sm">
+      <i class="bi bi-arrow-left me-1"></i> Voltar para lista de projetos
+    </a>
+
+  </div>
+</div>
+{% endblock %}

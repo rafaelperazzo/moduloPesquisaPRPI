@@ -71,6 +71,7 @@
             <th class="px-4 py-3 font-semibold text-gray-700">Estatísticas</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Atualizar Projetos</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Resultados</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Gerenciar Projetos</th>
           </tr>
         </thead>
         <tbody>
@@ -85,6 +86,7 @@
             <td class="px-4 py-3"><a href="/pesquisa/editalProjeto?edital={{edital[0]}}" class="text-blue-600 hover:underline">Estatísticas</a></td>
             <td class="px-4 py-3"><a href="/pesquisa/aprovar/projetos/{{edital[0]}}" class="text-blue-600 hover:underline">Atualizar Projetos</a></td>
             <td class="px-4 py-3"><a href="/pesquisa/editalProjeto?edital={{edital[0]}}&resultado=1" class="text-blue-600 hover:underline">Resultados</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('listar_projetos', edital=edital[0])}}" class="text-blue-600 hover:underline">Gerenciar</a></td>
           </tr>
           {% endfor %}
         </tbody>

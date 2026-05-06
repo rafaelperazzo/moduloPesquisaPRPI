@@ -28,6 +28,7 @@
             <th class="px-4 py-3 font-semibold text-gray-700">Título</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Categoria</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Situação</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">ScoreLattes</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Ações</th>
           </tr>
         </thead>
@@ -41,6 +42,7 @@
             <td class="px-4 py-3 text-gray-600 text-xs">{{ projeto[4] }}{% if projeto[4] and projeto[4]|length == 60 %}…{% endif %}</td>
             <td class="px-4 py-3 text-gray-700">{{ projeto[5] }}</td>
             <td class="px-4 py-3 text-gray-700">{{ projeto[6] }}</td>
+            <td class="px-4 py-3 text-gray-700 font-mono text-xs">{{ projeto[8] }}</td>
             <td class="px-4 py-3">
               <a href="{{ url_for('alterar_projeto', id=projeto[0]) }}"
                  class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs font-medium">

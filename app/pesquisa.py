@@ -4074,7 +4074,8 @@ def listar_projetos():
         CASE categoria WHEN 1 THEN 'Novo' WHEN 0 THEN 'Em andamento' ELSE '-' END,
         CASE situacao WHEN -1 THEN 'Não avaliado' WHEN 0 THEN 'Não recomendado'
             WHEN 1 THEN 'Recomendado' ELSE '-' END,
-        IF(valendo=1,'Sim','Não')
+        IF(valendo=1,'Sim','Não'),
+        scorelattes
         FROM editalProjeto WHERE tipo=? AND valendo=1 ORDER BY ua, nome"""
     linhas, total = executarSelect2(consulta, valores=[codigoEdital])
     return render_template('listarProjetos.html', projetos=linhas, total=total, codigoEdital=codigoEdital)

@@ -18,6 +18,10 @@
       Nenhum edital cadastrado.
     </div>
   {% else %}
+    <input type="text" id="filtro" placeholder="Filtrar por nome..."
+      class="w-full sm:w-72 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm mb-4"
+      oninput="filtrarTabela(this, 'tbody-editais')">
+
     <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm">
       <table class="w-full text-sm text-left border-collapse">
         <thead class="bg-gray-50 border-b border-gray-200">
@@ -30,7 +34,7 @@
             <th class="px-4 py-3 font-semibold text-gray-700">Ações</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="tbody-editais">
           {% for edital in editais %}
           <tr class="border-b border-gray-100 hover:bg-gray-50">
             <td class="px-4 py-3 text-gray-500 text-xs font-mono">{{ edital[0] }}</td>
@@ -52,4 +56,12 @@
   {% endif %}
 
 </div>
+<script nonce="{{ csp_nonce() }}">
+function filtrarTabela(input, tbodyId) {
+  const filtro = input.value.toLowerCase();
+  document.getElementById(tbodyId).querySelectorAll('tr').forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(filtro) ? '' : 'none';
+  });
+}
+</script>
 {% endblock %}

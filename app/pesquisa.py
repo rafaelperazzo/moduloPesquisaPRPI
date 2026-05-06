@@ -3931,20 +3931,23 @@ def task_enviar_email_avaliadores():
             url_declaracao = SERVER_URL + URL_PREFIX + '/declaracaoAvaliador/' + token
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
             msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
-            try:
+            for tentativa in range(3):
                 try:
-                    mail.send(msg)
+                    time.sleep(2)
+                    with mail.connect() as conn:
+                        conn.send(msg)
                     logger.info("E-mail enviado: {} para o avaliador {}",msg.subject, email_avaliador)
+                    consulta_update = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
+                    atualizar(consulta_update)
+                    break
                 except Exception as e:
-                    logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: {}",str(e))
-                consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
-                atualizar(consulta)
-            except Exception as e:
-                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: {} - ({})", email_avaliador,str(e))
-                continue
+                    logger.warning("Tentativa {} falhou para {}: {}", tentativa + 1, email_avaliador, str(e))
+                    time.sleep(5 * (tentativa + 1))
+            else:
+                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU após 3 tentativas: {}", email_avaliador)
     logger.info("Tarefa de envio de e-mails para avaliadores concluída com sucesso.")
 
-@scheduler.task('cron', id='do_job_enviar_email_avaliadores', week='*', day_of_week='2,4', hour='7', minute='45')
+@scheduler.task('cron', id='do_job_enviar_email_avaliadores', week='*', day_of_week='2,4', hour='1', minute='45')
 def job_enviar_email_avaliadores():
     """
     Tarefa agendada para enviar e-mails de solicitação de avaliação

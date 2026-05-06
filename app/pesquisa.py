@@ -3937,6 +3937,7 @@ def task_enviar_email_avaliadores():
                         texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
                         msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
                         try:
+                            time.sleep(1)
                             conn.send(msg)
                             logger.info("E-mail enviado: {} para o avaliador {}",msg.subject, email_avaliador)
                             consulta_update = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])

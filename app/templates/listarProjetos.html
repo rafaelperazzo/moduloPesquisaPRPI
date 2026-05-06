@@ -42,7 +42,7 @@
             <td class="px-4 py-3 text-gray-600 text-xs">{{ projeto[4] }}{% if projeto[4] and projeto[4]|length == 60 %}…{% endif %}</td>
             <td class="px-4 py-3 text-gray-700">{{ projeto[5] }}</td>
             <td class="px-4 py-3 text-gray-700">{{ projeto[6] }}</td>
-            <td class="px-4 py-3 text-gray-700 font-mono text-xs">{{ projeto[8] }}</td>
+            <td class="px-4 py-3 font-mono text-xs {% if projeto[8]|float == 0.0 %}bg-red-100 text-red-700{% else %}text-gray-700{% endif %}">{{ projeto[8] }}</td>
             <td class="px-4 py-3">
               <div class="flex items-center gap-2">
                 <a href="{{ url_for('alterar_projeto', id=projeto[0]) }}"

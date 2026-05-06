@@ -183,12 +183,12 @@ GPG_KEY = os.getenv("GPG_KEY", "000000")
 OPENVPN_KEY = os.getenv("OPENVPN_KEY", "000000")
 cripto = SecCripto(AES_KEY)
 
-def gerar_codigo_auth(identificador, titulo):
-    msg = f"declaracao_orientador:{identificador}:{titulo}".encode()
+def gerar_codigo_auth(identificador, titulo, prefixo='declaracao_orientador'):
+    msg = f"{prefixo}:{identificador}:{titulo}".encode()
     return hmac.new(AES_KEY.encode(), msg, hashlib.sha256).hexdigest()
 
-def verificar_codigo_auth(identificador, titulo, codigo):
-    return hmac.compare_digest(gerar_codigo_auth(identificador, titulo), codigo)
+def verificar_codigo_auth(identificador, titulo, codigo, prefixo='declaracao_orientador'):
+    return hmac.compare_digest(gerar_codigo_auth(identificador, titulo, prefixo), codigo)
 
 ignore_logger("waitress")
 logger.disable("waitress")
@@ -865,14 +865,15 @@ def autenticar():
 @log_required
 def verificarDeclaracao():
     if request.method == 'GET':
-        return render_template('verificar_declaracao.html', resultado=None, projeto=None, erro=None)
-    id_projeto = str(request.form.get('id_projeto', '')).strip()
+        return render_template('verificar_declaracao.html', resultado=None, tipo=None, dados=None, erro=None)
+    id_doc = str(request.form.get('id_projeto', '')).strip()
     codigo = str(request.form.get('codigo', '')).strip().lower()
-    if not numero_valido(id_projeto):
-        return render_template('verificar_declaracao.html', resultado='invalido', projeto=None, erro="ID do projeto inválido.")
+    if not numero_valido(id_doc):
+        return render_template('verificar_declaracao.html', resultado='invalido', tipo=None, dados=None, erro="ID do documento inválido.")
     if not re.match(r'^[0-9a-f]{64}$', codigo):
-        return render_template('verificar_declaracao.html', resultado='invalido', projeto=None, erro="Código de autenticação inválido.")
-    consulta = """SELECT DISTINCT
+        return render_template('verificar_declaracao.html', resultado='invalido', tipo=None, dados=None, erro="Código de autenticação inválido.")
+    # Busca como projeto (orientador / avaliador)
+    consulta_proj = """SELECT DISTINCT
         UPPER(editalProjeto.nome),
         editalProjeto.siape,
         UPPER(editalProjeto.titulo),
@@ -883,14 +884,29 @@ def verificarDeclaracao():
                   GROUP BY indicacoes.idProjeto), 'N/A') as indicados,
         editalProjeto.id
         FROM editalProjeto WHERE editalProjeto.id=?"""
-    resultado_db, total = executarSelect2(consulta, tipo=0, valores=(id_projeto,))
-    if not resultado_db:
-        return render_template('verificar_declaracao.html', resultado='invalido', projeto=None, erro="Projeto não encontrado.")
-    linha = resultado_db[0]
-    titulo = linha[2]
-    if verificar_codigo_auth(id_projeto, titulo, codigo):
-        return render_template('verificar_declaracao.html', resultado='valido', projeto=linha, erro=None)
-    return render_template('verificar_declaracao.html', resultado='invalido', projeto=None, erro="Código inválido. Este documento pode não ter sido emitido pelo sistema.")
+    resultado_proj, _ = executarSelect2(consulta_proj, tipo=0, valores=(id_doc,))
+    if resultado_proj:
+        linha = resultado_proj[0]
+        for prefixo in ('declaracao_orientador', 'declaracao_avaliador'):
+            if verificar_codigo_auth(id_doc, linha[2], codigo, prefixo):
+                return render_template('verificar_declaracao.html', resultado='valido', tipo='projeto', dados=linha, erro=None)
+    # Busca como indicação (discente)
+    consulta_disc = """SELECT
+        indicacoes.nome,
+        indicacoes.cpf,
+        UPPER(editalProjeto.titulo),
+        DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),
+        DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'),
+        UPPER(editalProjeto.nome),
+        indicacoes.id
+        FROM indicacoes, editalProjeto
+        WHERE indicacoes.idProjeto = editalProjeto.id AND indicacoes.id=?"""
+    resultado_disc, _ = executarSelect2(consulta_disc, tipo=0, valores=(id_doc,))
+    if resultado_disc:
+        linha_disc = resultado_disc[0]
+        if verificar_codigo_auth(id_doc, linha_disc[2], codigo, 'declaracao_discente'):
+            return render_template('verificar_declaracao.html', resultado='valido', tipo='discente', dados=linha_disc, erro=None)
+    return render_template('verificar_declaracao.html', resultado='invalido', tipo=None, dados=None, erro="Código inválido. Este documento pode não ter sido emitido pelo sistema.")
 
 @app.route("/projetosPorOrientador", methods=['POST'])
 @log_required
@@ -1349,7 +1365,8 @@ def getDeclaracaoAvaliador(tokenAvaliacao):
         thread.start()
         return render_template('declaracao_avaliador.html',
                                nome=nome_avaliador,data=data_agora,edital=descricao_do_edital,
-                               titulo=titulo,idProjeto=idProjeto)
+                               titulo=titulo,idProjeto=idProjeto,
+                               identificador=gerar_codigo_auth(idProjeto,titulo,'declaracao_avaliador'))
     else:
         return "PROJETO AINDA NÃO AVALIADO OU INEXISTENTE!"
     
@@ -2099,7 +2116,7 @@ def minhaDeclaracaoDiscente():
         if 'token' in request.args:
             token = str(request.args.get('token'))
             consulta = """SELECT estudante_nome_completo,cpf,if(estudante_fim>NOW(),1,0) as verbo,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,
-                        ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(estudante_fim,'%d/%m/%Y') as final FROM cadastro_geral WHERE token='""" + token + """'"""
+                        ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(estudante_fim,'%d/%m/%Y') as final,id FROM cadastro_geral WHERE token='""" + token + """'"""
             projeto,total = executarSelect(consulta,1)
             data_agora = getData()
             if total==1:
@@ -2112,7 +2129,7 @@ def minhaDeclaracaoDiscente():
                     'margin-left': '2cm',
                 }
                 try:
-                    pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                    pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(str(projeto[9]),projeto[5],'declaracao_discente'),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
                 except Exception as e:
                     with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
                         logger.warning("Erro ao gerar declaração: {}", str(e)) 
@@ -2284,7 +2301,7 @@ def minhaDeclaracaoDiscente2019():
                     'margin-left': '2cm',
                 }
                 try:
-                    pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=idIndicacao,raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                    pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idIndicacao,projeto[5],'declaracao_discente'),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
                 except Exception as e:
                     with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
                         logger.warning("Erro ao gerar declaração: {}", str(e)) 

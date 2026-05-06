@@ -1,0 +1,55 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-800">Editais</h2>
+      <p class="text-sm text-gray-500 mt-1">{{ total }} edital(is) cadastrado(s)</p>
+    </div>
+    <a href="{{ url_for('inserir_edital') }}"
+       class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm">
+      Inserir Edital
+    </a>
+  </div>
+
+  {% if total == 0 %}
+    <div class="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-md" role="alert">
+      Nenhum edital cadastrado.
+    </div>
+  {% else %}
+    <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm">
+      <table class="w-full text-sm text-left border-collapse">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="px-4 py-3 font-semibold text-gray-700">ID</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Nome</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Deadline</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Início Indicação</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Término Indicação</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for edital in editais %}
+          <tr class="border-b border-gray-100 hover:bg-gray-50">
+            <td class="px-4 py-3 text-gray-500 text-xs font-mono">{{ edital[0] }}</td>
+            <td class="px-4 py-3 text-gray-800 font-medium">{{ edital[1] }}</td>
+            <td class="px-4 py-3 text-gray-700">{{ edital[2] }}</td>
+            <td class="px-4 py-3 text-gray-700">{{ edital[3] }}</td>
+            <td class="px-4 py-3 text-gray-700">{{ edital[4] }}</td>
+            <td class="px-4 py-3">
+              <a href="{{ url_for('alterar_edital', id=edital[0]) }}"
+                 class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs font-medium">
+                Alterar
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

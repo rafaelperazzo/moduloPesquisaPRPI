@@ -3903,6 +3903,162 @@ def cadastrar_usuarios_projetos(edital):
         flash("Nenhum usuário encontrado para cadastro.")
         return redirect(url_for('admin'))
 
+@app.route("/listarUsuarios", methods=['GET'])
+@login_required(role='admin')
+@log_required
+def listar_usuarios():
+    """
+    Lista todos os usuários cadastrados no sistema.
+    """
+    consulta = """SELECT id, username, nome, email, roles FROM users ORDER BY nome"""
+    linhas, total = executarSelect2(consulta, valores=[])
+    return render_template('listarUsuarios.html', usuarios=linhas, total=total)
+
+@app.route("/alterarUsuario/<int:id>", methods=['GET', 'POST'])
+@login_required(role='admin')
+@log_required
+def alterar_usuario(id):
+    """
+    Permite ao admin alterar dados de um usuário existente.
+    """
+    if request.method == 'POST':
+        nome = str(request.form['nome'])
+        email = str(request.form['email'])
+        roles = str(request.form['roles'])
+        resetar_senha = request.form.get('resetar_senha')
+        consulta = """SELECT id FROM users WHERE email=? AND id != ?"""
+        linhas, total = executarSelect2(consulta, valores=[email, id])
+        if total > 0:
+            flash("E-mail já cadastrado para outro usuário.", 'error')
+            return redirect(url_for('alterar_usuario', id=id))
+        try:
+            atualizar2("""UPDATE users SET nome=?, email=?, roles=? WHERE id=?""",
+                       valores=[nome, email, roles, id])
+        except Exception as e:
+            logger.error("Erro ao alterar usuário id={}: {}", id, str(e))
+            flash("Erro ao alterar usuário.", 'error')
+            return redirect(url_for('alterar_usuario', id=id))
+        if resetar_senha:
+            consulta = """SELECT username, email FROM users WHERE id=?"""
+            linhas, total = executarSelect2(consulta, valores=[id])
+            if total > 0:
+                username = str(linhas[0][0])
+                email_usuario = str(linhas[0][1])
+                senha = generate_secure_password()
+                hashed_password = cripto.hash_argon2id(senha)
+                atualizar2("""UPDATE users SET password=? WHERE id=?""",
+                           valores=[hashed_password, id])
+                texto_mensagem = "Usuario: " + username + "\nSenha: " + senha + "\n" + USUARIO_SITE
+                msg = Message(subject="Plataforma Yoko - Redefinição de Senha",
+                              recipients=[email_usuario], body=texto_mensagem)
+                thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
+                thread.start()
+                logger.info("Senha redefinida para usuário id={}", id)
+                flash("Senha redefinida. Novas credenciais enviadas por e-mail.")
+        flash("Usuário alterado com sucesso!")
+        return redirect(url_for('listar_usuarios'))
+    else:
+        consulta = """SELECT id, username, nome, email, roles FROM users WHERE id=?"""
+        linhas, total = executarSelect2(consulta, valores=[id])
+        if total == 0:
+            flash("Usuário não encontrado.", 'error')
+            return redirect(url_for('listar_usuarios'))
+        return render_template('alterarUsuario.html', usuario=linhas[0])
+
+@app.route("/listarEditais", methods=['GET'])
+@login_required(role='admin')
+@log_required
+def listar_editais():
+    """
+    Lista todos os editais cadastrados no sistema.
+    """
+    consulta = """SELECT id, nome,
+        DATE_FORMAT(deadline,'%d/%m/%Y %H:%i'),
+        DATE_FORMAT(indicacao_inicio,'%d/%m/%Y %H:%i'),
+        DATE_FORMAT(indicacao_termino,'%d/%m/%Y %H:%i')
+        FROM editais ORDER BY id DESC"""
+    linhas, total = executarSelect2(consulta, valores=[])
+    return render_template('listarEditais.html', editais=linhas, total=total)
+
+@app.route("/inserirEdital", methods=['GET', 'POST'])
+@login_required(role='admin')
+@log_required
+def inserir_edital():
+    """
+    Permite ao admin inserir um novo edital.
+    """
+    if request.method == 'POST':
+        nome = str(request.form['nome'])
+        deadline = str(request.form['deadline'])
+        deadline_avaliacao = str(request.form['deadline_avaliacao'])
+        setor = int(request.form['setor'])
+        mensagem = str(request.form['mensagem'])
+        indicacao_inicio = str(request.form['indicacao_inicio'])
+        indicacao_termino = str(request.form['indicacao_termino'])
+        discente_inicio = str(request.form['discente_inicio'])
+        discente_fim = str(request.form['discente_fim'])
+        try:
+            consulta = """INSERT INTO editais
+                (nome, deadline, deadline_avaliacao, setor, mensagem,
+                 indicacao_inicio, indicacao_termino, discente_inicio, discente_fim)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+            atualizar2(consulta, valores=[nome, deadline, deadline_avaliacao, setor, mensagem,
+                indicacao_inicio, indicacao_termino, discente_inicio, discente_fim])
+        except Exception as e:
+            logger.error("Erro ao inserir edital: {}", str(e))
+            flash("Erro ao inserir edital.", 'error')
+            return redirect(url_for('inserir_edital'))
+        flash("Edital inserido com sucesso!")
+        return redirect(url_for('listar_editais'))
+    else:
+        return render_template('inserirEdital.html')
+
+@app.route("/alterarEdital/<int:id>", methods=['GET', 'POST'])
+@login_required(role='admin')
+@log_required
+def alterar_edital(id):
+    """
+    Permite ao admin alterar os dados de um edital existente.
+    """
+    if request.method == 'POST':
+        nome = str(request.form['nome'])
+        deadline = str(request.form['deadline'])
+        deadline_avaliacao = str(request.form['deadline_avaliacao'])
+        setor = int(request.form['setor'])
+        mensagem = str(request.form['mensagem'])
+        indicacao_inicio = str(request.form['indicacao_inicio'])
+        indicacao_termino = str(request.form['indicacao_termino'])
+        discente_inicio = str(request.form['discente_inicio'])
+        discente_fim = str(request.form['discente_fim'])
+        try:
+            consulta = """UPDATE editais
+                SET nome=?, deadline=?, deadline_avaliacao=?, setor=?, mensagem=?,
+                    indicacao_inicio=?, indicacao_termino=?,
+                    discente_inicio=?, discente_fim=?
+                WHERE id=?"""
+            atualizar2(consulta, valores=[nome, deadline, deadline_avaliacao, setor, mensagem,
+                indicacao_inicio, indicacao_termino, discente_inicio, discente_fim, id])
+        except Exception as e:
+            logger.error("Erro ao alterar edital id={}: {}", id, str(e))
+            flash("Erro ao alterar edital.", 'error')
+            return redirect(url_for('alterar_edital', id=id))
+        flash("Edital alterado com sucesso!")
+        return redirect(url_for('listar_editais'))
+    else:
+        consulta = """SELECT id, nome, setor, mensagem,
+            DATE_FORMAT(deadline,'%Y-%m-%dT%H:%i'),
+            DATE_FORMAT(deadline_avaliacao,'%Y-%m-%dT%H:%i'),
+            DATE_FORMAT(indicacao_inicio,'%Y-%m-%dT%H:%i'),
+            DATE_FORMAT(indicacao_termino,'%Y-%m-%dT%H:%i'),
+            DATE_FORMAT(discente_inicio,'%Y-%m-%dT%H:%i'),
+            DATE_FORMAT(discente_fim,'%Y-%m-%dT%H:%i')
+            FROM editais WHERE id=?"""
+        linhas, total = executarSelect2(consulta, valores=[id])
+        if total == 0:
+            flash("Edital não encontrado.", 'error')
+            return redirect(url_for('listar_editais'))
+        return render_template('alterarEdital.html', edital=linhas[0])
+
 def task_enviar_email_avaliadores():
     gerarLinkAvaliacao()
     consulta = """
@@ -4061,9 +4217,9 @@ def ligar_scheduler():
     if PRODUCAO==1:
         scheduler.start()
         logger.info("Scheduler ligado.")
-        return "Scheduler ligado!"
+        return render_template('ligarScheduler.html', sucesso=True)
     else:
-        return "Scheduler não está ativo em ambiente de testes."
+        return render_template('ligarScheduler.html', sucesso=False)
 
 @app.route("/desligarScheduler", methods=['GET'])
 @login_required(role='admin')
@@ -4075,9 +4231,9 @@ def desligar_scheduler():
     if PRODUCAO==1:
         scheduler.shutdown()
         logger.info("Scheduler desligado.")
-        return "Scheduler desligado!"
+        return render_template('desligarScheduler.html', sucesso=True)
     else:
-        return "Scheduler não está ativo em ambiente de testes."
+        return render_template('desligarScheduler.html', sucesso=False)
 
 @app.route("/schedulerJobs", methods=['GET'])
 @login_required(role='admin')
@@ -4086,20 +4242,20 @@ def scheduler_jobs():
     """
     Retorna os jobs do scheduler e seu status.
     """
-    if scheduler.running:    
+    if scheduler.running:
         jobs = scheduler.get_jobs()
-        jobs_info = []
-        for job in jobs:
-            job_info = {
+        jobs_info = [
+            {
                 'id': job.id,
                 'name': job.name,
                 'next_run_time': str(job.next_run_time),
                 'trigger': str(job.trigger),
             }
-            jobs_info.append(job_info)
-        return jsonify(jobs_info)
+            for job in jobs
+        ]
+        return render_template('schedulerJobs.html', scheduler_running=True, jobs=jobs_info)
     else:
-        return jsonify({'message': 'Scheduler não está em execução.'})
+        return render_template('schedulerJobs.html', scheduler_running=False, jobs=[])
 
 def carregar_mensagens():
     """

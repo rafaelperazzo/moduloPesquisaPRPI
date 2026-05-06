@@ -49,6 +49,12 @@
       <a href="{{url_for('meusProjetos')}}" class="text-blue-600 hover:underline text-sm">Ir para Meus Projetos</a>
       <span class="text-gray-300">|</span>
       <a href="{{url_for('cadastrar_usuario')}}" class="text-blue-600 hover:underline text-sm">Cadastrar novo usuário</a>
+      <span class="text-gray-300">|</span>
+      <a href="{{url_for('listar_usuarios')}}" class="text-blue-600 hover:underline text-sm">Listar usuários</a>
+      <span class="text-gray-300">|</span>
+      <a href="{{url_for('listar_editais')}}" class="text-blue-600 hover:underline text-sm">Listar editais</a>
+      <span class="text-gray-300">|</span>
+      <a href="{{url_for('inserir_edital')}}" class="text-blue-600 hover:underline text-sm">Inserir edital</a>
     </div>
 
     <!-- Tabela de editais -->
@@ -99,6 +105,18 @@
 
       <a href="{{url_for('cadastrar_usuario')}}" class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:border-blue-300 hover:shadow-md transition-all block">
         <p class="font-medium text-blue-600 text-sm">Cadastrar Novo Usuário</p>
+      </a>
+
+      <a href="{{url_for('listar_usuarios')}}" class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:border-blue-300 hover:shadow-md transition-all block">
+        <p class="font-medium text-blue-600 text-sm">Listar Usuários</p>
+      </a>
+
+      <a href="{{url_for('listar_editais')}}" class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:border-blue-300 hover:shadow-md transition-all block">
+        <p class="font-medium text-blue-600 text-sm">Listar Editais</p>
+      </a>
+
+      <a href="{{url_for('inserir_edital')}}" class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:border-blue-300 hover:shadow-md transition-all block">
+        <p class="font-medium text-blue-600 text-sm">Inserir Edital</p>
       </a>
 
       <a href="{{url_for('ligar_scheduler')}}" class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:border-emerald-300 hover:shadow-md transition-all block">

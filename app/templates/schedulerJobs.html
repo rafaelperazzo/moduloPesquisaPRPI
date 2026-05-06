@@ -1,0 +1,59 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-bold text-gray-800">Jobs do Scheduler</h2>
+    {% if scheduler_running %}
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium rounded-full">
+        <i class="bi bi-circle-fill text-xs"></i> Em execução
+      </span>
+    {% else %}
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-200 text-red-700 text-sm font-medium rounded-full">
+        <i class="bi bi-circle-fill text-xs"></i> Parado
+      </span>
+    {% endif %}
+  </div>
+
+  {% if not scheduler_running %}
+    <div class="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-md mb-6" role="alert">
+      <i class="bi bi-exclamation-triangle me-1"></i>
+      O scheduler não está em execução. Nenhum job está agendado no momento.
+    </div>
+  {% elif jobs %}
+    <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm">
+      <table class="w-full text-sm text-left border-collapse">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="px-4 py-3 font-semibold text-gray-700">ID</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Nome</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Próxima Execução</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Trigger</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in jobs %}
+          <tr class="border-b border-gray-100 hover:bg-gray-50">
+            <td class="px-4 py-3 text-gray-700 font-mono text-xs">{{ job.id }}</td>
+            <td class="px-4 py-3 text-gray-700">{{ job.name }}</td>
+            <td class="px-4 py-3 text-gray-700">
+              {% if job.next_run_time and job.next_run_time != 'None' %}
+                {{ job.next_run_time }}
+              {% else %}
+                <span class="text-gray-400">—</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-gray-500 font-mono text-xs">{{ job.trigger }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-md mb-6" role="alert">
+      Nenhum job registrado no scheduler.
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

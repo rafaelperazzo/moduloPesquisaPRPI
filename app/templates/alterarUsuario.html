@@ -1,0 +1,59 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+  <div class="max-w-lg mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+
+    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Alterar Usuário</h2>
+
+    <form action="{{ url_for('alterar_usuario', id=usuario[0]) }}" method="POST" id="form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Username (SIAPE)</label>
+        <input type="text" value="{{ usuario[1] }}" readonly
+          class="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-500 text-sm cursor-not-allowed">
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+        <input type="text" name="nome" value="{{ usuario[2] }}" required
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+        <input type="email" name="email" value="{{ usuario[3] }}" required
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Roles</label>
+        <select name="roles" required
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          <option value="user" {% if usuario[4] == 'user' %}selected{% endif %}>user</option>
+          <option value="admin" {% if usuario[4] == 'admin' %}selected{% endif %}>admin</option>
+          <option value="user,admin" {% if usuario[4] == 'user,admin' %}selected{% endif %}>user,admin</option>
+        </select>
+      </div>
+
+      <div class="mb-6 flex items-center gap-2">
+        <input type="checkbox" name="resetar_senha" id="resetar_senha"
+          class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+        <label for="resetar_senha" class="text-sm text-gray-700">
+          Redefinir senha (uma nova senha será gerada e enviada por e-mail)
+        </label>
+      </div>
+
+      <button type="submit"
+        class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium mb-4">
+        Salvar
+      </button>
+    </form>
+
+    <a href="{{ url_for('listar_usuarios') }}" class="text-blue-600 hover:underline text-sm">
+      <i class="bi bi-arrow-left me-1"></i> Voltar para lista de usuários
+    </a>
+
+  </div>
+</div>
+{% endblock %}

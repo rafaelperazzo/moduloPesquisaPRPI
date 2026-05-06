@@ -1,0 +1,47 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-bold text-gray-800">Usuários</h2>
+    <span class="text-sm text-gray-500">{{ total }} usuário(s) cadastrado(s)</span>
+  </div>
+
+  {% if total == 0 %}
+    <div class="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-md" role="alert">
+      Nenhum usuário cadastrado.
+    </div>
+  {% else %}
+    <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm">
+      <table class="w-full text-sm text-left border-collapse">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="px-4 py-3 font-semibold text-gray-700">Username</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Nome</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">E-mail</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Roles</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for usuario in usuarios %}
+          <tr class="border-b border-gray-100 hover:bg-gray-50">
+            <td class="px-4 py-3 text-gray-700 font-mono text-xs">{{ usuario[1] }}</td>
+            <td class="px-4 py-3 text-gray-700">{{ usuario[2] }}</td>
+            <td class="px-4 py-3 text-gray-700">{{ usuario[3] }}</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">{{ usuario[4] }}</td>
+            <td class="px-4 py-3">
+              <a href="{{ url_for('alterar_usuario', id=usuario[0]) }}"
+                 class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs font-medium">
+                Alterar
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

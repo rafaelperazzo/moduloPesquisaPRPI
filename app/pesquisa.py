@@ -3915,36 +3915,39 @@ def task_enviar_email_avaliadores():
     AND tipo in (SELECT id from editais WHERE deadline_avaliacao>now() AND ADDDATE(deadline,5)<now()))
     """
     linhas,total = executarSelect(consulta)
-    for linha in linhas:
-        titulo = str(linha[1])
-        resumo = str(linha[2])
-        link = str(linha[4])
-        token = str(linha[7])
-        email_avaliador = str(linha[3])
-        if 'TESTE' in email_avaliador:
-            continue
-        link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
-        deadline = str(linha[11])
-        nome_longo = str(linha[12])
+    batch_size = 5
+    for i in range(0, len(linhas), batch_size):
+        lote = linhas[i:i + batch_size]
         with scheduler.app.app_context():
-            #url_declaracao = url_for('getDeclaracaoAvaliador',tokenAvaliacao=token, _external=True)
-            url_declaracao = SERVER_URL + URL_PREFIX + '/declaracaoAvaliador/' + token
-            texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
-            msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
-            for tentativa in range(3):
-                try:
-                    time.sleep(2)
-                    with mail.connect() as conn:
-                        conn.send(msg)
-                    logger.info("E-mail enviado: {} para o avaliador {}",msg.subject, email_avaliador)
-                    consulta_update = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
-                    atualizar(consulta_update)
-                    break
-                except Exception as e:
-                    logger.warning("Tentativa {} falhou para {}: {}", tentativa + 1, email_avaliador, str(e))
-                    time.sleep(5 * (tentativa + 1))
-            else:
-                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU após 3 tentativas: {}", email_avaliador)
+            try:
+                with mail.connect() as conn:
+                    for linha in lote:
+                        titulo = str(linha[1])
+                        resumo = str(linha[2])
+                        link = str(linha[4])
+                        token = str(linha[7])
+                        email_avaliador = str(linha[3])
+                        if 'TESTE' in email_avaliador:
+                            continue
+                        link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
+                        deadline = str(linha[11])
+                        nome_longo = str(linha[12])
+                        #url_declaracao = url_for('getDeclaracaoAvaliador',tokenAvaliacao=token, _external=True)
+                        url_declaracao = SERVER_URL + URL_PREFIX + '/declaracaoAvaliador/' + token
+                        texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
+                        msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+                        try:
+                            conn.send(msg)
+                            logger.info("E-mail enviado: {} para o avaliador {}",msg.subject, email_avaliador)
+                            consulta_update = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=" + str(linha[5])
+                            atualizar(consulta_update)
+                        except Exception as e:
+                            logger.error("Erro ao enviar e-mail para {}: {}", email_avaliador, str(e))
+            except Exception as e:
+                logger.error("Falha na conexão SMTP no lote {}: {}", i // batch_size + 1, str(e))
+        if i + batch_size < len(linhas):
+            logger.info("Aguardando 10 segundos antes do próximo lote.")
+            time.sleep(10)
     logger.info("Tarefa de envio de e-mails para avaliadores concluída com sucesso.")
 
 @scheduler.task('cron', id='do_job_enviar_email_avaliadores', week='*', day_of_week='2,4', hour='1', minute='45')

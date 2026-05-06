@@ -3981,62 +3981,61 @@ def task_enviar_lembrete_frequencia():
             '9': 'setembro',
             '10': 'outubro',
             '11': 'novembro',
-            '12': 'dezembro'        
+            '12': 'dezembro'
         }
-    with scheduler.app.app_context():
-        consulta = """SELECT 
+    consulta = """SELECT
         GROUP_CONCAT(editalProjeto.id ORDER BY editalProjeto.id),
         editalProjeto.nome,
-        GROUP_CONCAT(editalProjeto.titulo), 
+        GROUP_CONCAT(editalProjeto.titulo),
         GROUP_CONCAT(indicacoes.id ORDER BY indicacoes.idProjeto,indicacoes.id),
         editalProjeto.email,
         editalProjeto.siape
         from editalProjeto
         INNER JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
-        WHERE indicacoes.fim>NOW() 
-        AND indicacoes.situacao=0 
-        AND MONTH(indicacoes.inicio)!=Month(now()) 
-        AND indicacoes.inicio<NOW() 
+        WHERE indicacoes.fim>NOW()
+        AND indicacoes.situacao=0
+        AND MONTH(indicacoes.inicio)!=Month(now())
+        AND indicacoes.inicio<NOW()
         GROUP BY editalProjeto.nome"""
-        linhas,total = executarSelect(consulta)
-        for linha in linhas:
-            id_projetos = str(linha[0]).split(',')
-            orientador = str(linha[1])
-            siape = str(linha[5])
-            senha = obterColunaUnica('users','password','username',siape)
-            titulos = str(linha[2]).split(',')
-            indicacoes = str(linha[3]).split(',')
-            nao_enviados = []
-            for indicacao in indicacoes:
-                subconsulta = """SELECT 
-                idIndicacao 
-                FROM frequencias 
-                WHERE mes=%s AND ano=%s AND idIndicacao=%s 
-                LIMIT 1
-                """ % (mes,ano,indicacao)
-                frequencias,totalFrequencias = executarSelect(subconsulta)
-                if totalFrequencias==0: #Não foi enviada a frequência para este discente
-                    nome_indicado = obterColunaUnica('indicacoes','nome','id',indicacao)
-                    nao_enviados.append(nome_indicado)
-            if (len(nao_enviados)!=0):
-                
-                texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
-                if PRODUCAO==1:
-                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
-                    try:
-                        mail.send(msg)
-                        logger.info("E-mail enviado: Lembrete de frequência {}/{} para {}",nome_mes[str(mes)],ano,orientador)
-                    except Exception as e:
-                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: {}",str(e))
-                else:
-                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisapython3.display999@passmail.net'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
-                    try:
-                        mail.send(msg)
-                        logger.info("E-mail enviado: Lembrete de frequência para {}",orientador)
-                    except Exception as e:
-                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: {}",str(e))
-                    finally:
-                        continue
+    linhas,total = executarSelect(consulta)
+    batch_size = 5
+    for i in range(0, len(linhas), batch_size):
+        lote = linhas[i:i + batch_size]
+        with scheduler.app.app_context():
+            try:
+                with mail.connect() as conn:
+                    for linha in lote:
+                        orientador = str(linha[1])
+                        siape = str(linha[5])
+                        senha = obterColunaUnica('users','password','username',siape)
+                        indicacoes = str(linha[3]).split(',')
+                        nao_enviados = []
+                        for indicacao in indicacoes:
+                            subconsulta = """SELECT
+                            idIndicacao
+                            FROM frequencias
+                            WHERE mes=%s AND ano=%s AND idIndicacao=%s
+                            LIMIT 1
+                            """ % (mes,ano,indicacao)
+                            frequencias,totalFrequencias = executarSelect(subconsulta)
+                            if totalFrequencias==0: #Não foi enviada a frequência para este discente
+                                nome_indicado = obterColunaUnica('indicacoes','nome','id',indicacao)
+                                nao_enviados.append(nome_indicado)
+                        if len(nao_enviados)==0:
+                            continue
+                        texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
+                        destinatario = str(linha[4]) if PRODUCAO==1 else 'pesquisapython3.display999@passmail.net'
+                        msg = Message(subject="Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[destinatario],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                        try:
+                            conn.send(msg)
+                            logger.info("E-mail enviado: Lembrete de frequência {}/{} para {}",nome_mes[str(mes)],ano,orientador)
+                        except Exception as e:
+                            logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: {}",str(e))
+            except Exception as e:
+                logger.error("Falha na conexão SMTP no lote {}: {}", i // batch_size + 1, str(e))
+        if i + batch_size < len(linhas):
+            logger.info("Aguardando 10 segundos antes do próximo lote.")
+            time.sleep(10)
 
 @scheduler.task('cron', id='do_job_cobrar_frequencia', week='*', day='5-30/5', hour='7', minute='59')
 def job_cobrar_frequencia():

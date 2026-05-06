@@ -419,8 +419,8 @@ def extrair_modalidade(texto):
 
 def processarPontuacaoLattes(cpf,area,idProjeto,dados):
     periodo = "5"
-    url_score = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + cpf + "/" + area + "/" + periodo + "/" + "0"
-    url_sumario = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + cpf + "/" + area + "/" + periodo + "/" + "1"
+    url_score = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "0"
+    url_sumario = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "1"
     sumario = ""
     pontuacao = "0.0"
     try:
@@ -442,7 +442,7 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
     with app.app_context():
         try:
             #ENVIAR E-MAIL DE CONFIRMAÇÃO
-            codigo_do_edital = str(obterColunaUnica("editalProjeto","tipo","id",idProjeto))
+            codigo_do_edital = str(obterColunaUnica("editalProjeto","tipo","id",str(idProjeto)))
             descricao_do_edital = str(obterColunaUnica("editais","nome","id",codigo_do_edital))
             modalidade = extrair_modalidade(descricao_do_edital)
             texto_email = render_template('confirmacao_submissao.html',email_proponente=dados[0],id_projeto=idProjeto,proponente=dados[1],titulo_projeto=dados[2],resumo_projeto=dados[3],score=pontuacao,sumario=sumario,modalidade=modalidade)

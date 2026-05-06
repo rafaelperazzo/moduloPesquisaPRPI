@@ -29,7 +29,7 @@
             <th class="px-4 py-3 font-semibold text-gray-700">Categoria</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Situação</th>
             <th class="px-4 py-3 font-semibold text-gray-700">ScoreLattes</th>
-            <th class="px-4 py-3 font-semibold text-gray-700">Ações</th>
+            <th class="px-4 py-3 font-semibold text-gray-700 whitespace-nowrap">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -44,10 +44,16 @@
             <td class="px-4 py-3 text-gray-700">{{ projeto[6] }}</td>
             <td class="px-4 py-3 text-gray-700 font-mono text-xs">{{ projeto[8] }}</td>
             <td class="px-4 py-3">
-              <a href="{{ url_for('alterar_projeto', id=projeto[0]) }}"
-                 class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs font-medium">
-                Alterar
-              </a>
+              <div class="flex items-center gap-2">
+                <a href="{{ url_for('alterar_projeto', id=projeto[0]) }}"
+                   class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs font-medium whitespace-nowrap">
+                  Alterar
+                </a>
+                <a href="{{ url_for('recalcular_score_lattes', id=projeto[0]) }}"
+                   class="px-3 py-1 bg-amber-500 text-white rounded-md hover:bg-amber-600 text-xs font-medium whitespace-nowrap">
+                  Recalcular Score
+                </a>
+              </div>
             </td>
           </tr>
           {% endfor %}

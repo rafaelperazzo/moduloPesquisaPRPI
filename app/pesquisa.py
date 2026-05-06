@@ -417,6 +417,30 @@ def extrair_modalidade(texto):
         resultado = "-"
     return resultado.upper()
 
+
+def atualizarPontuacaoLattes(cpf, area, idProjeto):
+    periodo = "5"
+    url_score = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "0"
+    url_sumario = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "1"
+    sumario = ""
+    pontuacao = "0.0"
+    try:
+        sumario = requests.get(url_sumario, timeout=120).text
+        pontuacao = requests.get(url_score, timeout=120).text
+        pontuacao = json.loads(pontuacao)
+        pontuacao = pontuacao['score']
+    except Exception as e:
+        logger.warning("Erro ao processar a pontuação Lattes: {}", str(e))
+        sumario = "Erro ao processar a pontuacao lattes. Comunicação com o CNPq falhou."
+        pontuacao = "0.0"
+    try:
+        consulta = """UPDATE editalProjeto
+        SET scorelattes= ? WHERE id= ?"""
+        atualizar2(consulta, valores=[pontuacao, idProjeto])
+    except Exception as e:
+        logger.error("Erro ao atualizar o scorelattes: {} com o cpf: {}", str(e), str(cpf))
+    return pontuacao, sumario
+
 def processarPontuacaoLattes(cpf,area,idProjeto,dados):
     periodo = "5"
     url_score = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "0"
@@ -4184,6 +4208,29 @@ def alterar_projeto(id):
             flash("Projeto não encontrado.", 'error')
             return redirect(url_for('admin'))
         return render_template('alterarProjeto.html', projeto=linhas[0])
+
+@app.route("/recalcularScoreLattes/<int:id>", methods=['GET', 'POST'])
+@login_required(role='admin')
+@log_required
+def recalcular_score_lattes(id):
+    """
+    Permite ao admin recalcular o scorelattes de um projeto informando o CPF ou IdLattes.
+    """
+    consulta = """SELECT area_capes, tipo FROM editalProjeto WHERE id=?"""
+    linhas, total = executarSelect2(consulta, valores=[id])
+    if total == 0:
+        flash("Projeto não encontrado.", 'error')
+        return redirect(url_for('admin'))
+    area_capes = str(linhas[0][0])
+    tipo = str(linhas[0][1])
+    if request.method == 'POST':
+        cpf = str(request.form['cpf']).strip()
+        t = threading.Thread(target=atualizarPontuacaoLattes, args=(cpf, area_capes, id,))
+        t.start()
+        logger.info("Recálculo de scorelattes solicitado para o projeto id={}", id)
+        flash("Cálculo da pontuação Lattes solicitado. O valor será atualizado em breve.")
+        return redirect(url_for('listar_projetos', edital=tipo))
+    return render_template('recalcularScoreLattes.html', id=id, tipo=tipo)
 
 def task_enviar_email_avaliadores():
     gerarLinkAvaliacao()

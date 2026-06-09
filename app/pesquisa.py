@@ -1475,7 +1475,8 @@ def inserirAvaliador():
         atualizar2(consulta, valores=[avaliador1_email, token, str(idProjeto)])
         t = threading.Thread(target=enviarPedidoAvaliacao,args=(idProjeto,))
         t.start()
-        return("Avaliador cadastrado com sucesso.")
+        return_url = request.referrer or url_for('avaliacoesNegadas')
+        return redirect(return_url)
     else:
         return("OK")
 
@@ -4388,8 +4389,9 @@ def ligar_scheduler():
     Liga o scheduler para execução de tarefas agendadas.
     """
     if PRODUCAO==1:
-        scheduler.start()
-        logger.info("Scheduler ligado.")
+        if not scheduler.running:
+            scheduler.start()
+            logger.info("Scheduler ligado.")
         return render_template('ligarScheduler.html', sucesso=True)
     else:
         return render_template('ligarScheduler.html', sucesso=False)

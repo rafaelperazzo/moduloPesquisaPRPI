@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -rn \"{% include\\\\|bootstrap\\\\|tailwind\\\\|<!DOCTYPE\" /home/perazzo/Projetos/docker/pesquisa/app/templates/*.html)",
+      "Bash(grep -l \"tailwindcss\\\\|cdn.tailwindcss\" /home/perazzo/Projetos/docker/pesquisa/app/templates/*.html)",
+      "Bash(grep -l \"extends.*BASE_v3\" /home/perazzo/Projetos/docker/pesquisa/app/templates/*.html)",
+      "Bash(grep -rL \"tailwindcss\\\\|cdn.tailwindcss\\\\|extends\" /home/perazzo/Projetos/docker/pesquisa/app/templates/*.html)"
+    ]
+  }
+}

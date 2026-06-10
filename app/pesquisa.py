@@ -1444,7 +1444,7 @@ def avaliacoesNegadas():
                 total = cursor.rowcount
                 conn.close()
                 consulta_verificacao = """
-                    SELECT avaliador,aceitou,finalizado,DATE_FORMAT(data_avaliacao,'%d/%m/%Y') from avaliacoes WHERE idProjeto = ? 
+                    SELECT avaliador,aceitou,finalizado,DATE_FORMAT(data_avaliacao,'%d/%m/%Y'),id from avaliacoes WHERE idProjeto = ?
                     ORDER BY aceitou DESC, finalizado DESC
                 """
                 avaliadores, totalAvaliadores = executarSelect2(consulta_verificacao,valores=[idProjeto])
@@ -1486,6 +1486,19 @@ def inserirAvaliador():
         return redirect(return_url)
     else:
         return("OK")
+
+@app.route("/excluirAvaliador", methods=['POST'])
+@login_required(role='admin')
+@log_required
+def excluirAvaliador():
+    id_avaliacao = str(request.form.get('id_avaliacao', '')).strip()
+    if not numero_valido(id_avaliacao):
+        logger.warning("[{}][/excluirAvaliador] ID inválido: {}", request.remote_addr, id_avaliacao)
+        return "ID inválido."
+    atualizar2("DELETE FROM avaliacoes WHERE id = ?", valores=[id_avaliacao])
+    logger.info("[{}][/excluirAvaliador] Avaliação id={} excluída.", request.remote_addr, id_avaliacao)
+    return_url = request.referrer or url_for('avaliacoesNegadas')
+    return redirect(return_url)
 
 #Retorna a quantidade de linhas da consulta
 def quantidades(consulta):

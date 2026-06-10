@@ -8,7 +8,7 @@
   </head>
   <body class="bg-gray-50 text-gray-900 font-sans">
     <div class="container mx-auto px-4 max-w-screen-xl py-8">
-      <div class="max-w-2xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <div class="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <h1 class="text-2xl font-bold text-gray-800 mb-2">Inserir Avaliador</h1>
         <p class="text-gray-500 text-sm mb-6"><em>Total de Projetos: {{ totalDeLinhas }}</em></p>
         <form name="frmEnviar" action="/pesquisa/inserirAvaliador" method="POST">
@@ -33,6 +33,7 @@
         {% if avaliadores %}
         <div class="mt-8">
           <h2 class="text-lg font-semibold text-gray-700 mb-3">Avaliadores do projeto</h2>
+          <div class="overflow-x-auto">
           <table class="w-full text-sm border border-gray-200 rounded-md overflow-hidden">
             <thead class="bg-gray-100 text-gray-600 uppercase text-xs">
               <tr>
@@ -41,6 +42,7 @@
                 <th class="px-4 py-2 text-left">Convite</th>
                 <th class="px-4 py-2 text-left">Finalizado</th>
                 <th class="px-4 py-2 text-left">Data da avaliação</th>
+                <th class="px-4 py-2 text-left">Ações</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
@@ -65,10 +67,18 @@
                   {% endif %}
                 </td>
                 <td class="px-4 py-2 text-gray-600">{{ av[3] or '—' }}</td>
+                <td class="px-4 py-2">
+                  <form method="POST" action="/pesquisa/excluirAvaliador" onsubmit="return confirm('Excluir avaliador {{ av[0] }}?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="id_avaliacao" value="{{ av[4] }}"/>
+                    <button type="submit" class="text-red-600 hover:text-red-800 text-xs font-medium">Excluir</button>
+                  </form>
+                </td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
+          </div>
         </div>
         {% endif %}
       </div>

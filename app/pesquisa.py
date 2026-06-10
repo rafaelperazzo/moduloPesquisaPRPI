@@ -1464,7 +1464,9 @@ def inserirAvaliador():
     if request.method == "POST":
         token = id_generator(40)
         idProjeto = int(request.form['txtProjeto'])
-        avaliador1_email = str(request.form['txtEmail'])
+        avaliador1_email = str(request.form['txtEmail']).strip()
+        if not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s.]+$', avaliador1_email):
+            return("E-mail inválido.")
         consulta_verificacao = """
             SELECT avaliador from avaliacoes WHERE idProjeto = ? AND avaliador = ? 
         """

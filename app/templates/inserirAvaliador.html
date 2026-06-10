@@ -30,6 +30,47 @@
             <a href="/pesquisa/editalProjeto?edital={{codigoEdital}}" class="text-blue-600 hover:underline text-sm">VOLTAR PARA LISTA DE PROJETOS</a>
           </div>
         </form>
+        {% if avaliadores %}
+        <div class="mt-8">
+          <h2 class="text-lg font-semibold text-gray-700 mb-3">Avaliadores do projeto</h2>
+          <table class="w-full text-sm border border-gray-200 rounded-md overflow-hidden">
+            <thead class="bg-gray-100 text-gray-600 uppercase text-xs">
+              <tr>
+                <th class="px-4 py-2 text-left">#</th>
+                <th class="px-4 py-2 text-left">E-mail</th>
+                <th class="px-4 py-2 text-left">Convite</th>
+                <th class="px-4 py-2 text-left">Finalizado</th>
+                <th class="px-4 py-2 text-left">Data da avaliação</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {% for av in avaliadores %}
+              <tr class="hover:bg-gray-50">
+                <td class="px-4 py-2 text-gray-500">{{ loop.index }}</td>
+                <td class="px-4 py-2">{{ av[0] }}</td>
+                <td class="px-4 py-2">
+                  {% if av[1] == 1 %}
+                    <span class="text-green-600 font-medium">Aceitou</span>
+                  {% elif av[1] == 0 %}
+                    <span class="text-red-600 font-medium">Rejeitou</span>
+                  {% else %}
+                    <span class="text-yellow-600 font-medium">Não respondeu</span>
+                  {% endif %}
+                </td>
+                <td class="px-4 py-2">
+                  {% if av[2] == 1 %}
+                    <span class="text-green-600 font-medium">Sim</span>
+                  {% else %}
+                    <span class="text-red-500 font-medium">Não</span>
+                  {% endif %}
+                </td>
+                <td class="px-4 py-2 text-gray-600">{{ av[3] or '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
       </div>
     </div>
   </body>

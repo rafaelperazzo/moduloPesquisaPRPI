@@ -1443,7 +1443,12 @@ def avaliacoesNegadas():
                 linha = cursor.fetchall()
                 total = cursor.rowcount
                 conn.close()
-                return(render_template('inserirAvaliador.html',listaProjetos=linha,totalDeLinhas=total,codigoEdital=codigoEdital))
+                consulta_verificacao = """
+                    SELECT avaliador,aceitou,finalizado,DATE_FORMAT(data_avaliacao,'%d/%m/%Y') from avaliacoes WHERE idProjeto = ? 
+                    ORDER BY aceitou DESC, finalizado DESC
+                """
+                avaliadores, totalAvaliadores = executarSelect2(consulta_verificacao,valores=[idProjeto])
+                return(render_template('inserirAvaliador.html',listaProjetos=linha,totalDeLinhas=total,codigoEdital=codigoEdital,avaliadores=avaliadores))
             except Exception as e:
                 logger.error(e)
                 logger.error(consulta)

@@ -165,6 +165,7 @@
             <tr>
               <td><a href="/pesquisa/arquivar/{{linha[0]}}" onclick="return confirm('Tem certeza que deseja arquivar o id {{linha[0]}}?')" class="text-red-600 hover:underline text-xs font-medium">ARQUIVAR</a></td>
               <td>
+                <a href="/pesquisa/avaliacoesNegadas?edital={{codigoEdital}}&id={{linha[0]}}" class="text-blue-600 hover:underline">
                 {% if (linha[9] is none) %}
                   <img src="{{ url_for('static', filename='interrogacao_vermelha.png')}}?rnd={{ range(1, 10000) | random }}" style="width:30px" alt="">
                   SEM AVALIADORES!
@@ -189,6 +190,7 @@
                     {% endif %}
                   {% endif %}
                 {% endif %}
+                </a>
               </td>
               {% if ((modalidade==2) and (linha[14]==0)) %}
                 <td style="background-color:#EBEE1F">

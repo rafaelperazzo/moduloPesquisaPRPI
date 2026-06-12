@@ -900,7 +900,7 @@ def verificarDeclaracao():
     consulta_proj = """SELECT DISTINCT
         UPPER(editalProjeto.nome),
         editalProjeto.siape,
-        UPPER(editalProjeto.titulo),
+        editalProjeto.titulo,
         DATE_FORMAT(editalProjeto.inicio,'%d/%m/%Y') as inicio,
         DATE_FORMAT(editalProjeto.fim,'%d/%m/%Y') as fim,
         COALESCE((SELECT GROUP_CONCAT(indicacoes.nome ORDER BY indicacoes.nome SEPARATOR ', ')

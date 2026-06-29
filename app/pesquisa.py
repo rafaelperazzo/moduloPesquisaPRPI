@@ -247,6 +247,7 @@ s3 = boto3.client('s3', region_name=AWS_REGION,
 PASSWORD = os.getenv("MYSQL_PASSWORD", "World")
 GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD", "World")
 app.config['SECRET_KEY'] = secrets.token_hex()
+app.config['WTF_CSRF_TIME_LIMIT'] = None
 app.config['MAIL_PASSWORD'] = GMAIL_PASSWORD
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
 

@@ -1,0 +1,10 @@
+[Unit]
+Description=Executa o healthcheck do Yoko Pesquisa periodicamente
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+Unit=pesquisa-healthcheck.service
+
+[Install]
+WantedBy=timers.target

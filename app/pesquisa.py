@@ -823,6 +823,32 @@ def home():
 def version():
     return jsonify({"version": __version__})
 
+@app.route("/health")
+@limiter.exempt
+def health():
+    if PRODUCAO != 1:
+        return jsonify({"status": "disabled"}), 404
+
+    status = {"database": "ok", "redis": "ok"}
+    saudavel = True
+
+    try:
+        conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
+        conn.close()
+    except Exception as e:
+        logger.error("Healthcheck: falha na conexão com o banco de dados: {}", str(e))
+        status["database"] = "error"
+        saudavel = False
+
+    try:
+        app.config['SESSION_REDIS'].ping()
+    except Exception as e:
+        logger.error("Healthcheck: falha na conexão com o Redis: {}", str(e))
+        status["redis"] = "error"
+        saudavel = False
+
+    return jsonify(status), 200 if saudavel else 503
+
 @app.route("/admin")
 @login_required(role='admin')
 @log_required

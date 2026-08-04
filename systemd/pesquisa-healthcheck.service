@@ -1,0 +1,12 @@
+[Unit]
+Description=Healthcheck do Yoko Pesquisa (verifica /health e reinicia pesquisa.service se necessário)
+After=pesquisa.service
+Requisite=pesquisa.service
+
+[Service]
+Type=oneshot
+# Ajuste a porta/prefixo conforme SERVER_PORT e URL_PREFIX usados em produção,
+# e o nome da unit caso o serviço principal não se chame "pesquisa.service".
+Environment=PESQUISA_HEALTH_URL=http://127.0.0.1:80/pesquisa/health
+Environment=PESQUISA_SERVICE_NAME=pesquisa.service
+ExecStart=/usr/local/bin/pesquisa-healthcheck.sh

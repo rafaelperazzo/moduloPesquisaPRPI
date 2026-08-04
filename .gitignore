@@ -29,6 +29,7 @@ cron.avaliacao.sh
 *.pass
 *.sql
 *.sh
+!systemd/pesquisa-healthcheck.sh
 *.pdf
 *.xml
 mysql/*

@@ -7,21 +7,19 @@ qualquer outro ambiente retorna 404.
 
 ## Instalação na VPS
 
-```bash
-sudo cp pesquisa-healthcheck.sh /usr/local/bin/pesquisa-healthcheck.sh
-sudo chmod +x /usr/local/bin/pesquisa-healthcheck.sh
+A partir do checkout do repositório na VPS:
 
-sudo cp pesquisa-healthcheck.service pesquisa-healthcheck.timer /etc/systemd/system/
+```bash
+sudo systemd/instalar-healthcheck.sh
 ```
 
-Edite `/etc/systemd/system/pesquisa-healthcheck.service` e ajuste:
+O script copia `pesquisa-healthcheck.sh` para `/usr/local/bin`, as units para
+`/etc/systemd/system`, recarrega o systemd e habilita o timer.
+
+Antes de rodar (ou depois, editando `/etc/systemd/system/pesquisa-healthcheck.service`
+e rodando `systemctl daemon-reload`), confira se os valores batem com o ambiente real:
 - `PESQUISA_HEALTH_URL` — porta (`SERVER_PORT`) e prefixo (`URL_PREFIX`) reais
 - `PESQUISA_SERVICE_NAME` — nome da unit que roda `python3 pesquisa.py`, caso não seja `pesquisa.service`
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now pesquisa-healthcheck.timer
-```
 
 ## Verificação
 

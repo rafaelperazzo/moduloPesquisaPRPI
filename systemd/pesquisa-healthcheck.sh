@@ -4,7 +4,7 @@
 # periodicamente pela unit pesquisa-healthcheck.timer.
 set -euo pipefail
 
-URL="${PESQUISA_HEALTH_URL:-http://127.0.0.1:80/pesquisa/health}"
+URL="${PESQUISA_HEALTH_URL:-http://127.0.0.1:8888/pesquisa/health}"
 SERVICE="${PESQUISA_SERVICE_NAME:-pesquisa.service}"
 
 if curl --fail --silent --show-error --max-time 10 "$URL" > /dev/null; then

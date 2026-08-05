@@ -1,7 +1,6 @@
 [Unit]
 Description=Healthcheck do Yoko Pesquisa (verifica /health e reinicia pesquisa.service se necessário)
 After=pesquisa.service
-Requisite=pesquisa.service
 
 [Service]
 Type=oneshot

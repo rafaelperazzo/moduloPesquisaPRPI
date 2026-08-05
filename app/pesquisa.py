@@ -17,7 +17,6 @@ import pdfkit
 from flask_mail import Mail
 from flask_mail import Message
 from flask_uploads import UploadSet, configure_uploads, ALL, DOCUMENTS
-import pandas as pd
 import threading
 import zeep
 import zipfile
@@ -1846,6 +1845,15 @@ def obterColunaUnica_str(tabela,coluna,colunaId,valorId):
         conn.close()
 
 
+pdf_lock = threading.Lock()
+
+def pdfkit_from_string(*args, **kwargs):
+    # Serializa as chamadas ao wkhtmltopdf: cada geração de PDF sobe um processo
+    # externo pesado, e permitir várias simultâneas já causou pico de memória
+    # e OOM-kill do serviço na VPS.
+    with pdf_lock:
+        return pdfkit.from_string(*args, **kwargs)
+
 def gerarPDF(template):
     try:
         arquivoDeclaracao = app.config['TEMP_FOLDER'] + 'resultados.pdf'
@@ -1856,7 +1864,7 @@ def gerarPDF(template):
             'margin-bottom': '1cm',
             'margin-left': '2cm',
         }
-        pdfkit.from_string(template,arquivoDeclaracao,options=options)
+        pdfkit_from_string(template,arquivoDeclaracao,options=options)
         #HTML(string=template).write_pdf(arquivoDeclaracao)
     except Exception as e:
         logger.error("ERRO Na função gerarPDF: {}", str(e))
@@ -2090,7 +2098,7 @@ def minhaDeclaracao():
                         'margin-left': '2cm',
                     }
                     try:
-                        pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(token,projeto[2]),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                        pdfkit_from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(token,projeto[2]),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
                         #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE)
                         #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
                     except Exception as e:
@@ -2130,7 +2138,7 @@ def minhaDeclaracao():
                             'margin-left': '2cm',
                         }
                         try: 
-                            pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idProjeto,projeto[2]),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                            pdfkit_from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idProjeto,projeto[2]),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
                             #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idProjeto,projeto[2]),raiz=ROOT_SITE)
                             #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
                         except Exception as e:
@@ -2162,7 +2170,7 @@ def minhaDeclaracao():
                             'margin-left': '2cm',
                         }
                         try:
-                            pdfkit.from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idProjeto,projeto[2]),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                            pdfkit_from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idProjeto,projeto[2]),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
                             #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idProjeto,projeto[2]),raiz=ROOT_SITE)
                             #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
                         except Exception as e:
@@ -2201,7 +2209,7 @@ def minhaDeclaracaoDiscente():
                     'margin-left': '2cm',
                 }
                 try:
-                    pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(str(projeto[9]),projeto[5],'declaracao_discente'),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                    pdfkit_from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(str(projeto[9]),projeto[5],'declaracao_discente'),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
                 except Exception as e:
                     with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
                         logger.warning("Erro ao gerar declaração: {}", str(e)) 
@@ -2266,7 +2274,7 @@ def meuCertificado2018():
                     'no-outline': None
                 }
                 try:
-                    pdfkit.from_string(render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=token,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                    pdfkit_from_string(render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=token,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
                 except Exception as e:
                     with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
                         logger.warning("Erro ao gerar declaração: {}", str(e)) 
@@ -2324,7 +2332,7 @@ def meuCertificado():
                     'no-outline': None
                 }
                 try:
-                    pdfkit.from_string(render_template('certificado_discente.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                    pdfkit_from_string(render_template('certificado_discente.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
                 except Exception as e:
                     with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
                         logger.warning("Erro ao gerar declaração: {}", str(e)) 
@@ -2373,7 +2381,7 @@ def minhaDeclaracaoDiscente2019():
                     'margin-left': '2cm',
                 }
                 try:
-                    pdfkit.from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idIndicacao,projeto[5],'declaracao_discente'),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                    pdfkit_from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idIndicacao,projeto[5],'declaracao_discente'),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
                 except Exception as e:
                     with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
                         logger.warning("Erro ao gerar declaração: {}", str(e)) 
@@ -3536,6 +3544,7 @@ def consultas():
             return(render_template('resultados_consulta.html',linhas=linhas,total=total))
         else:
             try:
+                import pandas as pd
                 df = pd.DataFrame(list(linhas))
                 df.to_csv(app.config['TEMP_FOLDER'] + 'resultados.csv', encoding="utf-8",header=['ID do projeto','EDITAL','UNIDADE ACADEMICA','TÍTULO','ORIENTADOR','INDICAÇÕES','TOTAL DE INDICAÇÕES','INICIO','FIM'])
                 #df.to_csv(app.config['TEMP_FOLDER'] + 'resultados.csv', encoding="utf-8")
@@ -4520,5 +4529,6 @@ if PRODUCAO==1:
 
 if __name__ == "__main__":
     prefixo = os.getenv('URL_PREFIX','/pesquisa')
+    threads = int(os.getenv('WAITRESS_THREADS', '2'))
     with logger.catch():
-        serve(app, host='0.0.0.0', port=int(SERVER_PORT), url_prefix=prefixo,trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port')
+        serve(app, host='0.0.0.0', port=int(SERVER_PORT), url_prefix=prefixo,trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port',threads=threads)

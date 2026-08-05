@@ -1,0 +1,30 @@
+[Unit]
+Description=Sistema Flask Yoko-Pesquisa
+After=network.target
+
+[Service]
+User=admin
+Group=www-data
+WorkingDirectory=/home/admin/moduloPesquisaPRPI/app
+Environment=GIT_PYTHON_REFRESH=quiet
+#Environment="PATH=/home/admin/moduloPesquisaPRPI/app/env/bin"
+Environment="PATH=/home/admin/moduloPesquisaPRPI/app/env/bin:/usr/bin:/usr/local/bin"
+#ExecStart=sh -c 'redis-cli FLUSHALL  && /home/admin/moduloPesquisaPRPI/app/env/bin/python pesquisa.py'
+ExecStart=/home/admin/moduloPesquisaPRPI/app/env/bin/python pesquisa.py
+Restart=on-failure
+RestartSec=5
+
+# Contém o consumo de memória a este cgroup em vez de deixar o app crescer
+# até o OOM killer global escolher uma vítima arbitrária na VPS (foi o que
+# aconteceu em 2026-08-05: pico de 327.5M sem limite nenhum configurado).
+# MemoryHigh joga backpressure (reclaim agressivo) antes do teto; MemoryMax
+# é o teto rígido — se estourar, só este serviço morre e o Restart=on-failure
+# já traz de volta em 5s.
+MemoryHigh=350M
+MemoryMax=450M
+
+# Torna este serviço o último a ser escolhido pelo OOM killer global (ex: em
+# vez do sage_bot ou de outro processo), já que é o serviço de produção.
+OOMScoreAdjust=-500
+[Install]
+WantedBy=multi-user.target

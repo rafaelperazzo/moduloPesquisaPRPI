@@ -10,9 +10,9 @@ Sistema de gerenciamento de projetos de pesquisa
 ## Em progresso
 
 - [ ] Remover lazy logs
-- [ ] Remover consultas vulneráveis a SQL Injection
 
 ## Finalizadas ✓
 
 - [x] Adicionar logs em todas as rotas
 - [x] Adicionar logs de erro
+- [x] Remover consultas vulneráveis a SQL Injection

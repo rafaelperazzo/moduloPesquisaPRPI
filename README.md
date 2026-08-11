@@ -58,6 +58,13 @@ Sistema web desenvolvido para auxiliar no gerenciamento e acompanhamento de proj
 
 ---
 
+## 🔒 Segurança
+
+- Todas as consultas SQL do sistema utilizam parâmetros vinculados (*bound parameters*) via o conector `mariadb`, eliminando os riscos de SQL Injection identificados em uma varredura completa da aplicação.
+- Dados sensíveis da tabela de indicações (RG, telefone, celular, nascimento, endereço) são criptografados em repouso com AES.
+
+---
+
 ## ⚙️ Instalação
 
 Ainda em fase de desenvolvimento, o passo a passo abaixo ainda precisa de alguns ajustes.

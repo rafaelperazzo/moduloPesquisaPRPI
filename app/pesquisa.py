@@ -3188,7 +3188,7 @@ def enviarFrequencia():
                 titulo_projeto = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
                 codigoEdital = obterColunaUnica('editalProjeto','tipo','id',idProjeto)
                 descricaoEdital = obterColunaUnica('editais','nome','id',codigoEdital)
-                data_final = obterColunaUnica('indicacoes','ADDDATE(DATE(fim),INTERVAL 90 DAY)','id',idAluno)
+                data_final = obterColunaUnica('indicacoes','ADDDATE(DATE(fim),INTERVAL 240 DAY)','id',idAluno)
                 data_hoje = obterColunaUnica('indicacoes','DATE(NOW())','id',idAluno)
                 if data_hoje>data_final:
                     return("Prazo para envio de frequencias expirado (%s)!" %(data_final))
@@ -4337,7 +4337,7 @@ def task_enviar_email_avaliadores():
             time.sleep(10)
     logger.info("Tarefa de envio de e-mails para avaliadores concluída com sucesso.")
 
-@scheduler.task('cron', id='do_job_enviar_email_avaliadores', week='*', day_of_week='2,4', hour='1', minute='45')
+@scheduler.task('cron', id='do_job_enviar_email_avaliadores', week='*', day_of_week='2,4', hour='20', minute='05')
 def job_enviar_email_avaliadores():
     """
     Tarefa agendada para enviar e-mails de solicitação de avaliação
@@ -4424,7 +4424,7 @@ def task_enviar_lembrete_frequencia():
             logger.info("Aguardando 10 segundos antes do próximo lote.")
             time.sleep(10)
 
-@scheduler.task('cron', id='do_job_cobrar_frequencia', week='*', day='5-30/5', hour='7', minute='59')
+@scheduler.task('cron', id='do_job_cobrar_frequencia', week='*', day='5-30/5', hour='12', minute='10')
 def job_cobrar_frequencia():
     """
     Tarefa agendada para enviar lembretes de frequência aos orientadores

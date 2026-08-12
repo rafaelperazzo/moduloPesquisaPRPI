@@ -49,6 +49,7 @@ import requests
 import geoip2.database
 import boto3
 from botocore.exceptions import ClientError
+from botocore.config import Config
 from dotenv import load_dotenv
 #from weasyprint import HTML
 
@@ -240,7 +241,8 @@ AWS_REGION = os.getenv("AWS_REGION", "us-east-2")
 AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET", "default_bucket")
 s3 = boto3.client('s3', region_name=AWS_REGION,
                   aws_access_key_id=AWS_S3_KEY_ID,
-                  aws_secret_access_key=AWS_S3_SECRET_KEY)
+                  aws_secret_access_key=AWS_S3_SECRET_KEY,
+                  config=Config(use_dualstack_endpoint=True))
 
 #Obtendo senhas
 PASSWORD = os.getenv("MYSQL_PASSWORD", "World")

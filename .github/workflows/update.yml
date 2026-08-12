@@ -1,6 +1,6 @@
 # This workflow will update the system when a commit is pushed to the python3 branch.
 # The workflow is triggered on pushes to the python3 branch.
-# UTILIZANDO O AWS SSM
+# UTILIZANDO O AWS SSM - Migrando para cloudfare
 
 name: Atualizar sistema de Pesquisa
 

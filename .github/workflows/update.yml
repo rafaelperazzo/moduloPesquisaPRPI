@@ -32,7 +32,7 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --comment "Deploy pesquisa via GitHub Actions" \
             --parameters commands='[
-              "git config --global --add safe.directory /home/admin/moduloPesquisaPRPI",
+              "git config --system --add safe.directory /home/admin/moduloPesquisaPRPI",
               "cd /home/admin/moduloPesquisaPRPI",
               "git pull origin python3 --tags",
               "sudo service pesquisa restart"

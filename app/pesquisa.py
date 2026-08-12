@@ -420,8 +420,8 @@ def extrair_modalidade(texto):
 
 def atualizarPontuacaoLattes(cpf, area, idProjeto):
     periodo = "5"
-    url_score = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "0"
-    url_sumario = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "1"
+    url_score = "https://yokoapps.com.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "0"
+    url_sumario = "https://yokoapps.com.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "1"
     sumario = ""
     pontuacao = "0.0"
     try:
@@ -443,8 +443,8 @@ def atualizarPontuacaoLattes(cpf, area, idProjeto):
 
 def processarPontuacaoLattes(cpf,area,idProjeto,dados):
     periodo = "5"
-    url_score = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "0"
-    url_sumario = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "1"
+    url_score = "https://yokoapps.com.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "0"
+    url_sumario = "https://yokoapps.com.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "1"
     sumario = ""
     pontuacao = "0.0"
     try:
@@ -1176,7 +1176,7 @@ def getScoreLattesFromFile():
     area_capes = str(request.form['area_capes'])
     cpf = str(request.form['cpf'])
     periodo = str(request.form['periodo'])
-    url_sumario = "https://sci01-ter-jne.ufca.edu.br/lattes/score/" + cpf + "/" + area_capes + "/" + periodo + "/" + "1"
+    url_sumario = "https://yokoapps.com.br/lattes/score/" + cpf + "/" + area_capes + "/" + periodo + "/" + "1"
     sumario = "{}"
     try:
         sumario = requests.get(url_sumario,timeout=120).text

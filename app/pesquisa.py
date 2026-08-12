@@ -3098,7 +3098,8 @@ def verArquivo():
                 thread = threading.Thread(target=esperar,args=(ATTACHMENTS_DIR + arquivo.replace(".gpg",""),))
                 thread.start()
                 return(send_from_directory(app.config['UPLOADED_DOCUMENTS_DEST'], arquivo.replace(".gpg","")))
-            except Exception:
+            except Exception as e:
+                logger.error("[verArquivo] Erro ao recuperar arquivo {}: {}", arquivo, str(e))
                 return("Arquivo não encontrado!")
             #FIM DO CÓDIGO S3
         else:
@@ -3115,7 +3116,8 @@ def verArquivosProjeto(filename):
         cripto.aes_gpg_decrypt_file(GPG_KEY,SUBMISSOES_DIR + arquivo, SUBMISSOES_DIR + arquivo.replace(".gpg",""))
         thread = threading.Thread(target=esperar,args=(SUBMISSOES_DIR + arquivo.replace(".gpg",""),))
         return(send_from_directory(app.config['UPLOADED_SUBMISSOES_DEST'], arquivo.replace(".gpg","")))
-    except Exception:
+    except Exception as e:
+        logger.error("[verArquivosProjeto] Erro ao recuperar arquivo {}: {}", arquivo, str(e))
         return("Arquivo não encontrado!")
 
 @app.route("/situacaoIndicacoes", methods=['GET', 'POST'])

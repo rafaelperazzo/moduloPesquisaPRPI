@@ -4542,6 +4542,69 @@ def mensagens():
     else:
         return render_template('mensagens.html')
 
+def senha_segura_valida(senha):
+    """Verifica se uma senha atende aos requisitos mínimos de segurança.
+
+    Requisitos: 12 ou mais caracteres, com letras maiúsculas, minúsculas,
+    números e caracteres especiais.
+    """
+    if len(senha) < 12:
+        return False
+    if not re.search(r'[a-z]', senha):
+        return False
+    if not re.search(r'[A-Z]', senha):
+        return False
+    if not re.search(r'[0-9]', senha):
+        return False
+    if not re.search(r'[^a-zA-Z0-9]', senha):
+        return False
+    return True
+
+@app.route("/novaSenha", methods=['GET', 'POST'])
+@login_required(role='user')
+@log_required
+def nova_senha():
+    """
+    Página para o usuário logado definir uma nova senha segura.
+    """
+    if request.method == 'POST':
+        senha_atual = str(request.form.get('senha_atual', ''))[:64]
+        nova = str(request.form.get('nova_senha', ''))[:64]
+        confirmar = str(request.form.get('confirmar_senha', ''))[:64]
+
+        hash_atual = obterColunaUnica('users', 'password', 'username', session['username'])
+        try:
+            senha_atual_valida = cripto.hash_argon2id_verify(hash_atual, senha_atual)
+        except Exception as e:
+            senha_atual_valida = False
+
+        if not senha_atual_valida:
+            flash("Senha atual incorreta.", 'error')
+            return redirect(url_for('nova_senha'))
+
+        if nova != confirmar:
+            flash("A nova senha e a confirmação não coincidem.", 'error')
+            return redirect(url_for('nova_senha'))
+
+        if not senha_segura_valida(nova):
+            flash("A nova senha deve ter no mínimo 12 caracteres e incluir letras maiúsculas, minúsculas, números e caracteres especiais.", 'error')
+            return redirect(url_for('nova_senha'))
+
+        try:
+            hash_nova_senha = cripto.hash_argon2id(nova)
+            consulta = """UPDATE users SET password=%s WHERE username=%s"""
+            atualizar2(consulta, valores=[hash_nova_senha, session['username']])
+            with logger.contextualize(ip=request.remote_addr,username=session['username'],rota=request.path,metodo=request.method,erro=""):
+                logger.info("Usuário alterou a própria senha")
+        except Exception as e:
+            logger.error("Erro ao alterar a senha do usuário {}: {}", session['username'], str(e))
+            flash("Erro ao alterar a senha. Tente novamente.", 'error')
+            return redirect(url_for('nova_senha'))
+
+        flash("Senha alterada com sucesso!")
+        return redirect(url_for('home'))
+    return render_template('novaSenha.html')
+
 if PRODUCAO==1:
     scheduler.start()
 

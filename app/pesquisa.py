@@ -292,6 +292,21 @@ def login_required(role='admin'):
         return decorated_function
     return decorator_login_required
 
+ROTAS_PERMITIDAS_SENHA_VAZADA = {'nova_senha', 'encerrarSessao', 'static'}
+
+@app.before_request
+def bloquear_acesso_com_senha_vazada():
+    """
+    Quando o login detecta (via Cloudflare Leaked Credential Check) que a
+    senha do usuário está vazada, a sessão é marcada com 'senha_vazada'.
+    Enquanto essa marca existir, o usuário só pode acessar a tela de troca
+    de senha, o logout e arquivos estáticos - todas as demais rotas são
+    redirecionadas até que uma nova senha seja definida.
+    """
+    if session.get('senha_vazada') and request.endpoint not in ROTAS_PERMITIDAS_SENHA_VAZADA:
+        flash("Você precisa definir uma nova senha antes de continuar.", "error")
+        return redirect(url_for('nova_senha'))
+
 def log_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -590,6 +605,24 @@ def token_valido(token):
         return False
     else:
         return True
+
+def senha_vazada_detectada():
+    """Verifica se o Cloudflare identificou, via Leaked Credential Checks,
+    que as credenciais enviadas no login fazem parte de um vazamento de
+    dados conhecido.
+
+    O Cloudflare envia o header 'Exposed-Credential-Check' com um valor de
+    1 a 4 (o significado varia conforme o plano/tipo de detecção; no plano
+    Free apenas a senha é checada). O header só chega à origem se o Managed
+    Transform "Add Leaked Credentials Checks Header" estiver habilitado no
+    painel (Rules > Managed Transforms).
+    Referência: https://developers.cloudflare.com/waf/detections/leaked-credentials/
+
+    Returns:
+        boolean: Verdadeiro se a senha foi identificada como vazada
+    """
+    valor = request.headers.get('Exposed-Credential-Check', '0')
+    return valor != '0' and valor != ''
 
 def nome_valido(nome):
     """Verifica se um nome é válido.
@@ -2479,6 +2512,12 @@ def login():
             senha = senha[:64]  # Limitar o tamanho da senha para evitar problemas ataques DoS
             if verify_password(siape,senha):
                 registrar_acesso(request.remote_addr,siape)
+                if senha_vazada_detectada():
+                    session['senha_vazada'] = True
+                    with logger.contextualize(ip=request.remote_addr,username=siape,rota=request.path,metodo=request.method,erro=""):
+                        logger.warning("Login com senha identificada como vazada (Cloudflare Leaked Credential Check)")
+                    flash("Sua senha foi identificada em um vazamento de dados conhecido. Por segurança, defina uma nova senha.","error")
+                    return redirect(url_for('nova_senha'))
                 return(redirect(url_for('home')))
             else:
                 flash("Usuário ou senha inválidos. Tente novamente.","error")
@@ -4601,6 +4640,7 @@ def nova_senha():
             flash("Erro ao alterar a senha. Tente novamente.", 'error')
             return redirect(url_for('nova_senha'))
 
+        session.pop('senha_vazada', None)
         flash("Senha alterada com sucesso!")
         return redirect(url_for('home'))
     return render_template('novaSenha.html')

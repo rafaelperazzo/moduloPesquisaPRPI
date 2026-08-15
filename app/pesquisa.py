@@ -850,6 +850,12 @@ def home():
     session['PRODUCAO'] = PRODUCAO
     return render_template('root.html',mensagens=mensagens)
 
+@app.route("/seguranca")
+def seguranca():
+    """Página informativa sobre os recursos de segurança da infraestrutura
+    (Cloudflare) e da aplicação, para dar transparência aos usuários."""
+    return render_template('seguranca.html')
+
 @app.route("/version")
 def version():
     return jsonify({"version": __version__})

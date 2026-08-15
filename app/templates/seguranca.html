@@ -1,0 +1,256 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+      <i class="bi bi-shield-check text-emerald-600"></i>
+      Segurança do sistema
+    </h1>
+    <p class="text-gray-600 text-sm mt-2 max-w-3xl">
+      Esta página reúne, de forma transparente, os principais recursos de segurança que protegem
+      o domínio e a aplicação Yoko - Pesquisa, tanto na infraestrutura de rede quanto no próprio
+      sistema. O objetivo é dar tranquilidade a quem utiliza a plataforma.
+    </p>
+  </div>
+
+  <h2 class="text-lg font-semibold text-gray-800 mb-1 flex items-center gap-2">
+    <i class="bi bi-cloud-check text-blue-600"></i>
+    Segurança da infraestrutura (Cloudflare)
+  </h2>
+  <p class="text-gray-500 text-sm mb-4">
+    O domínio fica atrás da rede da Cloudflare (plano Free), que filtra e protege o tráfego antes
+    dele chegar ao servidor de aplicação.
+  </p>
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-lock text-blue-600"></i> Criptografia TLS 1.3
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Certificado emitido e renovado automaticamente (Universal SSL). Toda a comunicação entre o
+        navegador e o servidor é criptografada, impedindo que terceiros leiam ou alterem os dados
+        em trânsito.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-hurricane text-blue-600"></i> Proteção contra DDoS
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Mitigação automática e permanente de ataques de negação de serviço (DDoS), atuando em
+        múltiplas camadas de rede antes que o tráfego malicioso alcance o servidor.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-bricks text-blue-600"></i> Firewall de Aplicação Web (WAF)
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Regras gerenciadas que bloqueiam padrões conhecidos de ataque, como SQL Injection e
+        Cross-Site Scripting (XSS), antes que as requisições cheguem à aplicação.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-speedometer2 text-blue-600"></i> Limitação de taxa (Rate Limiting)
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Requisições excessivas vindas de uma mesma origem são identificadas e bloqueadas na borda
+        da rede, dificultando ataques automatizados e de força bruta.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-robot text-blue-600"></i> Bot Fight Mode
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Bots maliciosos conhecidos são identificados e desafiados automaticamente, reduzindo
+        tráfego automatizado indesejado sobre o sistema.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-globe-americas text-blue-600"></i> Bloqueio geográfico
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Regras de acesso podem restringir o tráfego a países específicos, reduzindo a exposição a
+        acessos originados de regiões sem relação com o público do sistema.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-incognito text-blue-600"></i> Bloqueio de VPN e proxies anônimos
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Regras baseadas em reputação e origem de IP identificam e podem restringir o acesso vindo
+        de redes de anonimização (VPNs, proxies abertos e nós Tor), dificultando tentativas de
+        ocultação de origem.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-key text-blue-600"></i> Verificação de credenciais vazadas
+      </h5>
+      <p class="text-gray-600 text-sm">
+        No momento do login, a senha informada é verificada contra bases de vazamentos de dados
+        conhecidos. Se houver correspondência, o sistema é avisado e força a troca da senha
+        (veja abaixo).
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-diagram-3 text-blue-600"></i> Rede global (Anycast) e CDN
+      </h5>
+      <p class="text-gray-600 text-sm">
+        O tráfego é distribuído por uma rede global de data centers, o que oculta o endereço real
+        do servidor de origem e absorve picos de acesso e ataques volumétricos.
+      </p>
+    </div>
+
+  </div>
+
+  <h2 class="text-lg font-semibold text-gray-800 mb-1 flex items-center gap-2">
+    <i class="bi bi-shield-lock text-emerald-600"></i>
+    Segurança da aplicação
+  </h2>
+  <p class="text-gray-500 text-sm mb-4">
+    Além da proteção de rede, o próprio sistema implementa camadas adicionais de segurança sobre
+    os dados e as ações dos usuários.
+  </p>
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-speedometer text-emerald-600"></i> Limitação de tentativas de acesso
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Rotas sensíveis, como login e redefinição de senha, possuem limites próprios de tentativas
+        por minuto, hora e dia, dificultando ataques de força bruta mesmo que a limitação da rede
+        seja contornada.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-fingerprint text-emerald-600"></i> Senhas com Argon2id
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Nenhuma senha é armazenada em texto puro. As senhas são protegidas com Argon2id, um
+        algoritmo de hash moderno e resistente a ataques por força bruta e por hardware
+        especializado (GPU/ASIC).
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-exclamation-octagon text-emerald-600"></i> Bloqueio de senhas vazadas
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Ao detectar, no login, que a senha utilizada já apareceu em um vazamento de dados
+        conhecido, o sistema bloqueia o acesso às demais funcionalidades até que o usuário defina
+        uma nova senha.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-check2-square text-emerald-600"></i> Exigência de senha forte
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Toda nova senha precisa ter no mínimo 12 caracteres, com letras maiúsculas, minúsculas,
+        números e caracteres especiais, reduzindo o risco de senhas fracas ou previsíveis.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-file-earmark-lock2 text-emerald-600"></i> Criptografia de dados sensíveis (AES-256)
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Dados pessoais sensíveis (como RG, data de nascimento, telefone e endereço) são
+        armazenados criptografados com AES-256, e o banco de dados também conta com criptografia
+        em repouso. Arquivos anexados são criptografados antes de serem guardados.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-database-check text-emerald-600"></i> Consultas parametrizadas
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Todo o acesso ao banco de dados é feito por meio de consultas parametrizadas, o que
+        elimina o risco de injeção de SQL (SQL Injection) a partir de dados informados pelo
+        usuário.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-file-earmark-code text-emerald-600"></i> Proteção contra CSRF
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Formulários e ações sensíveis são protegidos contra Cross-Site Request Forgery (CSRF),
+        impedindo que sites maliciosos executem ações em nome de um usuário autenticado.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-braces-asterisk text-emerald-600"></i> Cabeçalhos de segurança HTTP
+      </h5>
+      <p class="text-gray-600 text-sm">
+        O sistema envia cabeçalhos de segurança (como HTTPS obrigatório e Content Security Policy)
+        que reduzem a superfície de ataques comuns no navegador, como Cross-Site Scripting.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-clock-history text-emerald-600"></i> Sessões seguras e temporárias
+      </h5>
+      <p class="text-gray-600 text-sm">
+        As sessões são armazenadas no servidor (não no navegador), com expiração automática após
+        um período de inatividade, reduzindo o risco de uso indevido em caso de acesso
+        compartilhado.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-person-check text-emerald-600"></i> reCAPTCHA em formulários sensíveis
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Formulários públicos e sensíveis contam com reCAPTCHA, dificultando o envio automatizado
+        de dados por bots.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-journal-text text-emerald-600"></i> Registro e auditoria de acessos
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Acessos às funcionalidades do sistema são registrados (usuário, IP, rota e localização),
+        permitindo auditoria e identificação de atividades suspeitas.
+      </p>
+    </div>
+
+  </div>
+
+  <p class="text-gray-400 text-xs">
+    Os recursos listados acima representam as principais camadas de proteção em uso e podem
+    evoluir conforme a evolução do sistema e da infraestrutura.
+  </p>
+
+</div>
+{% endblock %}

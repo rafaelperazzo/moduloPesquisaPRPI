@@ -60,8 +60,29 @@ Sistema web desenvolvido para auxiliar no gerenciamento e acompanhamento de proj
 
 ## 🔒 Segurança
 
-- Todas as consultas SQL do sistema utilizam parâmetros vinculados (*bound parameters*) via o conector `mariadb`, eliminando os riscos de SQL Injection identificados em uma varredura completa da aplicação.
-- Dados sensíveis da tabela de indicações (RG, telefone, celular, nascimento, endereço) são criptografados em repouso com AES.
+Uma página com o detalhamento completo dos recursos abaixo está disponível em `/seguranca` dentro do próprio sistema.
+
+**Infraestrutura (Cloudflare - plano Free)**
+
+- Criptografia TLS 1.3 (Universal SSL)
+- Proteção contra DDoS
+- Firewall de Aplicação Web (WAF) com regras gerenciadas
+- Limitação de taxa (Rate Limiting) na borda da rede
+- Bot Fight Mode
+- Bloqueio geográfico e de VPNs/proxies anônimos
+- Verificação de credenciais vazadas (Leaked Credential Check)
+- Rede global Anycast/CDN, que oculta o IP de origem do servidor
+
+**Aplicação**
+
+- Todas as consultas SQL utilizam parâmetros vinculados (*bound parameters*) via o conector `mariadb`, eliminando os riscos de SQL Injection identificados em uma varredura completa da aplicação.
+- Dados sensíveis da tabela de indicações (RG, telefone, celular, nascimento, endereço) são criptografados com AES-256, com o banco também protegido por criptografia em repouso.
+- Senhas armazenadas com Argon2id, com política de senha forte (mínimo 12 caracteres, com maiúsculas, minúsculas, números e caracteres especiais).
+- Bloqueio automático de acesso quando a senha do usuário é identificada como vazada no login.
+- Limitação de tentativas (rate limiting) por rota em Flask-Limiter, com destaque para login e redefinição de senha.
+- Proteção contra CSRF (Flask-WTF), cabeçalhos de segurança HTTP (Flask-Talisman) e reCAPTCHA em formulários sensíveis.
+- Sessões armazenadas no servidor (Redis), com expiração automática.
+- Registro e auditoria de acessos (usuário, IP, rota e localização).
 
 ---
 

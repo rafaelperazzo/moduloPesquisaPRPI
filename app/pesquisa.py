@@ -4383,7 +4383,6 @@ def task_enviar_email_avaliadores():
                         texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
                         msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
                         try:
-                            time.sleep(1)
                             conn.send(msg)
                             logger.info("E-mail enviado: {} para o avaliador {}",msg.subject, email_avaliador)
                             consulta_update = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=%s"
@@ -4392,9 +4391,6 @@ def task_enviar_email_avaliadores():
                             logger.error("Erro ao enviar e-mail para {}: {}", email_avaliador, str(e))
             except Exception as e:
                 logger.error("Falha na conexão SMTP no lote {}: {}", i // batch_size + 1, str(e))
-        if i + batch_size < len(linhas):
-            logger.info("Aguardando 10 segundos antes do próximo lote.")
-            time.sleep(10)
     logger.info("Tarefa de envio de e-mails para avaliadores concluída com sucesso.")
 
 @scheduler.task('cron', id='do_job_enviar_email_avaliadores', week='*', day_of_week='2', hour='20', minute='05')
@@ -4480,9 +4476,6 @@ def task_enviar_lembrete_frequencia():
                             logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: {}",str(e))
             except Exception as e:
                 logger.error("Falha na conexão SMTP no lote {}: {}", i // batch_size + 1, str(e))
-        if i + batch_size < len(linhas):
-            logger.info("Aguardando 10 segundos antes do próximo lote.")
-            time.sleep(10)
 
 @scheduler.task('cron', id='do_job_cobrar_frequencia', week='*', day='5-30/10', hour='12', minute='10')
 def job_cobrar_frequencia():

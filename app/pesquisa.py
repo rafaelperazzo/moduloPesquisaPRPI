@@ -344,7 +344,7 @@ def getDados(ip):
                     }
             except Exception as e:
                 with logger.contextualize(ip=ip,erro=str(e),classe_erro=type(e).__name__):
-                    logger.error("Erro ao obter dados de geolocalização: {}", str(e))
+                    logger.warning("Erro ao obter dados de geolocalização: {}", str(e))
                 return {
                     'country': "NAO-ENCONTRADO",
                     'city': "NAO-ENCONTRADO",
@@ -352,7 +352,7 @@ def getDados(ip):
                 }
     except Exception as e:
         with logger.contextualize(ip=ip,erro=str(e),classe_erro=type(e).__name__):
-            logger.error("Erro ao abrir o banco de dados de geolocalização: {}", str(e))
+            logger.warning("Erro ao abrir o banco de dados de geolocalização: {}", str(e))
         return {
             'country': "NAO-ENCONTRADO",
             'city': "NAO-ENCONTRADO",
@@ -452,7 +452,7 @@ def atualizarPontuacaoLattes(cpf, area, idProjeto):
         SET scorelattes= %s WHERE id= %s"""
         atualizar2(consulta, valores=[pontuacao, idProjeto])
     except Exception as e:
-        logger.error("Erro ao atualizar o scorelattes: {} com o cpf: {}", str(e), str(cpf))
+        logger.warning("Erro ao atualizar o scorelattes: {} com o cpf: {}", str(e), str(cpf))
     return pontuacao, sumario
 
 def processarPontuacaoLattes(cpf,area,idProjeto,dados):
@@ -476,7 +476,7 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
         atualizar2(consulta,valores=[pontuacao,idProjeto])
     except Exception as e:
         with app.app_context():
-            logger.error("Erro ao atualizar o scorelattes: {} com o cpf: {}", str(e),str(cpf))
+            logger.warning("Erro ao atualizar o scorelattes: {} com o cpf: {}", str(e),str(cpf))
     with app.app_context():
         try:
             #ENVIAR E-MAIL DE CONFIRMAÇÃO
@@ -516,8 +516,8 @@ def atualizar(consulta):
         cursor.execute(consulta)
         conn.commit()
     except MySQLdb.Error as e:
-        logger.error(e)
-        logger.error(consulta)
+        logger.warning(e)
+        logger.warning(consulta)
     finally:
         cursor.close()
         conn.close()
@@ -540,8 +540,8 @@ def atualizar2(consulta,valores=()):
             cursor.execute(consulta,tuple(valores))
             conn.commit()
     except MySQLdb.Error as e:
-        logger.error(e)
-        logger.error(consulta)
+        logger.warning(e)
+        logger.warning(consulta)
     finally:
         cursor.close()
         conn.close()
@@ -554,9 +554,9 @@ def inserir(consulta,valores):
         cursor.execute(consulta,valores)
         conn.commit()
     except MySQLdb.Error as e:
-        logger.error(e)
-        logger.error("Erro ao inserir registro")
-        logger.error(valores)
+        logger.warning(e)
+        logger.warning("Erro ao inserir registro")
+        logger.warning(valores)
     finally:
         cursor.close()
         conn.close()
@@ -726,9 +726,9 @@ def gerarProjetosPorAluno(cpf):
         linhas2019 = cursor.fetchall()
         return (linhas,linhas2019)
     except Exception as e:
-        logger.error(e)
-        logger.error("ERRO Na função gerarProjetosPorAluno. Ver consulta abaixo.")
-        logger.error(consulta)
+        logger.warning(e)
+        logger.warning("ERRO Na função gerarProjetosPorAluno. Ver consulta abaixo.")
+        logger.warning(consulta)
     finally:
         cursor.close()
         conn.close()
@@ -815,7 +815,7 @@ def verify_password(username, password):
             return username
     except Exception as e:
         with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=str(e),consulta=consulta2,classe_erro=type(e).__name__):
-            logger.error("ERRO Na função verify_password")
+            logger.warning("ERRO Na função verify_password")
 
 @auth.get_user_roles
 def get_user_roles(user):
@@ -873,14 +873,14 @@ def health():
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
         conn.close()
     except Exception as e:
-        logger.error("Healthcheck: falha na conexão com o banco de dados: {}", str(e))
+        logger.warning("Healthcheck: falha na conexão com o banco de dados: {}", str(e))
         status["database"] = "error"
         saudavel = False
 
     try:
         app.config['SESSION_REDIS'].ping()
     except Exception as e:
-        logger.error("Healthcheck: falha na conexão com o Redis: {}", str(e))
+        logger.warning("Healthcheck: falha na conexão com o Redis: {}", str(e))
         status["redis"] = "error"
         saudavel = False
 
@@ -917,8 +917,8 @@ def declaracao():
                 return render_template('a4.html',texto=texto_declaracao,
                                        data=data_agora,identificador=texto_declaracao[7],raiz=ROOT_SITE)
             except Exception as e:
-                logger.error(e)
-                logger.error("Nao foi possivel gerar o PDF da declaração.")
+                logger.warning(e)
+                logger.warning("Nao foi possivel gerar o PDF da declaração.")
                 return "Erro ao gerar o PDF da declaração. Verifique os logs para mais detalhes."
         else:
             return "OK"
@@ -931,8 +931,8 @@ def projetos():
         return render_template('alunos.html',listaProjetos=projetosAluno,
                                lista2019=projetosAluno2019)
     except Exception as e:
-        logger.error(e)
-        logger.error("Nao foi possivel gerar os projetos do aluno.")
+        logger.warning(e)
+        logger.warning("Nao foi possivel gerar os projetos do aluno.")
         return "Erro! Não utilize acentos ou caracteres especiais na busca."
 
 @app.route("/autenticacao", methods=['POST'])
@@ -1057,7 +1057,7 @@ def cadastrarProjeto():
         if total > 0:
             ultimo_id = int(resultado[0][0])
         else:
-            logger.error("Não foi possível obter o ID do último projeto cadastrado.")
+            logger.warning("Não foi possível obter o ID do último projeto cadastrado.")
             return "ERRO INTERNO!"
         ultimo_id_str = "%03d" % (ultimo_id)
 
@@ -1387,12 +1387,12 @@ def enviarAvaliacao():
                 consulta = "UPDATE avaliacoes SET inovacao= %s WHERE token= %s "
                 atualizar2(consulta, valores=[inovacao,token])
         except Exception as e:
-            logger.error("[AVALIACAO] ERRO ao gravar a avaliação: {} - ({})", token, str(e))
+            logger.warning("[AVALIACAO] ERRO ao gravar a avaliação: {} - ({})", token, str(e))
             return("Não foi possível gravar a avaliação. Favor entrar contactar " + DEFAULT_EMAIL)
         try:
             return (redirect(url_for('getDeclaracaoAvaliador',tokenAvaliacao=token)))
         except Exception as e:
-            logger.error("[/avaliar] ERRO ao gerar a declaração: {} - ({})",token, str(e))
+            logger.warning("[/avaliar] ERRO ao gerar a declaração: {} - ({})",token, str(e))
             return("Não foi possível gerar a declaração.")
     else:
         return("OK")
@@ -1430,7 +1430,7 @@ def getDeclaracaoAvaliador(tokenAvaliacao):
     Gera a declaração de avaliação do avaliador.
     """
     if not token_valido(tokenAvaliacao):
-        logger.error("[/declaracaoAvaliador] Token inválido: {}", tokenAvaliacao)
+        logger.warning("[/declaracaoAvaliador] Token inválido: {}", tokenAvaliacao)
         return "Token inválido!"
     consulta = """
     SELECT nome_avaliador,idProjeto,avaliador FROM avaliacoes WHERE token=%s
@@ -1519,8 +1519,8 @@ def avaliacoesNegadas():
                 avaliadores, totalAvaliadores = executarSelect2(consulta_verificacao,valores=[idProjeto])
                 return(render_template('inserirAvaliador.html',listaProjetos=linha,totalDeLinhas=total,codigoEdital=codigoEdital,avaliadores=avaliadores))
             except Exception as e:
-                logger.error(e)
-                logger.error(consulta)
+                logger.warning(e)
+                logger.warning(consulta)
                 conn.close()
                 return(consulta)
         else:
@@ -1696,7 +1696,7 @@ def executarSelect(consulta,tipo=0):
             resultado = cursor.fetchone()
         return (resultado,total)
     except Exception as e:
-        logger.error("ERRO Na função executarSelect: {}", str(e))
+        logger.warning("ERRO Na função executarSelect: {}", str(e))
     finally:
         cursor.close()
         conn.close()
@@ -1717,7 +1717,7 @@ def executarSelect2(consulta,tipo=0,valores=()):
             resultado = cursor.fetchone()
         return (resultado,total)
     except Exception as e:
-        logger.error("ERRO Na função executarSelect2: {}", str(e))
+        logger.warning("ERRO Na função executarSelect2: {}", str(e))
     finally:
         cursor.close()
         conn.close()
@@ -1868,7 +1868,7 @@ def obterColunaUnica(tabela,coluna,colunaId,valorId):
             resultado = str(linha[0])
         return(resultado)
     except Exception as e:
-        logger.error("ERRO Na função obtercolunaUnica: {}", str(e))
+        logger.warning("ERRO Na função obtercolunaUnica: {}", str(e))
     finally:
         cursor.close()
         conn.close()
@@ -1892,9 +1892,9 @@ def obterColunaUnica_str(tabela,coluna,colunaId,valorId):
         return(resultado)
     except:
         e = sys.exc_info()[0]
-        logger.error(e)
-        logger.error("ERRO Na função obtercolunaUnica. Ver consulta abaixo.")
-        logger.error(consulta)
+        logger.warning(e)
+        logger.warning("ERRO Na função obtercolunaUnica. Ver consulta abaixo.")
+        logger.warning(consulta)
     finally:
         cursor.close()
         conn.close()
@@ -1922,7 +1922,7 @@ def gerarPDF(template):
         pdfkit_from_string(template,arquivoDeclaracao,options=options)
         #HTML(string=template).write_pdf(arquivoDeclaracao)
     except Exception as e:
-        logger.error("ERRO Na função gerarPDF: {}", str(e))
+        logger.warning("ERRO Na função gerarPDF: {}", str(e))
 
 @app.route("/editalProjeto", methods=['GET', 'POST'])
 @login_required(role='admin')
@@ -1996,9 +1996,9 @@ def editalProjeto():
                         mensagem = ""
                         return(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=0,modalidade=modalidade))
                 except Exception as e:
-                    logger.error(str(e))
-                    logger.error("ERRO Na função /editalProjeto. Ver consulta abaixo.")
-                    logger.error(consulta_novos)
+                    logger.warning(str(e))
+                    logger.warning("ERRO Na função /editalProjeto. Ver consulta abaixo.")
+                    logger.warning(consulta_novos)
                     return("ERRO!")
                 finally:
                     cursor.close()
@@ -2046,9 +2046,9 @@ def declaracoesServidor():
                 return(render_template('declaracoes_servidor.html',listaDeclaracoes=declaracoes))
             except:
                 e = sys.exc_info()[0]
-                logger.error(e)
-                logger.error("ERRO Na função /declaracoesPorServidor. Ver consulta abaixo.")
-                logger.error(consulta)
+                logger.warning(e)
+                logger.warning("ERRO Na função /declaracoesPorServidor. Ver consulta abaixo.")
+                logger.warning(consulta)
                 return("ERRO!")
         else:
             return("OK")
@@ -2469,8 +2469,8 @@ def meusPareceres():
                     pareceres,total = executarSelect2(consulta,valores=parametros_consulta)
                     return(render_template('meusPareceres.html',linhas=pareceres,total=total,titulo=tituloProjeto))
                 except Exception as e:
-                    logger.error("Erro na função /meusPareceres")
-                    logger.error(str(e))
+                    logger.warning("Erro na função /meusPareceres")
+                    logger.warning(str(e))
                     return("ERRO!")
             else:
                 return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
@@ -2499,7 +2499,7 @@ def registrar_acesso(ip,usuario):
         valores = (str(ip),str(usuario))
         inserir(consulta,valores)
     except Exception as e:
-        logger.error("Erro ao registrar acesso: {}",str(e))
+        logger.warning("Erro ao registrar acesso: {}",str(e))
 
 @app.route("/login", methods=['POST','GET'])
 @log_required
@@ -2907,7 +2907,7 @@ def upload_s3(origem,destino):
         os.remove(origem)
         logger.info("[S3] Upload de arquivo {} para o S3 concluído com sucesso.", origem)
     except (ClientError,FileNotFoundError) as e:
-        logger.error("[S3] Erro ao fazer upload ({}, {}) para o S3: {}", origem, destino, e)
+        logger.warning("[S3] Erro ao fazer upload ({}, {}) para o S3: {}", origem, destino, e)
 
 def encripta_e_apaga(arquivo):
     """
@@ -3049,7 +3049,7 @@ def efetivarIndicacao():
             else:
                 return ("Você já indicou todos os bolsistas/voluntários. Entrar em contato através do e-mail atendimento.prpi@ufca.edu.br")
         except Exception as e:
-            logger.error(e)
+            logger.warning(e)
             return("ERRO!")
     else:
         return("OK")
@@ -3116,13 +3116,13 @@ def esperar(arquivo):
         try:
             os.remove(arquivo)
         except FileNotFoundError as e:
-            logger.error("Erro ao remover arquivo temporário (função esperar({})):{}",arquivo,str(e))
+            logger.warning("Erro ao remover arquivo temporário (função esperar({})):{}",arquivo,str(e))
     if os.path.exists(arquivo + '.gpg'):
         #remove file
         try:
             os.remove(arquivo + '.gpg')
         except FileNotFoundError as e:
-            logger.error("Erro ao remover arquivo temporário (função esperar({})):{}",arquivo + '.gpg',str(e))
+            logger.warning("Erro ao remover arquivo temporário (função esperar({})):{}",arquivo + '.gpg',str(e))
 
 @app.route("/verArquivo", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
@@ -3141,7 +3141,7 @@ def verArquivo():
                 thread.start()
                 return(send_from_directory(app.config['UPLOADED_DOCUMENTS_DEST'], arquivo.replace(".gpg","")))
             except Exception as e:
-                logger.error("[verArquivo] Erro ao recuperar arquivo {}: {}", arquivo, str(e))
+                logger.warning("[verArquivo] Erro ao recuperar arquivo {}: {}", arquivo, str(e))
                 return("Arquivo não encontrado!")
             #FIM DO CÓDIGO S3
         else:
@@ -3159,7 +3159,7 @@ def verArquivosProjeto(filename):
         thread = threading.Thread(target=esperar,args=(SUBMISSOES_DIR + arquivo.replace(".gpg",""),))
         return(send_from_directory(app.config['UPLOADED_SUBMISSOES_DEST'], arquivo.replace(".gpg","")))
     except Exception as e:
-        logger.error("[verArquivosProjeto] Erro ao recuperar arquivo {}: {}", arquivo, str(e))
+        logger.warning("[verArquivosProjeto] Erro ao recuperar arquivo {}: {}", arquivo, str(e))
         return("Arquivo não encontrado!")
 
 @app.route("/situacaoIndicacoes", methods=['GET', 'POST'])
@@ -3932,8 +3932,8 @@ def get_projetos_discente():
             projetosAluno,projetosAluno2019 = gerarProjetosPorAluno(str(request.form['txtNome']))
             return render_template('alunos.html',listaProjetos=projetosAluno,lista2019=projetosAluno2019)
         except Exception as e:
-            logger.error("Erro ao gerar projetos por aluno")
-            logger.error(str(e))
+            logger.warning("Erro ao gerar projetos por aluno")
+            logger.warning(str(e))
             return render_template("Erro ao gerar projetos por aluno (/projetos_discente)")
 
 @app.route("/argon2", methods=['GET'])
@@ -3988,8 +3988,8 @@ def cadastrar_usuario():
         try:
             senha = cadastrar_novo_usuario(siape, nome, email)
         except Exception as e:
-            logger.error("Erro ao cadastrar novo usuário")
-            logger.error(str(e))
+            logger.warning("Erro ao cadastrar novo usuário")
+            logger.warning(str(e))
             flash("Erro ao cadastrar usuário.")
             return redirect(url_for('cadastrar_usuario'))
         flash("Usuário cadastrado com sucesso!")
@@ -4035,8 +4035,8 @@ def cadastrar_usuarios_projetos(edital):
                 thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
                 thread.start()
             except Exception as e:
-                logger.error("Erro ao cadastrar usuário do projeto")
-                logger.error(str(e))
+                logger.warning("Erro ao cadastrar usuário do projeto")
+                logger.warning(str(e))
                 flash("Erro ao cadastrar usuário: " + nome + " (" + siape + ")")
         flash(f"{total} usuários cadastrados com sucesso!")
         return redirect(url_for('admin'))
@@ -4076,7 +4076,7 @@ def alterar_usuario(id):
             atualizar2("""UPDATE users SET nome=%s, email=%s, roles=%s WHERE id=%s""",
                        valores=[nome, email, roles, id])
         except Exception as e:
-            logger.error("Erro ao alterar usuário id={}: {}", id, str(e))
+            logger.warning("Erro ao alterar usuário id={}: {}", id, str(e))
             flash("Erro ao alterar usuário.", 'error')
             return redirect(url_for('alterar_usuario', id=id))
         if resetar_senha:
@@ -4146,7 +4146,7 @@ def inserir_edital():
             atualizar2(consulta, valores=[nome, deadline, deadline_avaliacao, setor, mensagem,
                 indicacao_inicio, indicacao_termino, discente_inicio, discente_fim])
         except Exception as e:
-            logger.error("Erro ao inserir edital: {}", str(e))
+            logger.warning("Erro ao inserir edital: {}", str(e))
             flash("Erro ao inserir edital.", 'error')
             return redirect(url_for('inserir_edital'))
         flash("Edital inserido com sucesso!")
@@ -4180,7 +4180,7 @@ def alterar_edital(id):
             atualizar2(consulta, valores=[nome, deadline, deadline_avaliacao, setor, mensagem,
                 indicacao_inicio, indicacao_termino, discente_inicio, discente_fim, id])
         except Exception as e:
-            logger.error("Erro ao alterar edital id={}: {}", id, str(e))
+            logger.warning("Erro ao alterar edital id={}: {}", id, str(e))
             flash("Erro ao alterar edital.", 'error')
             return redirect(url_for('alterar_edital', id=id))
         flash("Edital alterado com sucesso!")
@@ -4277,7 +4277,7 @@ def alterar_projeto(id):
                 bolsas, bolsas_concedidas, transporte,
                 situacao, inovacao, valendo, obs, id])
         except Exception as e:
-            logger.error("Erro ao alterar projeto id={}: {}", id, str(e))
+            logger.warning("Erro ao alterar projeto id={}: {}", id, str(e))
             flash("Erro ao alterar projeto.", 'error')
             return redirect(url_for('alterar_projeto', id=id))
         # Processamento dos arquivos
@@ -4306,7 +4306,7 @@ def alterar_projeto(id):
                     encripta_e_apaga(SUBMISSOES_DIR + filename)
                     atualizar2("UPDATE editalProjeto SET " + campo + "=%s WHERE id=%s", valores=[filename, id])
                 except Exception as e:
-                    logger.error("Erro ao salvar arquivo {} do projeto id={}: {}", campo, id, str(e))
+                    logger.warning("Erro ao salvar arquivo {} do projeto id={}: {}", campo, id, str(e))
                     flash("Erro ao salvar arquivo " + campo + ".", 'error')
         flash("Projeto alterado com sucesso!")
         return redirect(url_for('listar_projetos', edital=tipo))
@@ -4397,7 +4397,7 @@ def task_enviar_email_avaliadores():
             time.sleep(10)
     logger.info("Tarefa de envio de e-mails para avaliadores concluída com sucesso.")
 
-@scheduler.task('cron', id='do_job_enviar_email_avaliadores', week='*', day_of_week='2,4', hour='20', minute='05')
+@scheduler.task('cron', id='do_job_enviar_email_avaliadores', week='*', day_of_week='2', hour='20', minute='05')
 def job_enviar_email_avaliadores():
     """
     Tarefa agendada para enviar e-mails de solicitação de avaliação
@@ -4484,7 +4484,7 @@ def task_enviar_lembrete_frequencia():
             logger.info("Aguardando 10 segundos antes do próximo lote.")
             time.sleep(10)
 
-@scheduler.task('cron', id='do_job_cobrar_frequencia', week='*', day='5-30/5', hour='12', minute='10')
+@scheduler.task('cron', id='do_job_cobrar_frequencia', week='*', day='5-30/10', hour='12', minute='10')
 def job_cobrar_frequencia():
     """
     Tarefa agendada para enviar lembretes de frequência aos orientadores
@@ -4639,7 +4639,7 @@ def nova_senha():
             with logger.contextualize(ip=request.remote_addr,username=session['username'],rota=request.path,metodo=request.method,erro=""):
                 logger.info("Usuário alterou a própria senha")
         except Exception as e:
-            logger.error("Erro ao alterar a senha do usuário {}: {}", session['username'], str(e))
+            logger.warning("Erro ao alterar a senha do usuário {}: {}", session['username'], str(e))
             flash("Erro ao alterar a senha. Tente novamente.", 'error')
             return redirect(url_for('nova_senha'))
 

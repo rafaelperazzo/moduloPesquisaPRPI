@@ -105,6 +105,8 @@ else:
     MYSQL_DATABASE = os.getenv("MYSQL_TEST_DATABASE", "pesquisa_test")
 EMAIL_TESTES = os.getenv("EMAIL_TESTES","test@123.com")
 DEFAULT_EMAIL = os.getenv("DEFAULT_EMAIL","teste@test.com")
+DEFAULT_SUPPORT = os.getenv("DEFAULT_SUPPORT","teste@test.com")
+DEFAULT_INSTITUTIONAL = os.getenv("DEFAULT_INSTITUTIONAL","pesquisa.prpi@ufca.edu.br")
 LINK_AVALIACAO = ROOT_SITE + URL_PREFIX + "/avaliacao"
 DSN_SENTRY = os.getenv("DSN_SENTRY", "")
 BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
@@ -275,6 +277,10 @@ def inject_messages():
     def get_messages():
         return carregar_mensagens()
     return dict(get_messages=get_messages)
+
+@app.context_processor
+def inject_default_support():
+    return dict(default_support=DEFAULT_SUPPORT, default_institutional=DEFAULT_INSTITUTIONAL)
 
 def login_required(role='admin'):
     def decorator_login_required(f):
@@ -485,9 +491,9 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
             modalidade = extrair_modalidade(descricao_do_edital)
             texto_email = render_template('confirmacao_submissao.html',email_proponente=dados[0],id_projeto=idProjeto,proponente=dados[1],titulo_projeto=dados[2],resumo_projeto=dados[3],score=pontuacao,sumario=sumario,modalidade=modalidade)
             if PRODUCAO==1:
-                msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=[dados[0]],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=[dados[0]],html=texto_email,reply_to=DEFAULT_EMAIL)
             else:
-                msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to=DEFAULT_EMAIL)
             try:
                 mail.send(msg)
                 logger.info("Email enviado com sucesso. processarPontuacaoLattes - IdProjeto: {}", idProjeto)
@@ -1388,7 +1394,7 @@ def enviarAvaliacao():
                 atualizar2(consulta, valores=[inovacao,token])
         except Exception as e:
             logger.warning("[AVALIACAO] ERRO ao gravar a avaliação: {} - ({})", token, str(e))
-            return("Não foi possível gravar a avaliação. Favor entrar contactar " + DEFAULT_EMAIL)
+            return("Não foi possível gravar a avaliação. Favor entrar contactar " + DEFAULT_SUPPORT)
         try:
             return (redirect(url_for('getDeclaracaoAvaliador',tokenAvaliacao=token)))
         except Exception as e:
@@ -1414,9 +1420,9 @@ def enviar_declaracao_avaliador(url,destinatario):
     with app.app_context():
         texto_email = render_template('email_declaracao_avaliador.html',url=url)
         if PRODUCAO==1:
-            msg = Message(subject = "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=[destinatario],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+            msg = Message(subject = "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=[destinatario],html=texto_email,reply_to=DEFAULT_EMAIL)
         else:
-            msg = Message(subject = "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+            msg = Message(subject = "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to=DEFAULT_EMAIL)
         try:
             mail.send(msg)
             logger.info("E-mail enviado com sucesso para o avaliador: {}", calcula_hash(destinatario))
@@ -3037,17 +3043,16 @@ def efetivarIndicacao():
                 titulo_projeto = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
                 orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)
                 email = obterColunaUnica('editalProjeto','email','id',idProjeto)
-                email2 = DEFAULT_EMAIL
                 texto_email = render_template('confirmacao_indicacao.html',vaga=vaga,id_projeto=idProjeto,indicado=nome,proponente=orientador,titulo=titulo_projeto,email_proponente=email,idIndicacao=idIndicacao)
                 if vaga==1:
-                    msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE BOLSISTA",recipients=[email,email2],html=texto_email)
+                    msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE BOLSISTA",recipients=[email],html=texto_email)
                 else:
-                    msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE VOLUNTARIO",recipients=[email,email2],html=texto_email)
+                    msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE VOLUNTARIO",recipients=[email],html=texto_email)
                 t1 = threading.Thread(target=thread_enviar_email, args=(msg,'/efetivarIndicacao',))
                 t1.start()
                 return(render_template('confirmacao_indicacao.html',vaga=vaga,id_projeto=idProjeto,indicado=nome,proponente=orientador,titulo=titulo_projeto,email_proponente=email,idIndicacao=idIndicacao))
             else:
-                return ("Você já indicou todos os bolsistas/voluntários. Entrar em contato através do e-mail atendimento.prpi@ufca.edu.br")
+                return ("Você já indicou todos os bolsistas/voluntários. Entrar em contato através do e-mail " + DEFAULT_SUPPORT)
         except Exception as e:
             logger.warning(e)
             return("ERRO!")
@@ -3375,14 +3380,14 @@ def enviar_lembrete_frequencia():
                 
                 texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
                 if PRODUCAO==1:
-                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to=DEFAULT_EMAIL)
                     try:
                         mail.send(msg)
                         logger.info("E-mail enviado: Lembrete de frequência para {}",orientador)
                     except Exception as e:
                         logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: {}",str(e))
                 else:
-                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisapython3.display999@passmail.net'],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisapython3.display999@passmail.net'],html=texto_email,reply_to=DEFAULT_EMAIL)
                     try:
                         mail.send(msg)
                         logger.info("E-mail enviado: Lembrete de frequência para {}",orientador)
@@ -3415,7 +3420,7 @@ def listaNegra(email):
     ORDER BY editalProjeto.nome,indicacoes.id"""
     linhas,total = executarSelect(consulta)
     lista = []
-    lista_emails = [DEFAULT_EMAIL]
+    lista_emails = [DEFAULT_SUPPORT]
     lista_emails_discentes = []
     for linha in linhas:
         idIndicacao = str(linha[0])
@@ -3478,13 +3483,11 @@ def desligarIndicacao(id_indicacao):
             consulta = "UPDATE indicacoes SET situacao=1, fim=NOW() WHERE id=%s"
             atualizar2(consulta, valores=(idAluno,))
             email = obterColunaUnica('editalProjeto','email','id',idProjeto)
-            email2 = DEFAULT_EMAIL
-            
             texto_email = render_template('confirmacao_desligamento.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
             if tipo_vaga==1:
-                msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE BOLSISTA",recipients=[email,email2],html=texto_email)
+                msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE BOLSISTA",recipients=[email],html=texto_email)
             else:
-                msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE VOLUNTARIO",recipients=[email,email2],html=texto_email)
+                msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE VOLUNTARIO",recipients=[email],html=texto_email)
             if PRODUCAO==1:
                 t = threading.Thread(target=enviar_email_desligamento_substituicao,args=(msg,))
                 t.start()
@@ -3541,12 +3544,11 @@ def substituirIndicacao(id_indicacao):
             consulta = "UPDATE indicacoes SET situacao=2, fim=NOW() WHERE id=%s"
             atualizar2(consulta, valores=(idAluno,))
             email = obterColunaUnica('editalProjeto','email','id',idProjeto)
-            email2 = DEFAULT_EMAIL
             texto_email = render_template('confirmacao_substituicao.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
             if tipo_vaga=="1":
-                msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE BOLSISTA",recipients=[email,email2],html=texto_email)
+                msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE BOLSISTA",recipients=[email],html=texto_email)
             else:
-                msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE VOLUNTARIO",recipients=[email,email2],html=texto_email)
+                msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE VOLUNTARIO",recipients=[email],html=texto_email)
             if PRODUCAO==1:
                 t = threading.Thread(target=enviar_email_desligamento_substituicao,args=(msg,))
                 t.start()
@@ -3704,7 +3706,7 @@ def enviar_email_avaliadores():
             url_declaracao = ROOT_SITE + "/pesquisa/declaracaoAvaliador/" + token
             logger.info("URL de declaração gerada: {}", url_declaracao)
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao, justificativa=justificativa)
-            msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+            msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to=DEFAULT_EMAIL,html=texto_email)
             try:
                 try:
                     mail.send(msg)
@@ -3748,9 +3750,9 @@ def enviarPedidoAvaliacao(idProjeto):
         with app.app_context():
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
             if PRODUCAO==1:
-                msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+                msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to=DEFAULT_EMAIL,html=texto_email)
             else:
-                msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[EMAIL_TESTES],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+                msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[EMAIL_TESTES],reply_to=DEFAULT_EMAIL,html=texto_email)
             try:
                 mail.send(msg)
                 logger.info("E-mail enviado: {} para avaliador {}",msg.subject, email_avaliador)
@@ -4381,7 +4383,7 @@ def task_enviar_email_avaliadores():
                         #url_declaracao = url_for('getDeclaracaoAvaliador',tokenAvaliacao=token, _external=True)
                         url_declaracao = SERVER_URL + URL_PREFIX + '/declaracaoAvaliador/' + token
                         texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
-                        msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to="NAO-RESPONDA@ufca.edu.br",html=texto_email)
+                        msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to=DEFAULT_EMAIL,html=texto_email)
                         try:
                             conn.send(msg)
                             logger.info("E-mail enviado: {} para o avaliador {}",msg.subject, email_avaliador)
@@ -4468,7 +4470,7 @@ def task_enviar_lembrete_frequencia():
                             continue
                         texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
                         destinatario = str(linha[4]) if PRODUCAO==1 else 'pesquisapython3.display999@passmail.net'
-                        msg = Message(subject="Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[destinatario],html=texto_email,reply_to="NAO-RESPONDA@ufca.edu.br")
+                        msg = Message(subject="Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[destinatario],html=texto_email,reply_to=DEFAULT_EMAIL)
                         try:
                             conn.send(msg)
                             logger.info("E-mail enviado: Lembrete de frequência {}/{} para {}",nome_mes[str(mes)],ano,orientador)

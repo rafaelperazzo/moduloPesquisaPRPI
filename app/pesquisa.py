@@ -48,12 +48,54 @@ import inspect
 import requests
 import geoip2.database
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, BotoCoreError
 from botocore.config import Config
 from dotenv import load_dotenv
 #from weasyprint import HTML
 
-load_dotenv()
+def load_ssm_parameters(prefix="/pesquisa", region_name="us-east-2"):
+    """
+    Busca todos os parâmetros sob o prefixo especificado no AWS SSM
+    e os injeta no os.environ, registrando as ações via logger.
+    """
+    try:
+        ssm = boto3.client("ssm", region_name=region_name)
+        paginator = ssm.get_paginator("get_parameters_by_path")
+        
+        # Pagina sobre os resultados caso haja mais de 10 parâmetros
+        pages = paginator.paginate(
+            Path=prefix,
+            Recursive=True,
+            WithDecryption=True
+        )
+
+        loaded_count = 0
+        for page in pages:
+            for param in page.get("Parameters", []):
+                # Extrai apenas o nome final da chave (ex: '/pesquisa/DB_HOST' -> 'DB_HOST')
+                key = param["Name"].rstrip("/").split("/")[-1]
+                value = param["Value"]
+                
+                # Injeta na variável de ambiente do processo
+                os.environ[key] = value
+                loaded_count += 1
+
+        logger.info(f"[SSM] {loaded_count} parâmetros carregados com sucesso do prefixo '{prefix}'.")
+
+    except (BotoCoreError, ClientError) as e:
+        logger.error(f"[SSM ERRO] Falha ao carregar parâmetros do SSM: {e}")
+        # Opcional: descomente se desejar interromper a inicialização em caso de falha crítica
+        raise e
+
+try:
+    PRODUCAO = int(os.getenv("PRODUCAO", "0"))
+except ValueError:
+    PRODUCAO = 0
+
+if PRODUCAO==0:
+    load_dotenv()
+else:
+    load_ssm_parameters()
 
 logger.remove()
 
@@ -79,11 +121,6 @@ logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 WORKING_DIR=''
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
 SERVER_PORT = os.getenv("SERVER_PORT", "80")
-PRODUCAO=0
-try:
-    PRODUCAO = int(os.getenv("PRODUCAO", "0"))
-except ValueError as e:
-    PRODUCAO = 0
 
 UPLOAD_FOLDER = 'static/files'
 ALLOWED_EXTENSIONS = set(['pdf','xml'])
@@ -106,7 +143,7 @@ else:
 EMAIL_TESTES = os.getenv("EMAIL_TESTES","test@123.com")
 DEFAULT_EMAIL = os.getenv("DEFAULT_EMAIL","teste@test.com")
 DEFAULT_SUPPORT = os.getenv("DEFAULT_SUPPORT","teste@test.com")
-DEFAULT_INSTITUTIONAL = os.getenv("DEFAULT_INSTITUTIONAL","pesquisa.prpi@ufca.edu.br")
+DEFAULT_INSTITUCIONAL = os.getenv("DEFAULT_INSTITUCIONAL","pesquisa.prpi@ufca.edu.br")
 LINK_AVALIACAO = ROOT_SITE + URL_PREFIX + "/avaliacao"
 DSN_SENTRY = os.getenv("DSN_SENTRY", "")
 BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
@@ -240,10 +277,14 @@ AWS_S3_KEY_ID = os.getenv("AWS_S3_KEY_ID", "default_key_id")
 AWS_S3_SECRET_KEY = os.getenv("AWS_S3_SECRET_KEY", "default_secret_key")
 AWS_REGION = os.getenv("AWS_REGION", "us-east-2")
 AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET", "default_bucket")
-s3 = boto3.client('s3', region_name=AWS_REGION,
-                  aws_access_key_id=AWS_S3_KEY_ID,
-                  aws_secret_access_key=AWS_S3_SECRET_KEY,
-                  config=Config(use_dualstack_endpoint=True))
+if PRODUCAO==1:
+    s3 = boto3.client('s3', region_name=AWS_REGION,
+                      config=Config(use_dualstack_endpoint=True))
+else:
+    s3 = boto3.client('s3', region_name=AWS_REGION,
+                      aws_access_key_id=AWS_S3_KEY_ID,
+                      aws_secret_access_key=AWS_S3_SECRET_KEY,
+                      config=Config(use_dualstack_endpoint=True))
 
 #Obtendo senhas
 PASSWORD = os.getenv("MYSQL_PASSWORD", "World")
@@ -280,7 +321,7 @@ def inject_messages():
 
 @app.context_processor
 def inject_default_support():
-    return dict(default_support=DEFAULT_SUPPORT, default_institutional=DEFAULT_INSTITUTIONAL)
+    return dict(default_support=DEFAULT_SUPPORT, default_institutional=DEFAULT_INSTITUCIONAL)
 
 def login_required(role='admin'):
     def decorator_login_required(f):

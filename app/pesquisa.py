@@ -3706,7 +3706,7 @@ def enviar_email_avaliadores():
             url_declaracao = ROOT_SITE + "/pesquisa/declaracaoAvaliador/" + token
             logger.info("URL de declaração gerada: {}", url_declaracao)
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao, justificativa=justificativa)
-            msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to=DEFAULT_EMAIL,html=texto_email)
+            msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=[email_avaliador],reply_to=DEFAULT_EMAIL,html=texto_email)
             try:
                 try:
                     mail.send(msg)
@@ -3750,9 +3750,9 @@ def enviarPedidoAvaliacao(idProjeto):
         with app.app_context():
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
             if PRODUCAO==1:
-                msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to=DEFAULT_EMAIL,html=texto_email)
+                msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=[email_avaliador],reply_to=DEFAULT_EMAIL,html=texto_email)
             else:
-                msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[EMAIL_TESTES],reply_to=DEFAULT_EMAIL,html=texto_email)
+                msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=[EMAIL_TESTES],reply_to=DEFAULT_EMAIL,html=texto_email)
             try:
                 mail.send(msg)
                 logger.info("E-mail enviado: {} para avaliador {}",msg.subject, email_avaliador)
@@ -4383,7 +4383,7 @@ def task_enviar_email_avaliadores():
                         #url_declaracao = url_for('getDeclaracaoAvaliador',tokenAvaliacao=token, _external=True)
                         url_declaracao = SERVER_URL + URL_PREFIX + '/declaracaoAvaliador/' + token
                         texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
-                        msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",bcc=[email_avaliador],reply_to=DEFAULT_EMAIL,html=texto_email)
+                        msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=[email_avaliador],reply_to=DEFAULT_EMAIL,html=texto_email)
                         try:
                             conn.send(msg)
                             logger.info("E-mail enviado: {} para o avaliador {}",msg.subject, email_avaliador)

@@ -1,4 +1,10 @@
 {% extends "BASE_v3.html" %}
+{% block header %}
+  {{ super() }}
+  <div class="bg-blue-50 border-b border-blue-100 text-center text-xs text-blue-700 py-2 px-4">
+    Os e-mails enviados pela plataforma partem do endereço <strong>NAO-RESPONDA@yokoapps.com.br</strong>, serviço gerenciado pela AWS SES.
+  </div>
+{% endblock %}
 {% block content %}
 <div class="container mx-auto px-4 max-w-screen-xl py-8">
   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">

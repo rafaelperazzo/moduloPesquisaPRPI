@@ -179,7 +179,21 @@
       <p class="text-gray-600 text-sm">
         Dados pessoais sensíveis (como RG, data de nascimento, telefone e endereço) são
         armazenados criptografados com AES-256, e o banco de dados também conta com criptografia
-        em repouso. Arquivos anexados são criptografados antes de serem guardados.
+        em repouso. A chave de criptografia em repouso do banco de dados não fica no servidor de
+        aplicação: ela é armazenada de forma segura no AWS Systems Manager (SSM) Parameter Store.
+        Arquivos anexados são criptografados antes de serem guardados.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-cloud-lock text-emerald-600"></i> Segredos gerenciados via AWS SSM
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Em produção, credenciais da aplicação (como senhas do banco de dados, chaves de
+        criptografia e tokens de serviços externos) não ficam mais em arquivo local (.env). Elas
+        são obtidas em tempo de execução diretamente do AWS Systems Manager (SSM) Parameter Store,
+        reduzindo o risco de exposição acidental de segredos armazenados em disco.
       </p>
     </div>
 

@@ -9,9 +9,6 @@
 ![GitHub Pipenv locked dependency version (branch)](https://img.shields.io/github/pipenv/locked/dependency-version/rafaelperazzo/moduloPesquisaPRPI/flask/python3)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/rafaelperazzo/moduloPesquisaPRPI/update.yml?label=Update)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/rafaelperazzo/moduloPesquisaPRPI/backup.yml?label=Backup)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/rafaelperazzo/moduloPesquisaPRPI/frequencia.yml?label=Frequ%C3%AAncia)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/rafaelperazzo/moduloPesquisaPRPI/avaliacao.yml?label=Avalia%C3%A7%C3%A3o)
 
 ![Debian](https://img.shields.io/badge/Debian-D70A53?style=for-the-badge&logo=debian&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
@@ -76,7 +73,8 @@ Uma página com o detalhamento completo dos recursos abaixo está disponível em
 **Aplicação**
 
 - Todas as consultas SQL utilizam parâmetros vinculados (*bound parameters*) via o conector `mariadb`, eliminando os riscos de SQL Injection identificados em uma varredura completa da aplicação.
-- Dados sensíveis da tabela de indicações (RG, telefone, celular, nascimento, endereço) são criptografados com AES-256, com o banco também protegido por criptografia em repouso.
+- Dados sensíveis da tabela de indicações (RG, telefone, celular, nascimento, endereço) são criptografados com AES-256, com o banco também protegido por criptografia em repouso — a chave dessa criptografia é armazenada no AWS Systems Manager (SSM) Parameter Store, fora do servidor de aplicação.
+- Em produção, os segredos da aplicação (senhas de banco de dados, chaves de criptografia, tokens de serviços externos etc.) são carregados em tempo de execução a partir do AWS SSM Parameter Store, e não mais de um arquivo `.env` local.
 - Senhas armazenadas com Argon2id, com política de senha forte (mínimo 12 caracteres, com maiúsculas, minúsculas, números e caracteres especiais).
 - Bloqueio automático de acesso quando a senha do usuário é identificada como vazada no login.
 - Limitação de tentativas (rate limiting) por rota em Flask-Limiter, com destaque para login e redefinição de senha.
@@ -128,7 +126,7 @@ sudo usermod -aG docker $USER
 newgrp docker
 ```
 
-#### 4. Instalação das ferramentas de apoio (GitHub CLI, Hub e Infisical)
+#### 4. Instalação das ferramentas de apoio (GitHub CLI e Hub)
 
 ```bash
 # Instale os requisitos
@@ -136,23 +134,9 @@ sudo apt-get update && sudo apt-get -y upgrade
 # Instale os pacotes necessários
 sudo apt-get -y install gh hub
 echo "eval $(hub alias -s)" >> ~/.bashrc
-# Instale o Infisical
-curl -1sLf \
-'https://artifacts-cli.infisical.com/setup.deb.sh' \
-| sudo -E bash
-sudo apt-get update && sudo apt-get install -y infisical
 ```
 
-#### 5. Configuração do Token do Infisical
-
-```bash
-echo "*********************************"
-echo "Digite seu token do Infisical:"
-echo "*********************************"
-read INFISICAL_TOKEN
-```
-
-#### 6. Instalação do projeto
+#### 5. Instalação do projeto
 
 ```bash
 mkdir pesquisa
@@ -162,7 +146,9 @@ hub sync
 git checkout python3
 ```
 
-#### 7. Crie a chave AES para criptografar os dados do MariaDB
+#### 6. Crie a chave AES para criptografar os dados do MariaDB
+
+Esta chave (`MARIADB_REST_AES_KEY`) é usada apenas em desenvolvimento local (via `docker-compose.yml`); defina-a no seu `.env` antes de prosseguir. Em produção, o servidor de aplicação roda fora do Docker e as credenciais são obtidas do AWS SSM Parameter Store — veja a seção de Segurança.
 
 ```bash
 #Criando as chaves AES
@@ -171,8 +157,9 @@ git checkout python3
 (echo -n "3;" ; openssl rand -hex 32 ) | sudo tee -a keyfile
 (echo -n "4;" ; openssl rand -hex 32 ) | sudo tee -a keyfile
 #Encriptando as chaves AES
+set -a; source .env; set +a
 sudo openssl enc -aes-256-cbc -md sha1 \
-   -pass $(infisical secrets get MARIADB_REST_AES_KEY --plain) \
+   -pass env:MARIADB_REST_AES_KEY \
    -in keyfile \
    -out aes_key.key.enc
    
@@ -182,7 +169,7 @@ sudo chmod 400 aes_key.key.enc
 sudo chown $USER aes_key.key.enc
 ```
 
-#### 8. Configure o projeto
+#### 7. Configure o projeto
 
 ```bash
 cp atualizar_db.sh.sample atualizar_db.sh

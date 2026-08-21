@@ -3086,9 +3086,9 @@ def efetivarIndicacao():
                 email = obterColunaUnica('editalProjeto','email','id',idProjeto)
                 texto_email = render_template('confirmacao_indicacao.html',vaga=vaga,id_projeto=idProjeto,indicado=nome,proponente=orientador,titulo=titulo_projeto,email_proponente=email,idIndicacao=idIndicacao)
                 if vaga==1:
-                    msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE BOLSISTA",recipients=[email],html=texto_email)
+                    msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE BOLSISTA",recipients=[email],bcc=[DEFAULT_INSTITUCIONAL],html=texto_email)
                 else:
-                    msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE VOLUNTARIO",recipients=[email],html=texto_email)
+                    msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE VOLUNTARIO",recipients=[email],bcc=[DEFAULT_INSTITUCIONAL],html=texto_email)
                 t1 = threading.Thread(target=thread_enviar_email, args=(msg,'/efetivarIndicacao',))
                 t1.start()
                 return(render_template('confirmacao_indicacao.html',vaga=vaga,id_projeto=idProjeto,indicado=nome,proponente=orientador,titulo=titulo_projeto,email_proponente=email,idIndicacao=idIndicacao))

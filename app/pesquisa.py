@@ -162,8 +162,8 @@ DEFAULT_EMAIL = os.getenv("DEFAULT_EMAIL","teste@test.com")
 DEFAULT_SUPPORT = os.getenv("DEFAULT_SUPPORT","teste@test.com")
 DEFAULT_INSTITUCIONAL = os.getenv("DEFAULT_INSTITUCIONAL","pesquisa.prpi@ufca.edu.br")
 LINK_AVALIACAO = ROOT_SITE + URL_PREFIX + "/avaliacao"
-DSN_SENTRY = os.getenv("DSN_SENTRY", "")
-BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
+DSN_SENTRY = os.environ.pop("DSN_SENTRY", "")
+BS_SOURCE_TOKEN = os.environ.pop("BS_SOURCE_TOKEN", "")
 BS_HOST = os.getenv("BS_HOST", "")
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 URL_LAMBDA = os.getenv("URL_LAMBDA","")
@@ -234,9 +234,9 @@ app.config['CURRICULOS_FOLDER'] = CURRICULOS_DIR
 app.config['DECLARACOES_FOLDER'] = DECLARACOES_DIR
 app.config['TEMP_FOLDER'] = DECLARACOES_DIR
 
-AES_KEY = os.getenv("AES_KEY", "000000")
-GPG_KEY = os.getenv("GPG_KEY", "000000")
-OPENVPN_KEY = os.getenv("OPENVPN_KEY", "000000")
+AES_KEY = os.environ.pop("AES_KEY", "000000")
+GPG_KEY = os.environ.pop("GPG_KEY", "000000")
+OPENVPN_KEY = os.environ.pop("OPENVPN_KEY", "000000")
 cripto = SecCripto(AES_KEY)
 
 def gerar_codigo_auth(identificador, titulo, prefixo='declaracao_orientador'):
@@ -291,8 +291,8 @@ if PRODUCAO==1:
 
 #AWS
 
-AWS_S3_KEY_ID = os.getenv("AWS_S3_KEY_ID", "default_key_id")
-AWS_S3_SECRET_KEY = os.getenv("AWS_S3_SECRET_KEY", "default_secret_key")
+AWS_S3_KEY_ID = os.environ.pop("AWS_S3_KEY_ID", "default_key_id")
+AWS_S3_SECRET_KEY = os.environ.pop("AWS_S3_SECRET_KEY", "default_secret_key")
 AWS_REGION = os.getenv("AWS_REGION", "us-east-2")
 AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET", "default_bucket")
 if PRODUCAO==1:
@@ -305,7 +305,7 @@ else:
                       config=Config(use_dualstack_endpoint=True))
 
 #Obtendo senhas
-PASSWORD = os.getenv("MYSQL_PASSWORD", "World")
+PASSWORD = os.environ.pop("MYSQL_PASSWORD", "World")
 app.config['SECRET_KEY'] = secrets.token_hex()
 app.config['WTF_CSRF_TIME_LIMIT'] = None
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000

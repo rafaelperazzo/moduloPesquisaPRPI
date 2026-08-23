@@ -73,8 +73,9 @@ Uma página com o detalhamento completo dos recursos abaixo está disponível em
 **Aplicação**
 
 - Todas as consultas SQL utilizam parâmetros vinculados (*bound parameters*) via o conector `mariadb`, eliminando os riscos de SQL Injection identificados em uma varredura completa da aplicação.
-- Dados sensíveis da tabela de indicações (RG, telefone, celular, nascimento, endereço) são criptografados com AES-256, com o banco também protegido por criptografia em repouso — a chave dessa criptografia é armazenada no AWS Systems Manager (SSM) Parameter Store, fora do servidor de aplicação.
+- Dados sensíveis da tabela de indicações (RG, telefone, celular, nascimento, endereço) são criptografados com AES-256, com o banco de dados MariaDB também protegido por criptografia em repouso — a chave dessa criptografia é armazenada no AWS Systems Manager (SSM) Parameter Store, fora do servidor de aplicação.
 - Em produção, os segredos da aplicação (senhas de banco de dados, chaves de criptografia, tokens de serviços externos etc.) são carregados em tempo de execução a partir do AWS SSM Parameter Store, e não mais de um arquivo `.env` local.
+- O cálculo da pontuação Lattes é feito por uma função AWS Lambda, acessada via URL assinada com AWS SigV4 (credenciais da instância EC2), em vez de um endpoint HTTP público sem autenticação.
 - Senhas armazenadas com Argon2id, com política de senha forte (mínimo 12 caracteres, com maiúsculas, minúsculas, números e caracteres especiais).
 - Bloqueio automático de acesso quando a senha do usuário é identificada como vazada no login.
 - Limitação de tentativas (rate limiting) por rota em Flask-Limiter, com destaque para login e redefinição de senha.

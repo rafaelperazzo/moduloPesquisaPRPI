@@ -51,6 +51,7 @@ import boto3
 from botocore.exceptions import ClientError, BotoCoreError
 from botocore.config import Config
 from dotenv import load_dotenv
+from requests_auth_aws_sigv4 import AWSSigV4
 #from weasyprint import HTML
 
 def load_ssm_parameters(prefix="/pesquisa", region_name="us-east-2"):
@@ -90,6 +91,18 @@ def load_ssm_parameters(prefix="/pesquisa", region_name="us-east-2"):
         logger.error(f"[SSM ERRO] Falha ao carregar parâmetros do SSM: {e}")
         # Opcional: descomente se desejar interromper a inicialização em caso de falha crítica
         raise e
+
+def aws_auth():
+    """Gera o assinador SigV4 com credenciais atualizadas da EC2."""
+    session = boto3.Session(region_name="us-east-2")
+    creds = session.get_credentials().get_frozen_credentials()
+    return AWSSigV4(
+        "lambda",
+        region="us-east-2",
+        aws_access_key_id=creds.access_key,
+        aws_secret_access_key=creds.secret_key,
+        aws_session_token=creds.token
+    )
 
 try:
     PRODUCAO = int(os.getenv("PRODUCAO", "0"))
@@ -153,6 +166,7 @@ DSN_SENTRY = os.getenv("DSN_SENTRY", "")
 BS_SOURCE_TOKEN = os.getenv("BS_SOURCE_TOKEN", "")
 BS_HOST = os.getenv("BS_HOST", "")
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+URL_LAMBDA = os.getenv("URL_LAMBDA","")
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
@@ -485,13 +499,13 @@ def extrair_modalidade(texto):
 
 def atualizarPontuacaoLattes(cpf, area, idProjeto):
     periodo = "5"
-    url_score = "https://yokoapps.com.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "0"
-    url_sumario = "https://yokoapps.com.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "1"
+    url_score = URL_LAMBDA + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "0"
+    url_sumario = URL_LAMBDA + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "1"
     sumario = ""
     pontuacao = "0.0"
     try:
-        sumario = requests.get(url_sumario, timeout=120).text
-        pontuacao = requests.get(url_score, timeout=120).text
+        sumario = requests.get(url_sumario, auth=aws_auth(), timeout=120).text
+        pontuacao = requests.get(url_score, auth=aws_auth(), timeout=120).text
         pontuacao = json.loads(pontuacao)
         pontuacao = pontuacao['score']
     except Exception as e:
@@ -508,13 +522,13 @@ def atualizarPontuacaoLattes(cpf, area, idProjeto):
 
 def processarPontuacaoLattes(cpf,area,idProjeto,dados):
     periodo = "5"
-    url_score = "https://yokoapps.com.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "0"
-    url_sumario = "https://yokoapps.com.br/lattes/score/" + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "1"
+    url_score = URL_LAMBDA + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "0"
+    url_sumario = URL_LAMBDA + str(cpf).strip() + "/" + str(area).strip() + "/" + periodo + "/" + "1"
     sumario = ""
     pontuacao = "0.0"
     try:
-        sumario = requests.get(url_sumario,timeout=120).text
-        pontuacao = requests.get(url_score,timeout=120).text
+        sumario = requests.get(url_sumario, auth=aws_auth(), timeout=120).text
+        pontuacao = requests.get(url_score, auth=aws_auth(), timeout=120).text
         pontuacao = json.loads(pontuacao)
         pontuacao = pontuacao['score']
     except Exception as e:
@@ -1265,10 +1279,10 @@ def getScoreLattesFromFile():
     area_capes = str(request.form['area_capes'])
     cpf = str(request.form['cpf'])
     periodo = str(request.form['periodo'])
-    url_sumario = "https://yokoapps.com.br/lattes/score/" + cpf + "/" + area_capes + "/" + periodo + "/" + "1"
+    url_sumario = URL_LAMBDA + cpf + "/" + area_capes + "/" + periodo + "/" + "1"
     sumario = "{}"
     try:
-        sumario = requests.get(url_sumario,timeout=120).text
+        sumario = requests.get(url_sumario, auth=aws_auth(), timeout=120).text
     except Exception as e:
         logger.warning(e)
         logger.warning("Erro ao obter sumário do Lattes. Verifique se o CPF, a área CAPES e o período estão corretos.")

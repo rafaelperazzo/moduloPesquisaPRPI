@@ -34,7 +34,7 @@ from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.integrations.loguru import LoggingLevels
 from sentry_sdk.integrations.logging import ignore_logger
-from logtail import LogtailHandler
+#from logtail import LogtailHandler
 from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -163,8 +163,8 @@ DEFAULT_SUPPORT = os.getenv("DEFAULT_SUPPORT","teste@test.com")
 DEFAULT_INSTITUCIONAL = os.getenv("DEFAULT_INSTITUCIONAL","pesquisa.prpi@ufca.edu.br")
 LINK_AVALIACAO = ROOT_SITE + URL_PREFIX + "/avaliacao"
 DSN_SENTRY = os.environ.pop("DSN_SENTRY", "")
-BS_SOURCE_TOKEN = os.environ.pop("BS_SOURCE_TOKEN", "")
-BS_HOST = os.getenv("BS_HOST", "")
+#BS_SOURCE_TOKEN = os.environ.pop("BS_SOURCE_TOKEN", "")
+#BS_HOST = os.getenv("BS_HOST", "")
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 URL_LAMBDA = os.getenv("URL_LAMBDA","")
 
@@ -253,16 +253,16 @@ logger.enable("apscheduler")
 logger.enable("flask-limiter")
 
 if PRODUCAO==1:
-    handler = LogtailHandler(
-        source_token=BS_SOURCE_TOKEN,
-        host=BS_HOST,
-    )
+    #handler = LogtailHandler(
+    #    source_token=BS_SOURCE_TOKEN,
+    #    host=BS_HOST,
+    #)
     logger.add("app.json", rotation="20 MB", retention=30, backtrace=False,
                diagnose=False, level="INFO", serialize=True,mode='a',
                format="{time} | {name} | {level} | {message} | {extra}",
                compression='gz')
-    logger.add(handler, format="{time} | {name} | {level} | {message} | {extra}", level="INFO",
-               serialize=True,backtrace=False, diagnose=False)
+    #logger.add(handler, format="{time} | {name} | {level} | {message} | {extra}", level="INFO",
+    #           serialize=True,backtrace=False, diagnose=False)
 else:
     logger.add("app.log", rotation="20 MB", retention=30, backtrace=False,
                diagnose=False, level="INFO", serialize=True,mode='w',

@@ -38,9 +38,7 @@ Sistema web desenvolvido para auxiliar no gerenciamento e acompanhamento de proj
 
 - **UFCA**
 
-[![Static Badge](https://img.shields.io/badge/Dashboard%20-%20LOGS%20-%20blue)](https://telemetry.betterstack.com/dashboards/5Y3xD2)
-
-[![Static Badge](https://img.shields.io/badge/Dashboard%20-%20INFRA%20-%20blue)](https://telemetry.betterstack.com/dashboards/13w7Sq)
+Os logs da aplicação são monitorados via **AWS CloudWatch**.
 
 ## 📌 Funcionalidades
 
@@ -94,6 +92,6 @@ Este projeto Flask foi desenvolvido com atenção às melhores práticas de segu
   - Configuração de cabeçalhos de segurança (HSTS, X-Frame-Options, etc.) com **Flask-Talisman**.
 
 - **Auditoria e Monitoramento**
-  - Registro de logs de acesso e erros com **Loguru** estruturado, **BetterStack** e **Sentry** .
+  - Registro de logs de acesso e erros com **Loguru** estruturado, **AWS CloudWatch** e **Sentry** .
   - Monitoramento de erros, desempenho e disponibilidade com **BetterStack** e **Sentry**.
   

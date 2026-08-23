@@ -33,7 +33,8 @@ Sistema web desenvolvido para auxiliar no gerenciamento e acompanhamento de proj
 
 ## Dashboard de LOGS
 
-[![Static Badge](https://img.shields.io/badge/Dashboard%20-%20LOGS%20-%20blue)](https://telemetry.betterstack.com/dashboards/5Y3xD2)
+Os logs da aplicação são monitorados via **AWS CloudWatch**.
+
 ---
 
 ## 📌 Funcionalidades

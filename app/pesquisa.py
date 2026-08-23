@@ -59,7 +59,11 @@ def load_ssm_parameters(prefix="/pesquisa", region_name="us-east-2"):
     e os injeta no os.environ, registrando as ações via logger.
     """
     try:
-        ssm = boto3.client("ssm", region_name=region_name)
+        ssm = boto3.client(
+            "ssm",
+            region_name=region_name,
+            config=Config(use_dualstack_endpoint=True)
+        )
         paginator = ssm.get_paginator("get_parameters_by_path")
         
         # Pagina sobre os resultados caso haja mais de 10 parâmetros

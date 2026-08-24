@@ -3176,7 +3176,6 @@ def esperar(arquivo):
     # Espera o tempo definido em segundos
     time.sleep(3)
     #check if file exists
-    logger.info("[verArquivo] Lançando thread para apagar aquivo {}".format(arquivo))
     if os.path.exists(arquivo):
         #remove file
         try:
@@ -3222,6 +3221,7 @@ def verArquivosProjeto(filename):
     try:
         s3.download_file(AWS_S3_BUCKET, 'pesquisa/' + SUBMISSOES_DIR + arquivo, SUBMISSOES_DIR + arquivo)
         cripto.aes_gpg_decrypt_file(GPG_KEY,SUBMISSOES_DIR + arquivo, SUBMISSOES_DIR + arquivo.replace(".gpg",""))
+        logger.info("[verArquivo] Lançando thread para apagar aquivo {}".format(SUBMISSOES_DIR + arquivo))
         thread = threading.Thread(target=esperar,args=(SUBMISSOES_DIR + arquivo.replace(".gpg",""),))
         return(send_from_directory(app.config['UPLOADED_SUBMISSOES_DEST'], arquivo.replace(".gpg","")))
     except Exception as e:

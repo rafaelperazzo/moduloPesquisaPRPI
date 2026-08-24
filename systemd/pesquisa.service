@@ -11,7 +11,7 @@ Environment=GIT_PYTHON_REFRESH=quiet
 Environment="PATH=/home/admin/moduloPesquisaPRPI/app/env/bin:/usr/bin:/usr/local/bin"
 Environment="PRODUCAO=1"
 #ExecStart=sh -c 'redis-cli FLUSHALL  && /home/admin/moduloPesquisaPRPI/app/env/bin/python pesquisa.py'
-ExecStart=/home/admin/moduloPesquisaPRPI/app/env/bin/python pesquisa.py
+ExecStart=/home/admin/moduloPesquisaPRPI/app/env/bin/python /home/admin/moduloPesquisaPRPI/app/pesquisa.py
 Restart=on-failure
 RestartSec=5
 

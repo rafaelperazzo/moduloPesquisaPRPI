@@ -136,6 +136,7 @@ class InterceptHandler(logging.Handler):
 logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 
 WORKING_DIR=''
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SERVER_URL = os.getenv("SERVER_URL", "http://localhost")
 SERVER_PORT = os.getenv("SERVER_PORT", "80")
 
@@ -313,7 +314,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
 mail = Mail(app)
 
 #Flask-flask_uploads
-app.config['UPLOADED_DOCUMENTS_DEST'] = ATTACHMENTS_DIR
+app.config['UPLOADED_DOCUMENTS_DEST'] = os.path.join(BASE_DIR, 'docs_indicacoes') + '/'
 app.config['UPLOADS_DEFAULT_DEST'] = ATTACHMENTS_DIR
 anexos = UploadSet('documents',ALL)
 app.config['UPLOADED_SUBMISSOES_DEST'] = SUBMISSOES_DIR

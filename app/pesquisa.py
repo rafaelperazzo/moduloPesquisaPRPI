@@ -148,7 +148,7 @@ CURRICULOS_DIR='static/files/'
 XML_DIR = 'xml/'
 SITE = SERVER_URL + "static/files/"
 IMAGENS_URL = SERVER_URL + "static/"
-DECLARACOES_DIR = 'pdfs/'
+DECLARACOES_DIR = os.path.join(BASE_DIR, 'pdfs') + '/'
 ROOT_SITE = SERVER_URL
 USUARIO_SITE = ROOT_SITE + URL_PREFIX + "/usuario"
 ATTACHMENTS_DIR = 'docs_indicacoes/'
@@ -317,7 +317,7 @@ mail = Mail(app)
 app.config['UPLOADED_DOCUMENTS_DEST'] = os.path.join(BASE_DIR, 'docs_indicacoes') + '/'
 app.config['UPLOADS_DEFAULT_DEST'] = ATTACHMENTS_DIR
 anexos = UploadSet('documents',ALL)
-app.config['UPLOADED_SUBMISSOES_DEST'] = SUBMISSOES_DIR
+app.config['UPLOADED_SUBMISSOES_DEST'] = os.path.join(BASE_DIR, 'submissoes') + '/'
 submissoes = UploadSet("submissoes", DOCUMENTS, default_dest=SUBMISSOES_DIR)
 
 configure_uploads(app, anexos)

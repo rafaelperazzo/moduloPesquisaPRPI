@@ -3176,6 +3176,7 @@ def esperar(arquivo):
     # Espera o tempo definido em segundos
     time.sleep(3)
     #check if file exists
+    logger.info("[esperar] Tentando apagar o arquivo {}".format(arquivo))
     if os.path.exists(arquivo):
         #remove file
         try:

@@ -2973,7 +2973,7 @@ def upload_s3(origem,destino):
         os.remove(origem)
         logger.info("[S3] Upload de arquivo {} para o S3 concluído com sucesso.", origem)
     except (ClientError,FileNotFoundError) as e:
-        logger.warning("[S3] Erro ao fazer upload ({}, {}) para o S3: {}", origem, destino, e)
+        logger.error("[S3] Erro ao fazer upload ({}, {}) para o S3: {}", origem, destino, e)
 
 def encripta_e_apaga(arquivo):
     """
@@ -3223,6 +3223,7 @@ def verArquivosProjeto(filename):
         cripto.aes_gpg_decrypt_file(GPG_KEY,SUBMISSOES_DIR + arquivo, SUBMISSOES_DIR + arquivo.replace(".gpg",""))
         logger.info("[verArquivo] Lançando thread para apagar aquivo {} (BASE_DIR={})".format(SUBMISSOES_DIR + arquivo, BASE_DIR))
         thread = threading.Thread(target=esperar,args=(SUBMISSOES_DIR + arquivo.replace(".gpg",""),))
+        thread.start()
         return(send_from_directory(app.config['UPLOADED_SUBMISSOES_DEST'], arquivo.replace(".gpg","")))
     except Exception as e:
         logger.warning("[verArquivosProjeto] Erro ao recuperar arquivo {}: {}", arquivo, str(e))

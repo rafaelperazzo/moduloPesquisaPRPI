@@ -35,7 +35,11 @@ jobs:
               "git config --system --add safe.directory /home/admin/moduloPesquisaPRPI",
               "cd /home/admin/moduloPesquisaPRPI",
               "git pull origin python3 --tags",
-              "sudo service pesquisa restart"
+              "find /home/admin/moduloPesquisaPRPI -not -user admin -not -user pesquisa -exec chown admin:pesquisa {} +",
+              "chmod -R g=u /home/admin/moduloPesquisaPRPI",
+              "find /home/admin/moduloPesquisaPRPI -type d -exec chmod g+s {} +",
+              "chmod 750 /home/admin/moduloPesquisaPRPI/app/pesquisa.py",
+              "service pesquisa restart"
             ]' \
             --query "Command.CommandId" \
             --output text)

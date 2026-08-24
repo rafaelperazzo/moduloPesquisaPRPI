@@ -3221,7 +3221,6 @@ def verArquivosProjeto(filename):
     try:
         s3.download_file(AWS_S3_BUCKET, 'pesquisa/' + SUBMISSOES_DIR + arquivo, SUBMISSOES_DIR + arquivo)
         cripto.aes_gpg_decrypt_file(GPG_KEY,SUBMISSOES_DIR + arquivo, SUBMISSOES_DIR + arquivo.replace(".gpg",""))
-        logger.info("[verArquivo] Lançando thread para apagar aquivo {} (BASE_DIR={})".format(SUBMISSOES_DIR + arquivo, BASE_DIR))
         thread = threading.Thread(target=esperar,args=(SUBMISSOES_DIR + arquivo.replace(".gpg",""),))
         thread.start()
         return(send_from_directory(app.config['UPLOADED_SUBMISSOES_DEST'], arquivo.replace(".gpg","")))

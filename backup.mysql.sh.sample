@@ -1,29 +1,66 @@
 #!/bin/bash
-if [ -z "$INFISICAL_TOKEN" ]; then
-echo "Error: INFISICAL_TOKEN environment variable is not set."
-exit 1
-fi
-MYSQL_ROOT_PASSWORD=$(infisical secrets get MYSQL_ROOT_PASSWORD --plain)
-GPG_KEY=$(infisical secrets get GPG_KEY --plain)
-export RCLONE_CONFIG_PASS=$(infisical secrets get RCLONE_CONFIG_PASS --plain)
-cd /backup/pesquisa3
-date=$(/usr/bin/date '+%Y-%m-%dT%H.%M')
-echo "Dump do BD"
-infisical run -- docker-compose exec -T db_pesquisa bash -c "mariadb-dump -u root -p$MYSQL_ROOT_PASSWORD --add-drop-database --add-drop-table --databases pesquisa > /share/$date-pesquisa.sql"
-cd /backup/pesquisa3/share/
-sed -i 's/\sDEFINER=`[^`]*`@`[^`]*`//g' $date-pesquisa.sql
-echo "Gz"
-gzip /backup/pesquisa3/share/$date-pesquisa.sql
-echo "Encriptando..."
-gpg -o $date-pesquisa.sql.gz.gpg --symmetric --armor --cipher-algo AES256 --passphrase $GPG_KEY --batch --yes $date-pesquisa.sql.gz
-rm -f $date-pesquisa.sql.gz
-#rm -f `ls -t *.gz| awk 'NR>21'`
-rm -f `ls -t *.gpg| awk 'NR>21'`
-echo "Backup para proton/s3..."
-rclone sync --progress /backup/pesquisa3/share/ remote:SISTEMAS/PESQUISA/BACKUP/
-aws s3 sync /backup/pesquisa3/share/ s3://rajardekalambur/pesquisa/backup/ --delete
-aws s3 sync /backup/pesquisa3/app/submissoes/ s3://rajardekalambur/pesquisa/submissoes/ --delete
-aws s3 sync /backup/pesquisa3/app/docs_indicacoes/ s3://rajardekalambur/pesquisa/docs_indicacoes/ --delete
-rclone sync --progress /backup/cppgi/share/ remote:SISTEMAS/CPPGI/BACKUP/
-rclone sync --progress /backup/docs.sci01/share/ remote:SISTEMAS/DOCS/BACKUP/
-rclone sync --progress /backup/mariadb01/share/ remote:SISTEMAS/MARIADB/BACKUP/
+set -eo pipefail
+
+# --- Configura    es e Vari  veis ---
+BASE_DIR="/home/admin/moduloPesquisaPRPI"
+SHARE_DIR="${BASE_DIR}/share"
+DB_NAME="pesquisa"             # Caso queira incluir ambos, use a flag --databases no dump
+DB_USER="backup"
+DB_HOST="localhost"
+AWS_REGION="us-east-2"
+S3_BUCKET="s3://rajardekalambur/pesquisa/backup/"
+
+# Par  metros no AWS SSM Parameter Store
+SSM_PARAM_DB_PASS="/pesquisa/MYSQL_BACKUP_PASSWORD"
+SSM_PARAM_GPG_KEY="/pesquisa/GPG_KEY"
+
+TIMESTAMP=$(/usr/bin/date '+%Y-%m-%dT%H.%M')
+OUTPUT_FILE="${SHARE_DIR}/${TIMESTAMP}-pesquisa.sql.gz.gpg"
+
+mkdir -p "$SHARE_DIR"
+
+# --- Obter Credenciais do AWS SSM ---
+echo "Recuperando credenciais do AWS SSM (Regi  o: ${AWS_REGION})..."
+export MYSQL_PWD=$(aws ssm get-parameter \
+  --name "$SSM_PARAM_DB_PASS" \
+  --region "$AWS_REGION" \
+  --with-decryption \
+  --query "Parameter.Value" \
+  --output text)
+
+GPG_KEY=$(aws ssm get-parameter \
+  --name "$SSM_PARAM_GPG_KEY" \
+  --region "$AWS_REGION" \
+  --with-decryption \
+  --query "Parameter.Value" \
+  --output text)
+
+# --- Dump, Limpeza de DEFINER, Compress  o e Criptografia ---
+echo "Executando Dump com o usu  rio '$DB_USER'..."
+
+mariadb-dump -h "$DB_HOST" -u "$DB_USER" \
+  --single-transaction \
+  --no-tablespaces \
+  --add-drop-table \
+  --quick \
+  "$DB_NAME" \
+  | sed -E 's/\sDEFINER=`[^`]*`@`[^`]*`//g' \
+  | gzip -c \
+  | gpg --batch --yes --symmetric --armor \
+        --cipher-algo AES256 \
+        --passphrase "$GPG_KEY" \
+        -o "$OUTPUT_FILE"
+
+# Limpa credenciais da mem  ria
+unset MYSQL_PWD GPG_KEY
+# --- Rota    o de Backups Locais (Mant  m os 21 mais recentes) ---
+echo "Limpando backups locais antigos..."
+cd "$SHARE_DIR"
+ls -1t *-pesquisa.sql.gz.gpg 2>/dev/null | tail -n +22 | xargs -r rm -f
+
+# --- Sincroniza    o com AWS S3 ---
+echo "Sincronizando com S3..."
+aws s3 sync "$SHARE_DIR/" "$S3_BUCKET" --region "$AWS_REGION" --delete --exclude "*" --include "*.gpg"
+
+echo "Backup conclu  do com sucesso: ${OUTPUT_FILE}"
+

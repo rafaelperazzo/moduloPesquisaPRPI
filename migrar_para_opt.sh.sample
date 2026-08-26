@@ -73,19 +73,31 @@ cat <<EOF
          $SRC_DIR
      para:
          $DST_DIR
-     nas units systemd, crontabs e scripts que apontam pra lá:
+     nas units systemd, crontabs, agentes e scripts que apontam pra lá:
        - /etc/systemd/system/pesquisa.service (WorkingDirectory=/ExecStart=,
          o que quer que rode de fato a partir de moduloPesquisaPRPI)
        - /etc/systemd/system/cppgi.service (PATH= e ExecStart=, que apontam
          pro venv dentro de moduloPesquisaPRPI)
+       - /etc/crontab (jobs que rodam scripts/comandos dentro do caminho antigo)
+       - /opt/aws/amazon-cloudwatch-agent/bin/config.json (paths de log
+         monitorados pelo CloudWatch agent, ex: app.json)
      (e nos .sample versionados, se quiser manter o repo em sincronia)
 
          sudo sed -i 's#$SRC_DIR#$DST_DIR#g' /etc/systemd/system/pesquisa.service
          sudo sed -i 's#$SRC_DIR#$DST_DIR#g' /etc/systemd/system/cppgi.service
+         sudo sed -i 's#$SRC_DIR#$DST_DIR#g' /etc/crontab
+         sudo sed -i 's#$SRC_DIR#$DST_DIR#g' /opt/aws/amazon-cloudwatch-agent/bin/config.json
 
   2. sudo systemctl daemon-reload
 
-  3. Suba de volta os serviços parados, na ordem inversa da parada
+  3. Reaplique a config do CloudWatch agent e reinicie-o (senão ele continua
+     monitorando o caminho antigo até o próximo boot):
+
+         sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \\
+             -a fetch-config -m ec2 -s \\
+             -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json
+
+  4. Suba de volta os serviços parados, na ordem inversa da parada
      (pesquisa.service primeiro, cppgi.service depende dele):
 EOF
 for (( idx=${#SERVICES_TO_STOP[@]}-1 ; idx>=0 ; idx-- )); do
@@ -94,10 +106,11 @@ for (( idx=${#SERVICES_TO_STOP[@]}-1 ; idx>=0 ; idx-- )); do
 done
 cat <<EOF
 
-  4. Faça o smoke test de cada serviço dependente (status, logs, uma
-     requisição real).
+  5. Faça o smoke test de cada serviço dependente (status, logs, uma
+     requisição real) e confirme no console do CloudWatch que os logs
+     novos estão chegando a partir de $DST_DIR.
 
-  5. SÓ DEPOIS de validar que está tudo funcionando em $DST_DIR,
+  6. SÓ DEPOIS de validar que está tudo funcionando em $DST_DIR,
      remova a origem manualmente (não é feito por este script):
 
          sudo rm -rf "$SRC_DIR"

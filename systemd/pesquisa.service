@@ -6,16 +6,16 @@ After=network.target
 User=pesquisa
 Group=pesquisa
 UMask=0002
-WorkingDirectory=/home/admin/moduloPesquisaPRPI/app
+WorkingDirectory=/opt/moduloPesquisaPRPI/app
 Environment=GIT_PYTHON_REFRESH=quiet
-#Environment="PATH=/home/admin/moduloPesquisaPRPI/app/env/bin"
-Environment="PATH=/home/admin/moduloPesquisaPRPI/app/env/bin:/usr/bin:/usr/local/bin"
+#Environment="PATH=/opt/moduloPesquisaPRPI/app/env/bin"
+Environment="PATH=/opt/moduloPesquisaPRPI/app/env/bin:/usr/bin:/usr/local/bin"
 Environment="PRODUCAO=1"
 Environment="AWS_DEFAULT_REGION=us-east-2"
 #Environment="AWS_CONFIG_FILE=/home/admin/.aws/config"
 Environment="AWS_USE_DUALSTACK_ENDPOINT=true"
-#ExecStart=sh -c 'redis-cli FLUSHALL  && /home/admin/moduloPesquisaPRPI/app/env/bin/python pesquisa.py'
-ExecStart=/home/admin/moduloPesquisaPRPI/app/env/bin/python /home/admin/moduloPesquisaPRPI/app/pesquisa.py
+#ExecStart=sh -c 'redis-cli FLUSHALL  && /opt/moduloPesquisaPRPI/app/env/bin/python pesquisa.py'
+ExecStart=/opt/moduloPesquisaPRPI/app/env/bin/python /opt/moduloPesquisaPRPI/app/pesquisa.py
 Restart=on-failure
 RestartSec=5
 
@@ -36,7 +36,7 @@ OOMScoreAdjust=-500
 # pesquisa em /home/pesquisa/.gnupg)
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/home/admin/moduloPesquisaPRPI/app /home/pesquisa /tmp /var/tmp
+ReadWritePaths=/opt/moduloPesquisaPRPI/app /home/pesquisa /tmp /var/tmp
 PrivateTmp=false
 NoNewPrivileges=true
 ProtectKernelTunables=false

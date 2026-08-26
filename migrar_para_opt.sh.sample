@@ -1,0 +1,105 @@
+#!/bin/bash
+# Template do processo usado para migrar /home/admin/cppgi -> /opt/cppgi.
+# Reutilize para outras pastas (ex: o venv em /home/admin/moduloPesquisaPRPI).
+#
+# Copie para uma cópia real (ex: migrar_para_opt.sh, já ignorado pelo .gitignore),
+# ajuste as variáveis abaixo e revise a lista de "referências externas" antes de
+# rodar em produção. Este script NÃO apaga a origem sozinho - isso é passo manual
+# no final, depois de validar que tudo funciona no novo caminho.
+set -euo pipefail
+
+# ---- Configuração (ajuste para cada migração) ----
+SRC_DIR="/home/admin/moduloPesquisaPRPI"
+DST_DIR="/opt/moduloPesquisaPRPI"
+OWNER="admin"
+GROUP="pesquisa"
+
+# Serviços que precisam ficar parados durante o corte (cutover) porque
+# referenciam SRC_DIR. Ordem importa: cppgi.service Requires=pesquisa.service
+# (ver cppgi.service.sample), então para primeiro o dependente (cppgi) e só
+# depois a dependência (pesquisa) - e sobe na ordem inversa. pesquisa.service
+# é quem roda de fato a partir de moduloPesquisaPRPI; cppgi.service só usa o
+# venv de lá (PATH=/ExecStart=) e exige que pesquisa.service esteja no ar.
+# Deixe vazio se nada depender deste diretório em runtime.
+SERVICES_TO_STOP=("cppgi.service" "pesquisa.service")
+
+# Subpastas que devem ganhar escrita de grupo (g+w) depois do chmod base.
+# moduloPesquisaPRPI/app é o próprio app do pesquisa.service rodando (não só
+# o venv) - ele grava em app.log e nas pastas abaixo. Isso espelha o
+# ReadWritePaths=/home/admin/moduloPesquisaPRPI/app do pesquisa.service, que
+# já libera escrita nessa árvore inteira; sem isso o serviço roda como
+# User=pesquisa, cai nas permissões de grupo (g=rX, só leitura) e falha ao
+# tentar gravar upload/log/pdf depois do corte.
+WRITABLE_SUBDIRS=("app")
+
+# ---- Fase 1: cópia (pode rodar com o(s) serviço(s) ainda no ar) ----
+echo "==> Copiando $SRC_DIR -> $DST_DIR via rsync..."
+sudo mkdir -p "$(dirname "$DST_DIR")"
+sudo rsync -a "$SRC_DIR"/ "$DST_DIR"/
+
+echo "==> Verificando integridade da cópia (diff recursivo)..."
+if ! diff -rq "$SRC_DIR" "$DST_DIR"; then
+    echo "ERRO: origem e destino diferem. Corrija antes de continuar." >&2
+    exit 1
+fi
+echo "Cópia validada - origem e destino idênticos."
+
+# ---- Fase 2: dono/permissões no destino ----
+echo "==> Ajustando dono/grupo e permissões em $DST_DIR..."
+sudo chown -R "$OWNER:$GROUP" "$DST_DIR"
+sudo chmod -R u=rwX,g=rX,o= "$DST_DIR"
+for dir in "${WRITABLE_SUBDIRS[@]:-}"; do
+    [ -n "$dir" ] && sudo chmod -R g+w "$DST_DIR/$dir"
+done
+
+if [ -d "$DST_DIR/.git" ]; then
+    echo "==> Registrando $DST_DIR como safe.directory do git..."
+    sudo git config --system --add safe.directory "$DST_DIR"
+fi
+
+# ---- Fase 3: corte (cutover) - aqui sim precisa parar quem depende do caminho antigo ----
+if [ "${#SERVICES_TO_STOP[@]}" -gt 0 ]; then
+    echo "==> Parando serviços dependentes: ${SERVICES_TO_STOP[*]}"
+    for svc in "${SERVICES_TO_STOP[@]}"; do
+        sudo systemctl stop "$svc"
+    done
+fi
+
+cat <<EOF
+
+==> AÇÃO MANUAL NECESSÁRIA antes de religar os serviços:
+
+  1. Atualize toda referência a:
+         $SRC_DIR
+     para:
+         $DST_DIR
+     nas units systemd, crontabs e scripts que apontam pra lá:
+       - /etc/systemd/system/pesquisa.service (WorkingDirectory=/ExecStart=,
+         o que quer que rode de fato a partir de moduloPesquisaPRPI)
+       - /etc/systemd/system/cppgi.service (PATH= e ExecStart=, que apontam
+         pro venv dentro de moduloPesquisaPRPI)
+     (e nos .sample versionados, se quiser manter o repo em sincronia)
+
+         sudo sed -i 's#$SRC_DIR#$DST_DIR#g' /etc/systemd/system/pesquisa.service
+         sudo sed -i 's#$SRC_DIR#$DST_DIR#g' /etc/systemd/system/cppgi.service
+
+  2. sudo systemctl daemon-reload
+
+  3. Suba de volta os serviços parados, na ordem inversa da parada
+     (pesquisa.service primeiro, cppgi.service depende dele):
+EOF
+for (( idx=${#SERVICES_TO_STOP[@]}-1 ; idx>=0 ; idx-- )); do
+    svc="${SERVICES_TO_STOP[$idx]}"
+    [ -n "$svc" ] && echo "         sudo systemctl start $svc"
+done
+cat <<EOF
+
+  4. Faça o smoke test de cada serviço dependente (status, logs, uma
+     requisição real).
+
+  5. SÓ DEPOIS de validar que está tudo funcionando em $DST_DIR,
+     remova a origem manualmente (não é feito por este script):
+
+         sudo rm -rf "$SRC_DIR"
+
+EOF

@@ -32,14 +32,18 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --comment "Deploy pesquisa via GitHub Actions" \
             --parameters commands='[
-              "git config --system --add safe.directory /home/admin/moduloPesquisaPRPI",
-              "cd /home/admin/moduloPesquisaPRPI",
+              "systemctl stop pesquisa",
+              "git config --system --add safe.directory /opt/moduloPesquisaPRPI",
+              "cd /opt/moduloPesquisaPRPI",
               "git pull origin python3 --tags",
-              "find /home/admin/moduloPesquisaPRPI -not -user admin -not -user pesquisa -exec chown admin:pesquisa {} +",
-              "chmod -R g=u /home/admin/moduloPesquisaPRPI",
-              "find /home/admin/moduloPesquisaPRPI -type d -exec chmod g+s {} +",
-              "chmod 750 /home/admin/moduloPesquisaPRPI/app/pesquisa.py",
-              "service pesquisa restart"
+              "find /opt/moduloPesquisaPRPI -not -user admin -not -user pesquisa -exec chown admin:pesquisa {} +",
+              "chmod -R u=rwX,g=rX /opt/moduloPesquisaPRPI",
+              "chmod g+w /opt/moduloPesquisaPRPI/app",
+              "chmod -R g+w /opt/moduloPesquisaPRPI/app/submissoes /opt/moduloPesquisaPRPI/app/docs_indicacoes /opt/moduloPesquisaPRPI/app/static/files /opt/moduloPesquisaPRPI/app/pdfs /opt/moduloPesquisaPRPI/app/xml",
+              "find /opt/moduloPesquisaPRPI/app -maxdepth 1 -name \"app.json*\" -exec chmod g+w {} +",
+              "find /opt/moduloPesquisaPRPI -type d -exec chmod g+s {} +",
+              "chmod 750 /opt/moduloPesquisaPRPI/app/pesquisa.py",
+              "systemctl start pesquisa"
             ]' \
             --query "Command.CommandId" \
             --output text)

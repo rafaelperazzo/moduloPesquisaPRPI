@@ -3,13 +3,17 @@ Description=Sistema Flask Yoko-Pesquisa
 After=network.target
 
 [Service]
-User=admin
-Group=www-data
+User=pesquisa
+Group=pesquisa
+UMask=0002
 WorkingDirectory=/home/admin/moduloPesquisaPRPI/app
 Environment=GIT_PYTHON_REFRESH=quiet
 #Environment="PATH=/home/admin/moduloPesquisaPRPI/app/env/bin"
 Environment="PATH=/home/admin/moduloPesquisaPRPI/app/env/bin:/usr/bin:/usr/local/bin"
 Environment="PRODUCAO=1"
+Environment="AWS_DEFAULT_REGION=us-east-2"
+#Environment="AWS_CONFIG_FILE=/home/admin/.aws/config"
+Environment="AWS_USE_DUALSTACK_ENDPOINT=true"
 #ExecStart=sh -c 'redis-cli FLUSHALL  && /home/admin/moduloPesquisaPRPI/app/env/bin/python pesquisa.py'
 ExecStart=/home/admin/moduloPesquisaPRPI/app/env/bin/python /home/admin/moduloPesquisaPRPI/app/pesquisa.py
 Restart=on-failure
@@ -27,5 +31,17 @@ MemoryMax=450M
 # Torna este serviço o último a ser escolhido pelo OOM killer global (ex: em
 # vez do sage_bot ou de outro processo), já que é o serviço de produção.
 OOMScoreAdjust=-500
+
+# Isolamento e Segurança (compatível com Boto3/SSM, MariaDB e GPG do usuário
+# pesquisa em /home/pesquisa/.gnupg)
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/admin/moduloPesquisaPRPI/app /home/pesquisa /tmp /var/tmp
+PrivateTmp=false
+NoNewPrivileges=true
+ProtectKernelTunables=false
+ProtectControlGroups=true
+RestrictRealtime=true
+
 [Install]
 WantedBy=multi-user.target

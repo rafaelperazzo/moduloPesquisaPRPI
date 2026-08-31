@@ -1,41 +1,53 @@
 #!/bin/bash
-clear
-if [ -z "$INFISICAL_TOKEN" ]; then
-echo "Error: INFISICAL_TOKEN environment variable is not set."
-exit 1
+set -e
+
+# Diretório base do projeto
+folder="/home/perazzo/UFRPE/docker/projetos/pesquisa"
+cd "$folder"
+
+# Valida a existência do arquivo .env
+if [ ! -f .env ]; then
+  echo "Erro: Arquivo .env não encontrado em $folder"
+  exit 1
 fi
-echo "OBTENDO OS SEGREDOS DO INFISICAL"
-MYSQL_ROOT_PASSWORD=$(infisical secrets get MYSQL_ROOT_PASSWORD --plain)
-GPG_KEY=$(infisical secrets get GPG_KEY --plain)
-AWS_MYSQL_HOST=$(infisical secrets get AWS_MYSQL_HOST --plain)
-AWS_MYSQL_PASSWORD=$(infisical secrets get AWS_MYSQL_PASSWORD --plain)
-folder=/home/perazzo/Projetos/docker/pesquisa 
-cd $folder
-echo "REINICIANDO CONTAINERES"
-infisical run -- docker compose down
-infisical run -- docker compose up -d
-#gh workflow run backup.yml
-#ssh sci01-ter-jne.ufca.edu.br '/backup/pesquisa3/./backup.mysql.sh'
-echo "ATUALIZANDO ARQUIVOS DOS PROJETOS E DOS INDICADOS"
-#rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa3/app/submissoes/ $folder/app/submissoes/
-#rsync -e 'ssh -p 22184' -avzh sci01-ter-jne.ufca.edu.br:/backup/pesquisa3/app/docs_indicacoes/ $folder/app/docs_indicacoes/
-echo "BAIXANDO O ULTIMO BACKUP DO BANCO DE DADOS"
-dir="/backup/pesquisa3/share"
-server="perazzo@sci01-ter-jne.ufca.edu.br"
-arquivo=$(ssh sci01-ter-jne.ufca.edu.br 'ls -t /backup/pesquisa3/share | head -1')
-scp $server:$dir/$arquivo share/
-echo "DECRIPTANDO O ARQUIVO DO BANCO DE DADOS"
-gpg -o share/ultimo.sql.gz --decrypt --batch --yes --passphrase $GPG_KEY share/$arquivo
+
+# Carrega as variáveis a partir do .env
+MYSQL_ROOT_PASSWORD=$(grep -E "^MYSQL_ROOT_PASSWORD=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
+MYSQL_DATABASE=$(grep -E "^MYSQL_DATABASE=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
+GPG_KEY=$(grep -E "^GPG_KEY=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
+
+# Garante que o diretório temporário exista
+mkdir -p share
+
+echo "==> BAIXANDO O ÚLTIMO BACKUP DO BANCO DE DADOS (S3)"
+S3_BUCKET="s3://rajardekalambur/pesquisa/backup/"
+arquivo=$(aws s3 ls "$S3_BUCKET" | sort -k1,2 | tail -1 | awk '{print $4}')
+
+if [ -z "$arquivo" ]; then
+  echo "Erro: Nenhum arquivo encontrado no bucket S3."
+  exit 1
+fi
+
+echo "Arquivo encontrado: $arquivo"
+aws s3 cp "${S3_BUCKET}${arquivo}" "share/${arquivo}"
+
+echo "==> DESCRIPTOGRAFANDO E DESCOMPACTANDO"
+gpg -o share/ultimo.sql.gz --decrypt --batch --yes --passphrase "$GPG_KEY" "share/$arquivo"
 gunzip -f share/ultimo.sql.gz
-arquivo=$(ls -t share | head -1)
-sed -i 's/\sDEFINER=`[^`]*`@`[^`]*`//g' share/$arquivo
-echo "ATUALIZANDO O BANCO DE DADOS"
-infisical run -- docker compose exec -T db_pesquisa bash -c "mariadb -u root -p$MYSQL_ROOT_PASSWORD < /share/$arquivo"
-echo "ATUALIZANDO O BANCO DE DADOS DA AWS"
-#infisical run -- mariadb -h $AWS_MYSQL_HOST -P 3306 -u admin -p$AWS_MYSQL_PASSWORD --ssl < share/$arquivo
-#docker run -i --rm mariadb:11 mariadb -h database-1.cb4e02ocy6n1.us-east-2.rds.amazonaws.com --ssl -P 3306 -u admin -p$AWS_MYSQL_PASSWORD < share/$arquivo
-echo "CLONANDO PARA BD DE TESTES"
-./clonar.sh.run
-echo "APAGANDO ARQUIVOS"
-rm -f share/$arquivo
+
+echo "==> ATUALIZANDO O BANCO PRINCIPAL ($MYSQL_DATABASE)"
+docker compose exec -T db_pesquisa bash -c "mariadb -u root -p'$MYSQL_ROOT_PASSWORD' '$MYSQL_DATABASE' < /share/ultimo.sql"
+
+echo "==> CLONANDO/CRIANDO O BANCO DE TESTE (pesquisa_test)"
+docker compose exec -T db_pesquisa bash -c "
+  mariadb -u root -p'$MYSQL_ROOT_PASSWORD' -e 'DROP DATABASE IF EXISTS \`pesquisa_test\`; CREATE DATABASE \`pesquisa_test\`;'
+  mariadb -u root -p'$MYSQL_ROOT_PASSWORD' pesquisa_test < /share/ultimo.sql
+  mariadb -u root -p'$MYSQL_ROOT_PASSWORD' -e \"GRANT ALL PRIVILEGES ON \\\`pesquisa_test\\\`.* TO 'pesquisa'@'%'; FLUSH PRIVILEGES;\"
+"
+
+echo "==> LIMPANDO ARQUIVOS TEMPORÁRIOS"
+rm -f share/ultimo.sql
+rm -f "share/$arquivo"
 rm -f share/*.gpg
+
+echo "==> PROCESSO E CLONAGEM CONCLUÍDOS COM SUCESSO!"

@@ -39,7 +39,7 @@ jobs:
               "find /opt/moduloPesquisaPRPI -not -user admin -not -user pesquisa -exec chown admin:pesquisa {} +",
               "chmod -R u=rwX,g=rX /opt/moduloPesquisaPRPI",
               "chmod g+w /opt/moduloPesquisaPRPI/app",
-              "chmod -R g+w /opt/moduloPesquisaPRPI/app/submissoes /opt/moduloPesquisaPRPI/app/docs_indicacoes /opt/moduloPesquisaPRPI/app/static/files /opt/moduloPesquisaPRPI/app/pdfs /opt/moduloPesquisaPRPI/app/xml",
+              "chmod -R g+w /opt/moduloPesquisaPRPI/app/submissoes /opt/moduloPesquisaPRPI/app/docs_indicacoes /opt/moduloPesquisaPRPI/app/pdfs",
               "find /opt/moduloPesquisaPRPI/app -maxdepth 1 -name \"app.json*\" -exec chmod g+w {} +",
               "find /opt/moduloPesquisaPRPI -type d -exec chmod g+s {} +",
               "chmod 750 /opt/moduloPesquisaPRPI/app/pesquisa.py",

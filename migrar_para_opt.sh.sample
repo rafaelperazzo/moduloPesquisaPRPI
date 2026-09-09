@@ -5,7 +5,8 @@
 # Copie para uma cópia real (ex: migrar_para_opt.sh, já ignorado pelo .gitignore),
 # ajuste as variáveis abaixo e revise a lista de "referências externas" antes de
 # rodar em produção. Este script NÃO apaga a origem sozinho - isso é passo manual
-# no final, depois de validar que tudo funciona no novo caminho.
+# no final, depois de validar que tudo funciona no novo caminho (smoke test
+# automático abaixo cobre a checagem básica, mas vale conferir logs também).
 set -euo pipefail
 
 # ---- Configuração (ajuste para cada migração) ----
@@ -31,6 +32,31 @@ SERVICES_TO_STOP=("cppgi.service" "pesquisa.service")
 # User=pesquisa, cai nas permissões de grupo (g=rX, só leitura) e falha ao
 # tentar gravar upload/log/pdf depois do corte.
 WRITABLE_SUBDIRS=("app")
+
+# Arquivos de sistema que referenciam SRC_DIR e precisam apontar para DST_DIR
+# antes de religar os serviços: as units systemd (WorkingDirectory=/ExecStart=
+# ou, no caso do cppgi, PATH= do venv), o crontab (jobs que rodam scripts/
+# comandos dentro do caminho antigo) e a config do CloudWatch agent (paths de
+# log monitorados, ex: app.json). Ajuste para cada migração - nem toda pasta
+# aparece em todos esses lugares.
+REFERENCE_FILES=(
+    "/etc/systemd/system/pesquisa.service"
+    "/etc/systemd/system/cppgi.service"
+    "/etc/crontab"
+    "/opt/aws/amazon-cloudwatch-agent/bin/config.json"
+)
+
+# URLs para o smoke test pós-corte (uma requisição HTTP real por serviço,
+# equivalente ao "curl" que seria feito manualmente).
+SMOKE_TEST_URLS=(
+    "https://aws.yokoapps.com.br/pesquisa"
+    "https://aws.yokoapps.com.br/cppgi"
+)
+
+# Diretório raiz onde uma cópia de cada REFERENCE_FILES é guardada antes de
+# editá-lo (backup para reversão manual, caso o smoke test falhe ou algo dê
+# errado depois do corte). Cada execução cria uma subpasta com timestamp.
+BACKUP_ROOT_DIR="/root/migracoes-backup"
 
 # ---- Fase 1: cópia (pode rodar com o(s) serviço(s) ainda no ar) ----
 echo "==> Copiando $SRC_DIR -> $DST_DIR via rsync..."
@@ -65,53 +91,131 @@ if [ "${#SERVICES_TO_STOP[@]}" -gt 0 ]; then
     done
 fi
 
-cat <<EOF
+# ---- Fase 4: atualizar referências e religar os serviços ----
+BACKUP_DIR="$BACKUP_ROOT_DIR/$(date +%Y%m%d-%H%M%S)-$(basename "$SRC_DIR")"
+echo "==> Fazendo backup dos arquivos de referência em $BACKUP_DIR..."
+sudo mkdir -p "$BACKUP_DIR"
 
-==> AÇÃO MANUAL NECESSÁRIA antes de religar os serviços:
+echo "==> Atualizando referências de $SRC_DIR para $DST_DIR..."
+for f in "${REFERENCE_FILES[@]}"; do
+    if [ -f "$f" ]; then
+        sudo cp -a --parents "$f" "$BACKUP_DIR"
+        sudo sed -i "s#$SRC_DIR#$DST_DIR#g" "$f"
+        echo "    - $f atualizado (backup em $BACKUP_DIR$f)"
+    else
+        echo "    - AVISO: $f não encontrado, pulando" >&2
+    fi
+done
 
-  1. Atualize toda referência a:
-         $SRC_DIR
-     para:
-         $DST_DIR
-     nas units systemd, crontabs, agentes e scripts que apontam pra lá:
-       - /etc/systemd/system/pesquisa.service (WorkingDirectory=/ExecStart=,
-         o que quer que rode de fato a partir de moduloPesquisaPRPI)
-       - /etc/systemd/system/cppgi.service (PATH= e ExecStart=, que apontam
-         pro venv dentro de moduloPesquisaPRPI)
-       - /etc/crontab (jobs que rodam scripts/comandos dentro do caminho antigo)
-       - /opt/aws/amazon-cloudwatch-agent/bin/config.json (paths de log
-         monitorados pelo CloudWatch agent, ex: app.json)
-     (e nos .sample versionados, se quiser manter o repo em sincronia)
+echo "==> Recarregando systemd (daemon-reload)..."
+sudo systemctl daemon-reload
 
-         sudo sed -i 's#$SRC_DIR#$DST_DIR#g' /etc/systemd/system/pesquisa.service
-         sudo sed -i 's#$SRC_DIR#$DST_DIR#g' /etc/systemd/system/cppgi.service
-         sudo sed -i 's#$SRC_DIR#$DST_DIR#g' /etc/crontab
-         sudo sed -i 's#$SRC_DIR#$DST_DIR#g' /opt/aws/amazon-cloudwatch-agent/bin/config.json
+echo "==> Reaplicando config do CloudWatch agent..."
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+    -a fetch-config -m ec2 -s \
+    -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json
 
-  2. sudo systemctl daemon-reload
+if [ "${#SERVICES_TO_STOP[@]}" -gt 0 ]; then
+    echo "==> Subindo serviços na ordem inversa da parada..."
+    for (( idx=${#SERVICES_TO_STOP[@]}-1 ; idx>=0 ; idx-- )); do
+        svc="${SERVICES_TO_STOP[$idx]}"
+        echo "    - iniciando $svc"
+        sudo systemctl start "$svc"
+    done
+fi
 
-  3. Reaplique a config do CloudWatch agent e reinicie-o (senão ele continua
-     monitorando o caminho antigo até o próximo boot):
+# ---- Fase 5: smoke test (requisição HTTP real por serviço) ----
+echo "==> Smoke test em $DST_DIR..."
+SMOKE_TEST_FAILED=0
+for url in "${SMOKE_TEST_URLS[@]:-}"; do
+    [ -z "$url" ] && continue
+    echo -n "    - $url: "
+    codigo="000"
+    ok=0
+    for tentativa in 1 2 3 4 5; do
+        codigo="$(curl -s -o /dev/null -w '%{http_code}' "$url" || echo "000")"
+        if [[ "$codigo" == 2* || "$codigo" == 3* ]]; then
+            ok=1
+            break
+        fi
+        sleep 3
+    done
+    if [ "$ok" -eq 1 ]; then
+        echo "OK (HTTP $codigo)"
+    else
+        echo "FALHOU (último HTTP: $codigo)"
+        SMOKE_TEST_FAILED=1
+    fi
+done
+
+if [ "$SMOKE_TEST_FAILED" -ne 0 ]; then
+    cat <<EOF
+
+ERRO: smoke test falhou para pelo menos uma URL. NÃO remova "$SRC_DIR".
+
+Os serviços já foram religados apontando para "$DST_DIR" (fases 3-4 já
+rodaram). Investigue antes com:
+
+         sudo systemctl status <serviço>
+         sudo journalctl -u <serviço> -n 100
+
+Se decidir reverter, os comandos completos são (apenas indicativo - revise
+cada um antes de rodar; nada disso é executado automaticamente):
+
+  1) Parar os serviços de novo:
+EOF
+    for svc in "${SERVICES_TO_STOP[@]}"; do
+        echo "         sudo systemctl stop $svc"
+    done
+    cat <<EOF
+
+  2) Restaurar os arquivos de referência a partir do backup ($BACKUP_DIR):
+EOF
+    for f in "${REFERENCE_FILES[@]}"; do
+        if [ -f "$BACKUP_DIR$f" ]; then
+            echo "         sudo cp \"$BACKUP_DIR$f\" \"$f\""
+        fi
+    done
+    cat <<EOF
+
+  3) sudo systemctl daemon-reload
+
+  4) Reaplicar a config do CloudWatch agent, agora de volta apontando para
+     $SRC_DIR:
 
          sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \\
              -a fetch-config -m ec2 -s \\
              -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json
 
-  4. Suba de volta os serviços parados, na ordem inversa da parada
-     (pesquisa.service primeiro, cppgi.service depende dele):
+  5) Subir os serviços de volta (mesma ordem da fase 4 - dependência
+     primeiro):
 EOF
-for (( idx=${#SERVICES_TO_STOP[@]}-1 ; idx>=0 ; idx-- )); do
-    svc="${SERVICES_TO_STOP[$idx]}"
-    [ -n "$svc" ] && echo "         sudo systemctl start $svc"
-done
+    for (( idx=${#SERVICES_TO_STOP[@]}-1 ; idx>=0 ; idx-- )); do
+        svc="${SERVICES_TO_STOP[$idx]}"
+        echo "         sudo systemctl start $svc"
+    done
+    cat <<EOF
+
+  6) Confirme com "systemctl status <serviço>" e um teste manual (curl ou
+     navegador nas URLs de SMOKE_TEST_URLS) que voltou a funcionar a partir
+     de "$SRC_DIR".
+
+Nada em "$SRC_DIR" ou "$DST_DIR" foi apagado - a reversão acima só troca as
+referências de volta. Investigue a causa da falha em "$DST_DIR" com calma
+antes de tentar migrar de novo.
+EOF
+    exit 1
+fi
+
+# ---- Fase 6: remoção da origem - AÇÃO MANUAL NECESSÁRIA ----
 cat <<EOF
 
-  5. Faça o smoke test de cada serviço dependente (status, logs, uma
-     requisição real) e confirme no console do CloudWatch que os logs
-     novos estão chegando a partir de $DST_DIR.
+==> Smoke test OK em $DST_DIR (todos os serviços religados e respondendo).
 
-  6. SÓ DEPOIS de validar que está tudo funcionando em $DST_DIR,
-     remova a origem manualmente (não é feito por este script):
+  SÓ DEPOIS de você mesmo confirmar que está tudo funcionando (status dos
+  serviços, logs recentes, uso real da aplicação, e no console do CloudWatch
+  que os logs novos estão chegando a partir de $DST_DIR), remova a origem
+  manualmente (não é feito por este script):
 
          sudo rm -rf "$SRC_DIR"
 

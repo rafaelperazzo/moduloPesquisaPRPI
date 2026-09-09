@@ -21,6 +21,7 @@ import threading
 import zeep
 import zipfile
 import tempfile
+import shutil
 import xml.etree.ElementTree as ET
 import time
 from flask import Response
@@ -567,6 +568,58 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
                 logger.error(str(e))
         except Exception as e:
             logger.error(str(e))
+            logger.error("Procedimento para o ID: " + str(idProjeto) + " finalizado. Erros ocorreram ao enviar e-mail.")
+
+def processarPontuacaoLattes2(xml_content, area, idProjeto, dados):
+    """
+    Equivalente a processarPontuacaoLattes, mas calcula a pontuação a partir
+    do conteúdo XML do currículo Lattes enviado como arquivo (usado quando o
+    serviço de consulta por CPF junto ao CNPq está offline).
+    """
+    ano_fim = date.today().year
+    ano_inicio = ano_fim - 5
+    sumario = ""
+    pontuacao = "0.0"
+    try:
+        resultado = obter_score_lattes(
+            xml_content=xml_content,
+            ano_inicio=ano_inicio,
+            ano_fim=ano_fim,
+            area_capes=area,
+            tipo="detalhada"
+        )
+        pontuacao = resultado['score_total']
+        sumario = resultado['html']
+    except Exception as e:
+        logger.warning("Erro ao processar a pontuação Lattes a partir do arquivo: {}", str(e))
+        sumario = "Erro ao processar a pontuacao lattes a partir do arquivo enviado."
+        pontuacao = "0.0"
+    try:
+        consulta = """UPDATE editalProjeto
+        SET scorelattes= %s WHERE id= %s"""
+        atualizar2(consulta,valores=[pontuacao,idProjeto])
+    except Exception as e:
+        with app.app_context():
+            logger.warning("Erro ao atualizar o scorelattes: {} - idProjeto: {}", str(e), str(idProjeto))
+    with app.app_context():
+        try:
+            #ENVIAR E-MAIL DE CONFIRMAÇÃO
+            codigo_do_edital = str(obterColunaUnica("editalProjeto","tipo","id",str(idProjeto)))
+            descricao_do_edital = str(obterColunaUnica("editais","nome","id",codigo_do_edital))
+            modalidade = extrair_modalidade(descricao_do_edital)
+            texto_email = render_template('confirmacao_submissao.html',email_proponente=dados[0],id_projeto=idProjeto,proponente=dados[1],titulo_projeto=dados[2],resumo_projeto=dados[3],score=pontuacao,sumario=sumario,modalidade=modalidade)
+            if PRODUCAO==1:
+                msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=[dados[0]],html=texto_email,reply_to=DEFAULT_EMAIL)
+            else:
+                msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to=DEFAULT_EMAIL)
+            try:
+                mail.send(msg)
+                logger.info("Email enviado com sucesso. processarPontuacaoLattes2 - IdProjeto: {}", idProjeto)
+            except Exception as e:
+                logger.error("Erro ao enviar e-mail. processarPontuacaoLattes2")
+                logger.error(str(e))
+        except Exception as e:
+            logger.error(str(e))
             logger.error("Procedimento para o ID: " + str(idProjeto) + " finalizado. Erros ocorreram ao enviar e-mail.")        
 
 def calcularScoreLattes(tipo,area,since,until,arquivo):
@@ -1087,6 +1140,43 @@ def declaracaoOrientador():
     return render_template('orientador.html',texto=texto_declaracao,
                            data=data_agora,identificador=texto_declaracao[0],bolsistas=bolsistas)
 
+def extrair_conteudo_xml_lattes(arquivo):
+    """
+    Extrai e valida o conteúdo XML de um arquivo de Currículo Lattes
+    enviado em formato .xml ou .zip. Levanta ValueError em caso de
+    arquivo inválido.
+    """
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        extensao = os.path.splitext(arquivo.filename)[1].lower()
+        caminho_xml = os.path.join(tmp_dir, 'curriculo.xml')
+
+        if extensao == '.zip':
+            caminho_zip = os.path.join(tmp_dir, 'curriculo.zip')
+            arquivo.save(caminho_zip)
+            if not zipfile.is_zipfile(caminho_zip):
+                raise ValueError("Erro: o arquivo enviado não é um arquivo ZIP válido.")
+            with zipfile.ZipFile(caminho_zip, 'r') as zip_ref:
+                nomes_xml = [n for n in zip_ref.namelist() if n.lower().endswith('.xml')]
+                if not nomes_xml:
+                    raise ValueError("Erro: o arquivo ZIP não contém um arquivo XML.")
+                zip_ref.extract(nomes_xml[0], tmp_dir)
+            os.replace(os.path.join(tmp_dir, nomes_xml[0]), caminho_xml)
+        elif extensao == '.xml':
+            arquivo.save(caminho_xml)
+        else:
+            raise ValueError("Erro: o arquivo enviado deve ser um .xml ou .zip.")
+
+        try:
+            ET.parse(caminho_xml)
+        except ET.ParseError:
+            raise ValueError("Erro: o arquivo XML enviado não é válido.")
+
+        with open(caminho_xml, "r", encoding="latin-1") as f:
+            return f.read()
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
 @app.route("/cadastrarProjeto", methods=['GET', 'POST'])
 @login_required(role='user')
 @log_required
@@ -1113,7 +1203,7 @@ def cadastrarProjeto():
         else:
             justificativa = ""
         justificativa = removerAspas(justificativa)
-        cpf = str(request.form['cpf'])
+        cpf = str(request.form.get('cpf',''))
 
         #DADOS PESSOAIS E BÁSICOS DO PROJETO
         consulta = """INSERT INTO editalProjeto 
@@ -1265,8 +1355,19 @@ def cadastrarProjeto():
             atualizar2(consulta, valores=[token, ultimo_id])
         #CALCULANDO scorelattes
         dados = [email,nome,titulo,descricao_resumida]
-        t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
-        t.start()
+        arquivo_lattes = request.files.get('arquivo_lattes')
+        if cpf != '':
+            t = threading.Thread(target=processarPontuacaoLattes,args=(cpf,area_capes,ultimo_id,dados,))
+            t.start()
+        elif arquivo_lattes is not None and arquivo_lattes.filename != '':
+            try:
+                conteudo_xml = extrair_conteudo_xml_lattes(arquivo_lattes)
+            except ValueError as e:
+                return str(e)
+            t = threading.Thread(target=processarPontuacaoLattes2,args=(conteudo_xml,area_capes,ultimo_id,dados,))
+            t.start()
+        else:
+            return "Erro: informe o CPF ou anexe o arquivo do Currículo Lattes (XML ou ZIP)."
         return("Submissão realizada com sucesso. ESTA PÁGINA JÁ PODE SER FECHADA COM SEGURANÇA.")
     else:
         editaisAbertos = getEditaisAbertos()

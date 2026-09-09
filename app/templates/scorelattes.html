@@ -80,7 +80,7 @@
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-1"><b>Arquivo do Currículo Lattes (XML ou ZIP)</b></label>
           <input name="arquivo_lattes" id="arquivo_lattes" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" type="file" accept=".xml,.zip">
-          <p class="text-xs text-gray-500 mt-1">Opcional, se o CPF for informado.</p>
+          <p id="arquivoHint" class="text-xs text-gray-500 mt-1">Obrigatório apenas quando o serviço de consulta por CPF estiver offline.</p>
         </div>
         <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-800">
           <p class="mb-2">O Qualis dos periódicos é extraído da <a href="https://sucupira-legado.capes.gov.br/sucupira/public/consultas/coleta/veiculoPublicacaoQualis/listaConsultaGeralPeriodicos.jsf" target="_blank" class="underline font-medium hover:text-blue-600">Plataforma Sucupira</a>, considerando o evento de classificação <strong>2021-2024</strong>.</p>
@@ -109,17 +109,22 @@
     (function verificarStatusLattes() {
       var badge = document.getElementById('statusLattesBadge');
       var cpfInput = document.getElementById('cpf');
+      var arquivoHint = document.getElementById('arquivoHint');
 
       function atualizarBadge(online) {
         if (online) {
           badge.className = 'inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700';
           badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span> Online';
           cpfInput.disabled = false;
+          arquivoHint.className = 'text-xs text-gray-500 mt-1';
+          arquivoHint.textContent = 'Obrigatório apenas quando o serviço de consulta por CPF estiver offline.';
         } else {
           badge.className = 'inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700';
           badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500"></span> Offline';
           cpfInput.disabled = true;
           cpfInput.value = '';
+          arquivoHint.className = 'text-xs text-red-600 font-medium mt-1';
+          arquivoHint.textContent = 'Obrigatório: o serviço de consulta por CPF está offline no momento.';
         }
       }
 

@@ -20,6 +20,8 @@ from flask_uploads import UploadSet, configure_uploads, ALL, DOCUMENTS
 import threading
 import zeep
 import zipfile
+import tempfile
+import xml.etree.ElementTree as ET
 import time
 from flask import Response
 import json
@@ -29,6 +31,7 @@ from git import Repo
 import secrets
 from functools import wraps
 from datetime import timedelta
+from datetime import date
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
@@ -304,6 +307,8 @@ else:
                       aws_access_key_id=AWS_S3_KEY_ID,
                       aws_secret_access_key=AWS_S3_SECRET_KEY,
                       config=Config(use_dualstack_endpoint=True))
+
+lambda_client = boto3.client('lambda', region_name='us-east-2')
 
 #Obtendo senhas
 PASSWORD = os.environ.pop("MYSQL_PASSWORD", "World")
@@ -1289,7 +1294,129 @@ def getScoreLattesFromFile():
         logger.warning("Erro ao obter sumário do Lattes. Verifique se o CPF, a área CAPES e o período estão corretos.")
         return "Erro ao obter sumário do Lattes. Falha na comunicação com o CNPq."
     return (sumario)
+
+def obter_score_lattes(xml_content: str, ano_inicio: int, ano_fim: int, area_capes: str, tipo: str = "resumida"):
+    """
+    Invoca a Lambda calcular-score-lattes de forma síncrona.
+    :param xml_content: Conteúdo do arquivo XML em string
+    :param ano_inicio: Ano inicial do cálculo
+    :param ano_fim: Ano final do cálculo
+    :param area_capes: Área CAPES (ex: 'COMPUTACAO')
+    :param tipo: 'resumida', 'detalhada' ou 'html'
+    :return: dict com o resultado retornado pela função
+    """
+    # Monta a estrutura que o lambda_handler espera
+    payload_interno = {
+        "xml_content": xml_content,
+        "ano_inicio": ano_inicio,
+        "ano_fim": ano_fim,
+        "area_capes": area_capes,
+        "tipo": tipo
+    }
     
+    payload = {
+        "body": json.dumps(payload_interno)
+    }
+
+    # Invoca a função via AWS API (síncrono: RequestResponse)
+    resposta = lambda_client.invoke(
+        FunctionName='calcular-score-lattes',
+        InvocationType='RequestResponse',
+        Payload=json.dumps(payload)
+    )
+
+    # Lê a resposta bruta da Lambda
+    resposta_bytes = resposta['Payload'].read().decode('utf-8')
+    dados_resposta = json.loads(resposta_bytes)
+
+    status_code = dados_resposta.get('statusCode')
+    corpo = dados_resposta.get('body')
+
+    # Se for JSON, decodifica para dicionário Python
+    if dados_resposta.get('headers', {}).get('Content-Type', '').startswith('application/json'):
+        corpo = json.loads(corpo)
+
+    if status_code != 200:
+        raise Exception(f"Erro na Lambda ({status_code}): {corpo}")
+
+    return corpo
+
+@app.route("/score2", methods=['POST'])
+@log_required
+def getScoreLattesFromFile2():
+    area_capes = str(request.form['area_capes'])
+    cpf = str(request.form['cpf'])
+    periodo = str(request.form['periodo'])
+
+    tmp_dir = tempfile.gettempdir()
+    caminho_xml = os.path.join(tmp_dir, 'curriculo.xml')
+
+    arquivo = request.files.get('arquivo_lattes')
+    if arquivo is not None and arquivo.filename != '':
+        extensao = os.path.splitext(arquivo.filename)[1].lower()
+
+        if extensao == '.zip':
+            caminho_zip = os.path.join(tmp_dir, 'curriculo.zip')
+            arquivo.save(caminho_zip)
+            if not zipfile.is_zipfile(caminho_zip):
+                os.remove(caminho_zip)
+                return "Erro: o arquivo enviado não é um arquivo ZIP válido."
+            try:
+                with zipfile.ZipFile(caminho_zip, 'r') as zip_ref:
+                    nomes_xml = [n for n in zip_ref.namelist() if n.lower().endswith('.xml')]
+                    if not nomes_xml:
+                        return "Erro: o arquivo ZIP não contém um arquivo XML."
+                    zip_ref.extract(nomes_xml[0], tmp_dir)
+            except zipfile.BadZipFile:
+                return "Erro: o arquivo enviado não é um arquivo ZIP válido."
+            finally:
+                if os.path.exists(caminho_zip):
+                    os.remove(caminho_zip)
+            caminho_extraido = os.path.join(tmp_dir, nomes_xml[0])
+            os.replace(caminho_extraido, caminho_xml)
+        elif extensao == '.xml':
+            arquivo.save(caminho_xml)
+        else:
+            return "Erro: o arquivo enviado deve ser um .xml ou .zip."
+
+        try:
+            ET.parse(caminho_xml)
+        except ET.ParseError:
+            os.remove(caminho_xml)
+            return "Erro: o arquivo XML enviado não é válido."
+
+        ano_fim = date.today().year
+        ano_inicio = ano_fim - int(periodo)
+        try:
+            with open(caminho_xml, "r", encoding="latin-1") as f:
+                conteudo_xml = f.read()
+            resultado = obter_score_lattes(
+                xml_content=conteudo_xml,
+                ano_inicio=ano_inicio,
+                ano_fim=ano_fim,
+                area_capes=area_capes,
+                tipo="html"
+            )
+        except Exception as e:
+            logger.warning("Erro ao calcular o score Lattes a partir do arquivo enviado: {}", str(e))
+            return "Erro ao calcular a pontuação a partir do arquivo enviado."
+        finally:
+            if os.path.exists(caminho_xml):
+                os.remove(caminho_xml)
+        if isinstance(resultado, str):
+            return resultado
+        return jsonify(resultado)
+
+    url_sumario = URL_LAMBDA + cpf + "/" + area_capes + "/" + periodo + "/" + "1"
+    sumario = "{}"
+    try:
+        sumario = requests.get(url_sumario, auth=aws_auth(), timeout=120).text
+    except Exception as e:
+        logger.warning(e)
+        logger.warning("Erro ao obter sumário do Lattes. Verifique se o CPF, a área CAPES e o período estão corretos.")
+        return "Erro ao obter sumário do Lattes. Falha na comunicação com o CNPq."
+    return (sumario)
+
 #Devolve os nomes dos arquivos do projeto e dos planos, caso existam
 def getFiles(idProjeto):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
@@ -3455,9 +3582,7 @@ def enviar_lembrete_frequencia():
                     except Exception as e:
                         logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
                         logger.error(str(e))
-                    finally:
-                        continue
-                    
+
 @app.route("/listaNegra/<email>", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
 @log_required

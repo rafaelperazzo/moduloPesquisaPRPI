@@ -1278,6 +1278,28 @@ def cadastrarProjeto():
 def calcularScorelattesFromID():
     return (render_template('scorelattes.html'))
 
+def verificarLattesOnline():
+    """
+    Invoca a Lambda sci01-online, que testa a disponibilidade do serviço
+    de score Lattes, e retorna True/False conforme o resultado.
+    """
+    try:
+        resposta = lambda_client.invoke(
+            FunctionName='sci01-online',
+            InvocationType='RequestResponse',
+            Payload=json.dumps({})
+        )
+        resposta_bytes = resposta['Payload'].read().decode('utf-8')
+        return bool(json.loads(resposta_bytes))
+    except Exception as e:
+        logger.warning("Erro ao verificar status do serviço de score Lattes: {}", str(e))
+        return False
+
+@app.route("/statusLattes", methods=['GET'])
+@log_required
+def statusLattes():
+    return jsonify({"online": verificarLattesOnline()})
+
 @app.route("/score", methods=['POST'])
 @log_required
 #@limiter.limit("500/day;200/hour;100/minute",methods=["POST"])

@@ -1397,13 +1397,14 @@ def verificarLattesOnline():
         return False
 
 @app.route("/statusLattes", methods=['GET'])
+@limiter.limit("50/day;25/hour;5/minute",methods=["POST"])
 @log_required
 def statusLattes():
     return jsonify({"online": verificarLattesOnline()})
 
 @app.route("/score", methods=['POST'])
 @log_required
-#@limiter.limit("500/day;200/hour;100/minute",methods=["POST"])
+@limiter.limit("30/day;15/hour;5/minute",methods=["POST"])
 def getScoreLattesFromFile():
     area_capes = str(request.form['area_capes'])
     cpf = str(request.form['cpf'])
@@ -1466,6 +1467,7 @@ def obter_score_lattes(xml_content: str, ano_inicio: int, ano_fim: int, area_cap
 
 @app.route("/score2", methods=['POST'])
 @log_required
+@limiter.limit("30/day;15/hour;5/minute",methods=["POST"])
 def getScoreLattesFromFile2():
     area_capes = str(request.form['area_capes'])
     cpf = str(request.form['cpf'])

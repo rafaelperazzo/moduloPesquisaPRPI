@@ -2624,33 +2624,51 @@ def minhaDeclaracao():
 @log_required
 def minhaDeclaracaoDiscente():
     if request.method == "GET":
-        #Recuperando o token da declaração
+        # Recuperando o token da declaração
         if 'token' in request.args:
             token = str(request.args.get('token'))
             consulta = """SELECT estudante_nome_completo,cpf,if(estudante_fim>NOW(),1,0) as verbo,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,
                         ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(estudante_fim,'%d/%m/%Y') as final,id FROM cadastro_geral WHERE token=%s"""
-            projeto,total = executarSelect2(consulta,tipo=1,valores=(token,))
+            projeto, total = executarSelect2(consulta, tipo=1, valores=(token,))
             data_agora = getData()
-            if total==1:
-                try:
-                    html = render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(str(projeto[9]),projeto[5],'declaracao_discente'),raiz=ROOT_SITE)
-                    return html_to_pdf_response(html, filename='declaracao.pdf', as_attachment=False)
-                except Exception as e:
-                    with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
-                        logger.warning("Erro ao gerar declaração: {}", str(e))
-                    return("Erro ao gerar declaração. Tente novamente mais tarde.")
-            else:
-                return("declaração inexistente!")
-        else:
-            return("OK")
-    else:
-        return("OK")
 
-'''
-qrcode_url = url_for('avaliacao_gerar_declaracao',ano=ano,periodo=periodo,token=token,_external=True)
-qrcode = pyqrcode.create(qrcode_url)
-qrcode.png(app.config['PNG_DIR'] + 'qrcode.png',scale=3)
-'''
+            if total == 1:
+                try:
+                    identificador = gerar_codigo_auth(str(projeto[9]), projeto[5], 'declaracao_discente')
+
+                    # Montagem da condicional do declaracao_discente.html
+                    verbo = "é" if projeto[2] == 1 else "foi"
+                    if projeto[2] == 1:
+                        complemento = f"A participação do(a) discente em questão no referido Projeto de Pesquisa iniciou-se em {projeto[7]} e está em andamento."
+                    else:
+                        complemento = f"A participação do(a) discente em questão no referido Projeto de Pesquisa foi de {projeto[7]} a {projeto[8]}."
+
+                    corpo = (
+                        f"Declaramos, para os devidos fins, que <b>{projeto[0]}</b>, CPF: <b>{projeto[1]}</b>, "
+                        f"{verbo} integrante do Programa Institucional de Bolsas de Iniciação Científica ({projeto[3]}), "
+                        f"sob orientação do(a) professor(a) {projeto[4]}, com o projeto intitulado <i>\"{projeto[5]}\"</i>, "
+                        f"desempenhando suas atividades com carga horária de {projeto[6]} horas semanais. {complemento}"
+                    )
+
+                    return invocar_declaracao_overlay(
+                        corpo_html=corpo,
+                        data_extenso=data_agora,
+                        rotulo_id="ID da Indicação",
+                        id_ref=projeto[9],
+                        identificador=identificador,
+                        nome_arquivo_download=f"declaracao_discente_{token}.pdf"
+                    )
+
+                except Exception as e:
+                    with logger.contextualize(ip=request.remote_addr, rota=request.path, erro=str(e), classe_erro=type(e).__name__):
+                        logger.warning("Erro ao gerar declaração: {}", str(e))
+                    return "Erro ao gerar declaração. Tente novamente mais tarde."
+            else:
+                return "declaração inexistente!"
+        else:
+            return "OK"
+    else:
+        return "OK"
 
 @app.route("/discente/meuCertificado2018", methods=['GET', 'POST'])
 @log_required
@@ -2738,12 +2756,10 @@ def meuCertificado():
     else:
         return("OK")
 
-
 @app.route("/discente/minhaDeclaracao2019", methods=['GET', 'POST'])
 @log_required
 def minhaDeclaracaoDiscente2019():
     if request.method == "GET":
-        #Recuperando o token da declaração
         if 'id' in request.args:
             idIndicacao = str(request.args.get('id'))
             consulta = """SELECT 
@@ -2756,28 +2772,55 @@ def minhaDeclaracaoDiscente2019():
             DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'), indicacoes.id 
             FROM indicacoes,editalProjeto 
             WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.id=%s"""
+            
             from datetime import datetime
-            projeto,total = executarSelect2(consulta,tipo=1,valores=(idIndicacao,))
-            inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
-            fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
-            periodo = abs((fim-inicio).days)
-            #if periodo<180:
-            #    return('Declaração indisponível. Período de bolsa inferior a 180 dias')
+            projeto, total = executarSelect2(consulta, tipo=1, valores=(idIndicacao,))
+            
+            if total != 1:
+                return "declaração inexistente!"
+
+            inicio = datetime.strptime(str(projeto[7]), '%d/%m/%Y')
+            fim = datetime.strptime(str(projeto[8]), '%d/%m/%Y')
+            periodo = abs((fim - inicio).days)
+            # if periodo < 180:
+            #     return 'Declaração indisponível. Período de bolsa inferior a 180 dias'
+            
             data_agora = getData()
-            if total==1:
-                try:
-                    html = render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idIndicacao,projeto[5],'declaracao_discente'),raiz=ROOT_SITE)
-                    return html_to_pdf_response(html, filename='declaracao.pdf', as_attachment=False)
-                except Exception as e:
-                    with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
-                        logger.warning("Erro ao gerar declaração: {}", str(e))
-                    return("Erro ao gerar declaração. Tente novamente mais tarde.")
-            else:
-                return("declaração inexistente!")
+
+            try:
+                identificador = gerar_codigo_auth(idIndicacao, projeto[5], 'declaracao_discente')
+
+                # Montagem do texto idêntica ao template declaracao_discente.html
+                verbo = "é" if projeto[2] == 1 else "foi"
+                if projeto[2] == 1:
+                    complemento = f"A participação do(a) discente em questão no referido Projeto de Pesquisa iniciou-se em {projeto[7]} e está em andamento."
+                else:
+                    complemento = f"A participação do(a) discente em questão no referido Projeto de Pesquisa foi de {projeto[7]} a {projeto[8]}."
+
+                corpo = (
+                    f"Declaramos, para os devidos fins, que <b>{projeto[0]}</b>, CPF: <b>{projeto[1]}</b>, "
+                    f"{verbo} integrante do Programa Institucional de Bolsas de Iniciação Científica ({projeto[3]}), "
+                    f"sob orientação do(a) professor(a) {projeto[4]}, com o projeto intitulado <i>\"{projeto[5]}\"</i>, "
+                    f"desempenhando suas atividades com carga horária de {projeto[6]} horas semanais. {complemento}"
+                )
+
+                return invocar_declaracao_overlay(
+                    corpo_html=corpo,
+                    data_extenso=data_agora,
+                    rotulo_id="ID da Indicação",
+                    id_ref=idIndicacao,
+                    identificador=identificador,
+                    nome_arquivo_download=f"declaracao_discente_{idIndicacao}.pdf"
+                )
+
+            except Exception as e:
+                with logger.contextualize(ip=request.remote_addr, rota=request.path, erro=str(e), classe_erro=type(e).__name__):
+                    logger.warning("Erro ao gerar declaração: {}", str(e))
+                return "Erro ao gerar declaração. Tente novamente mais tarde."
         else:
-            return("OK")
+            return "OK"
     else:
-        return("OK")
+        return "OK"
 
 @app.route("/meusPareceres", methods=['GET', 'POST'])
 @log_required

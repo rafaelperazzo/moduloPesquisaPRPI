@@ -2532,32 +2532,6 @@ def meusProjetos():
     else:
         return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
 
-def html_to_pdf_response(html_content, filename="declaracao.pdf", as_attachment=False):
-    """Invoca a função Lambda e retorna a resposta com o binário do PDF para o Flask."""
-    payload = {"html": html_content}
-
-    response = lambda_client.invoke(
-        FunctionName='lambda-html-to-pdf',
-        InvocationType='RequestResponse',
-        Payload=json.dumps(payload)
-    )
-
-    response_data = json.loads(response['Payload'].read().decode('utf-8'))
-
-    if response_data.get('statusCode') != 200:
-        error_msg = response_data.get('body', 'Erro interno na conversão')
-        raise RuntimeError(f"Erro no serviço PDF: {error_msg}")
-
-    pdf_bytes = base64.b64decode(response_data['body'])
-    pdf_stream = io.BytesIO(pdf_bytes)
-
-    return send_file(
-        pdf_stream,
-        mimetype='application/pdf',
-        as_attachment=as_attachment,
-        download_name=filename
-    )
-
 def invocar_declaracao_overlay(corpo_html, data_extenso, rotulo_id, id_ref, identificador, nome_arquivo_download, tipo_documento="DECLARAÇÃO"):
     payload = {
         "corpo_html": corpo_html,

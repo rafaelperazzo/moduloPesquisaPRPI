@@ -59,7 +59,7 @@ from botocore.exceptions import ClientError, BotoCoreError
 from botocore.config import Config
 from dotenv import load_dotenv
 from requests_auth_aws_sigv4 import AWSSigV4
-#from weasyprint import HTML
+from relatorio_edital_pdf import gerar_pdf_resultado_edital
 
 def load_ssm_parameters(prefix="/pesquisa", region_name="us-east-2"):
     """
@@ -2273,91 +2273,150 @@ def obterColunaUnica_str(tabela,coluna,colunaId,valorId):
         cursor.close()
         conn.close()
 
-
 @app.route("/editalProjeto", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def editalProjeto():
-    if (autenticado() and int(session['permissao'])==0):
-        if request.method == "GET":
-            #Recuperando o código do edital
-            if 'edital' in request.args:
-                codigoEdital = str(request.args.get('edital'))
-                session['edital'] = codigoEdital
-                conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
-                conn.select_db(MYSQL_DATABASE)
-                cursor  = conn.cursor()
-                tipo_classificacao = int(obterColunaUnica("editais","classificacao","id",codigoEdital))
-                #ORDENA DE ACORDO COM O TIPO DE CLASSIFICAÇÃO: 1 - POR UA; 2 - POR LATTES
-                if (tipo_classificacao==1):
-                    consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs,arquivo_plano3 FROM editalProjeto WHERE tipo=%s AND valendo=1 ORDER BY ua,produtividade,scorelattes DESC,nome"
-                else:
-                    consulta = "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,bolsas,bolsas_concedidas,obs,arquivo_plano3 FROM editalProjeto WHERE tipo=%s AND valendo=1 ORDER BY produtividade,scorelattes DESC,nome"
-                
-                consulta_novos = """
-                SELECT editalProjeto.id,
-                nome,
-                ua,
-                titulo,
-                arquivo_projeto,
-                IFNULL(GROUP_CONCAT(avaliacoes.avaliador ORDER BY avaliador SEPARATOR '<BR>'),"SEM AVALIADORES") as avaliadores,
-                GROUP_CONCAT(IF(avaliacoes.recomendacao=1,'RECOMENDADO',IF(avaliacoes.recomendacao=0,'***NÃO RECOMENDADO***','EM AVALIAÇÃO')) ORDER BY avaliador SEPARATOR '<BR>') as recomendacoes, 
-                IFNULL(GROUP_CONCAT(avaliacoes.enviado ORDER BY avaliador SEPARATOR '<BR>'),0) as enviado,
-                GROUP_CONCAT(IF(avaliacoes.aceitou=1,'ACEITOU',IF(avaliacoes.aceitou=0,'REJEITOU','NÃO RESPONDEU')) ORDER BY avaliador SEPARATOR '<BR>') as aceitou,
-                IFNULL(sum(avaliacoes.finalizado),0) as finalizados,
-                IFNULL(sum(if(recomendacao=-1,1,0)),0), 
-                sum(if(recomendacao=0,1,0)),
-                sum(if(recomendacao=1,1,0)),palavras,
-                IFNULL(sum(avaliacoes.inovacao),0) as inovacao
-                FROM editalProjeto
-                LEFT JOIN avaliacoes ON editalProjeto.id=avaliacoes.idProjeto
-                WHERE tipo=%s
-                AND valendo=1 AND categoria=1
-                GROUP BY editalProjeto.id
-                ORDER BY finalizados,editalProjeto.ua,editalProjeto.id
-                """
-                modalidade = int(obterColunaUnica("editais","modalidade","id",codigoEdital))
-                demanda = """SELECT ua,count(id) FROM editalProjeto WHERE valendo=1 and tipo=%s GROUP BY ua
-                ORDER BY ua"""
+    if not (autenticado() and int(session.get('permissao', -1)) == 0):
+        return render_template('login.html', mensagem="É necessário autenticação para acessar a página solicitada")
 
-                bolsas_ufca = int(obterColunaUnica("editais","quantidade_bolsas","id",codigoEdital))
-                bolsas_cnpq = int(obterColunaUnica("editais","quantidade_bolsas_cnpq","id",codigoEdital))
+    if request.method != "GET":
+        return "OK"
 
-                try:
-                    cursor.execute(consulta, (codigoEdital,))
-                    total = cursor.rowcount
-                    linhas = cursor.fetchall()
-                    descricao = descricaoEdital(codigoEdital)
-                    cursor.execute(consulta_novos, (codigoEdital,))
-                    total_novos = cursor.rowcount
-                    linhas_novos = cursor.fetchall()
-                    cursor.execute(demanda, (codigoEdital,))
-                    linhas_demanda = cursor.fetchall()
-                    if 'resultado' in request.args:
-                        if 'pdf' in request.args:
-                            mensagem = str(obterColunaUnica("editais","mensagem","id",codigoEdital))
-                            html = render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=1,mensagem=mensagem,modalidade=modalidade)
-                            return html_to_pdf_response(html, filename='resultados.pdf', as_attachment=False)
+    # Recuperando o código do edital
+    if 'edital' not in request.args:
+        return "OK"
 
-                        else:
-                            mensagem = str(obterColunaUnica("editais","mensagem","id",codigoEdital))
-                            return(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=1,mensagem=mensagem,modalidade=modalidade))
-                    else:
-                        mensagem = ""
-                        return(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=0,modalidade=modalidade))
-                except Exception as e:
-                    logger.warning(str(e))
-                    logger.warning("ERRO Na função /editalProjeto. Ver consulta abaixo.")
-                    logger.warning(consulta_novos)
-                    return("ERRO!")
-                finally:
-                    cursor.close()
-                    conn.close()
+    codigoEdital = str(request.args.get('edital'))
+    session['edital'] = codigoEdital
 
-            else:
-                return ("OK")
-    else:
-        return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
+    conn.select_db(MYSQL_DATABASE)
+    cursor = conn.cursor()
+
+    try:
+        tipo_classificacao = int(obterColunaUnica("editais", "classificacao", "id", codigoEdital))
+        
+        # ORDENA DE ACORDO COM O TIPO DE CLASSIFICAÇÃO: 1 - POR UA; 2 - POR LATTES
+        if tipo_classificacao == 1:
+            consulta = (
+                "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,"
+                "arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,"
+                "DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,"
+                "DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,"
+                "if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,"
+                "bolsas,bolsas_concedidas,obs,arquivo_plano3 "
+                "FROM editalProjeto WHERE tipo=%s AND valendo=1 "
+                "ORDER BY ua,produtividade,scorelattes DESC,nome"
+            )
+        else:
+            consulta = (
+                "SELECT id,tipo,categoria,nome,email,ua,scorelattes,titulo,arquivo_projeto,"
+                "arquivo_plano1,arquivo_plano2,arquivo_lattes_pdf,arquivo_comprovantes,"
+                "DATE_FORMAT(data,\"%d/%m/%Y - %H:%i\") as data,DATE_FORMAT(inicio,\"%d/%m/%Y\") as inicio,"
+                "DATE_FORMAT(fim,\"%d/%m/%Y\") as fim,"
+                "if(produtividade=0,\"PROD. CNPq\",if(produtividade=1,\"BPI FUNCAP\",\"NORMAL\")) as prioridade,"
+                "bolsas,bolsas_concedidas,obs,arquivo_plano3 "
+                "FROM editalProjeto WHERE tipo=%s AND valendo=1 "
+                "ORDER BY produtividade,scorelattes DESC,nome"
+            )
+
+        consulta_novos = """
+        SELECT editalProjeto.id,
+        nome,
+        ua,
+        titulo,
+        arquivo_projeto,
+        IFNULL(GROUP_CONCAT(avaliacoes.avaliador ORDER BY avaliador SEPARATOR '<BR>'),"SEM AVALIADORES") as avaliadores,
+        GROUP_CONCAT(IF(avaliacoes.recomendacao=1,'RECOMENDADO',IF(avaliacoes.recomendacao=0,'***NÃO RECOMENDADO***','EM AVALIAÇÃO')) ORDER BY avaliador SEPARATOR '<BR>') as recomendacoes, 
+        IFNULL(GROUP_CONCAT(avaliacoes.enviado ORDER BY avaliador SEPARATOR '<BR>'),0) as enviado,
+        GROUP_CONCAT(IF(avaliacoes.aceitou=1,'ACEITOU',IF(avaliacoes.aceitou=0,'REJEITOU','NÃO RESPONDEU')) ORDER BY avaliador SEPARATOR '<BR>') as aceitou,
+        IFNULL(sum(avaliacoes.finalizado),0) as finalizados,
+        IFNULL(sum(if(recomendacao=-1,1,0)),0), 
+        sum(if(recomendacao=0,1,0)),
+        sum(if(recomendacao=1,1,0)),palavras,
+        IFNULL(sum(avaliacoes.inovacao),0) as inovacao
+        FROM editalProjeto
+        LEFT JOIN avaliacoes ON editalProjeto.id=avaliacoes.idProjeto
+        WHERE tipo=%s
+        AND valendo=1 AND categoria=1
+        GROUP BY editalProjeto.id
+        ORDER BY finalizados,editalProjeto.ua,editalProjeto.id
+        """
+
+        modalidade = int(obterColunaUnica("editais", "modalidade", "id", codigoEdital))
+        demanda = """SELECT ua,count(id) FROM editalProjeto WHERE valendo=1 and tipo=%s GROUP BY ua ORDER BY ua"""
+        bolsas_ufca = int(obterColunaUnica("editais", "quantidade_bolsas", "id", codigoEdital))
+        bolsas_cnpq = int(obterColunaUnica("editais", "quantidade_bolsas_cnpq", "id", codigoEdital))
+
+        cursor.execute(consulta, (codigoEdital,))
+        total = cursor.rowcount
+        linhas = cursor.fetchall()
+        descricao = descricaoEdital(codigoEdital)
+
+        cursor.execute(consulta_novos, (codigoEdital,))
+        total_novos = cursor.rowcount
+        linhas_novos = cursor.fetchall()
+
+        cursor.execute(demanda, (codigoEdital,))
+        linhas_demanda = cursor.fetchall()
+
+        if 'resultado' in request.args:
+            mensagem = str(obterColunaUnica("editais", "mensagem", "id", codigoEdital))
+            
+            # Geração do relatório em PDF via ReportLab Platypus
+            if 'pdf' in request.args:
+                pdf_bytes = gerar_pdf_resultado_edital(
+                    descricao=descricao,
+                    mensagem=mensagem,
+                    lista_projetos=linhas,
+                    total=total
+                )
+                return send_file(
+                    io.BytesIO(pdf_bytes),
+                    mimetype='application/pdf',
+                    as_attachment=False,
+                    download_name=f"resultado_edital_{codigoEdital}.pdf"
+                )
+
+            return render_template(
+                'editalProjeto.html',
+                listaProjetos=linhas,
+                descricao=descricao,
+                total=total,
+                novos=linhas_novos,
+                total_novos=total_novos,
+                linhas_demanda=linhas_demanda,
+                bolsas_ufca=bolsas_ufca,
+                bolsas_cnpq=bolsas_cnpq,
+                codigoEdital=codigoEdital,
+                resultado=1,
+                mensagem=mensagem,
+                modalidade=modalidade
+            )
+        else:
+            return render_template(
+                'editalProjeto.html',
+                listaProjetos=linhas,
+                descricao=descricao,
+                total=total,
+                novos=linhas_novos,
+                total_novos=total_novos,
+                linhas_demanda=linhas_demanda,
+                bolsas_ufca=bolsas_ufca,
+                bolsas_cnpq=bolsas_cnpq,
+                codigoEdital=codigoEdital,
+                resultado=0,
+                modalidade=modalidade
+            )
+
+    except Exception as e:
+        logger.warning(f"ERRO Na função /editalProjeto: {e}")
+        logger.warning(consulta_novos)
+        return "ERRO!"
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route("/lattesDetalhado", methods=['GET', 'POST'])
 @log_required

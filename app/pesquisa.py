@@ -2470,7 +2470,7 @@ def html_to_pdf_response(html_content, filename="declaracao.pdf", as_attachment=
         download_name=filename
     )
 
-def invocar_declaracao_overlay(corpo_html, data_extenso, rotulo_id, id_ref, identificador, nome_arquivo_download):
+def invocar_declaracao_overlay(corpo_html, data_extenso, rotulo_id, id_ref, identificador, nome_arquivo_download, tipo_documento="DECLARAÇÃO"):
     payload = {
         "corpo_html": corpo_html,
         "data": f"Juazeiro do Norte, {data_extenso}",
@@ -2674,7 +2674,6 @@ def minhaDeclaracaoDiscente():
 @log_required
 def meuCertificado2018():
     if request.method == "GET":
-        #Recuperando o token da declaração
         if 'token' in request.args:
             token = str(request.args.get('token'))
             consulta = """
@@ -2684,40 +2683,65 @@ def meuCertificado2018():
             ROUND((DATEDIFF(estudante_fim,estudante_inicio)/7)*ch_semanal) as ch_total
             FROM cadastro_geral WHERE token=%s"""
             consulta2 = """SELECT * from gestores ORDER BY id"""
+            
             from datetime import datetime
-            projeto,total = executarSelect2(consulta,tipo=1,valores=(token,))
-            gestores,total_gestores = executarSelect(consulta2)
+            projeto, total = executarSelect2(consulta, tipo=1, valores=(token,))
+            
+            if total != 1:
+                return "declaração inexistente!"
+
+            gestores, total_gestores = executarSelect(consulta2)
             proreitor = gestores[0]
             coordenador = gestores[1]
-            inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
-            fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
-            agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"),'%d/%m/%Y')
-            periodo = abs((fim-inicio).days)
-            if periodo<180:
-                return('Certificado indisponível. Período de bolsa inferior a 180 dias')
+            
+            inicio = datetime.strptime(str(projeto[7]), '%d/%m/%Y')
+            fim = datetime.strptime(str(projeto[8]), '%d/%m/%Y')
+            agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"), '%d/%m/%Y')
+            periodo = abs((fim - inicio).days)
+            
+            if periodo < 180:
+                return 'Certificado indisponível. Período de bolsa inferior a 180 dias'
+            
+            if (fim - agora).days > 0:
+                return 'Certificado disponível apenas após a conclusão do projeto em andamento: '
+
             data_agora = getData()
-            if ((fim-agora).days>0):
-                return('Certificado disponível apenas após a conclusão do projeto em andamento: ')
-            if total==1:
-                try:
-                    html = render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=token,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor)
-                    return html_to_pdf_response(html, filename='declaracao.pdf', as_attachment=False)
-                except Exception as e:
-                    with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
-                        logger.warning("Erro ao gerar declaração: {}", str(e))
-                    return("Erro ao gerar declaração. Tente novamente mais tarde.")
-            else:
-                return("declaração inexistente!")
+
+            try:
+                # Monta o corpo idêntico ao certificado_discente_2018.html
+                corpo = (
+                    f"Certificamos que o(a) estudante <b>{projeto[0]}</b>, CPF: <b>{projeto[1]}</b> "
+                    f"foi vinculado(a) ao Programa Institucional de Bolsas de Iniciação Científica e Tecnológica (PIICT) "
+                    f"na condição de {projeto[2]}, modalidade {projeto[3]} sob orientação do(a) professor(a) "
+                    f"<b>{projeto[4]}</b>, no projeto de pesquisa intitulado <b>\"{projeto[5]}\"</b>, "
+                    f"desempenhando suas atividades com carga horária de {projeto[6]} horas semanais. "
+                    f"A participação do(a) estudante no referido Projeto de Pesquisa se estendeu de {projeto[7]} a {projeto[8]}, "
+                    f"contabilizando um total de {projeto[9]} horas."
+                )
+
+                return invocar_declaracao_overlay(
+                    corpo_html=corpo,
+                    data_extenso=data_agora,
+                    rotulo_id="Token do Certificado",
+                    id_ref=token,
+                    identificador=token,
+                    nome_arquivo_download=f"certificado_{token}.pdf",
+                    tipo_documento="CERTIFICADO"
+                )
+
+            except Exception as e:
+                with logger.contextualize(ip=request.remote_addr, rota=request.path, erro=str(e), classe_erro=type(e).__name__):
+                    logger.warning("Erro ao gerar certificado: {}", str(e))
+                return "Erro ao gerar declaração. Tente novamente mais tarde."
         else:
-            return("OK")
+            return "OK"
     else:
-        return("OK")
+        return "OK"
 
 @app.route("/discente/meuCertificado", methods=['GET', 'POST'])
 @log_required
 def meuCertificado():
     if request.method == "GET":
-        #Recuperando o token da declaração
         if 'id' in request.args:
             idIndicacao = str(request.args.get('id'))
             consulta = """SELECT i.nome,i.cpf,
@@ -2727,35 +2751,62 @@ def meuCertificado():
             ROUND((DATEDIFF(i.fim,i.inicio)/7)*i.ch) as ch_total
             FROM indicacoes i, editalProjeto e WHERE i.idProjeto=e.id and e.valendo=1 and i.id=%s"""
             consulta2 = """SELECT * from gestores ORDER BY id"""
+            
             from datetime import datetime
-            projeto,total = executarSelect2(consulta,tipo=1,valores=(idIndicacao,))
-            gestores,total_gestores = executarSelect(consulta2)
+            projeto, total = executarSelect2(consulta, tipo=1, valores=(idIndicacao,))
+            
+            if total != 1:
+                return "declaração inexistente!"
+
+            gestores, total_gestores = executarSelect(consulta2)
             proreitor = gestores[0]
             coordenador = gestores[1]
-            inicio = datetime.strptime(str(projeto[7]),'%d/%m/%Y')
-            fim = datetime.strptime(str(projeto[8]),'%d/%m/%Y')
-            agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"),'%d/%m/%Y')
-            periodo = abs((fim-inicio).days)
-            if periodo<180:
-                return('Certificado indisponível. Período de bolsa inferior a 180 dias')
-            data_agora = getData()
-            if ((fim-agora).days>0):
-                return('Certificado disponível apenas após a conclusão do projeto em andamento: ')
-            if total==1:
-                try:
-                    html = render_template('certificado_discente.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor)
-                    return html_to_pdf_response(html, filename='declaracao.pdf', as_attachment=False)
-                except Exception as e:
-                    with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
-                        logger.warning("Erro ao gerar declaração: {}", str(e))
-                    return("Erro ao gerar declaração. Tente novamente mais tarde.")
-            else:
-                return("declaração inexistente!")
-        else:
-            return("OK")
-    else:
-        return("OK")
+            
+            inicio = datetime.strptime(str(projeto[7]), '%d/%m/%Y')
+            fim = datetime.strptime(str(projeto[8]), '%d/%m/%Y')
+            agora = datetime.strptime(datetime.today().strftime("%d/%m/%Y"), '%d/%m/%Y')
+            periodo = abs((fim - inicio).days)
+            
+            if periodo < 180:
+                return 'Certificado indisponível. Período de bolsa inferior a 180 dias'
+            
+            if (fim - agora).days > 0:
+                return 'Certificado disponível apenas após a conclusão do projeto em andamento: '
 
+            data_agora = getData()
+
+            try:
+                # Monta o corpo idêntico ao certificado_discente.html (vaga no índice 3, modalidade no índice 2)
+                corpo = (
+                    f"Certificamos que o(a) estudante <b>{projeto[0]}</b>, CPF: <b>{projeto[1]}</b> "
+                    f"foi vinculado(a) ao Programa Institucional de Bolsas de Iniciação Científica e Tecnológica (PIICT) "
+                    f"na condição de {projeto[3]}, modalidade {projeto[2]} sob orientação do(a) professor(a) "
+                    f"<b>{projeto[4]}</b>, no projeto de pesquisa intitulado <b>\"{projeto[5]}\"</b>, "
+                    f"desempenhando suas atividades com carga horária de {projeto[6]} horas semanais. "
+                    f"A participação do(a) estudante no referido Projeto de Pesquisa se estendeu de {projeto[7]} a {projeto[8]}, "
+                    f"contabilizando um total de {projeto[9]} horas."
+                )
+
+                return invocar_declaracao_overlay(
+                    corpo_html=corpo,
+                    data_extenso=data_agora,
+                    rotulo_id="ID da Indicação",
+                    id_ref=idIndicacao,
+                    identificador=idIndicacao,
+                    nome_arquivo_download=f"certificado_discente_{idIndicacao}.pdf",
+                    tipo_documento="CERTIFICADO"
+                )
+
+            except Exception as e:
+                with logger.contextualize(ip=request.remote_addr, rota=request.path, erro=str(e), classe_erro=type(e).__name__):
+                    logger.warning("Erro ao gerar certificado: {}", str(e))
+                return "Erro ao gerar declaração. Tente novamente mais tarde."
+        else:
+            return "OK"
+    else:
+        return "OK"
+
+        
 @app.route("/discente/minhaDeclaracao2019", methods=['GET', 'POST'])
 @log_required
 def minhaDeclaracaoDiscente2019():

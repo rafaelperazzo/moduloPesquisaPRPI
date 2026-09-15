@@ -2449,7 +2449,7 @@ def html_to_pdf_response(html_content, filename="declaracao.pdf", as_attachment=
     payload = {"html": html_content}
 
     response = lambda_client.invoke(
-        FunctionName='lambda-html-to-pdf-zip',
+        FunctionName='lambda-html-to-pdf',
         InvocationType='RequestResponse',
         Payload=json.dumps(payload)
     )

@@ -23,7 +23,7 @@
   <table style="width: 100%; border-collapse: collapse; border-bottom: 1pt solid #000; padding-bottom: 10pt; margin-bottom: 16pt;">
     <tr>
       <td style="width: 54pt; vertical-align: middle; padding-bottom: 10pt;">
-        <img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png') }}" alt="Brasão da República"
+        <img src="{{ imagem_base64('brasao_uniao.png') }}" alt="Brasão da República"
              style="width: 44pt; height: auto; display: block;">
       </td>
       <td style="vertical-align: middle; padding-left: 10pt; padding-bottom: 10pt;">
@@ -71,7 +71,7 @@
 
   <!-- Assinatura -->
   <div style="text-align: center; margin-bottom: 24pt;">
-    <img src="{{raiz}}{{ url_for('static', filename='assinatura_laura.png') }}" alt="Assinatura"
+    <img src="{{ imagem_base64('assinatura_laura.png') }}" alt="Assinatura"
          style="width: 110pt; height: auto; display: block; margin: 0 auto 0 auto;">
     <div style="width: 170pt; border-top: 0.75pt solid #000; margin: 0 auto 5pt auto;"></div>
     <p style="font-family: Georgia, 'Times New Roman', serif; font-size: 10pt; font-weight: 700; color: #000; margin: 0 0 2pt 0;">Claudener Souza Teixeira</p>

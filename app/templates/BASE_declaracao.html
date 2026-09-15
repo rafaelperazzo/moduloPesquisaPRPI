@@ -12,7 +12,7 @@
     <article></article>
     <div id="header">
     {% block header %}
-        <center><img src="{{raiz}}{{ url_for('static', filename='brasao_uniao.png')}}" width="120" height="130" alt=""></center>
+        <center><img src="{{ imagem_base64('brasao_uniao.png') }}" width="120" height="130" alt=""></center>
         <br><center>
         Ministério da Educação<BR>
         Universidade Federal do Cariri<BR>
@@ -32,7 +32,7 @@
       Juazeiro do Norte, {{data}}
     </div>
     <br><br>
-    <center><img src="{{raiz}}{{ url_for('static', filename='assinatura_laura.png')}}" width="254" height="49" alt=""></center>
+    <center><img src="{{ imagem_base64('assinatura_laura.png') }}" width="254" height="49" alt=""></center>
     <center>___________________________________</center><br>
     <center>Claudener Souza Teixeira</center><br>
     <center>PRÓ-REITOR DE PESQUISA, PÓS-GRADUAÇÃO E INOVAÇÃO</center><br>
@@ -40,7 +40,7 @@
 {% endblock %}
 {% block footer %}
     <br><br><br><center><small><i><a href="http://prpi.ufca.edu.br">http://prpi.ufca.edu.br</a></i></small></center><br><br><br><br>
-    <center><img src="{{raiz}}{{ url_for('static', filename='rodape.png')}}" width="100%" height="161" alt="" align="left"></center>
+    <center><img src="{{ imagem_base64('rodape.png') }}" width="100%" height="161" alt="" align="left"></center>
 {% endblock %}
 
 </body>

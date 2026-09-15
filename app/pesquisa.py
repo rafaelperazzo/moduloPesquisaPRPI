@@ -2470,6 +2470,35 @@ def html_to_pdf_response(html_content, filename="declaracao.pdf", as_attachment=
         download_name=filename
     )
 
+def invocar_declaracao_overlay(corpo_html, data_extenso, rotulo_id, id_ref, identificador, nome_arquivo_download):
+    payload = {
+        "corpo_html": corpo_html,
+        "data": f"Juazeiro do Norte, {data_extenso}",
+        "rotulo_id": rotulo_id,
+        "id_referencia": str(id_ref),
+        "identificador": identificador,
+        "url_validacao": "https://aws.yokoapps.com.br/pesquisa/verificarDeclaracao"
+    }
+
+    response = lambda_client.invoke(
+        FunctionName='gerar-declaracao-overlay',
+        InvocationType='RequestResponse',
+        Payload=json.dumps(payload)
+    )
+
+    response_data = json.loads(response['Payload'].read().decode('utf-8'))
+
+    if response_data.get('statusCode') != 200:
+        detalhe = response_data.get('body', {})
+        raise RuntimeError(f"Erro no serviço de declaração: {detalhe}")
+
+    pdf_bytes = base64.b64decode(response_data['body'])
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=nome_arquivo_download
+    )
 
 @app.route("/minhaDeclaracaoOrientador", methods=['GET', 'POST'])
 @log_required
@@ -2502,6 +2531,8 @@ def minhaDeclaracao():
 
         identificador = gerar_codigo_auth(token, projeto[2])
         nome_arquivo = f"declaracao_{token}.pdf"
+        id_referencia = token
+        rotulo_id = "Token do Documento"
 
     # Cenário 2: Busca por ID do Projeto
     elif 'id' in request.args:
@@ -2527,6 +2558,8 @@ def minhaDeclaracao():
 
         identificador = gerar_codigo_auth(idProjeto, projeto[2])
         nome_arquivo = f"declaracao_projeto_{idProjeto}.pdf"
+        id_referencia = str(idProjeto)
+        rotulo_id = "ID do Projeto"
 
     # Cenário 3: Busca por ID do Aluno
     elif 'idAluno' in request.args:
@@ -2545,26 +2578,48 @@ def minhaDeclaracao():
 
         identificador = gerar_codigo_auth(idProjeto, projeto[2])
         nome_arquivo = f"declaracao_aluno_{idAluno}.pdf"
+        id_referencia = str(idProjeto)
+        rotulo_id = "ID do Projeto"
 
     else:
         return "id nao informado"
 
-    # Renderização e envio do PDF
+    # Montagem do texto e chamada da função auxiliar
     try:
-        html = render_template(
-            'declaracao_orientador.html',
-            texto=projeto,
-            data=data_agora,
+        pesquisadores = projeto[8] if len(projeto) > 8 and projeto[8] else "N/A"
+        
+        if "N/A" in str(pesquisadores) or not str(pesquisadores).strip():
+            corpo = (
+                f"Declaramos, para os devidos fins, que o(a) professor(a) <b>{projeto[0]}</b>, "
+                f"SIAPE: <b>{projeto[1]}</b>, {projeto[7]} a função de <b>coordenador(a) do Projeto de Pesquisa</b> "
+                f"intitulado <i>\"{projeto[2]}\"</i>, no período de <b>{projeto[3]} a {projeto[4]}</b>, "
+                f"com orientação do(a)(s) bolsista(s): <i>{projeto[5]}</i>, no "
+                f"Programa Institucional de Iniciação Científica e Tecnológica (PIICT)."
+            )
+        else:
+            corpo = (
+                f"Declaramos, para os devidos fins, que o(a) professor(a) <b>{projeto[0]}</b>, "
+                f"SIAPE: <b>{projeto[1]}</b>, {projeto[7]} a função de <b>coordenador(a) do Projeto de Pesquisa</b> "
+                f"intitulado <i>\"{projeto[2]}\"</i>, no período de <b>{projeto[3]} a {projeto[4]}</b>, "
+                f"com orientação do(a)(s) bolsista(s): <i>{projeto[5]}</i>, no "
+                f"Programa Institucional de Iniciação Científica e Tecnológica (PIICT), "
+                f"com a participação dos(as) pesquisadores(as) {pesquisadores}."
+            )
+
+        return invocar_declaracao_overlay(
+            corpo_html=corpo,
+            data_extenso=data_agora,
+            rotulo_id=rotulo_id,
+            id_ref=id_referencia,
             identificador=identificador,
-            raiz=ROOT_SITE
+            nome_arquivo_download=nome_arquivo
         )
-        return html_to_pdf_response(html, filename=nome_arquivo, as_attachment=False)
 
     except Exception as e:
         with logger.contextualize(ip=request.remote_addr, rota=request.path, erro=str(e), classe_erro=type(e).__name__):
             logger.warning("Erro ao gerar declaração: {}", str(e))
         return "Erro ao gerar declaração. Tente novamente mais tarde."
-
+        
 @app.route("/discente/minhaDeclaracao", methods=['GET', 'POST'])
 @log_required
 def minhaDeclaracaoDiscente():

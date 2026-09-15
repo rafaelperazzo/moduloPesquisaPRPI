@@ -30,7 +30,10 @@ from flask_wtf.csrf import CSRFProtect
 from brseclabcripto.cripto3 import SecCripto
 from git import Repo
 import secrets
+import base64
+import mimetypes
 from functools import wraps
+from functools import lru_cache
 from datetime import timedelta
 from datetime import date
 import sentry_sdk
@@ -347,6 +350,19 @@ def inject_messages():
 @app.context_processor
 def inject_default_support():
     return dict(default_support=DEFAULT_SUPPORT, default_institutional=DEFAULT_INSTITUCIONAL)
+
+@lru_cache(maxsize=None)
+def imagem_base64(filename):
+    """Lê um arquivo de app/static e retorna como data URI base64, para embutir em PDFs sem depender de requisição HTTP."""
+    caminho = os.path.join(app.static_folder, filename)
+    mime, _ = mimetypes.guess_type(caminho)
+    with open(caminho, 'rb') as f:
+        codificado = base64.b64encode(f.read()).decode('ascii')
+    return f"data:{mime or 'application/octet-stream'};base64,{codificado}"
+
+@app.context_processor
+def inject_imagem_base64():
+    return dict(imagem_base64=imagem_base64)
 
 def login_required(role='admin'):
     def decorator_login_required(f):

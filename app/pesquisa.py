@@ -2496,7 +2496,7 @@ def invocar_declaracao_overlay(corpo_html, data_extenso, rotulo_id, id_ref, iden
     return send_file(
         io.BytesIO(pdf_bytes),
         mimetype='application/pdf',
-        as_attachment=True,
+        as_attachment=False,
         download_name=nome_arquivo_download
     )
 
@@ -2619,7 +2619,7 @@ def minhaDeclaracao():
         with logger.contextualize(ip=request.remote_addr, rota=request.path, erro=str(e), classe_erro=type(e).__name__):
             logger.warning("Erro ao gerar declaração: {}", str(e))
         return "Erro ao gerar declaração. Tente novamente mais tarde."
-        
+
 @app.route("/discente/minhaDeclaracao", methods=['GET', 'POST'])
 @log_required
 def minhaDeclaracaoDiscente():

@@ -1772,11 +1772,12 @@ def enviar_declaracao_avaliador(url,destinatario):
 @log_required
 def getDeclaracaoAvaliador(tokenAvaliacao):
     """
-    Gera a declaração de avaliação do avaliador.
+    Gera a declaração de avaliação do avaliador via Lambda Overlay.
     """
     if not token_valido(tokenAvaliacao):
         logger.warning("[/declaracaoAvaliador] Token inválido: {}", tokenAvaliacao)
         return "Token inválido!"
+
     consulta = """
     SELECT nome_avaliador,idProjeto,avaliador FROM avaliacoes WHERE token=%s
     AND finalizado=1
@@ -1784,22 +1785,50 @@ def getDeclaracaoAvaliador(tokenAvaliacao):
     linhas = consultar(consulta, (tokenAvaliacao,))
     nome_avaliador = "NAO INFORMADO"
     idProjeto = 0
+    destinatario = None
+
     for linha in linhas:
         nome_avaliador = str(linha[0])
         idProjeto = str(linha[1])
         destinatario = str(linha[2])
-    if idProjeto!=0:
-        titulo = str(obterColunaUnica("editalProjeto","titulo","id",idProjeto))
-        codigo_do_edital = str(obterColunaUnica("editalProjeto","tipo","id",idProjeto))
-        descricao_do_edital = str(obterColunaUnica("editais","nome","id",codigo_do_edital))
+
+    if idProjeto != 0 and idProjeto != "0":
+        titulo = str(obterColunaUnica("editalProjeto", "titulo", "id", idProjeto))
+        codigo_do_edital = str(obterColunaUnica("editalProjeto", "tipo", "id", idProjeto))
+        descricao_do_edital = str(obterColunaUnica("editais", "nome", "id", codigo_do_edital))
         data_agora = getData()
-        url = url_for('getDeclaracaoAvaliador',tokenAvaliacao=tokenAvaliacao, _external=True)
-        thread = threading.Thread(target=enviar_declaracao_avaliador,args=(url,destinatario,))
-        thread.start()
-        return render_template('declaracao_avaliador.html',
-                               nome=nome_avaliador,data=data_agora,edital=descricao_do_edital,
-                               titulo=titulo,idProjeto=idProjeto,
-                               identificador=gerar_codigo_auth(idProjeto,titulo,'declaracao_avaliador'))
+        identificador = gerar_codigo_auth(idProjeto, titulo, 'declaracao_avaliador')
+
+        # Mantém o envio em segundo plano
+        if destinatario:
+            url = url_for('getDeclaracaoAvaliador', tokenAvaliacao=tokenAvaliacao, _external=True)
+            thread = threading.Thread(target=enviar_declaracao_avaliador, args=(url, destinatario,))
+            thread.start()
+
+        try:
+            # Montagem do texto idêntica ao declaracao_avaliador.html
+            corpo = (
+                f"Declaramos, para os devidos fins, que <b>{nome_avaliador}</b> participou, como consultor "
+                f"<i>ad hoc</i>, da avaliação do projeto de pesquisa <b>\"#{idProjeto}\"</b>, "
+                f"referente ao <b>\"{descricao_do_edital}\"</b>, do Programa Institucional de Iniciação Científica "
+                f"e Tecnológica (PIICT) da Universidade Federal do Cariri (UFCA)."
+            )
+
+            return invocar_declaracao_overlay(
+                corpo_html=corpo,
+                data_extenso=data_agora,
+                rotulo_id="ID do Projeto",
+                id_ref=idProjeto,
+                identificador=identificador,
+                nome_arquivo_download=f"declaracao_avaliador_{idProjeto}.pdf",
+                tipo_documento="DECLARAÇÃO"
+            )
+
+        except Exception as e:
+            with logger.contextualize(ip=request.remote_addr, rota=request.path, erro=str(e), classe_erro=type(e).__name__):
+                logger.warning("Erro ao gerar declaração de avaliador: {}", str(e))
+            return "Erro ao gerar declaração. Tente novamente mais tarde."
+
     else:
         return "PROJETO AINDA NÃO AVALIADO OU INEXISTENTE!"
     
@@ -2806,7 +2835,7 @@ def meuCertificado():
     else:
         return "OK"
 
-        
+
 @app.route("/discente/minhaDeclaracao2019", methods=['GET', 'POST'])
 @log_required
 def minhaDeclaracaoDiscente2019():

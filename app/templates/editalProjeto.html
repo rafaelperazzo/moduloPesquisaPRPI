@@ -8,13 +8,13 @@
       gtag('js', new Date());
       gtag('config', 'UA-164056633-1');
     </script>
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css">
-    <script type="text/javascript" src="https://code.jquery.com/jquery-3.5.1.js"></script>
-    <script type="text/javascript" src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+    <style>{{ asset_inline('vendor/jquery.dataTables.min.css') | safe }}</style>
+    <script type="text/javascript">{{ asset_inline('vendor/jquery-3.5.1.js') | safe }}</script>
+    <script type="text/javascript">{{ asset_inline('vendor/jquery.dataTables.min.js') | safe }}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Propostas submetidas a edital</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script>{{ asset_inline('vendor/tailwind-play.js') | safe }}</script>
     <style>
       .aprovado { color: #059669; }
       .indefinido { color: #d97706; }

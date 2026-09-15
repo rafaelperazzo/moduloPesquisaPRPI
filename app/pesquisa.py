@@ -13,7 +13,6 @@ import string
 import random
 import sys
 import re
-import pdfkit
 from flask_mail import Mail
 from flask_mail import Message
 from flask_uploads import UploadSet, configure_uploads, ALL, DOCUMENTS
@@ -364,6 +363,17 @@ def imagem_base64(filename):
 @app.context_processor
 def inject_imagem_base64():
     return dict(imagem_base64=imagem_base64)
+
+@lru_cache(maxsize=None)
+def asset_inline(filename):
+    """Lê um arquivo de texto (CSS/JS) de app/static e retorna seu conteúdo bruto, para embutir em <style>/<script> sem depender de requisição HTTP (ex.: CDNs que a Lambda de geração de PDF não alcança)."""
+    caminho = os.path.join(app.static_folder, filename)
+    with open(caminho, 'r', encoding='utf-8') as f:
+        return f.read()
+
+@app.context_processor
+def inject_asset_inline():
+    return dict(asset_inline=asset_inline)
 
 def login_required(role='admin'):
     def decorator_login_required(f):
@@ -2235,30 +2245,6 @@ def obterColunaUnica_str(tabela,coluna,colunaId,valorId):
         conn.close()
 
 
-pdf_lock = threading.Lock()
-
-def pdfkit_from_string(*args, **kwargs):
-    # Serializa as chamadas ao wkhtmltopdf: cada geração de PDF sobe um processo
-    # externo pesado, e permitir várias simultâneas já causou pico de memória
-    # e OOM-kill do serviço na VPS.
-    with pdf_lock:
-        return pdfkit.from_string(*args, **kwargs)
-
-def gerarPDF(template):
-    try:
-        arquivoDeclaracao = app.config['TEMP_FOLDER'] + 'resultados.pdf'
-        options = {
-            'page-size': 'A4',
-            'margin-top': '2cm',
-            'margin-right': '2cm',
-            'margin-bottom': '1cm',
-            'margin-left': '2cm',
-        }
-        pdfkit_from_string(template,arquivoDeclaracao,options=options)
-        #HTML(string=template).write_pdf(arquivoDeclaracao)
-    except Exception as e:
-        logger.warning("ERRO Na função gerarPDF: {}", str(e))
-
 @app.route("/editalProjeto", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
@@ -2321,8 +2307,8 @@ def editalProjeto():
                     if 'resultado' in request.args:
                         if 'pdf' in request.args:
                             mensagem = str(obterColunaUnica("editais","mensagem","id",codigoEdital))
-                            gerarPDF(render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=1,mensagem=mensagem,modalidade=modalidade))
-                            return(send_from_directory(app.config['TEMP_FOLDER'], 'resultados.pdf'))
+                            html = render_template('editalProjeto.html',listaProjetos=linhas,descricao=descricao,total=total,novos=linhas_novos,total_novos=total_novos,linhas_demanda=linhas_demanda,bolsas_ufca=bolsas_ufca,bolsas_cnpq=bolsas_cnpq,codigoEdital=codigoEdital,resultado=1,mensagem=mensagem,modalidade=modalidade)
+                            return html_to_pdf_response(html, filename='resultados.pdf', as_attachment=False)
 
                         else:
                             mensagem = str(obterColunaUnica("editais","mensagem","id",codigoEdital))
@@ -2458,128 +2444,6 @@ def meusProjetos():
     else:
         return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
 
-'''
-@app.route("/minhaDeclaracaoOrientador", methods=['GET', 'POST'])
-@log_required
-def minhaDeclaracao():
-    if autenticado():
-        if request.method == "GET":
-            #Recuperando o token da declaração
-            if 'token' in request.args:
-                token = str(request.args.get('token'))
-                consulta = """SELECT 
-                nome_do_coordenador,
-                siape,
-                titulo_do_projeto,
-                DATE_FORMAT(estudante_inicio,'%d/%m/%Y') as inicio,
-                DATE_FORMAT(estudante_fim,'%d/%m/%Y') as fim,
-                estudante_nome_completo,
-                token,
-                if(estudante_fim<NOW(),"exerceu","exerce") as verbo
-                FROM cadastro_geral WHERE token=%s ORDER BY inicio,titulo_do_projeto"""
-                projeto,total = executarSelect2(consulta,tipo=1,valores=(token,))
-                data_agora = getData()
-                if total==1:
-                    arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                    options = {
-                        'page-size': 'A4',
-                        'margin-top': '2cm',
-                        'margin-right': '2cm',
-                        'margin-bottom': '1cm',
-                        'margin-left': '2cm',
-                    }
-                    try:
-                        pdfkit_from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(token,projeto[2]),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
-                        #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=token,raiz=ROOT_SITE)
-                        #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
-                    except Exception as e:
-                        with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
-                            logger.warning("Erro ao gerar declaração: {}", str(e)) 
-                        return("Erro ao gerar declaração. Tente novamente mais tarde.")
-                    return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    
-                else:
-                    return("declaração inexistente!")
-            else:
-                if 'id' in request.args:
-                    idProjeto = str(request.args.get('id'))
-                    consulta = """SELECT DISTINCT 
-                    UPPER(editalProjeto.nome),
-                    editalProjeto.siape,
-                    UPPER(editalProjeto.titulo),
-                    DATE_FORMAT(editalProjeto.inicio,'%d/%m/%Y') as inicio,
-                    DATE_FORMAT(editalProjeto.fim,'%d/%m/%Y') as fim,
-                    (SELECT GROUP_CONCAT(indicacoes.nome,' (',year(indicacoes.inicio),'/',year(indicacoes.fim),') ' 
-                    ORDER BY indicacoes.nome SEPARATOR ', ') from indicacoes 
-                    WHERE indicacoes.idProjeto=editalProjeto.id GROUP BY indicacoes.idProjeto) as indicados,
-                    editalProjeto.id,
-                    if(editalProjeto.fim<NOW(),"exerceu","exerce") as verbo,
-                    UPPER(editalProjeto.pesquisadores_vinculados) as pesquisadores_vinculados
-                    FROM editalProjeto,indicacoes
-                    WHERE editalProjeto.id=indicacoes.idProjeto AND editalProjeto.id=%s ORDER BY fim DESC"""
-                    projeto,total = executarSelect2(consulta,tipo=1,valores=(idProjeto,))
-                    data_agora = getData()
-                    if total>0:
-                        arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                        options = {
-                            'page-size': 'A4',
-                            'margin-top': '2cm',
-                            'margin-right': '2cm',
-                            'margin-bottom': '1cm',
-                            'margin-left': '2cm',
-                        }
-                        try: 
-                            pdfkit_from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idProjeto,projeto[2]),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
-                            #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idProjeto,projeto[2]),raiz=ROOT_SITE)
-                            #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
-                        except Exception as e:
-                            with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
-                                logger.warning("Erro ao gerar declaração: {}", str(e))
-                            return("Erro ao gerar declaração. Tente novamente mais tarde.")
-                        return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    else:
-                        return("declaracao inexistente...")
-
-                if 'idAluno' in request.args:
-                    idAluno = str(request.args.get('idAluno'))
-                    idProjeto = obterColunaUnica("indicacoes","idProjeto","id",idAluno)
-                    consulta = """SELECT DISTINCT editalProjeto.nome,editalProjeto.siape,editalProjeto.titulo,
-                    DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(indicacoes.fim,'%d/%m/%Y') as fim,
-                    indicacoes.nome as indicados,
-                    editalProjeto.id,if(indicacoes.fim<NOW(),"exerceu","exerce") as verbo
-                    FROM editalProjeto,indicacoes
-                    WHERE editalProjeto.id=indicacoes.idProjeto AND indicacoes.id=%s ORDER BY fim DESC"""
-                    projeto,total = executarSelect2(consulta,tipo=1,valores=(idAluno,))
-                    data_agora = getData()
-                    if total>0:
-                        arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                        options = {
-                            'page-size': 'A4',
-                            'margin-top': '2cm',
-                            'margin-right': '2cm',
-                            'margin-bottom': '1cm',
-                            'margin-left': '2cm',
-                        }
-                        try:
-                            pdfkit_from_string(render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idProjeto,projeto[2]),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
-                            #template = render_template('declaracao_orientador.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idProjeto,projeto[2]),raiz=ROOT_SITE)
-                            #HTML(string=template).write_pdf(target=arquivoDeclaracao,zoom=0.7)
-                        except Exception as e:
-                            with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
-                                logger.warning("Erro ao gerar declaração: {}", str(e))
-                            return("Erro ao gerar declaração. Tente novamente mais tarde.")
-                        return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                    else:
-                        return("declaracao inexistente...")
-                else:
-
-                    return("id nao informado")
-        else:
-            return("OK")
-    else:
-        return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
-'''
-
 def html_to_pdf_response(html_content, filename="declaracao.pdf", as_attachment=False):
     """Invoca a função Lambda e retorna a resposta com o binário do PDF para o Flask."""
     payload = {"html": html_content}
@@ -2713,22 +2577,13 @@ def minhaDeclaracaoDiscente():
             projeto,total = executarSelect2(consulta,tipo=1,valores=(token,))
             data_agora = getData()
             if total==1:
-                arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                options = {
-                    'page-size': 'A4',
-                    'margin-top': '2cm',
-                    'margin-right': '2cm',
-                    'margin-bottom': '1cm',
-                    'margin-left': '2cm',
-                }
                 try:
-                    pdfkit_from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(str(projeto[9]),projeto[5],'declaracao_discente'),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                    html = render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(str(projeto[9]),projeto[5],'declaracao_discente'),raiz=ROOT_SITE)
+                    return html_to_pdf_response(html, filename='declaracao.pdf', as_attachment=False)
                 except Exception as e:
                     with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
-                        logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                        logger.warning("Erro ao gerar declaração: {}", str(e))
                     return("Erro ao gerar declaração. Tente novamente mais tarde.")
-                return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
-                
             else:
                 return("declaração inexistente!")
         else:
@@ -2771,28 +2626,13 @@ def meuCertificado2018():
             if ((fim-agora).days>0):
                 return('Certificado disponível apenas após a conclusão do projeto em andamento: ')
             if total==1:
-                arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                options = {
-                    'page-size': 'A4',
-                    'orientation': 'landscape',
-                    'margin-top': '0mm',
-                    'margin-right': '0mm',
-                    'margin-bottom': '0mm',
-                    'margin-left': '0mm',
-                    'encoding': "UTF-8",
-                    'quiet': '',
-                    'custom-header' : [
-                    ('Accept-Encoding', 'gzip')
-                    ],
-                    'no-outline': None
-                }
                 try:
-                    pdfkit_from_string(render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=token,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                    html = render_template('certificado_discente_2018.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=token,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor)
+                    return html_to_pdf_response(html, filename='declaracao.pdf', as_attachment=False)
                 except Exception as e:
                     with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
-                        logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                        logger.warning("Erro ao gerar declaração: {}", str(e))
                     return("Erro ao gerar declaração. Tente novamente mais tarde.")
-                return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
                 return("declaração inexistente!")
         else:
@@ -2829,28 +2669,13 @@ def meuCertificado():
             if ((fim-agora).days>0):
                 return('Certificado disponível apenas após a conclusão do projeto em andamento: ')
             if total==1:
-                arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                options = {
-                    'page-size': 'A4',
-                    'orientation': 'landscape',
-                    'margin-top': '0mm',
-                    'margin-right': '0mm',
-                    'margin-bottom': '0mm',
-                    'margin-left': '0mm',
-                    'encoding': "UTF-8",
-                    'quiet': '',
-                    'custom-header' : [
-                    ('Accept-Encoding', 'gzip')
-                    ],
-                    'no-outline': None
-                }
                 try:
-                    pdfkit_from_string(render_template('certificado_discente.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor),arquivoDeclaracao,options=options)
+                    html = render_template('certificado_discente.html',conteudo=projeto,data="Juazeiro do Norte, " + data_agora,identificador=idIndicacao,raiz=ROOT_SITE,coordenador=coordenador,proreitor=proreitor)
+                    return html_to_pdf_response(html, filename='declaracao.pdf', as_attachment=False)
                 except Exception as e:
                     with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
-                        logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                        logger.warning("Erro ao gerar declaração: {}", str(e))
                     return("Erro ao gerar declaração. Tente novamente mais tarde.")
-                return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
                 return("declaração inexistente!")
         else:
@@ -2885,21 +2710,13 @@ def minhaDeclaracaoDiscente2019():
             #    return('Declaração indisponível. Período de bolsa inferior a 180 dias')
             data_agora = getData()
             if total==1:
-                arquivoDeclaracao = app.config['DECLARACOES_FOLDER'] + 'declaracao.pdf'
-                options = {
-                    'page-size': 'A4',
-                    'margin-top': '2cm',
-                    'margin-right': '2cm',
-                    'margin-bottom': '1cm',
-                    'margin-left': '2cm',
-                }
                 try:
-                    pdfkit_from_string(render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idIndicacao,projeto[5],'declaracao_discente'),raiz=ROOT_SITE),arquivoDeclaracao,options=options)
+                    html = render_template('declaracao_discente.html',texto=projeto,data=data_agora,identificador=gerar_codigo_auth(idIndicacao,projeto[5],'declaracao_discente'),raiz=ROOT_SITE)
+                    return html_to_pdf_response(html, filename='declaracao.pdf', as_attachment=False)
                 except Exception as e:
                     with logger.contextualize(ip=request.remote_addr,rota=request.path,erro=str(e),classe_erro=type(e).__name__):
-                        logger.warning("Erro ao gerar declaração: {}", str(e)) 
+                        logger.warning("Erro ao gerar declaração: {}", str(e))
                     return("Erro ao gerar declaração. Tente novamente mais tarde.")
-                return send_from_directory(app.config['DECLARACOES_FOLDER'], 'declaracao.pdf')
             else:
                 return("declaração inexistente!")
         else:

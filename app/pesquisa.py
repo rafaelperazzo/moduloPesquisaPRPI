@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask import Flask
-from flask import render_template
+from flask import render_template, send_file
 from flask import request,url_for,send_from_directory,redirect,session,flash
 from flask_httpauth import HTTPBasicAuth
 from waitress import serve
@@ -30,6 +30,7 @@ from flask_wtf.csrf import CSRFProtect
 from brseclabcripto.cripto3 import SecCripto
 from git import Repo
 import secrets
+import io
 import base64
 import mimetypes
 from functools import wraps
@@ -2457,6 +2458,7 @@ def meusProjetos():
     else:
         return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
 
+'''
 @app.route("/minhaDeclaracaoOrientador", methods=['GET', 'POST'])
 @log_required
 def minhaDeclaracao():
@@ -2576,6 +2578,128 @@ def minhaDeclaracao():
             return("OK")
     else:
         return(render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada"))
+'''
+
+def html_to_pdf_response(html_content, filename="declaracao.pdf", as_attachment=False):
+    """Invoca a função Lambda e retorna a resposta com o binário do PDF para o Flask."""
+    payload = {"html": html_content}
+
+    response = lambda_client.invoke(
+        FunctionName='lambda-html-to-pdf',
+        InvocationType='RequestResponse',
+        Payload=json.dumps(payload)
+    )
+
+    response_data = json.loads(response['Payload'].read().decode('utf-8'))
+
+    if response_data.get('statusCode') != 200:
+        error_msg = response_data.get('body', 'Erro interno na conversão')
+        raise RuntimeError(f"Erro no serviço PDF: {error_msg}")
+
+    pdf_bytes = base64.b64decode(response_data['body'])
+    pdf_stream = io.BytesIO(pdf_bytes)
+
+    return send_file(
+        pdf_stream,
+        mimetype='application/pdf',
+        as_attachment=as_attachment,
+        download_name=filename
+    )
+
+
+@app.route("/minhaDeclaracaoOrientador", methods=['GET', 'POST'])
+@log_required
+def minhaDeclaracao():
+    if not autenticado():
+        return render_template('login.html', mensagem="É necessário autenticação para acessar a página solicitada")
+
+    if request.method != "GET":
+        return "OK"
+
+    data_agora = getData()
+
+    # Cenário 1: Busca por token
+    if 'token' in request.args:
+        token = str(request.args.get('token'))
+        consulta = """SELECT 
+            nome_do_coordenador,
+            siape,
+            titulo_do_projeto,
+            DATE_FORMAT(estudante_inicio,'%d/%m/%Y') as inicio,
+            DATE_FORMAT(estudante_fim,'%d/%m/%Y') as fim,
+            estudante_nome_completo,
+            token,
+            if(estudante_fim<NOW(),"exerceu","exerce") as verbo
+            FROM cadastro_geral WHERE token=%s ORDER BY inicio,titulo_do_projeto"""
+        projeto, total = executarSelect2(consulta, tipo=1, valores=(token,))
+        
+        if total != 1:
+            return "declaração inexistente!"
+
+        identificador = gerar_codigo_auth(token, projeto[2])
+        nome_arquivo = f"declaracao_{token}.pdf"
+
+    # Cenário 2: Busca por ID do Projeto
+    elif 'id' in request.args:
+        idProjeto = str(request.args.get('id'))
+        consulta = """SELECT DISTINCT 
+            UPPER(editalProjeto.nome),
+            editalProjeto.siape,
+            UPPER(editalProjeto.titulo),
+            DATE_FORMAT(editalProjeto.inicio,'%d/%m/%Y') as inicio,
+            DATE_FORMAT(editalProjeto.fim,'%d/%m/%Y') as fim,
+            (SELECT GROUP_CONCAT(indicacoes.nome,' (',year(indicacoes.inicio),'/',year(indicacoes.fim),') ' 
+            ORDER BY indicacoes.nome SEPARATOR ', ') from indicacoes 
+            WHERE indicacoes.idProjeto=editalProjeto.id GROUP BY indicacoes.idProjeto) as indicados,
+            editalProjeto.id,
+            if(editalProjeto.fim<NOW(),"exerceu","exerce") as verbo,
+            UPPER(editalProjeto.pesquisadores_vinculados) as pesquisadores_vinculados
+            FROM editalProjeto,indicacoes
+            WHERE editalProjeto.id=indicacoes.idProjeto AND editalProjeto.id=%s ORDER BY fim DESC"""
+        projeto, total = executarSelect2(consulta, tipo=1, valores=(idProjeto,))
+        
+        if total <= 0:
+            return "declaracao inexistente..."
+
+        identificador = gerar_codigo_auth(idProjeto, projeto[2])
+        nome_arquivo = f"declaracao_projeto_{idProjeto}.pdf"
+
+    # Cenário 3: Busca por ID do Aluno
+    elif 'idAluno' in request.args:
+        idAluno = str(request.args.get('idAluno'))
+        idProjeto = obterColunaUnica("indicacoes", "idProjeto", "id", idAluno)
+        consulta = """SELECT DISTINCT editalProjeto.nome,editalProjeto.siape,editalProjeto.titulo,
+            DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(indicacoes.fim,'%d/%m/%Y') as fim,
+            indicacoes.nome as indicados,
+            editalProjeto.id,if(indicacoes.fim<NOW(),"exerceu","exerce") as verbo
+            FROM editalProjeto,indicacoes
+            WHERE editalProjeto.id=indicacoes.idProjeto AND indicacoes.id=%s ORDER BY fim DESC"""
+        projeto, total = executarSelect2(consulta, tipo=1, valores=(idAluno,))
+        
+        if total <= 0:
+            return "declaracao inexistente..."
+
+        identificador = gerar_codigo_auth(idProjeto, projeto[2])
+        nome_arquivo = f"declaracao_aluno_{idAluno}.pdf"
+
+    else:
+        return "id nao informado"
+
+    # Renderização e envio do PDF
+    try:
+        html = render_template(
+            'declaracao_orientador.html',
+            texto=projeto,
+            data=data_agora,
+            identificador=identificador,
+            raiz=ROOT_SITE
+        )
+        return html_to_pdf_response(html, filename=nome_arquivo, as_attachment=False)
+
+    except Exception as e:
+        with logger.contextualize(ip=request.remote_addr, rota=request.path, erro=str(e), classe_erro=type(e).__name__):
+            logger.warning("Erro ao gerar declaração: {}", str(e))
+        return "Erro ao gerar declaração. Tente novamente mais tarde."
 
 @app.route("/discente/minhaDeclaracao", methods=['GET', 'POST'])
 @log_required

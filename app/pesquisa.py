@@ -164,7 +164,6 @@ if PRODUCAO==1:
     MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "pesquisa")
 else:
     MYSQL_DATABASE = os.getenv("MYSQL_TEST_DATABASE", "pesquisa_test")
-EMAIL_TESTES = os.getenv("EMAIL_TESTES","test@123.com")
 DEFAULT_EMAIL = os.getenv("DEFAULT_EMAIL","teste@test.com")
 DEFAULT_SUPPORT = os.getenv("DEFAULT_SUPPORT","teste@test.com")
 DEFAULT_INSTITUCIONAL = os.getenv("DEFAULT_INSTITUCIONAL","pesquisa.prpi@ufca.edu.br")

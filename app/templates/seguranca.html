@@ -199,6 +199,30 @@
 
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
       <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-cpu text-emerald-600"></i> Cálculo da pontuação Lattes via AWS Lambda
+      </h5>
+      <p class="text-gray-600 text-sm">
+        O cálculo da pontuação Lattes é executado por uma função AWS Lambda, acessada por meio de
+        requisições assinadas com AWS SigV4 (usando as credenciais da própria instância do
+        servidor), em vez de um endereço HTTP público sem autenticação.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-envelope-check text-emerald-600"></i> Envio de e-mails por fila (AWS SQS/SES)
+      </h5>
+      <p class="text-gray-600 text-sm">
+        Os e-mails do sistema são enviados por meio de uma fila AWS SQS, processada por uma função
+        AWS Lambda que utiliza o serviço AWS SES, com remetente do tipo &quot;não responda&quot;.
+        Assim, o servidor de aplicação não mantém credenciais de servidor de e-mail (SMTP). Fora
+        do ambiente de produção, nenhum e-mail é enfileirado, o que impede o envio acidental de
+        mensagens de teste a usuários reais.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
         <i class="bi bi-database-check text-emerald-600"></i> Consultas parametrizadas
       </h5>
       <p class="text-gray-600 text-sm">

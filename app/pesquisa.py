@@ -13,10 +13,9 @@ import string
 import random
 import sys
 import re
-from flask_mail import Mail
-from flask_mail import Message
 from flask_uploads import UploadSet, configure_uploads, ALL, DOCUMENTS
 import threading
+from html import escape as html_escape
 import zeep
 import zipfile
 import tempfile
@@ -225,18 +224,6 @@ except Exception as e:
     __version__ = "0.0.0"
     app.config['versao'] = __version__
 
-mail = Mail(app)
-app.config['MAIL_SERVER'] = 'localhost'
-app.config['MAIL_PORT'] = 25
-app.config['MAIL_USE_TLS'] = False
-app.config['MAIL_USE_SSL'] = False
-app.config['MAIL_DEFAULT_SENDER'] = DEFAULT_EMAIL
-
-if PRODUCAO==1:
-    app.config['MAIL_SUPPRESS_SEND'] = False
-else:
-    app.config['MAIL_SUPPRESS_SEND'] = True
-
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['CURRICULOS_FOLDER'] = CURRICULOS_DIR
 app.config['DECLARACOES_FOLDER'] = DECLARACOES_DIR
@@ -314,13 +301,56 @@ else:
 
 lambda_client = boto3.client('lambda', region_name='us-east-2')
 
+SQS_QUEUE_URL = os.getenv(
+    "AWS_SQS_EMAIL_QUEUE_URL",
+    ""
+)
+sqs_client = boto3.client(
+    "sqs",
+    region_name="us-east-2",
+    config=Config(
+        connect_timeout=2,
+        read_timeout=3,
+        retries={"max_attempts": 1},
+        use_dualstack_endpoint=True  # Habilita IPv4/IPv6
+    )
+)
+
+def send_email_async(recipients: list[str] | str, subject: str, html_body: str) -> bool:
+    """
+    Publica a mensagem na fila SQS para envio assíncrono via Lambda/SES.
+    Só enfileira quando PRODUCAO==1; nos demais ambientes apenas registra em log
+    e retorna True (para que os fluxos que dependem do envio sigam normalmente).
+    """
+    if isinstance(recipients, str):
+        recipients = [recipients]
+
+    if PRODUCAO != 1:
+        logger.info("PRODUCAO!=1: e-mail NÃO enfileirado (assunto: {})", subject)
+        return True
+
+    payload = {
+        "recipients": recipients,
+        "subject": subject,
+        "html": html_body
+    }
+
+    try:
+        response = sqs_client.send_message(
+            QueueUrl=SQS_QUEUE_URL,
+            MessageBody=json.dumps(payload, ensure_ascii=False)
+        )
+        logger.info(f"E-mail enfileirado: MessageId={response.get('MessageId')}")
+        return True
+    except Exception as exc:
+        logger.error(f"Erro ao enfileirar e-mail no SQS: {exc}")
+        return False
+
 #Obtendo senhas
 PASSWORD = os.environ.pop("MYSQL_PASSWORD", "World")
 app.config['SECRET_KEY'] = secrets.token_hex()
 app.config['WTF_CSRF_TIME_LIMIT'] = None
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
-
-mail = Mail(app)
 
 #Flask-flask_uploads
 app.config['UPLOADED_DOCUMENTS_DEST'] = os.path.join(BASE_DIR, 'docs_indicacoes') + '/'
@@ -583,16 +613,10 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
             descricao_do_edital = str(obterColunaUnica("editais","nome","id",codigo_do_edital))
             modalidade = extrair_modalidade(descricao_do_edital)
             texto_email = render_template('confirmacao_submissao.html',email_proponente=dados[0],id_projeto=idProjeto,proponente=dados[1],titulo_projeto=dados[2],resumo_projeto=dados[3],score=pontuacao,sumario=sumario,modalidade=modalidade)
-            if PRODUCAO==1:
-                msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=[dados[0]],html=texto_email,reply_to=DEFAULT_EMAIL)
+            if send_email_async(dados[0], "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA", texto_email):
+                logger.info("Email enfileirado com sucesso. processarPontuacaoLattes - IdProjeto: {}", idProjeto)
             else:
-                msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to=DEFAULT_EMAIL)
-            try:
-                mail.send(msg)
-                logger.info("Email enviado com sucesso. processarPontuacaoLattes - IdProjeto: {}", idProjeto)
-            except Exception as e:
-                logger.error("Erro ao enviar e-mail. processarPontuacaoLattes")
-                logger.error(str(e))
+                logger.error("Erro ao enfileirar e-mail. processarPontuacaoLattes")
         except Exception as e:
             logger.error(str(e))
             logger.error("Procedimento para o ID: " + str(idProjeto) + " finalizado. Erros ocorreram ao enviar e-mail.")
@@ -635,16 +659,10 @@ def processarPontuacaoLattes2(xml_content, area, idProjeto, dados):
             descricao_do_edital = str(obterColunaUnica("editais","nome","id",codigo_do_edital))
             modalidade = extrair_modalidade(descricao_do_edital)
             texto_email = render_template('confirmacao_submissao.html',email_proponente=dados[0],id_projeto=idProjeto,proponente=dados[1],titulo_projeto=dados[2],resumo_projeto=dados[3],score=pontuacao,sumario=sumario,modalidade=modalidade)
-            if PRODUCAO==1:
-                msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=[dados[0]],html=texto_email,reply_to=DEFAULT_EMAIL)
+            if send_email_async(dados[0], "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA", texto_email):
+                logger.info("Email enfileirado com sucesso. processarPontuacaoLattes2 - IdProjeto: {}", idProjeto)
             else:
-                msg = Message(subject = "Plataforma Yoko - CONFIRMAÇÃO DE SUBMISSAO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to=DEFAULT_EMAIL)
-            try:
-                mail.send(msg)
-                logger.info("Email enviado com sucesso. processarPontuacaoLattes2 - IdProjeto: {}", idProjeto)
-            except Exception as e:
-                logger.error("Erro ao enviar e-mail. processarPontuacaoLattes2")
-                logger.error(str(e))
+                logger.error("Erro ao enfileirar e-mail. processarPontuacaoLattes2")
         except Exception as e:
             logger.error(str(e))
             logger.error("Procedimento para o ID: " + str(idProjeto) + " finalizado. Erros ocorreram ao enviar e-mail.")        
@@ -1758,15 +1776,10 @@ def descricaoEdital(codigoEdital):
 def enviar_declaracao_avaliador(url,destinatario):
     with app.app_context():
         texto_email = render_template('email_declaracao_avaliador.html',url=url)
-        if PRODUCAO==1:
-            msg = Message(subject = "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=[destinatario],html=texto_email,reply_to=DEFAULT_EMAIL)
+        if send_email_async(destinatario, "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA", texto_email):
+            logger.info("E-mail enfileirado com sucesso para o avaliador: {}", calcula_hash(destinatario))
         else:
-            msg = Message(subject = "Plataforma Yoko - DECLARAÇÃO DE AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=["pesquisapython3.display999@passmail.net"],html=texto_email,reply_to=DEFAULT_EMAIL)
-        try:
-            mail.send(msg)
-            logger.info("E-mail enviado com sucesso para o avaliador: {}", calcula_hash(destinatario))
-        except Exception as e:
-            logger.warning("Erro ao enviar e-mail: {}. [enviar declaração para avaliador]: {}", destinatario,str(e))
+            logger.warning("Erro ao enfileirar e-mail. [enviar declaração para avaliador]: {}", calcula_hash(destinatario))
 
 @app.route("/declaracaoAvaliador/<tokenAvaliacao>", methods=['GET'])
 @log_required
@@ -1799,11 +1812,9 @@ def getDeclaracaoAvaliador(tokenAvaliacao):
         data_agora = getData()
         identificador = gerar_codigo_auth(idProjeto, titulo, 'declaracao_avaliador')
 
-        # Mantém o envio em segundo plano
         if destinatario:
             url = url_for('getDeclaracaoAvaliador', tokenAvaliacao=tokenAvaliacao, _external=True)
-            thread = threading.Thread(target=enviar_declaracao_avaliador, args=(url, destinatario,))
-            thread.start()
+            enviar_declaracao_avaliador(url, destinatario)
 
         try:
             # Montagem do texto idêntica ao declaracao_avaliador.html
@@ -1923,8 +1934,7 @@ def inserirAvaliador():
             return("Avaliador já cadastrado para este projeto.")
         consulta = "INSERT INTO avaliacoes (aceitou,avaliador,token,idProjeto) VALUES (-1, %s, %s, %s)"
         atualizar2(consulta, valores=[avaliador1_email, token, str(idProjeto)])
-        t = threading.Thread(target=enviarPedidoAvaliacao,args=(idProjeto,))
-        t.start()
+        enviarPedidoAvaliacao(idProjeto)
         return_url = request.referrer or url_for('avaliacoesNegadas')
         return redirect(return_url)
     else:
@@ -3022,14 +3032,16 @@ def login():
 def esqueciMinhaSenha():
     return(render_template('esqueciMinhaSenha.html'))
 
-def thread_enviar_senha(msg):
-    with app.app_context():
-        try:
-            mail.send(msg)
-            logger.info("E-mail enviado com sucesso. /enviarMinhaSenha")
-        except Exception as e:
-            with logger.contextualize(rota='/enviarMinhaSenha',erro=str(e),classe_erro=type(e).__name__):
-                logger.warning("Erro ao enviar e-mail de redefinição de senha")
+def texto_para_html(texto):
+    """Converte texto puro em HTML preservando as quebras de linha."""
+    return html_escape(texto).replace("\n", "<br>\n")
+
+def enviar_email_senha(email, assunto, texto_mensagem):
+    """Enfileira e-mail com credenciais (texto puro convertido para HTML)."""
+    if send_email_async(email, assunto, texto_para_html(texto_mensagem)):
+        logger.info("E-mail enfileirado com sucesso: {}", assunto)
+    else:
+        logger.warning("Erro ao enfileirar e-mail de credenciais: {}", assunto)
 
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 @log_required
@@ -3051,9 +3063,7 @@ def enviarMinhaSenha():
                 atualizar2(consulta, valores=(hash_senha, idUsuario))
                 #Enviando e-mail
                 texto_mensagem = "Usuario: " + username + "\nSenha: " + senha + "\n" + USUARIO_SITE
-                msg = Message(subject = "Plataforma Yoko - Lembrete de senha",recipients=[email],body=texto_mensagem)
-                thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
-                thread.start()
+                enviar_email_senha(email, "Plataforma Yoko - Lembrete de senha", texto_mensagem)
                 #Redirecionando para a página de login
                 return(render_template('login.html',mensagem='Senha enviada para o email: ' + email))
             else:
@@ -3524,12 +3534,11 @@ def efetivarIndicacao():
                 orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)
                 email = obterColunaUnica('editalProjeto','email','id',idProjeto)
                 texto_email = render_template('confirmacao_indicacao.html',vaga=vaga,id_projeto=idProjeto,indicado=nome,proponente=orientador,titulo=titulo_projeto,email_proponente=email,idIndicacao=idIndicacao)
-                if vaga==1:
-                    msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE BOLSISTA",recipients=[email],bcc=[DEFAULT_INSTITUCIONAL],html=texto_email)
+                assunto = "Plataforma Yoko - INDICAÇÃO DE BOLSISTA" if vaga==1 else "Plataforma Yoko - INDICAÇÃO DE VOLUNTARIO"
+                if send_email_async([email, DEFAULT_INSTITUCIONAL], assunto, texto_email):
+                    logger.info("E-mail enfileirado: {}", assunto)
                 else:
-                    msg = Message(subject = "Plataforma Yoko - INDICAÇÃO DE VOLUNTARIO",recipients=[email],bcc=[DEFAULT_INSTITUCIONAL],html=texto_email)
-                t1 = threading.Thread(target=thread_enviar_email, args=(msg,'/efetivarIndicacao',))
-                t1.start()
+                    logger.error("Erro ao enfileirar e-mail. Rota: /efetivarIndicacao")
                 return(render_template('confirmacao_indicacao.html',vaga=vaga,id_projeto=idProjeto,indicado=nome,proponente=orientador,titulo=titulo_projeto,email_proponente=email,idIndicacao=idIndicacao))
             else:
                 return ("Você já indicou todos os bolsistas/voluntários. Entrar em contato através do e-mail " + DEFAULT_SUPPORT)
@@ -3792,90 +3801,6 @@ def cadastrarFrequencia():
     else:
         return("OK")
 
-def thread_enviar_email(msg,rota):
-    with app.app_context():
-        try:
-            mail.send(msg)
-            logger.info("E-mail enviado: {}",msg.subject)
-        except Exception as e:
-            logger.error(str(e))
-            logger.error("Erro ao enviar e-mail. Rota: " + rota)
-
-def enviar_lembrete_frequencia():
-    import datetime
-    #Mes e ano atual
-    ano = str(datetime.date.today().year)
-    mes = str(datetime.date.today().month-1)
-    if mes==1:
-        ano = ano - 1
-    nome_mes = {
-            '1': 'janeiro',
-            '2': 'fevereiro',
-            '3': 'marco',
-            '4': 'abril',
-            '5': 'maio',
-            '6': 'junho',
-            '7': 'julho',
-            '8': 'agosto',
-            '9': 'setembro',
-            '10': 'outubro',
-            '11': 'novembro',
-            '12': 'dezembro'        
-        }
-    with app.app_context():
-        consulta = """SELECT 
-        GROUP_CONCAT(editalProjeto.id ORDER BY editalProjeto.id),
-        editalProjeto.nome,
-        GROUP_CONCAT(editalProjeto.titulo), 
-        GROUP_CONCAT(indicacoes.id ORDER BY indicacoes.idProjeto,indicacoes.id),
-        editalProjeto.email,
-        editalProjeto.siape
-        from editalProjeto
-        INNER JOIN indicacoes ON editalProjeto.id=indicacoes.idProjeto
-        WHERE indicacoes.fim>NOW() 
-        AND indicacoes.situacao=0 
-        AND MONTH(indicacoes.inicio)!=Month(now()) 
-        AND indicacoes.inicio<NOW() 
-        GROUP BY editalProjeto.nome"""
-        linhas,total = executarSelect(consulta)
-        for linha in linhas:
-            id_projetos = str(linha[0]).split(',')
-            orientador = str(linha[1])
-            siape = str(linha[5])
-            senha = obterColunaUnica('users','password','username',siape)
-            titulos = str(linha[2]).split(',')
-            indicacoes = str(linha[3]).split(',')
-            nao_enviados = []
-            for indicacao in indicacoes:
-                subconsulta = """SELECT
-                idIndicacao
-                FROM frequencias
-                WHERE mes=%s AND ano=%s AND idIndicacao=%s
-                LIMIT 1
-                """
-                frequencias,totalFrequencias = executarSelect2(subconsulta,valores=(mes,ano,indicacao))
-                if totalFrequencias==0: #Não foi enviada a frequência para este discente
-                    nome_indicado = obterColunaUnica('indicacoes','nome','id',indicacao)
-                    nao_enviados.append(nome_indicado)
-            if (len(nao_enviados)!=0):
-                
-                texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
-                if PRODUCAO==1:
-                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[str(linha[4])],html=texto_email,reply_to=DEFAULT_EMAIL)
-                    try:
-                        mail.send(msg)
-                        logger.info("E-mail enviado: Lembrete de frequência para {}",orientador)
-                    except Exception as e:
-                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: {}",str(e))
-                else:
-                    msg = Message(subject = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=['pesquisapython3.display999@passmail.net'],html=texto_email,reply_to=DEFAULT_EMAIL)
-                    try:
-                        mail.send(msg)
-                        logger.info("E-mail enviado: Lembrete de frequência para {}",orientador)
-                    except Exception as e:
-                        logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia")
-                        logger.error(str(e))
-
 @app.route("/listaNegra/<email>", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
 @log_required
@@ -3912,7 +3837,7 @@ def listaNegra(email):
             lista_emails_discentes.append(linha[4])
     
     if email=="1":
-        t = threading.Thread(target=enviar_lembrete_frequencia)
+        t = threading.Thread(target=task_enviar_lembrete_frequencia)
         t.start()
         return("200")
 
@@ -3963,15 +3888,8 @@ def desligarIndicacao(id_indicacao):
             atualizar2(consulta, valores=(idAluno,))
             email = obterColunaUnica('editalProjeto','email','id',idProjeto)
             texto_email = render_template('confirmacao_desligamento.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
-            if tipo_vaga==1:
-                msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE BOLSISTA",recipients=[email],html=texto_email)
-            else:
-                msg = Message(subject = "Plataforma Yoko - DESLIGAMENTO DE VOLUNTARIO",recipients=[email],html=texto_email)
-            if PRODUCAO==1:
-                t = threading.Thread(target=enviar_email_desligamento_substituicao,args=(msg,))
-                t.start()
-            else:
-                app.logger.debug('E-MAIL DE DESLIGAMENTO ENVIADO')
+            assunto = "Plataforma Yoko - DESLIGAMENTO DE BOLSISTA" if tipo_vaga==1 else "Plataforma Yoko - DESLIGAMENTO DE VOLUNTARIO"
+            enviar_email_desligamento_substituicao(email, assunto, texto_email)
             return(render_template('confirmacao_desligamento.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp))
             
         else:
@@ -3979,14 +3897,11 @@ def desligarIndicacao(id_indicacao):
     else:
         return(redirect(url_for('login')))
 
-def enviar_email_desligamento_substituicao(msg):
-    with app.app_context():
-        try:
-            mail.send(msg)
-            logger.info("E-mail enviado: {}",msg.subject)
-        except Exception as e:
-            logger.error("Erro ao enviar e-mail. enviar_email_desligamento_substituicao")
-            logger.error(str(e))
+def enviar_email_desligamento_substituicao(email, assunto, texto_email):
+    if send_email_async(email, assunto, texto_email):
+        logger.info("E-mail enfileirado: {}", assunto)
+    else:
+        logger.error("Erro ao enfileirar e-mail. enviar_email_desligamento_substituicao")
 
 
 @app.route("/substituirIndicacao/<id_indicacao>", methods=['GET', 'POST'])
@@ -4024,13 +3939,8 @@ def substituirIndicacao(id_indicacao):
             atualizar2(consulta, valores=(idAluno,))
             email = obterColunaUnica('editalProjeto','email','id',idProjeto)
             texto_email = render_template('confirmacao_substituicao.html',vaga=tipo_vaga,id_projeto=idProjeto,proponente=orientador,titulo=titulo,indicado=discente,idIndicacao=idAluno,data=timestamp)
-            if tipo_vaga=="1":
-                msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE BOLSISTA",recipients=[email],html=texto_email)
-            else:
-                msg = Message(subject = "Plataforma Yoko - SUBSTITUIÇÃO DE VOLUNTARIO",recipients=[email],html=texto_email)
-            if PRODUCAO==1:
-                t = threading.Thread(target=enviar_email_desligamento_substituicao,args=(msg,))
-                t.start()
+            assunto = "Plataforma Yoko - SUBSTITUIÇÃO DE BOLSISTA" if tipo_vaga=="1" else "Plataforma Yoko - SUBSTITUIÇÃO DE VOLUNTARIO"
+            enviar_email_desligamento_substituicao(email, assunto, texto_email)
             edital = int(obterColunaUnica('editalProjeto','tipo','id',idProjeto))
             indicacao_inicio = str(obterColunaUnica('editais',"""DATE_FORMAT(indicacao_inicio,'%d/%m/%Y')""",'id',str(edital)))
             indicacao_fim = str(obterColunaUnica('editais',"""DATE_FORMAT(indicacao_termino,'%d/%m/%Y')""",'id',str(edital)))
@@ -4144,66 +4054,12 @@ def gerarLinkAvaliacao():
         atualizar2(consulta, valores=(link, id))
     logger.info("Links de avaliação gerados com sucesso.")
 
-def enviar_email_avaliadores():
-    gerarLinkAvaliacao()
-    consulta = """
-    SELECT e.id,
-    e.titulo,
-    e.resumo,
-    a.avaliador,
-    a.link,
-    a.id,
-    a.enviado,
-    a.token,
-    e.categoria,
-    e.tipo, 
-    DATEDIFF(NOW(),a.data_envio) as enviados,
-    DATE_FORMAT(ed.deadline_avaliacao,'%d/%m/%Y') as deadline_avaliacao,
-    ed.nome,
-    e.justificativa  
-    FROM editalProjeto as e, avaliacoes as a,editais as ed WHERE e.id=a.idProjeto AND e.tipo=ed.id AND e.valendo=1
-    AND a.finalizado=0 AND a.aceitou!=0 AND e.categoria=1 AND DATEDIFF(NOW(),a.data_envio)>1 
-    AND a.idProjeto 
-    IN (SELECT id FROM resumoGeralAvaliacoes WHERE ((aceites+rejeicoes<2) OR (aceites=rejeicoes)) 
-    AND tipo in (SELECT id from editais WHERE deadline_avaliacao>now()))
-    """
-    linhas,total = executarSelect(consulta)
-    for linha in linhas:
-        titulo = str(linha[1])
-        resumo = str(linha[2])
-        link = str(linha[4])
-        token = str(linha[7])
-        email_avaliador = str(linha[3])
-        justificativa = str(linha[13])
-        if 'TESTE' in email_avaliador:
-            continue
-        link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
-        deadline = str(linha[11])
-        nome_longo = str(linha[12])
-        with app.app_context():
-            #url_declaracao = url_for('getDeclaracaoAvaliador',tokenAvaliacao=token, _external=True)
-            url_declaracao = ROOT_SITE + "/pesquisa/declaracaoAvaliador/" + token
-            logger.info("URL de declaração gerada: {}", url_declaracao)
-            texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao, justificativa=justificativa)
-            msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=[email_avaliador],reply_to=DEFAULT_EMAIL,html=texto_email)
-            try:
-                try:
-                    mail.send(msg)
-                    logger.info("E-mail enviado: {} para o avaliador {}",msg.subject, email_avaliador)
-                except Exception as e:
-                    logger.error("Erro ao enviar e-mail. enviar_email_avaliadores: {}",str(e))
-                consulta = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=%s"
-                atualizar2(consulta, valores=(str(linha[5]),))
-            except Exception as e:
-                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: {} - ({})", email_avaliador,str(e))
-                return("Erro! Verifique o log!")
-
 @app.route("/emailSolicitarAvaliacao", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
 @log_required
 @limiter.limit("1 per day", key_func = lambda: 'global')
 def email_solicitar_avaliacao():
-    t = threading.Thread(target=enviar_email_avaliadores)
+    t = threading.Thread(target=task_enviar_email_avaliadores)
     t.start()
     return("Envio de e-mails iniciado!")
     
@@ -4228,15 +4084,11 @@ def enviarPedidoAvaliacao(idProjeto):
         nome_longo = obterColunaUnica('editais','nome','id',str(linha[9]))
         with app.app_context():
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
-            if PRODUCAO==1:
-                msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=[email_avaliador],reply_to=DEFAULT_EMAIL,html=texto_email)
+            assunto = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA"
+            if send_email_async(email_avaliador, assunto, texto_email):
+                logger.info("E-mail enfileirado: {} para avaliador {}", assunto, email_avaliador)
             else:
-                msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=[EMAIL_TESTES],reply_to=DEFAULT_EMAIL,html=texto_email)
-            try:
-                mail.send(msg)
-                logger.info("E-mail enviado: {} para avaliador {}",msg.subject, email_avaliador)
-            except Exception as e:
-                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: {} - ({})", email_avaliador,str(e))
+                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: {}", email_avaliador)
 
 @app.route("/arquivar/<id_projeto>", methods=['GET', 'POST'])
 @login_required(role='admin')
@@ -4476,9 +4328,7 @@ def cadastrar_usuario():
         flash("Usuário cadastrado com sucesso!")
         #Enviando e-mail com as credenciais do usuário
         texto_mensagem = "Usuario: " + siape + "\nSenha: " + senha + "\n" + USUARIO_SITE
-        msg = Message(subject = "Plataforma Yoko - Cadastro de Usuário",recipients=[email],body=texto_mensagem)
-        thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
-        thread.start()
+        enviar_email_senha(email, "Plataforma Yoko - Cadastro de Usuário", texto_mensagem)
         return redirect(url_for('admin'))
     else:
         return render_template('cadastrar_usuario.html')
@@ -4512,9 +4362,7 @@ def cadastrar_usuarios_projetos(edital):
             try:
                 senha = cadastrar_novo_usuario(siape, nome, email)
                 texto_mensagem = "Usuario: " + siape + "\nSenha: " + senha + "\n" + USUARIO_SITE
-                msg = Message(subject = "Plataforma Yoko - Cadastro de Usuário",recipients=[email],body=texto_mensagem)
-                thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
-                thread.start()
+                enviar_email_senha(email, "Plataforma Yoko - Cadastro de Usuário", texto_mensagem)
             except Exception as e:
                 logger.warning("Erro ao cadastrar usuário do projeto")
                 logger.warning(str(e))
@@ -4571,10 +4419,7 @@ def alterar_usuario(id):
                 atualizar2("""UPDATE users SET password=%s WHERE id=%s""",
                            valores=[hashed_password, id])
                 texto_mensagem = "Usuario: " + username + "\nSenha: " + senha + "\n" + USUARIO_SITE
-                msg = Message(subject="Plataforma Yoko - Redefinição de Senha",
-                              recipients=[email_usuario], body=texto_mensagem)
-                thread = threading.Thread(target=thread_enviar_senha, args=(msg,))
-                thread.start()
+                enviar_email_senha(email_usuario, "Plataforma Yoko - Redefinição de Senha", texto_mensagem)
                 logger.info("Senha redefinida para usuário id={}", id)
                 flash("Senha redefinida. Novas credenciais enviadas por e-mail.")
         flash("Usuário alterado com sucesso!")
@@ -4834,7 +4679,8 @@ def task_enviar_email_avaliadores():
     gerarLinkAvaliacao()
     consulta = """
     SELECT e.id,e.titulo,e.resumo,a.avaliador,a.link,a.id,a.enviado,a.token,e.categoria,
-    e.tipo, DATEDIFF(NOW(),a.data_envio) as enviados,DATE_FORMAT(ed.deadline_avaliacao,'%d/%m/%Y') as deadline_avaliacao,ed.nome 
+    e.tipo, DATEDIFF(NOW(),a.data_envio) as enviados,DATE_FORMAT(ed.deadline_avaliacao,'%d/%m/%Y') as deadline_avaliacao,ed.nome,
+    e.justificativa
     FROM editalProjeto as e, avaliacoes as a,editais as ed WHERE e.id=a.idProjeto AND e.tipo=ed.id AND e.valendo=1
     AND a.finalizado=0 AND a.aceitou!=0 AND e.categoria=1 AND DATEDIFF(NOW(),a.data_envio)>1 
     AND a.idProjeto 
@@ -4842,36 +4688,28 @@ def task_enviar_email_avaliadores():
     AND tipo in (SELECT id from editais WHERE deadline_avaliacao>now() AND ADDDATE(deadline,5)<now()))
     """
     linhas,total = executarSelect(consulta)
-    batch_size = 5
-    for i in range(0, len(linhas), batch_size):
-        lote = linhas[i:i + batch_size]
-        with scheduler.app.app_context():
-            try:
-                with mail.connect() as conn:
-                    for linha in lote:
-                        titulo = str(linha[1])
-                        resumo = str(linha[2])
-                        link = str(linha[4])
-                        token = str(linha[7])
-                        email_avaliador = str(linha[3])
-                        if 'TESTE' in email_avaliador:
-                            continue
-                        link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
-                        deadline = str(linha[11])
-                        nome_longo = str(linha[12])
-                        #url_declaracao = url_for('getDeclaracaoAvaliador',tokenAvaliacao=token, _external=True)
-                        url_declaracao = SERVER_URL + URL_PREFIX + '/declaracaoAvaliador/' + token
-                        texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao)
-                        msg = Message(subject = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA",recipients=[email_avaliador],reply_to=DEFAULT_EMAIL,html=texto_email)
-                        try:
-                            conn.send(msg)
-                            logger.info("E-mail enviado: {} para o avaliador {}",msg.subject, email_avaliador)
-                            consulta_update = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=%s"
-                            atualizar2(consulta_update, valores=(str(linha[5]),))
-                        except Exception as e:
-                            logger.error("Erro ao enviar e-mail para {}: {}", email_avaliador, str(e))
-            except Exception as e:
-                logger.error("Falha na conexão SMTP no lote {}: {}", i // batch_size + 1, str(e))
+    assunto = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA"
+    with app.app_context():
+        for linha in linhas:
+            titulo = str(linha[1])
+            resumo = str(linha[2])
+            link = str(linha[4])
+            token = str(linha[7])
+            email_avaliador = str(linha[3])
+            justificativa = str(linha[13])
+            if 'TESTE' in email_avaliador:
+                continue
+            link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
+            deadline = str(linha[11])
+            nome_longo = str(linha[12])
+            url_declaracao = SERVER_URL + URL_PREFIX + '/declaracaoAvaliador/' + token
+            texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao,justificativa=justificativa)
+            if send_email_async(email_avaliador, assunto, texto_email):
+                logger.info("E-mail enfileirado: {} para o avaliador {}", assunto, email_avaliador)
+                consulta_update = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=%s"
+                atualizar2(consulta_update, valores=(str(linha[5]),))
+            else:
+                logger.error("Erro ao enfileirar e-mail para {}", email_avaliador)
     logger.info("Tarefa de envio de e-mails para avaliadores concluída com sucesso.")
 
 @scheduler.task('cron', id='do_job_enviar_email_avaliadores', week='*', day_of_week='2', hour='20', minute='05')
@@ -4922,41 +4760,32 @@ def task_enviar_lembrete_frequencia():
         AND indicacoes.inicio<NOW()
         GROUP BY editalProjeto.nome"""
     linhas,total = executarSelect(consulta)
-    batch_size = 5
-    for i in range(0, len(linhas), batch_size):
-        lote = linhas[i:i + batch_size]
-        with scheduler.app.app_context():
-            try:
-                with mail.connect() as conn:
-                    for linha in lote:
-                        orientador = str(linha[1])
-                        siape = str(linha[5])
-                        senha = obterColunaUnica('users','password','username',siape)
-                        indicacoes = str(linha[3]).split(',')
-                        nao_enviados = []
-                        for indicacao in indicacoes:
-                            subconsulta = """SELECT
-                            idIndicacao
-                            FROM frequencias
-                            WHERE mes=%s AND ano=%s AND idIndicacao=%s
-                            LIMIT 1
-                            """
-                            frequencias,totalFrequencias = executarSelect2(subconsulta,valores=(mes,ano,indicacao))
-                            if totalFrequencias==0: #Não foi enviada a frequência para este discente
-                                nome_indicado = obterColunaUnica('indicacoes','nome','id',indicacao)
-                                nao_enviados.append(nome_indicado)
-                        if len(nao_enviados)==0:
-                            continue
-                        texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
-                        destinatario = str(linha[4]) if PRODUCAO==1 else 'pesquisapython3.display999@passmail.net'
-                        msg = Message(subject="Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA",recipients=[destinatario],html=texto_email,reply_to=DEFAULT_EMAIL)
-                        try:
-                            conn.send(msg)
-                            logger.info("E-mail enviado: Lembrete de frequência {}/{} para {}",nome_mes[str(mes)],ano,orientador)
-                        except Exception as e:
-                            logger.error("Erro ao enviar e-mail. /enviar_lembrete_frequencia: {}",str(e))
-            except Exception as e:
-                logger.error("Falha na conexão SMTP no lote {}: {}", i // batch_size + 1, str(e))
+    assunto = "Plataforma Yoko PIICT- LEMBRETE DE ENVIO DE FREQUÊNCIA"
+    with app.app_context():
+        for linha in linhas:
+            orientador = str(linha[1])
+            siape = str(linha[5])
+            senha = obterColunaUnica('users','password','username',siape)
+            indicacoes = str(linha[3]).split(',')
+            nao_enviados = []
+            for indicacao in indicacoes:
+                subconsulta = """SELECT
+                idIndicacao
+                FROM frequencias
+                WHERE mes=%s AND ano=%s AND idIndicacao=%s
+                LIMIT 1
+                """
+                frequencias,totalFrequencias = executarSelect2(subconsulta,valores=(mes,ano,indicacao))
+                if totalFrequencias==0: #Não foi enviada a frequência para este discente
+                    nome_indicado = obterColunaUnica('indicacoes','nome','id',indicacao)
+                    nao_enviados.append(nome_indicado)
+            if len(nao_enviados)==0:
+                continue
+            texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
+            if send_email_async(str(linha[4]), assunto, texto_email):
+                logger.info("E-mail enfileirado: Lembrete de frequência {}/{} para {}",nome_mes[str(mes)],ano,orientador)
+            else:
+                logger.error("Erro ao enfileirar e-mail. task_enviar_lembrete_frequencia: {}",orientador)
 
 @scheduler.task('cron', id='do_job_cobrar_frequencia', week='*', day='5-30/10', hour='12', minute='10')
 def job_cobrar_frequencia():

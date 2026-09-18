@@ -45,7 +45,7 @@ The entire Flask application lives in `pesquisa.py` (~4000+ lines), containing a
 ### Key external integrations
 - **CNPq SOAP API** (`./cnpq` WSDL): retrieves Lattes IDs from CPF and downloads compressed Lattes curriculum (ZIP → XML)
 - **Lattes scoring service**: external HTTP endpoint at `sci01-ter-jne.ufca.edu.br` called via `modules/scorerun.py`
-- **Gmail SMTP** (port 587, TLS): all outbound emails; suppressed in dev (`PRODUCAO=0`)
+- **AWS SQS → Lambda/SES**: all outbound emails via `send_email_async()` (queue URL in `AWS_SQS_EMAIL_QUEUE_URL`); plain text goes as HTML via `texto_para_html()`
 - **AWS S3**: file storage for project submissions and indication documents
 - **Redis**: session storage and rate-limiting backend
 
@@ -68,7 +68,7 @@ Copy `.env.sample` to `.env` before running. Key variables:
 | `MYSQL_HOST` / `MYSQL_DATABASE` / `MYSQL_PASSWORD` | MariaDB connection |
 | `MYSQL_TEST_DATABASE` | Separate DB used by pytest |
 | `REDIS_HOST` | Redis host for sessions and rate limiting |
-| `GMAIL_PASSWORD` | Gmail app password for SMTP |
+| `AWS_SQS_EMAIL_QUEUE_URL` | SQS queue consumed by the e-mail Lambda |
 | `AWS_S3_KEY_ID` / `AWS_S3_SECRET_KEY` / `AWS_S3_BUCKET` | S3 file storage |
 | `SESSION_SECRET_KEY` | Flask session secret |
 | `TEST_USER` / `TEST_PASSWORD` / `EMAIL_TESTES` / `CPF_TESTES` | Test credentials |

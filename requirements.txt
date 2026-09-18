@@ -6,7 +6,6 @@ Flask
 lxml
 requests
 Flask-HTTPAuth
-Flask-Mail
 Flask-Reuploaded
 pdfkit
 waitress

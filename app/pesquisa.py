@@ -3801,16 +3801,18 @@ def cadastrarFrequencia():
     else:
         return("OK")
 
+def mes_ano_anterior():
+    """Retorna (mes, ano) do mês anterior ao atual, como strings. Em janeiro, dezembro do ano anterior."""
+    hoje = date.today()
+    if hoje.month == 1:
+        return "12", str(hoje.year - 1)
+    return str(hoje.month - 1), str(hoje.year)
+
 @app.route("/listaNegra/<email>", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
 @log_required
 def listaNegra(email):
-    import datetime
-    #Mes e ano atual
-    ano = str(datetime.date.today().year)
-    mes = str(datetime.date.today().month-1)
-    if mes==1:
-        ano = ano - 1
+    mes, ano = mes_ano_anterior()
     consulta = """SELECT 
     indicacoes.id,
     indicacoes.nome,
@@ -4725,12 +4727,7 @@ def job_enviar_email_avaliadores():
         logger.error("Erro ao executar tarefa de envio de e-mails para avaliadores: {}", str(e))
 
 def task_enviar_lembrete_frequencia():
-    import datetime
-    #Mes e ano atual
-    ano = str(datetime.date.today().year)
-    mes = str(datetime.date.today().month-1)
-    if mes==1:
-        ano = ano - 1
+    mes, ano = mes_ano_anterior()
     nome_mes = {
             '1': 'janeiro',
             '2': 'fevereiro',
@@ -4765,7 +4762,6 @@ def task_enviar_lembrete_frequencia():
         for linha in linhas:
             orientador = str(linha[1])
             siape = str(linha[5])
-            senha = obterColunaUnica('users','password','username',siape)
             indicacoes = str(linha[3]).split(',')
             nao_enviados = []
             for indicacao in indicacoes:
@@ -4781,7 +4777,7 @@ def task_enviar_lembrete_frequencia():
                     nao_enviados.append(nome_indicado)
             if len(nao_enviados)==0:
                 continue
-            texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,senha=senha)
+            texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape)
             if send_email_async(str(linha[4]), assunto, texto_email):
                 logger.info("E-mail enfileirado: Lembrete de frequência {}/{} para {}",nome_mes[str(mes)],ano,orientador)
             else:

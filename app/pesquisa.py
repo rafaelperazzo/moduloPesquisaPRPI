@@ -3618,7 +3618,7 @@ def esperar(arquivo):
             logger.warning("Erro ao remover arquivo temporário (função esperar({})):{}",arquivo + '.gpg',str(e))
 
 @app.route("/admin/verArquivo", methods=['GET', 'POST'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 @log_required
 def verArquivo():
     if request.method == "GET":
@@ -3808,7 +3808,7 @@ def mes_ano_anterior():
     return str(hoje.month - 1), str(hoje.year)
 
 @app.route("/admin/listaNegra/<email>", methods=['GET', 'POST'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 @log_required
 def listaNegra(email):
     mes, ano = mes_ano_anterior()
@@ -4056,7 +4056,7 @@ def gerarLinkAvaliacao():
     logger.info("Links de avaliação gerados com sucesso.")
 
 @app.route("/admin/emailSolicitarAvaliacao", methods=['GET', 'POST'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 @log_required
 @limiter.limit("1 per day", key_func = lambda: 'global')
 def email_solicitar_avaliacao():
@@ -4189,7 +4189,7 @@ def get_bib(siapes):
     return Response(json.dumps(dados),  mimetype='application/json')
 
 @app.route("/admin/auditoria_indicacoes", methods=['GET'])
-@auth.login_required(role=['admin'])
+@login_required(role='admin')
 @log_required
 def auditoria_indicacoes():
     

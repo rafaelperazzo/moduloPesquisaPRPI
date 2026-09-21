@@ -101,7 +101,7 @@
               {% if permissao==1 %}
                 <td class="px-4 py-3 text-gray-700">{{linha[1]}}</td>
               {% else %}
-                <td class="px-4 py-3 text-gray-700"><a href="/pesquisa/editalProjeto?edital={{linha[15]}}" class="text-blue-600 hover:underline">{{linha[1]}}</a></td>
+                <td class="px-4 py-3 text-gray-700"><a href="{{url_for('editalProjeto', edital=linha[15])}}" class="text-blue-600 hover:underline">{{linha[1]}}</a></td>
               {% endif %}
               <td class="px-4 py-3 text-gray-700">{{linha[14]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[2]}}</td>

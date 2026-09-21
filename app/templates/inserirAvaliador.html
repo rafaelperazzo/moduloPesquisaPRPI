@@ -11,7 +11,7 @@
       <div class="max-w-4xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <h1 class="text-2xl font-bold text-gray-800 mb-2">Inserir Avaliador</h1>
         <p class="text-gray-500 text-sm mb-6"><em>Total de Projetos: {{ totalDeLinhas }}</em></p>
-        <form name="frmEnviar" action="/pesquisa/inserirAvaliador" method="POST">
+        <form name="frmEnviar" action="{{ url_for('inserirAvaliador') }}" method="POST">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1"><b>Projeto</b></label>
@@ -27,7 +27,7 @@
           </div>
           <div class="flex items-center gap-4">
             <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium">Enviar</button>
-            <a href="/pesquisa/editalProjeto?edital={{codigoEdital}}" class="text-blue-600 hover:underline text-sm">VOLTAR PARA LISTA DE PROJETOS</a>
+            <a href="{{ url_for('editalProjeto', edital=codigoEdital) }}" class="text-blue-600 hover:underline text-sm">VOLTAR PARA LISTA DE PROJETOS</a>
           </div>
         </form>
         {% if avaliadores %}
@@ -68,7 +68,7 @@
                 </td>
                 <td class="px-4 py-2 text-gray-600">{{ av[3] or '—' }}</td>
                 <td class="px-4 py-2">
-                  <form method="POST" action="/pesquisa/excluirAvaliador" onsubmit="return confirm('Excluir avaliador {{ av[0] }}?');">
+                  <form method="POST" action="{{ url_for('excluirAvaliador') }}" onsubmit="return confirm('Excluir avaliador {{ av[0] }}?');">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="id_avaliacao" value="{{ av[4] }}"/>
                     <button type="submit" class="text-red-600 hover:text-red-800 text-xs font-medium">Excluir</button>

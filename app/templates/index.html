@@ -78,14 +78,14 @@
           {% for edital in editais %}
           <tr class="border-b border-gray-100 hover:bg-gray-50">
             <td class="px-4 py-3 font-medium text-gray-800">{{edital[1]}}</td>
-            <td class="px-4 py-3"><a href="/pesquisa/cadastrar_usuarios_projetos/{{edital[0]}}" class="text-blue-600 hover:underline">Cadastrar</a></td>
-            <td class="px-4 py-3"><a href="/pesquisa/indicacoes?edital={{edital[0]}}&tipo=1" class="text-blue-600 hover:underline">BOLSISTAS</a></td>
-            <td class="px-4 py-3"><a href="/pesquisa/indicacoes?edital={{edital[0]}}&tipo=0" class="text-blue-600 hover:underline">VOLUNTÁRIOS</a></td>
-            <td class="px-4 py-3"><a href="/pesquisa/situacaoIndicacoes?edital={{edital[0]}}" class="text-blue-600 hover:underline">Situação das indicações</a></td>
-            <td class="px-4 py-3"><a href="/pesquisa/substituicoes?id={{edital[0]}}" class="text-blue-600 hover:underline">Desligamentos e Substituições</a></td>
-            <td class="px-4 py-3"><a href="/pesquisa/editalProjeto?edital={{edital[0]}}" class="text-blue-600 hover:underline">Estatísticas</a></td>
-            <td class="px-4 py-3"><a href="/pesquisa/aprovar/projetos/{{edital[0]}}" class="text-blue-600 hover:underline">Atualizar Projetos</a></td>
-            <td class="px-4 py-3"><a href="/pesquisa/editalProjeto?edital={{edital[0]}}&resultado=1" class="text-blue-600 hover:underline">Resultados</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('cadastrar_usuarios_projetos', edital=edital[0])}}" class="text-blue-600 hover:underline">Cadastrar</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('indicacoes', edital=edital[0], tipo=1)}}" class="text-blue-600 hover:underline">BOLSISTAS</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('indicacoes', edital=edital[0], tipo=0)}}" class="text-blue-600 hover:underline">VOLUNTÁRIOS</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('situacaoIndicacoes', edital=edital[0])}}" class="text-blue-600 hover:underline">Situação das indicações</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('substituicoes', id=edital[0])}}" class="text-blue-600 hover:underline">Desligamentos e Substituições</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('editalProjeto', edital=edital[0])}}" class="text-blue-600 hover:underline">Estatísticas</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('aprovar_projetos', edital=edital[0])}}" class="text-blue-600 hover:underline">Atualizar Projetos</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('editalProjeto', edital=edital[0], resultado=1)}}" class="text-blue-600 hover:underline">Resultados</a></td>
             <td class="px-4 py-3"><a href="{{url_for('listar_projetos', edital=edital[0])}}" class="text-blue-600 hover:underline">Gerenciar</a></td>
           </tr>
           {% endfor %}

@@ -91,7 +91,7 @@
             {% for linha in listaProjetos %}
             <tr>
               <td>{{ linha[0] }}</td>
-              <td><a href="/pesquisa/arquivar/{{linha[0]}}" onclick="return confirm('Tem certeza que deseja arquivar o id {{linha[0]}}?')" class="text-red-600 hover:underline text-xs font-medium">ARQUIVAR</a></td>
+              <td><a href="{{url_for('arquivar_projeto', id_projeto=linha[0])}}" onclick="return confirm('Tem certeza que deseja arquivar o id {{linha[0]}}?')" class="text-red-600 hover:underline text-xs font-medium">ARQUIVAR</a></td>
               {% if resultado==0 %}<td>{{ linha[1] }}</td>{% endif %}
               <td>
                 {% if linha[2]==1 %}PROJETO NOVO{% endif %}
@@ -163,9 +163,9 @@
           <tbody id="tabelaNovos">
             {% for linha in novos %}
             <tr>
-              <td><a href="/pesquisa/arquivar/{{linha[0]}}" onclick="return confirm('Tem certeza que deseja arquivar o id {{linha[0]}}?')" class="text-red-600 hover:underline text-xs font-medium">ARQUIVAR</a></td>
+              <td><a href="{{url_for('arquivar_projeto', id_projeto=linha[0])}}" onclick="return confirm('Tem certeza que deseja arquivar o id {{linha[0]}}?')" class="text-red-600 hover:underline text-xs font-medium">ARQUIVAR</a></td>
               <td>
-                <a href="/pesquisa/avaliacoesNegadas?edital={{codigoEdital}}&id={{linha[0]}}" class="text-blue-600 hover:underline">
+                <a href="{{url_for('avaliacoesNegadas', edital=codigoEdital, id=linha[0])}}" class="text-blue-600 hover:underline">
                 {% if (linha[9] is none) %}
                   <img src="{{ url_for('static', filename='interrogacao_vermelha.png')}}?rnd={{ range(1, 10000) | random }}" style="width:30px" alt="">
                   SEM AVALIADORES!
@@ -201,7 +201,7 @@
               <td>{{linha[1]}}</td><td>{{linha[2]}}</td>
               <td><a href="/pesquisa/verArquivosProjeto/{{ linha[4] }}" class="text-blue-600 hover:underline">{{linha[3]}}</a></td>
               <td>{{linha[13]}}</td><td>{{linha[9]}}</td>
-              <td><a href="/pesquisa/avaliacoesNegadas?edital={{codigoEdital}}&id={{linha[0]}}" class="text-blue-600 hover:underline">Adicionar consultor</a></td>
+              <td><a href="{{url_for('avaliacoesNegadas', edital=codigoEdital, id=linha[0])}}" class="text-blue-600 hover:underline">Adicionar consultor</a></td>
               <td>{{linha[5]|safe}}</td><td>{{linha[6]|safe}}</td>
               <td>{{linha[7]|safe}}</td>
               <td>{{linha[8]|safe}}</td>

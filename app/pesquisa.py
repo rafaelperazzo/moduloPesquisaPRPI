@@ -1868,7 +1868,7 @@ def recusarConvite():
     else:
         return("OK")
 
-@app.route("/avaliacoesNegadas", methods=['GET', 'POST'])
+@app.route("/admin/avaliacoesNegadas", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def avaliacoesNegadas():
@@ -1912,7 +1912,7 @@ def avaliacoesNegadas():
     else:
         return("OK")
 
-@app.route("/inserirAvaliador", methods=['GET', 'POST'])
+@app.route("/admin/inserirAvaliador", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def inserirAvaliador():
@@ -1939,7 +1939,7 @@ def inserirAvaliador():
     else:
         return("OK")
 
-@app.route("/excluirAvaliador", methods=['POST'])
+@app.route("/admin/excluirAvaliador", methods=['POST'])
 @login_required(role='admin')
 @log_required
 def excluirAvaliador():
@@ -1965,7 +1965,7 @@ def quantidades(consulta, valores=()):
     conn.close()
     return (total)
 
-@app.route("/estatisticas", methods=['GET', 'POST'])
+@app.route("/admin/estatisticas", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def estatisticas():
@@ -2118,7 +2118,7 @@ def avaliacoesEncerradas(codigoEdital):
     else: #Edital com avaliacoes em andamento
         return(True)
 
-@app.route("/resultados", methods=['GET', 'POST'])
+@app.route("/admin/resultados", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def resultados():
@@ -2282,7 +2282,7 @@ def obterColunaUnica_str(tabela,coluna,colunaId,valorId):
         cursor.close()
         conn.close()
 
-@app.route("/editalProjeto", methods=['GET', 'POST'])
+@app.route("/admin/editalProjeto", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def editalProjeto():
@@ -3099,7 +3099,7 @@ def projetoAprovado(idProjeto):
         else:
             return(False)
 
-@app.route("/prepararResultados", methods=['GET', 'POST'])
+@app.route("/admin/prepararResultados", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def prepararResultados():
@@ -3216,7 +3216,7 @@ def tuplaDeEditais(ano):
         return (0)
 
 
-@app.route("/cruzarDados", methods=['GET', 'POST'])
+@app.route("/admin/cruzarDados", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def cruzarDados():
@@ -3547,7 +3547,7 @@ def efetivarIndicacao():
     else:
         return("OK")
 
-@app.route("/indicacoes", methods=['GET', 'POST'])
+@app.route("/admin/indicacoes", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def indicacoes():
@@ -3617,7 +3617,7 @@ def esperar(arquivo):
         except FileNotFoundError as e:
             logger.warning("Erro ao remover arquivo temporário (função esperar({})):{}",arquivo + '.gpg',str(e))
 
-@app.route("/verArquivo", methods=['GET', 'POST'])
+@app.route("/admin/verArquivo", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
 @log_required
 def verArquivo():
@@ -3656,7 +3656,7 @@ def verArquivosProjeto(filename):
         logger.warning("[verArquivosProjeto] Erro ao recuperar arquivo {}: {}", arquivo, str(e))
         return("Arquivo não encontrado!")
 
-@app.route("/situacaoIndicacoes", methods=['GET', 'POST'])
+@app.route("/admin/situacaoIndicacoes", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def situacaoIndicacoes():
@@ -3807,7 +3807,7 @@ def mes_ano_anterior():
         return "12", str(hoje.year - 1)
     return str(hoje.month - 1), str(hoje.year)
 
-@app.route("/listaNegra/<email>", methods=['GET', 'POST'])
+@app.route("/admin/listaNegra/<email>", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
 @log_required
 def listaNegra(email):
@@ -4018,7 +4018,7 @@ def consultas():
     else:
         return("OK")
 
-@app.route("/substituicoes", methods=['GET', 'POST'])
+@app.route("/admin/substituicoes", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def substituicoes():
@@ -4055,7 +4055,7 @@ def gerarLinkAvaliacao():
         atualizar2(consulta, valores=(link, id))
     logger.info("Links de avaliação gerados com sucesso.")
 
-@app.route("/emailSolicitarAvaliacao", methods=['GET', 'POST'])
+@app.route("/admin/emailSolicitarAvaliacao", methods=['GET', 'POST'])
 @auth.login_required(role=['admin'])
 @log_required
 @limiter.limit("1 per day", key_func = lambda: 'global')
@@ -4091,7 +4091,7 @@ def enviarPedidoAvaliacao(idProjeto):
             else:
                 logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: {}", email_avaliador)
 
-@app.route("/arquivar/<id_projeto>", methods=['GET', 'POST'])
+@app.route("/admin/arquivar/<id_projeto>", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def arquivar_projeto(id_projeto):
@@ -4099,9 +4099,9 @@ def arquivar_projeto(id_projeto):
     consulta = "UPDATE editalProjeto SET valendo=0 WHERE id=%s"
     atualizar2(consulta, valores=(projeto,))
     edital = str(session['edital'])
-    return(redirect("/pesquisa/editalProjeto?edital=" + edital))
+    return(redirect(url_for('editalProjeto', edital=edital)))
 
-@app.route("/aprovar/projetos/<edital>", methods=['GET', 'POST'])
+@app.route("/admin/aprovar/projetos/<edital>", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def aprovar_projetos(edital):
@@ -4188,7 +4188,7 @@ def get_bib(siapes):
         dados.append(dado)
     return Response(json.dumps(dados),  mimetype='application/json')
 
-@app.route("/auditoria_indicacoes", methods=['GET'])
+@app.route("/admin/auditoria_indicacoes", methods=['GET'])
 @auth.login_required(role=['admin'])
 @log_required
 def auditoria_indicacoes():
@@ -4270,7 +4270,7 @@ def get_projetos_discente():
             logger.warning(str(e))
             return render_template("Erro ao gerar projetos por aluno (/projetos_discente)")
 
-@app.route("/argon2", methods=['GET'])
+@app.route("/admin/argon2", methods=['GET'])
 @login_required(role='admin')
 @log_required
 def hash_passwords():
@@ -4297,7 +4297,7 @@ def cadastrar_novo_usuario(siape, nome, email):
     atualizar2(consulta,valores=[siape, nome, email, hashed_password, role])
     return senha
 
-@app.route("/cadastrar_usuario", methods=['GET', 'POST'])
+@app.route("/admin/cadastrar_usuario", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def cadastrar_usuario():
@@ -4334,7 +4334,7 @@ def cadastrar_usuario():
     else:
         return render_template('cadastrar_usuario.html')
 
-@app.route("/cadastrar_usuarios_projetos/<edital>", methods=['GET'])
+@app.route("/admin/cadastrar_usuarios_projetos/<edital>", methods=['GET'])
 @login_required(role='admin')
 @log_required
 def cadastrar_usuarios_projetos(edital):
@@ -4374,7 +4374,7 @@ def cadastrar_usuarios_projetos(edital):
         flash("Nenhum usuário encontrado para cadastro.")
         return redirect(url_for('admin'))
 
-@app.route("/listarUsuarios", methods=['GET'])
+@app.route("/admin/listarUsuarios", methods=['GET'])
 @login_required(role='admin')
 @log_required
 def listar_usuarios():
@@ -4385,7 +4385,7 @@ def listar_usuarios():
     linhas, total = executarSelect2(consulta, valores=[])
     return render_template('listarUsuarios.html', usuarios=linhas, total=total)
 
-@app.route("/alterarUsuario/<int:id>", methods=['GET', 'POST'])
+@app.route("/admin/alterarUsuario/<int:id>", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def alterar_usuario(id):
@@ -4433,7 +4433,7 @@ def alterar_usuario(id):
             return redirect(url_for('listar_usuarios'))
         return render_template('alterarUsuario.html', usuario=linhas[0])
 
-@app.route("/listarEditais", methods=['GET'])
+@app.route("/admin/listarEditais", methods=['GET'])
 @login_required(role='admin')
 @log_required
 def listar_editais():
@@ -4448,7 +4448,7 @@ def listar_editais():
     linhas, total = executarSelect2(consulta, valores=[])
     return render_template('listarEditais.html', editais=linhas, total=total)
 
-@app.route("/inserirEdital", methods=['GET', 'POST'])
+@app.route("/admin/inserirEdital", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def inserir_edital():
@@ -4481,7 +4481,7 @@ def inserir_edital():
     else:
         return render_template('inserirEdital.html')
 
-@app.route("/alterarEdital/<int:id>", methods=['GET', 'POST'])
+@app.route("/admin/alterarEdital/<int:id>", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def alterar_edital(id):
@@ -4527,7 +4527,7 @@ def alterar_edital(id):
             return redirect(url_for('listar_editais'))
         return render_template('alterarEdital.html', edital=linhas[0])
 
-@app.route("/listarProjetos", methods=['GET'])
+@app.route("/admin/listarProjetos", methods=['GET'])
 @login_required(role='admin')
 @log_required
 def listar_projetos():
@@ -4548,7 +4548,7 @@ def listar_projetos():
     linhas, total = executarSelect2(consulta, valores=[codigoEdital])
     return render_template('listarProjetos.html', projetos=linhas, total=total, codigoEdital=codigoEdital)
 
-@app.route("/alterarProjeto/<int:id>", methods=['GET', 'POST'])
+@app.route("/admin/alterarProjeto/<int:id>", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def alterar_projeto(id):
@@ -4653,7 +4653,7 @@ def alterar_projeto(id):
             return redirect(url_for('admin'))
         return render_template('alterarProjeto.html', projeto=linhas[0])
 
-@app.route("/recalcularScoreLattes/<int:id>", methods=['GET', 'POST'])
+@app.route("/admin/recalcularScoreLattes/<int:id>", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def recalcular_score_lattes(id):
@@ -4795,7 +4795,7 @@ def job_cobrar_frequencia():
     except Exception as e:
         logger.error("Erro ao executar tarefa de envio de lembretes de frequência: {}", str(e))
 
-@app.route("/ligarScheduler", methods=['GET'])
+@app.route("/admin/ligarScheduler", methods=['GET'])
 @login_required(role='admin')
 @log_required
 def ligar_scheduler():
@@ -4810,7 +4810,7 @@ def ligar_scheduler():
     else:
         return render_template('ligarScheduler.html', sucesso=False)
 
-@app.route("/desligarScheduler", methods=['GET'])
+@app.route("/admin/desligarScheduler", methods=['GET'])
 @login_required(role='admin')
 @log_required
 def desligar_scheduler():
@@ -4824,7 +4824,7 @@ def desligar_scheduler():
     else:
         return render_template('desligarScheduler.html', sucesso=False)
 
-@app.route("/schedulerJobs", methods=['GET'])
+@app.route("/admin/schedulerJobs", methods=['GET'])
 @login_required(role='admin')
 @log_required
 def scheduler_jobs():
@@ -4864,7 +4864,7 @@ def carregar_mensagens():
         lista.append(mensagem)
     return lista
 
-@app.route("/mensagens", methods=['GET', 'POST'])
+@app.route("/admin/mensagens", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def mensagens():

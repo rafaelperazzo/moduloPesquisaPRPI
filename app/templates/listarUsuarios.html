@@ -24,6 +24,7 @@
             <th class="px-4 py-3 font-semibold text-gray-700">Nome</th>
             <th class="px-4 py-3 font-semibold text-gray-700">E-mail</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Roles</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Migrado</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Ações</th>
           </tr>
         </thead>
@@ -34,6 +35,7 @@
             <td class="px-4 py-3 text-gray-700">{{ usuario[2] }}</td>
             <td class="px-4 py-3 text-gray-700">{{ usuario[3] }}</td>
             <td class="px-4 py-3 text-gray-500 text-xs">{{ usuario[4] }}</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">{{ 'Sim' if usuario[5] == 1 else 'Não' }}</td>
             <td class="px-4 py-3">
               <a href="{{ url_for('alterar_usuario', id=usuario[0]) }}"
                  class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs font-medium">

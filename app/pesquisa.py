@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from flask import Flask
 from flask import render_template, send_file
-from flask import request,url_for,send_from_directory,redirect,session,flash
+from flask import request,url_for,send_from_directory,redirect,session,flash,has_request_context
 from flask_httpauth import HTTPBasicAuth
 from waitress import serve
 import mariadb as MySQLdb
@@ -15,7 +15,6 @@ import sys
 import re
 from flask_uploads import UploadSet, configure_uploads, ALL, DOCUMENTS
 import threading
-from html import escape as html_escape
 import zeep
 import zipfile
 import tempfile
@@ -300,6 +299,12 @@ else:
 
 lambda_client = boto3.client('lambda', region_name='us-east-2')
 
+#COGNITO (somente em produção; em dev a autenticação continua no MariaDB)
+COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID", "")
+COGNITO_APP_CLIENT_ID = os.getenv("COGNITO_APP_CLIENT_ID", "")
+USAR_COGNITO = PRODUCAO == 1
+cognito = boto3.client('cognito-idp', region_name=AWS_REGION) if USAR_COGNITO else None
+
 SQS_QUEUE_URL = os.getenv(
     "AWS_SQS_EMAIL_QUEUE_URL",
     ""
@@ -508,8 +513,11 @@ def generate_secure_password(length=16, include_uppercase=True,
     if len(all_characters) == 0:
         raise ValueError("At least one character set must be included")
 
-    password = ''.join(secrets.choice(all_characters) for _ in range(length))
-    return password
+    # Gera novamente até atender à política (12+ caracteres e 4 classes), exigida também pelo Cognito
+    while True:
+        password = ''.join(secrets.choice(all_characters) for _ in range(length))
+        if length < 12 or not (include_uppercase and include_numbers and include_special_chars) or senha_segura_valida(password):
+            return password
 
 def removerAspas(texto):
     resultado = texto.replace('"',' ')
@@ -934,56 +942,294 @@ def getEditaisAbertos():
     conn.close()
     return linhas
 
+# ---------------------------------------------------------------------------
+# Autenticação (legado no MariaDB em dev; Cognito em produção)
+# ---------------------------------------------------------------------------
+
+COLUNAS_USUARIO = "id, username, permission, roles, password, migrado, nome, email"
+CONSULTAS_USUARIO = {
+    'username': f"SELECT {COLUNAS_USUARIO} FROM users WHERE username=%s LIMIT 1",
+    'email': f"SELECT {COLUNAS_USUARIO} FROM users WHERE email=%s LIMIT 1",
+    'id': f"SELECT {COLUNAS_USUARIO} FROM users WHERE id=%s LIMIT 1",
+}
+
+def buscar_usuario(valor, campo='username'):
+    """Retorna a linha (id, username, permission, roles, password, migrado, nome, email)
+    do usuário ou None se não existir."""
+    resultado = executarSelect2(CONSULTAS_USUARIO[campo], valores=[valor])
+    if resultado is None:  # executarSelect2 retorna None em caso de erro
+        return None
+    linhas, total = resultado
+    return linhas[0] if total > 0 else None
+
+def iniciar_sessao(username, permissao, roles):
+    """Preenche a sessão usada pelo login_required (igual para os dois backends)."""
+    session['username'] = str(username)
+    session['permissao'] = int(permissao)
+    session['roles'] = str(roles).split(',')
+    session['edital'] = 0
+
+def codigo_erro(e):
+    """Código do erro retornado pela AWS (ex.: NotAuthorizedException)."""
+    if isinstance(e, ClientError):
+        return e.response.get('Error', {}).get('Code', 'ClientError')
+    return type(e).__name__
+
+def log_migracao(evento, username, nivel='info', origem=None, etapa=None, erro=None, classe_erro=None, **extra):
+    """Registra as operações de migração e de senha no Cognito.
+    NUNCA passar senha, código de verificação, tokens ou o Session do desafio."""
+    if has_request_context():
+        ip, rota, metodo = request.remote_addr, request.path, request.method
+        operador = session.get('username', 'N/A')
+    else:
+        ip = rota = metodo = operador = "N/A"
+    with logger.contextualize(ip=ip, username=str(username), rota=rota, metodo=metodo, operador=operador,
+                              evento=evento, origem=origem or "", etapa=etapa or "",
+                              erro=erro or "", classe_erro=classe_erro or "", **extra):
+        logger.log(nivel.upper(), "Cognito: {}", evento)
+
+def verificar_senha_legado(linha, password):
+    """Confere a senha no hash Argon2id da tabela users."""
+    username = str(linha[1])
+    try:
+        valida = cripto.hash_argon2id_verify(str(linha[4]), password)
+    except Exception as e:
+        with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=str(e),classe_erro=type(e).__name__):
+            logger.warning("Senha inválida. Erro no Argon2")
+        return False
+    with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
+        if valida:
+            logger.info("Usuário autenticado com sucesso")
+        else:
+            logger.warning("Usuário/Senha inválida")
+    return bool(valida)
+
+def atributos_cognito(linha):
+    """Atributos do usuário no Cognito a partir da linha da tabela users.
+    email_verified=true é necessário para o Cognito entregar os códigos de recuperação."""
+    return [
+        {'Name': 'name', 'Value': str(linha[6] or '')},
+        {'Name': 'email', 'Value': str(linha[7] or '')},
+        {'Name': 'email_verified', 'Value': 'true'},
+        {'Name': 'custom:roles', 'Value': str(linha[3])},
+        {'Name': 'custom:permission', 'Value': str(int(linha[2]))},
+        {'Name': 'custom:legacy_id', 'Value': str(int(linha[0]))},
+    ]
+
+def atributos_para_dict(atributos):
+    return {a['Name']: a['Value'] for a in atributos}
+
+def marcar_migrado(linha, sub, origem):
+    """Grava migrado=1 e o sub do Cognito na tabela users."""
+    username = str(linha[1])
+    atualizar2("UPDATE users SET migrado=1, cognito_sub=%s WHERE id=%s", valores=[sub, linha[0]])
+    confirmado = buscar_usuario(linha[0], 'id')
+    if confirmado is None or int(confirmado[5]) != 1:
+        # O usuário já está no Cognito; a próxima migração recupera pela idempotência
+        log_migracao('migracao_falha_db', username, nivel='error', origem=origem, etapa='db_update', cognito_sub=sub)
+        return False
+    return True
+
+def cognito_migrar_usuario(linha, senha=None, origem='login'):
+    """Migra o usuário legado para o Cognito SEM enviar e-mail (único uso do SUPPRESS).
+
+    Com senha=None (antes do esqueci minha senha ou do reset pelo admin) define uma senha
+    aleatória que nunca é mostrada nem enviada. Levanta ClientError/BotoCoreError em caso
+    de falha (InvalidPasswordException quando a senha não atende à política do pool).
+    """
+    username = str(linha[1])
+    log_migracao('migracao_iniciada' if senha is not None else 'migracao_silenciosa_pre_recuperacao',
+                 username, origem=origem)
+    etapa = 'admin_create_user'
+    try:
+        try:
+            resposta = cognito.admin_create_user(
+                UserPoolId=COGNITO_USER_POOL_ID,
+                Username=username,
+                UserAttributes=atributos_cognito(linha),
+                MessageAction='SUPPRESS',
+            )
+            sub = atributos_para_dict(resposta['User']['Attributes']).get('sub')
+        except ClientError as e:
+            if codigo_erro(e) != 'UsernameExistsException':
+                raise
+            # Migração anterior interrompida: reaproveita a conta existente
+            log_migracao('migracao_usuario_ja_existia', username, nivel='warning', origem=origem, etapa=etapa)
+            etapa = 'admin_update_user_attributes'
+            cognito.admin_update_user_attributes(UserPoolId=COGNITO_USER_POOL_ID, Username=username,
+                                                 UserAttributes=atributos_cognito(linha))
+            usuario = cognito.admin_get_user(UserPoolId=COGNITO_USER_POOL_ID, Username=username)
+            sub = atributos_para_dict(usuario['UserAttributes']).get('sub')
+        etapa = 'admin_set_user_password'
+        cognito.admin_set_user_password(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=username,
+            Password=senha if senha is not None else generate_secure_password(),
+            Permanent=True,
+        )
+    except (ClientError, BotoCoreError) as e:
+        if codigo_erro(e) == 'InvalidPasswordException':
+            log_migracao('migracao_adiada_politica_senha', username, nivel='warning', origem=origem, etapa=etapa)
+        else:
+            log_migracao('migracao_falha_cognito', username, nivel='error', origem=origem, etapa=etapa,
+                         erro=str(e), classe_erro=codigo_erro(e))
+        raise
+    if marcar_migrado(linha, sub, origem):
+        log_migracao('migracao_concluida_nova_senha' if origem == 'nova_senha' else 'migracao_concluida',
+                     username, origem=origem, cognito_sub=sub)
+    return sub
+
+def cognito_convidar_usuario(linha):
+    """Cadastra um usuário novo no Cognito; o Cognito envia o convite (senha provisória) por e-mail."""
+    username = str(linha[1])
+    try:
+        resposta = cognito.admin_create_user(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Username=username,
+            UserAttributes=atributos_cognito(linha),
+            DesiredDeliveryMediums=['EMAIL'],
+        )
+    except (ClientError, BotoCoreError) as e:
+        log_migracao('convite_falha_cognito', username, nivel='error', origem='cadastro',
+                     erro=str(e), classe_erro=codigo_erro(e))
+        raise
+    sub = atributos_para_dict(resposta['User']['Attributes']).get('sub')
+    marcar_migrado(linha, sub, 'cadastro')
+    log_migracao('convite_enviado', username, origem='cadastro', cognito_sub=sub)
+    return sub
+
+def cognito_sincronizar_atributos(linha):
+    """Replica no Cognito os dados alterados pelo admin (nome, e-mail, roles, permission)."""
+    username = str(linha[1])
+    try:
+        cognito.admin_update_user_attributes(UserPoolId=COGNITO_USER_POOL_ID, Username=username,
+                                             UserAttributes=atributos_cognito(linha))
+    except (ClientError, BotoCoreError) as e:
+        log_migracao('sincronizacao_falha_cognito', username, nivel='error', origem='alterar_usuario',
+                     erro=str(e), classe_erro=codigo_erro(e))
+        raise
+    log_migracao('atributos_sincronizados', username, origem='alterar_usuario')
+
+def cognito_iniciar_recuperacao(linha, origem):
+    """Faz o Cognito enviar o e-mail de recuperação de senha.
+
+    Usuário não migrado é migrado antes, em silêncio. Se o convite ainda não foi usado,
+    o Cognito reenvia o convite; senão envia um código (forgot_password no esqueci minha
+    senha, admin_reset_user_password no reset pelo admin). Retorna 'convite' ou 'codigo'.
+    """
+    username = str(linha[1])
+    migrado = int(linha[5]) == 1
+    if not migrado:
+        cognito_migrar_usuario(linha, None, origem=origem)  # sem e-mail; conta fica CONFIRMED
+    try:
+        status = 'CONFIRMED'
+        if migrado:
+            status = cognito.admin_get_user(UserPoolId=COGNITO_USER_POOL_ID, Username=username)['UserStatus']
+        if status == 'FORCE_CHANGE_PASSWORD':
+            cognito.admin_create_user(UserPoolId=COGNITO_USER_POOL_ID, Username=username, MessageAction='RESEND')
+            log_migracao('convite_reenviado', username, origem=origem)
+            return 'convite'
+        if origem == 'esqueci_senha':
+            cognito.forgot_password(ClientId=COGNITO_APP_CLIENT_ID, Username=username)
+        else:
+            cognito.admin_reset_user_password(UserPoolId=COGNITO_USER_POOL_ID, Username=username)
+        log_migracao('codigo_recuperacao_enviado', username, origem=origem)
+        return 'codigo'
+    except (ClientError, BotoCoreError) as e:
+        log_migracao('recuperacao_falha_cognito', username, nivel='error', origem=origem,
+                     erro=str(e), classe_erro=codigo_erro(e))
+        raise
+
+def cognito_autenticar(username, senha):
+    """admin_initiate_auth; retorna a resposta (AuthenticationResult ou ChallengeName).
+    Os tokens não são guardados: a sessão continua sendo a do Flask."""
+    return cognito.admin_initiate_auth(
+        UserPoolId=COGNITO_USER_POOL_ID,
+        ClientId=COGNITO_APP_CLIENT_ID,
+        AuthFlow='ADMIN_USER_PASSWORD_AUTH',
+        AuthParameters={'USERNAME': username, 'PASSWORD': senha},
+    )
+
+def iniciar_sessao_cognito(username):
+    """Inicia a sessão com os papéis guardados no Cognito (custom:roles / custom:permission)."""
+    usuario = cognito.admin_get_user(UserPoolId=COGNITO_USER_POOL_ID, Username=username)
+    atributos = atributos_para_dict(usuario['UserAttributes'])
+    if 'custom:roles' not in atributos or 'custom:permission' not in atributos:
+        log_migracao('atributos_ausentes_cognito', username, nivel='warning')
+    iniciar_sessao(username, atributos.get('custom:permission', '1'), atributos.get('custom:roles', 'user'))
+
+def autenticar_cognito(username, senha):
+    try:
+        resposta = cognito_autenticar(username, senha)
+    except (ClientError, BotoCoreError) as e:
+        codigo = codigo_erro(e)
+        if codigo == 'PasswordResetRequiredException':
+            return 'reset'
+        if codigo == 'UserNotFoundException':
+            log_migracao('login_inconsistente_migrado_sem_cognito', username, nivel='error')
+        elif codigo == 'NotAuthorizedException':
+            with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
+                logger.warning("Usuário/Senha inválida")
+        else:
+            log_migracao('login_falha_cognito', username, nivel='error', erro=str(e), classe_erro=codigo)
+        return 'invalido'
+    if resposta.get('ChallengeName') == 'NEW_PASSWORD_REQUIRED':
+        session['cognito_desafio'] = {'username': username, 'session': resposta['Session']}
+        return 'desafio'
+    if 'AuthenticationResult' not in resposta:
+        log_migracao('login_desafio_nao_suportado', username, nivel='error', classe_erro=resposta.get('ChallengeName'))
+        return 'invalido'
+    try:
+        iniciar_sessao_cognito(username)
+    except (ClientError, BotoCoreError) as e:
+        log_migracao('login_falha_cognito', username, nivel='error', erro=str(e), classe_erro=codigo_erro(e))
+        return 'invalido'
+    with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
+        logger.info("Usuário autenticado com sucesso (Cognito)")
+    return 'ok'
+
+def autenticar_usuario(username, senha):
+    """Autentica o usuário e inicia a sessão.
+
+    Em produção: usuário migrado autentica no Cognito; não migrado confere a senha
+    legada e, se correta, é migrado em silêncio (mesma senha, permanente).
+    Retorna 'ok', 'politica' (logado, mas precisa trocar a senha), 'desafio'
+    (primeiro acesso de convidado), 'reset' (senha resetada pelo admin) ou 'invalido'.
+    """
+    if not username_valido(username):
+        return 'invalido'
+    linha = buscar_usuario(username)
+    if linha is None:
+        return 'invalido'
+    if USAR_COGNITO and int(linha[5]) == 1:
+        return autenticar_cognito(username, senha)
+    if not verificar_senha_legado(linha, senha):
+        return 'invalido'
+    resultado = 'ok'
+    if USAR_COGNITO:
+        try:
+            cognito_migrar_usuario(linha, senha, origem='login')
+        except (ClientError, BotoCoreError) as e:
+            # Já registrado no log; o login segue pelo legado e a migração é tentada de novo depois
+            if codigo_erro(e) == 'InvalidPasswordException':
+                resultado = 'politica'
+    iniciar_sessao(linha[1], linha[2], linha[3])
+    if resultado == 'politica':
+        # Reaproveita o bloqueio de senha vazada: só libera após a troca em /novaSenha
+        session['senha_vazada'] = True
+    return resultado
+
 @auth.verify_password
 def verify_password(username, password):
-    """This function is called to check if a username /
-    password combination is valid.
-    """
+    """Callback do HTTPBasicAuth: retorna o username se as credenciais forem válidas."""
     try:
-        if not username_valido(username):
-            return False
-        consulta2 = """
-        SELECT id,
-        username,
-        permission,
-        roles,
-        password 
-        FROM users 
-        WHERE username=%s LIMIT 1 """
-        continuar = False
-        resultado,total_usuarios = executarSelect2(consulta2,valores=[username])
-        if total_usuarios>0:
-            linha = resultado[0]
-            hash_senha = str(linha[4])
-            try:
-                if cripto.hash_argon2id_verify(hash_senha, password):
-                    continuar = True
-                    with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
-                        logger.info("Usuário autenticado com sucesso")
-                else:
-                    continuar = False
-                    with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
-                        logger.warning("Usuário/Senha inválida")
-            except Exception as e:
-                continuar = False
-                with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=str(e),classe_erro=type(e).__name__):
-                    logger.warning("Senha inválida. Erro no Argon2")
-        else:
-            continuar = False
-        if continuar is False: #Usuário inexistente ou senha inválida
-            return False
-        else: #Usuário e senha válidos
-            linha = resultado[0]
-            session['username'] = str(linha[1])
-            session['permissao'] = int(linha[2])
-            roles = str(linha[3])
-            roles = roles.split(',')
-            session['roles'] = roles
-            session['edital'] = 0
+        if autenticar_usuario(username, password) in ('ok', 'politica'):
             return username
+        return False
     except Exception as e:
-        with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=str(e),consulta=consulta2,classe_erro=type(e).__name__):
+        with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=str(e),classe_erro=type(e).__name__):
             logger.warning("ERRO Na função verify_password")
+        return False
 
 @auth.get_user_roles
 def get_user_roles(user):
@@ -3008,8 +3254,18 @@ def login():
             siape = str(request.form['siape'])
             senha = str(request.form['senha'])
             senha = senha[:64]  # Limitar o tamanho da senha para evitar problemas ataques DoS
-            if verify_password(siape,senha):
+            resultado = autenticar_usuario(siape,senha)
+            if resultado == 'desafio':
+                flash("Defina sua senha para concluir o primeiro acesso.")
+                return redirect(url_for('definir_senha'))
+            if resultado == 'reset':
+                flash("Sua senha foi redefinida. Use o código enviado para seu e-mail para definir uma nova senha.","error")
+                return redirect(url_for('redefinir_senha'))
+            if resultado in ('ok','politica'):
                 registrar_acesso(request.remote_addr,siape)
+                if resultado == 'politica':
+                    flash("Sua senha não atende aos requisitos de segurança atuais. Defina uma nova senha.","error")
+                    return redirect(url_for('nova_senha'))
                 if senha_vazada_detectada():
                     session['senha_vazada'] = True
                     with logger.contextualize(ip=request.remote_addr,username=siape,rota=request.path,metodo=request.method,erro=""):
@@ -3031,49 +3287,137 @@ def login():
 def esqueciMinhaSenha():
     return(render_template('esqueciMinhaSenha.html'))
 
-def texto_para_html(texto):
-    """Converte texto puro em HTML preservando as quebras de linha."""
-    return html_escape(texto).replace("\n", "<br>\n")
-
-def enviar_email_senha(email, assunto, texto_mensagem):
-    """Enfileira e-mail com credenciais (texto puro convertido para HTML)."""
-    if send_email_async(email, assunto, texto_para_html(texto_mensagem)):
-        logger.info("E-mail enfileirado com sucesso: {}", assunto)
-    else:
-        logger.warning("Erro ao enfileirar e-mail de credenciais: {}", assunto)
+MENSAGEM_RECUPERACAO = "Se o e-mail estiver cadastrado, você receberá uma mensagem com as instruções para definir uma nova senha."
 
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 @log_required
 @limiter.limit("3/day;2/hour;1/minute",methods=["POST"])
 def enviarMinhaSenha():
+    """Esqueci minha senha: em produção o Cognito envia o código (ou reenvia o convite).
+    A resposta é sempre a mesma, para não revelar quais e-mails estão cadastrados."""
     if request.method == "POST":
         if ('email' in request.form):
-            email = str(request.form['email'])
-            senha_forte = generate_secure_password()
-            #ENVIAR E-MAIL
-            consulta = """SELECT username,id FROM users WHERE email=%s"""
-            linhas,total = executarSelect2(consulta,1,valores=(email,))
-            if (total>0):
-                username = str(linhas[0])
-                idUsuario = str(linhas[1])
-                senha = senha_forte
-                hash_senha = cripto.hash_argon2id(senha)
-                consulta = """UPDATE users SET password=%s WHERE id=%s"""
-                atualizar2(consulta, valores=(hash_senha, idUsuario))
-                #Enviando e-mail
-                texto_mensagem = "Usuario: " + username + "\nSenha: " + senha + "\n" + USUARIO_SITE
-                enviar_email_senha(email, "Plataforma Yoko - Lembrete de senha", texto_mensagem)
-                #Redirecionando para a página de login
-                return(render_template('login.html',mensagem='Senha enviada para o email: ' + email))
-            else:
+            email = str(request.form['email']).strip()
+            linha = buscar_usuario(email, 'email')
+            if linha is None:
                 with logger.contextualize(ip=request.remote_addr,rota=request.path,email=email):
                     logger.info("Redefinição de senha para e-mail não cadastrado")
-                flash("E-mail não cadastrado. Solicite seu cadastro no setor responsável.","error")
-                return redirect(url_for('home'))
+            elif USAR_COGNITO:
+                try:
+                    cognito_iniciar_recuperacao(linha, origem='esqueci_senha')
+                except (ClientError, BotoCoreError):
+                    pass  # Já registrado no log; a resposta continua genérica
+            else:
+                with logger.contextualize(ip=request.remote_addr,rota=request.path,email=email):
+                    logger.info("Esqueci minha senha em dev: nenhuma ação (Cognito só em produção)")
+            flash(MENSAGEM_RECUPERACAO)
+            if USAR_COGNITO:
+                return redirect(url_for('redefinir_senha'))
+            return redirect(url_for('login'))
         else:
             return("OK")
     else:
         return("OK")
+
+def validar_nova_senha(nova, confirmar):
+    """Retorna a mensagem de erro da nova senha ou None se estiver válida."""
+    if nova != confirmar:
+        return "A nova senha e a confirmação não coincidem."
+    if not senha_segura_valida(nova):
+        return "A nova senha deve ter no mínimo 12 caracteres e incluir letras maiúsculas, minúsculas, números e caracteres especiais."
+    return None
+
+@app.route("/redefinirSenha", methods=['GET', 'POST'])
+@log_required
+@limiter.limit("10/hour;3/minute",methods=["POST"])
+def redefinir_senha():
+    """Define a nova senha com o código enviado pelo Cognito (esqueci minha senha ou reset pelo admin)."""
+    if not USAR_COGNITO:
+        flash("A redefinição de senha por código está disponível apenas em produção.","error")
+        return redirect(url_for('home'))
+    if request.method == 'POST':
+        siape = str(request.form.get('siape', '')).strip()
+        codigo = str(request.form.get('codigo', '')).strip()
+        nova = str(request.form.get('nova_senha', ''))[:64]
+        confirmar = str(request.form.get('confirmar_senha', ''))[:64]
+        if not username_valido(siape) or not codigo.isdigit():
+            flash("SIAPE ou código inválido.", 'error')
+            return redirect(url_for('redefinir_senha'))
+        erro = validar_nova_senha(nova, confirmar)
+        if erro:
+            flash(erro, 'error')
+            return redirect(url_for('redefinir_senha'))
+        try:
+            cognito.confirm_forgot_password(ClientId=COGNITO_APP_CLIENT_ID, Username=siape,
+                                            ConfirmationCode=codigo, Password=nova)
+        except (ClientError, BotoCoreError) as e:
+            codigo_e = codigo_erro(e)
+            mensagens = {
+                'CodeMismatchException': "Código inválido. Confira o SIAPE e o código recebido.",
+                'ExpiredCodeException': "Código expirado. Solicite um novo código em \"Esqueci minha senha\".",
+                'InvalidPasswordException': "A nova senha não atende aos requisitos de segurança.",
+                'LimitExceededException': "Muitas tentativas. Aguarde alguns minutos e tente novamente.",
+            }
+            log_migracao('redefinicao_senha_falha', siape, nivel='warning', origem='redefinir_senha', classe_erro=codigo_e)
+            flash(mensagens.get(codigo_e, "Não foi possível redefinir a senha. Verifique os dados e tente novamente."), 'error')
+            return redirect(url_for('redefinir_senha'))
+        # Garante o espelho local caso a marcação da migração tenha falhado antes
+        atualizar2("UPDATE users SET migrado=1 WHERE username=%s AND migrado=0", valores=[siape])
+        log_migracao('senha_redefinida', siape, origem='redefinir_senha')
+        flash("Senha redefinida com sucesso! Entre com a nova senha.")
+        return redirect(url_for('login'))
+    return render_template('redefinirSenha.html')
+
+@app.route("/definirSenha", methods=['GET', 'POST'])
+@log_required
+@limiter.limit("10/hour;3/minute",methods=["POST"])
+def definir_senha():
+    """Primeiro acesso de usuário convidado: troca a senha provisória do convite do Cognito."""
+    desafio = session.get('cognito_desafio')
+    if not USAR_COGNITO or not desafio:
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        nova = str(request.form.get('nova_senha', ''))[:64]
+        confirmar = str(request.form.get('confirmar_senha', ''))[:64]
+        erro = validar_nova_senha(nova, confirmar)
+        if erro:
+            flash(erro, 'error')
+            return redirect(url_for('definir_senha'))
+        username = desafio['username']
+        try:
+            resposta = cognito.admin_respond_to_auth_challenge(
+                UserPoolId=COGNITO_USER_POOL_ID,
+                ClientId=COGNITO_APP_CLIENT_ID,
+                ChallengeName='NEW_PASSWORD_REQUIRED',
+                Session=desafio['session'],
+                ChallengeResponses={'USERNAME': username, 'NEW_PASSWORD': nova},
+            )
+        except (ClientError, BotoCoreError) as e:
+            codigo_e = codigo_erro(e)
+            if codigo_e == 'InvalidPasswordException':
+                flash("A nova senha não atende aos requisitos de segurança.", 'error')
+                return redirect(url_for('definir_senha'))
+            session.pop('cognito_desafio', None)
+            log_migracao('definir_senha_falha', username, nivel='warning', origem='primeiro_acesso', classe_erro=codigo_e)
+            flash("Sessão expirada. Entre novamente com a senha provisória recebida por e-mail.", 'error')
+            return redirect(url_for('login'))
+        session.pop('cognito_desafio', None)
+        if 'AuthenticationResult' not in resposta:
+            log_migracao('definir_senha_falha', username, nivel='error', origem='primeiro_acesso',
+                         classe_erro=resposta.get('ChallengeName'))
+            flash("Não foi possível concluir o primeiro acesso. Tente entrar novamente.", 'error')
+            return redirect(url_for('login'))
+        try:
+            iniciar_sessao_cognito(username)
+        except (ClientError, BotoCoreError) as e:
+            log_migracao('login_falha_cognito', username, nivel='error', erro=str(e), classe_erro=codigo_erro(e))
+            flash("Senha definida. Entre novamente com a nova senha.")
+            return redirect(url_for('login'))
+        registrar_acesso(request.remote_addr, username)
+        log_migracao('senha_definida_primeiro_acesso', username, origem='primeiro_acesso')
+        flash("Senha definida com sucesso!")
+        return redirect(url_for('home'))
+    return render_template('definirSenha.html')
 
 @app.route("/logout", methods=['GET', 'POST'])
 @log_required
@@ -4289,13 +4633,18 @@ def hash_passwords():
     return("OK\n")
 
 def cadastrar_novo_usuario(siape, nome, email):
-    senha = generate_secure_password()
-    hashed_password = cripto.hash_argon2id(senha)
+    """Cadastra o usuário na tabela users e, em produção, no Cognito, que envia o convite
+    (senha provisória) por e-mail. A senha local é aleatória e descartada."""
+    hashed_password = cripto.hash_argon2id(generate_secure_password())
     role = 'user'
     consulta = """INSERT INTO users (username,nome,email,password,roles) 
     VALUES (%s, %s, %s, %s, %s)"""
     atualizar2(consulta,valores=[siape, nome, email, hashed_password, role])
-    return senha
+    if USAR_COGNITO:
+        linha = buscar_usuario(siape)
+        if linha is None:
+            raise RuntimeError(f"Usuário {siape} não encontrado após o cadastro")
+        cognito_convidar_usuario(linha)
 
 @app.route("/admin/cadastrar_usuario", methods=['GET', 'POST'])
 @login_required(role='admin')
@@ -4320,16 +4669,16 @@ def cadastrar_usuario():
             return redirect(url_for('cadastrar_usuario'))
         #Cadastrando novo usuário no banco de dados
         try:
-            senha = cadastrar_novo_usuario(siape, nome, email)
+            cadastrar_novo_usuario(siape, nome, email)
         except Exception as e:
             logger.warning("Erro ao cadastrar novo usuário")
             logger.warning(str(e))
-            flash("Erro ao cadastrar usuário.")
+            flash("Erro ao cadastrar usuário. Se ele aparecer na lista de usuários, use \"Redefinir senha\" em Alterar para enviar o acesso.")
             return redirect(url_for('cadastrar_usuario'))
-        flash("Usuário cadastrado com sucesso!")
-        #Enviando e-mail com as credenciais do usuário
-        texto_mensagem = "Usuario: " + siape + "\nSenha: " + senha + "\n" + USUARIO_SITE
-        enviar_email_senha(email, "Plataforma Yoko - Cadastro de Usuário", texto_mensagem)
+        if USAR_COGNITO:
+            flash("Usuário cadastrado com sucesso! O convite foi enviado por e-mail.")
+        else:
+            flash("Usuário cadastrado com sucesso!")
         return redirect(url_for('admin'))
     else:
         return render_template('cadastrar_usuario.html')
@@ -4361,9 +4710,7 @@ def cadastrar_usuarios_projetos(edital):
             nome = str(linha[0])
             email = str(linha[2])
             try:
-                senha = cadastrar_novo_usuario(siape, nome, email)
-                texto_mensagem = "Usuario: " + siape + "\nSenha: " + senha + "\n" + USUARIO_SITE
-                enviar_email_senha(email, "Plataforma Yoko - Cadastro de Usuário", texto_mensagem)
+                cadastrar_novo_usuario(siape, nome, email)
             except Exception as e:
                 logger.warning("Erro ao cadastrar usuário do projeto")
                 logger.warning(str(e))
@@ -4381,7 +4728,7 @@ def listar_usuarios():
     """
     Lista todos os usuários cadastrados no sistema.
     """
-    consulta = """SELECT id, username, nome, email, roles FROM users ORDER BY nome"""
+    consulta = """SELECT id, username, nome, email, roles, migrado FROM users ORDER BY nome"""
     linhas, total = executarSelect2(consulta, valores=[])
     return render_template('listarUsuarios.html', usuarios=linhas, total=total)
 
@@ -4409,20 +4756,24 @@ def alterar_usuario(id):
             logger.warning("Erro ao alterar usuário id={}: {}", id, str(e))
             flash("Erro ao alterar usuário.", 'error')
             return redirect(url_for('alterar_usuario', id=id))
+        linha = buscar_usuario(id, 'id') if USAR_COGNITO else None
+        if linha is not None and int(linha[5]) == 1:
+            try:
+                cognito_sincronizar_atributos(linha)
+            except (ClientError, BotoCoreError):
+                flash("Dados alterados localmente, mas houve erro ao atualizar o Cognito.", 'error')
         if resetar_senha:
-            consulta = """SELECT username, email FROM users WHERE id=%s"""
-            linhas, total = executarSelect2(consulta, valores=[id])
-            if total > 0:
-                username = str(linhas[0][0])
-                email_usuario = str(linhas[0][1])
-                senha = generate_secure_password()
-                hashed_password = cripto.hash_argon2id(senha)
-                atualizar2("""UPDATE users SET password=%s WHERE id=%s""",
-                           valores=[hashed_password, id])
-                texto_mensagem = "Usuario: " + username + "\nSenha: " + senha + "\n" + USUARIO_SITE
-                enviar_email_senha(email_usuario, "Plataforma Yoko - Redefinição de Senha", texto_mensagem)
-                logger.info("Senha redefinida para usuário id={}", id)
-                flash("Senha redefinida. Novas credenciais enviadas por e-mail.")
+            if not USAR_COGNITO:
+                flash("A redefinição de senha pelo Cognito está disponível apenas em produção.", 'error')
+            elif linha is not None:
+                try:
+                    tipo = cognito_iniciar_recuperacao(linha, origem='reset_admin')
+                    if tipo == 'convite':
+                        flash("O convite ainda não havia sido usado e foi reenviado por e-mail.")
+                    else:
+                        flash("Senha redefinida. Um código para definir a nova senha foi enviado ao e-mail do usuário.")
+                except (ClientError, BotoCoreError):
+                    flash("Erro ao redefinir a senha no Cognito.", 'error')
         flash("Usuário alterado com sucesso!")
         return redirect(url_for('listar_usuarios'))
     else:
@@ -4912,32 +5263,56 @@ def nova_senha():
         nova = str(request.form.get('nova_senha', ''))[:64]
         confirmar = str(request.form.get('confirmar_senha', ''))[:64]
 
-        hash_atual = obterColunaUnica('users', 'password', 'username', session['username'])
-        try:
-            senha_atual_valida = cripto.hash_argon2id_verify(hash_atual, senha_atual)
-        except Exception as e:
-            senha_atual_valida = False
+        username = session['username']
+        linha = buscar_usuario(username)
+        if linha is None:
+            flash("Erro ao alterar a senha. Tente novamente.", 'error')
+            return redirect(url_for('nova_senha'))
+        no_cognito = USAR_COGNITO and int(linha[5]) == 1
+
+        # Confere a senha atual (no Cognito, o access token é usado só no change_password)
+        access_token = None
+        if no_cognito:
+            try:
+                access_token = cognito_autenticar(username, senha_atual)['AuthenticationResult']['AccessToken']
+            except (ClientError, BotoCoreError, KeyError):
+                access_token = None
+            senha_atual_valida = access_token is not None
+        else:
+            senha_atual_valida = verificar_senha_legado(linha, senha_atual)
 
         if not senha_atual_valida:
             flash("Senha atual incorreta.", 'error')
             return redirect(url_for('nova_senha'))
 
-        if nova != confirmar:
-            flash("A nova senha e a confirmação não coincidem.", 'error')
-            return redirect(url_for('nova_senha'))
-
-        if not senha_segura_valida(nova):
-            flash("A nova senha deve ter no mínimo 12 caracteres e incluir letras maiúsculas, minúsculas, números e caracteres especiais.", 'error')
+        erro = validar_nova_senha(nova, confirmar)
+        if erro:
+            flash(erro, 'error')
             return redirect(url_for('nova_senha'))
 
         try:
-            hash_nova_senha = cripto.hash_argon2id(nova)
-            consulta = """UPDATE users SET password=%s WHERE username=%s"""
-            atualizar2(consulta, valores=[hash_nova_senha, session['username']])
-            with logger.contextualize(ip=request.remote_addr,username=session['username'],rota=request.path,metodo=request.method,erro=""):
+            if no_cognito:
+                cognito.change_password(PreviousPassword=senha_atual, ProposedPassword=nova, AccessToken=access_token)
+                log_migracao('senha_alterada', username, origem='nova_senha')
+            elif USAR_COGNITO:
+                # Ainda não migrado (senha antiga fora da política): a troca conclui a migração
+                cognito_migrar_usuario(linha, nova, origem='nova_senha')
+            else:
+                hash_nova_senha = cripto.hash_argon2id(nova)
+                consulta = """UPDATE users SET password=%s WHERE username=%s"""
+                atualizar2(consulta, valores=[hash_nova_senha, username])
+            with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
                 logger.info("Usuário alterou a própria senha")
+        except (ClientError, BotoCoreError) as e:
+            if codigo_erro(e) == 'InvalidPasswordException':
+                flash("A nova senha não atende aos requisitos de segurança.", 'error')
+            else:
+                log_migracao('troca_senha_falha_cognito', username, nivel='error', origem='nova_senha',
+                             erro=str(e), classe_erro=codigo_erro(e))
+                flash("Erro ao alterar a senha. Tente novamente.", 'error')
+            return redirect(url_for('nova_senha'))
         except Exception as e:
-            logger.warning("Erro ao alterar a senha do usuário {}: {}", session['username'], str(e))
+            logger.warning("Erro ao alterar a senha do usuário {}: {}", username, str(e))
             flash("Erro ao alterar a senha. Tente novamente.", 'error')
             return redirect(url_for('nova_senha'))
 

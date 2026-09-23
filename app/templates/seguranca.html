@@ -142,12 +142,26 @@
 
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
       <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
-        <i class="bi bi-fingerprint text-emerald-600"></i> Senhas com Argon2id
+        <i class="bi bi-fingerprint text-emerald-600"></i> Autenticação com AWS Cognito
       </h5>
       <p class="text-gray-600 text-sm">
-        Nenhuma senha é armazenada em texto puro. As senhas são protegidas com Argon2id, um
-        algoritmo de hash moderno e resistente a ataques por força bruta e por hardware
-        especializado (GPU/ASIC).
+        As credenciais dos usuários são guardadas e verificadas pelo AWS Cognito, e não mais pelo
+        servidor de aplicação. A migração é gradual e transparente: no primeiro login bem-sucedido,
+        a conta é transferida para o Cognito com a mesma senha, sem envio de e-mail. Até a migração,
+        as senhas continuam protegidas com Argon2id, e nenhuma senha é armazenada em texto puro.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-envelope-slash text-emerald-600"></i> Nenhuma senha enviada pelo sistema
+      </h5>
+      <p class="text-gray-600 text-sm">
+        O sistema não gera nem envia senhas por e-mail. A recuperação de senha, a redefinição
+        feita pela gestão e o cadastro de novos usuários usam os e-mails do próprio AWS Cognito,
+        com um código de verificação ou um convite com senha provisória, que precisa ser trocada
+        no primeiro acesso. A resposta do &quot;Esqueci minha senha&quot; é sempre a mesma, para
+        não revelar quais e-mails estão cadastrados.
       </p>
     </div>
 

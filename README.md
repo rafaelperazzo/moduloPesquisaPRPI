@@ -53,7 +53,8 @@ Os logs da aplicação são monitorados via **AWS CloudWatch**.
 - **Linguagem:** Python 3.13.5 (container)
 - **Framework Web:** Flask  3.1.1
 - **Banco de Dados:** (MariaDB 11.7.2)
-- **E-mail:** envio assíncrono via AWS SQS → Lambda/SES (função `send_email_async`); o sistema não usa mais SMTP/Flask-Mail
+- **E-mail:** envio assíncrono via AWS SQS → Lambda/SES (função `send_email_async`); o sistema não usa mais SMTP/Flask-Mail. Os e-mails de senha são enviados pelo AWS Cognito (via SES)
+- **Autenticação:** AWS Cognito em produção (`cognito-idp`, us-east-2); MariaDB/Argon2id em dev
 
 ---
 
@@ -79,7 +80,9 @@ Uma página com o detalhamento completo dos recursos abaixo está disponível em
 - Em produção, os segredos da aplicação (senhas de banco de dados, chaves de criptografia, tokens de serviços externos etc.) são carregados em tempo de execução a partir do AWS SSM Parameter Store, e não mais de um arquivo `.env` local.
 - O cálculo da pontuação Lattes é feito por uma função AWS Lambda, acessada via URL assinada com AWS SigV4 (credenciais da instância EC2), em vez de um endpoint HTTP público sem autenticação.
 - O envio de e-mails é feito por fila AWS SQS (consumida por uma Lambda que envia via SES), com remetente NAO-RESPONDA. Fora de produção (`PRODUCAO!=1`) nenhum e-mail é enfileirado, o que impede o envio acidental a usuários reais.
-- Senhas armazenadas com Argon2id, com política de senha forte (mínimo 12 caracteres, com maiúsculas, minúsculas, números e caracteres especiais).
+- Autenticação em produção pelo AWS Cognito (pool `app-yoko`, IDs em `/pesquisa/COGNITO_USER_POOL_ID` e `/pesquisa/COGNITO_APP_CLIENT_ID` no SSM), com migração gradual e silenciosa: no primeiro login bem-sucedido, a conta é criada no Cognito com a mesma senha (`MessageAction='SUPPRESS'`, sem e-mail) e marcada com `users.migrado=1`. Em dev (`PRODUCAO=0`) a autenticação continua no MariaDB. Os papéis ficam em `custom:roles`/`custom:permission`, e a tabela `users` continua como espelho. Todos os eventos da migração ficam no log (`Cognito: migracao_*`). Plano completo em `migracao.cognito.md`.
+- O sistema não envia senhas por e-mail: cadastro de usuário (convite), esqueci minha senha e reset pelo admin (código) usam os e-mails do próprio Cognito.
+- Senhas ainda não migradas continuam com Argon2id, e a política de senha forte vale nos dois lados (mínimo 12 caracteres, com maiúsculas, minúsculas, números e caracteres especiais).
 - Bloqueio automático de acesso quando a senha do usuário é identificada como vazada no login.
 - Limitação de tentativas (rate limiting) por rota em Flask-Limiter, com destaque para login e redefinição de senha.
 - Proteção contra CSRF (Flask-WTF), cabeçalhos de segurança HTTP (Flask-Talisman) e reCAPTCHA em formulários sensíveis.

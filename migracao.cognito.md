@@ -258,3 +258,66 @@ Os e-mails do Cognito usam HTML com CSS inline, no visual do `lembrete_frequenci
 - `docs/cognito/codigo.html`: `VerificationMessageTemplate.EmailMessage` e `EmailVerificationMessage`, com o mesmo conteúdo nos dois (precisa conter `{####}`); é usado no esqueci a senha e no reset pelo admin
 
 Limite de 20.000 caracteres por mensagem. Para alterar, edite o arquivo e aplique com `update-user-pool`, partindo do `describe-user-pool` atual (campos omitidos voltam ao padrão). Aplicado e testado em 23/09/2026.
+- `docs/cognito/mfa.html`: `EmailMfaConfiguration.Message` (precisa conter `{####}`); é o código do MFA por e-mail no login. Aplicado com `set-user-pool-mfa-config` (seção 11).
+
+## 11. MFA obrigatório (somente produção)
+Todo usuário que está no Cognito precisa de um segundo fator. Ele escolhe entre o **app autenticador** (TOTP; as telas orientam o uso do Google Authenticator) e o **código por e-mail** (`EMAIL_OTP` nativo, via SES). Não há SMS nem chave liga/desliga para o admin. Em dev (`PRODUCAO=0`) nada muda: todo o código fica atrás de `USAR_COGNITO`.
+
+### 11.1 Configuração na AWS
+- **Pool em `MfaConfiguration=OPTIONAL`.** A obrigatoriedade é da aplicação. Com `ON`, o Cognito devolveria `MFA_SETUP` sem suporte a e-mail e travaria os fluxos de primeiro acesso.
+- **Requisitos do `EMAIL_OTP`:** tier Essentials e e-mail pelo SES (`DEVELOPER`), os dois já atendidos. O código do e-mail vale pela duração da sessão de autenticação do client (`AuthSessionValidity`), por isso ela passou de 3 para 5 minutos.
+- **IAM:** a role `CloudWatch` ganhou `cognito-idp:AdminSetUserMFAPreference`, usada na recuperação. `AssociateSoftwareToken`, `VerifySoftwareToken`, `SetUserMFAPreference`, `GetUser` e `ChangePassword` são autenticadas pelo access token e não passam pelo IAM.
+
+```bash
+P=us-east-2_xsTbiRLIy; C=7gu9a6nifq9e5s04cudfm40b9f; R=us-east-2
+# mfa-email.json: {"Subject": "...", "Message": "<conteúdo de docs/cognito/mfa.html>"}
+aws cognito-idp set-user-pool-mfa-config --region $R --user-pool-id $P \
+  --mfa-configuration OPTIONAL \
+  --software-token-mfa-configuration Enabled=true \
+  --email-mfa-configuration file://mfa-email.json
+# AuthSessionValidity 3 -> 5: update-user-pool-client partindo do describe-user-pool-client (campos omitidos voltam ao padrão)
+aws iam put-role-policy --role-name CloudWatch --policy-name CognitoPesquisaExtra --policy-document file://politica.json
+# politica.json = política atual + "cognito-idp:AdminSetUserMFAPreference"
+```
+
+### 11.2 Fluxo
+- **Tokens na sessão:** o login guarda os tokens do Cognito em `session['cognito_tokens']` (Redis, lado servidor), e `obter_access_token()` renova pelo refresh token. Eles são usados no cadastro do MFA e no `/novaSenha`, que agora chama `change_password` direto, sem reautenticar (reautenticar dispararia o desafio de MFA).
+- **Login sem desafio de MFA** (o usuário ainda não tem MFA): `concluir_login_cognito` marca `session['mfa_pendente']`. O `before_request` `exigir_cadastro_mfa` só libera `/mfa/configurar`, `/mfa/totp`, `/mfa/email`, `/novaSenha`, `/seguranca` e o logout.
+- **Quem cai no cadastro:** o primeiro acesso de convidado (`/definirSenha`), a migração silenciosa (logo após migrar, o app autentica no Cognito para obter os tokens) e a troca de senha que conclui a migração adiada caem direto no cadastro.
+- **Login com desafio** (`SOFTWARE_TOKEN_MFA` ou `EMAIL_OTP`): o `/login` guarda o desafio em `session['cognito_mfa']` e redireciona para `/mfa/verificar`, que responde com `admin_respond_to_auth_challenge`. A checagem de senha vazada do Cloudflare é lida no POST do `/login` e aplicada depois do código.
+- **Cadastro do app:**
+  - `associate_software_token` gera o segredo, e o app monta o `otpauth://totp/Yoko%20Pesquisa:<siape>?secret=...&issuer=Yoko%20Pesquisa`.
+  - A tela mostra o QR em SVG inline (`pyqrcode`) e a chave para cadastro manual.
+  - Depois vêm `verify_software_token` e `set_user_mfa_preference`.
+- **Um só método por usuário:** ao ativar um, o outro é desativado, e o Cognito nunca pede `SELECT_MFA_TYPE`. O usuário troca de método em "Segurança da conta" (navbar, só em produção).
+- **Recuperação (perdeu o app):**
+  1. Na tela do código, "Perdi acesso ao aplicativo autenticador" envia um código de 8 dígitos (`secrets`) ao e-mail cadastrado, via SQS. Só é possível no meio do login, ou seja, depois de a senha ter sido validada pelo Cognito.
+  2. O código vale 10 minutos, aceita no máximo 5 tentativas e fica na sessão como HMAC com sal.
+  3. Confirmado o código, `admin_set_user_mfa_preference` desativa o TOTP, e o usuário recebe um e-mail de aviso.
+  4. No login seguinte, o usuário cai no cadastro de novo.
+- **HTTP Basic Auth** (`/segredo`, `/get_bib`): valida só a senha (o desafio de MFA só chega com a senha correta) e marca a sessão com `somente_basic_auth`, que fica restrita a essas rotas.
+  - **Limitação:** para quem usa o código por e-mail, cada chamada de Basic Auth faz o Cognito enviar um código que não será usado.
+
+### 11.3 Eventos de log (`Cognito: mfa_*`)
+| Evento | Nível | Quando |
+|---|---|---|
+| `mfa_desafio` | INFO | Senha correta; aguardando o código (`etapa` = tipo do desafio) |
+| `mfa_ok` | INFO | Código aceito; login concluído |
+| `mfa_codigo_invalido` | WARNING | Código errado no login, no cadastro do app ou na recuperação |
+| `mfa_cadastro_totp` / `mfa_cadastro_email` | INFO | Método ativado |
+| `mfa_recuperacao_enviada` / `mfa_recuperacao_ok` | INFO | Código de recuperação enviado / app desvinculado |
+| `mfa_falha` | WARNING/ERROR | Falha em chamada ao Cognito, sessão de desafio expirada, envio de e-mail, refresh do token (`etapa`, `classe_erro`) |
+
+Nunca entram no log o `Session`, o segredo TOTP, os códigos nem os tokens.
+
+### 11.4 Testes
+- `app/test_mfa.py`: 22 testes com o boto3 mockado (desafios, gates, cadastro, verificação, recuperação, troca de senha, refresh do token).
+- **Roteiro manual em produção:**
+  1. Login, depois o gate, depois o cadastro do TOTP com o Google Authenticator.
+  2. Logout e novo login pedindo o código.
+  3. "Perdi acesso", depois o código por e-mail, e o recadastro com o código por e-mail.
+  4. Login com o código por e-mail.
+  5. `/novaSenha` com o MFA ativo.
+  6. `/get_bib` com Basic Auth.
+  7. Primeiro acesso de um convidado.
+  8. Migração silenciosa de um usuário legado.

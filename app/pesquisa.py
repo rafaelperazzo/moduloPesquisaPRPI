@@ -32,6 +32,8 @@ import base64
 import mimetypes
 from functools import wraps
 from functools import lru_cache
+from urllib.parse import quote
+import pyqrcode
 from datetime import timedelta
 from datetime import date
 import sentry_sdk
@@ -436,6 +438,27 @@ def bloquear_acesso_com_senha_vazada():
     if session.get('senha_vazada') and request.endpoint not in ROTAS_PERMITIDAS_SENHA_VAZADA:
         flash("Você precisa definir uma nova senha antes de continuar.", "error")
         return redirect(url_for('nova_senha'))
+
+ROTAS_PERMITIDAS_MFA_PENDENTE = {'mfa_configurar', 'mfa_totp', 'mfa_email', 'nova_senha',
+                                 'encerrarSessao', 'seguranca', 'static'}
+ROTAS_BASIC_AUTH = {'secret_page', 'get_bib', 'static'}
+
+@app.before_request
+def exigir_cadastro_mfa():
+    """
+    Em produção o MFA é obrigatório para quem está no Cognito. Login concluído sem
+    desafio de MFA marca a sessão com 'mfa_pendente': até cadastrar o MFA, o usuário
+    só acessa as telas de cadastro, a troca de senha e o logout.
+    Sessões abertas pelo HTTP Basic Auth (sem MFA) ficam restritas às suas rotas.
+    """
+    if not USAR_COGNITO:
+        return None
+    if session.get('somente_basic_auth') and request.endpoint not in ROTAS_BASIC_AUTH:
+        session.clear()
+        return redirect(url_for('login'))
+    if session.get('mfa_pendente') and request.endpoint not in ROTAS_PERMITIDAS_MFA_PENDENTE:
+        flash("Para continuar, configure a verificação em duas etapas (MFA).", "error")
+        return redirect(url_for('mfa_configurar'))
 
 def log_required(f):
     @wraps(f)
@@ -1141,8 +1164,7 @@ def cognito_iniciar_recuperacao(linha, origem):
         raise
 
 def cognito_autenticar(username, senha):
-    """admin_initiate_auth; retorna a resposta (AuthenticationResult ou ChallengeName).
-    Os tokens não são guardados: a sessão continua sendo a do Flask."""
+    """admin_initiate_auth; retorna a resposta (AuthenticationResult ou ChallengeName)."""
     return cognito.admin_initiate_auth(
         UserPoolId=COGNITO_USER_POOL_ID,
         ClientId=COGNITO_APP_CLIENT_ID,
@@ -1158,7 +1180,56 @@ def iniciar_sessao_cognito(username):
         log_migracao('atributos_ausentes_cognito', username, nivel='warning')
     iniciar_sessao(username, atributos.get('custom:permission', '1'), atributos.get('custom:roles', 'user'))
 
-def autenticar_cognito(username, senha):
+# Desafios de MFA do Cognito -> nome do campo com o código na resposta ao desafio
+MFA_TIPOS = {'SOFTWARE_TOKEN_MFA': 'SOFTWARE_TOKEN_MFA_CODE', 'EMAIL_OTP': 'EMAIL_OTP_CODE'}
+EMISSOR_TOTP = "Yoko Pesquisa"
+
+def guardar_tokens(resultado, refresh_anterior=None):
+    """Guarda os tokens do Cognito na sessão (Redis, lado servidor). O access token é
+    exigido pelas APIs de MFA e pelo change_password."""
+    session['cognito_tokens'] = {
+        'access': resultado['AccessToken'],
+        'refresh': resultado.get('RefreshToken') or refresh_anterior,
+        'expira': time.time() + int(resultado.get('ExpiresIn', 3600)) - 60,
+    }
+
+def obter_access_token():
+    """Access token válido da sessão, renovado pelo refresh token quando expirado.
+    Retorna None se a sessão não tiver tokens (ex.: login anterior ao MFA)."""
+    tokens = session.get('cognito_tokens')
+    if not tokens:
+        return None
+    if time.time() < tokens['expira']:
+        return tokens['access']
+    if not tokens.get('refresh'):
+        return None
+    try:
+        resposta = cognito.admin_initiate_auth(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            ClientId=COGNITO_APP_CLIENT_ID,
+            AuthFlow='REFRESH_TOKEN_AUTH',
+            AuthParameters={'REFRESH_TOKEN': tokens['refresh']},
+        )
+    except (ClientError, BotoCoreError) as e:
+        log_migracao('mfa_falha', session.get('username', 'N/A'), nivel='warning', etapa='refresh_token',
+                     classe_erro=codigo_erro(e))
+        return None
+    guardar_tokens(resposta['AuthenticationResult'], refresh_anterior=tokens['refresh'])
+    return session['cognito_tokens']['access']
+
+def concluir_login_cognito(username, resultado, via_mfa):
+    """Ponto único de conclusão do login no Cognito: inicia a sessão e guarda os tokens.
+    Sem desafio de MFA o usuário ainda não tem MFA: fica preso ao cadastro (mfa_pendente)."""
+    iniciar_sessao_cognito(username)
+    guardar_tokens(resultado)
+    session.pop('somente_basic_auth', None)
+    if via_mfa:
+        session.pop('mfa_pendente', None)
+    else:
+        session['mfa_pendente'] = True
+
+def autenticar_cognito(username, senha, interativo=True):
+    """interativo=False (HTTP Basic Auth): valida só a senha, sem desafio de MFA nem tokens."""
     try:
         resposta = cognito_autenticar(username, senha)
     except (ClientError, BotoCoreError) as e:
@@ -1173,14 +1244,30 @@ def autenticar_cognito(username, senha):
         else:
             log_migracao('login_falha_cognito', username, nivel='error', erro=str(e), classe_erro=codigo)
         return 'invalido'
-    if resposta.get('ChallengeName') == 'NEW_PASSWORD_REQUIRED':
-        session['cognito_desafio'] = {'username': username, 'session': resposta['Session']}
+    desafio = resposta.get('ChallengeName')
+    if desafio == 'NEW_PASSWORD_REQUIRED':
+        if interativo:
+            session['cognito_desafio'] = {'username': username, 'session': resposta['Session']}
         return 'desafio'
-    if 'AuthenticationResult' not in resposta:
-        log_migracao('login_desafio_nao_suportado', username, nivel='error', classe_erro=resposta.get('ChallengeName'))
+    if desafio in MFA_TIPOS and interativo:
+        session['cognito_mfa'] = {
+            'username': username,
+            'session': resposta['Session'],
+            'tipo': desafio,
+            'destino': resposta.get('ChallengeParameters', {}).get('CODE_DELIVERY_DESTINATION', ''),
+            'senha_vazada': senha_vazada_detectada(),  # o header do Cloudflare só vem no POST do /login
+        }
+        log_migracao('mfa_desafio', username, origem='login', etapa=desafio)
+        return 'mfa'
+    # No Basic Auth o desafio de MFA só chega depois de a senha estar correta
+    if 'AuthenticationResult' not in resposta and not (desafio in MFA_TIPOS and not interativo):
+        log_migracao('login_desafio_nao_suportado', username, nivel='error', classe_erro=desafio)
         return 'invalido'
     try:
-        iniciar_sessao_cognito(username)
+        if interativo:
+            concluir_login_cognito(username, resposta['AuthenticationResult'], via_mfa=False)
+        else:
+            iniciar_sessao_cognito(username)
     except (ClientError, BotoCoreError) as e:
         log_migracao('login_falha_cognito', username, nivel='error', erro=str(e), classe_erro=codigo_erro(e))
         return 'invalido'
@@ -1188,13 +1275,15 @@ def autenticar_cognito(username, senha):
         logger.info("Usuário autenticado com sucesso (Cognito)")
     return 'ok'
 
-def autenticar_usuario(username, senha):
+def autenticar_usuario(username, senha, interativo=True):
     """Autentica o usuário e inicia a sessão.
 
     Em produção: usuário migrado autentica no Cognito; não migrado confere a senha
     legada e, se correta, é migrado em silêncio (mesma senha, permanente).
     Retorna 'ok', 'politica' (logado, mas precisa trocar a senha), 'desafio'
-    (primeiro acesso de convidado), 'reset' (senha resetada pelo admin) ou 'invalido'.
+    (primeiro acesso de convidado), 'mfa' (aguardando o código do MFA),
+    'reset' (senha resetada pelo admin) ou 'invalido'.
+    interativo=False é o HTTP Basic Auth (sem MFA).
     """
     if not username_valido(username):
         return 'invalido'
@@ -1202,7 +1291,7 @@ def autenticar_usuario(username, senha):
     if linha is None:
         return 'invalido'
     if USAR_COGNITO and int(linha[5]) == 1:
-        return autenticar_cognito(username, senha)
+        return autenticar_cognito(username, senha, interativo)
     if not verificar_senha_legado(linha, senha):
         return 'invalido'
     resultado = 'ok'
@@ -1213,6 +1302,13 @@ def autenticar_usuario(username, senha):
             # Já registrado no log; o login segue pelo legado e a migração é tentada de novo depois
             if codigo_erro(e) == 'InvalidPasswordException':
                 resultado = 'politica'
+        else:
+            if interativo:
+                # Recém-migrado: autentica no Cognito para obter os tokens e cair no cadastro do MFA
+                resultado_cognito = autenticar_cognito(username, senha)
+                if resultado_cognito != 'invalido':
+                    return resultado_cognito
+                log_migracao('mfa_falha', username, nivel='warning', origem='login', etapa='login_pos_migracao')
     iniciar_sessao(linha[1], linha[2], linha[3])
     if resultado == 'politica':
         # Reaproveita o bloqueio de senha vazada: só libera após a troca em /novaSenha
@@ -1223,7 +1319,10 @@ def autenticar_usuario(username, senha):
 def verify_password(username, password):
     """Callback do HTTPBasicAuth: retorna o username se as credenciais forem válidas."""
     try:
-        if autenticar_usuario(username, password) in ('ok', 'politica'):
+        if autenticar_usuario(username, password, interativo=False) in ('ok', 'politica'):
+            if USAR_COGNITO:
+                # Sessão sem MFA: fica restrita às rotas de Basic Auth (ver exigir_cadastro_mfa)
+                session['somente_basic_auth'] = True
             return username
         return False
     except Exception as e:
@@ -3242,6 +3341,17 @@ def registrar_acesso(ip,usuario):
     except Exception as e:
         logger.warning("Erro ao registrar acesso: {}",str(e))
 
+def pos_login(username, senha_vazada):
+    """Etapas finais do login concluído (direto no /login ou após o código do MFA)."""
+    registrar_acesso(request.remote_addr, username)
+    if senha_vazada:
+        session['senha_vazada'] = True
+        with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
+            logger.warning("Login com senha identificada como vazada (Cloudflare Leaked Credential Check)")
+        flash("Sua senha foi identificada em um vazamento de dados conhecido. Por segurança, defina uma nova senha.","error")
+        return redirect(url_for('nova_senha'))
+    return redirect(url_for('home'))
+
 @app.route("/login", methods=['POST','GET'])
 @log_required
 @limiter.limit("30/day;15/hour;3/minute",methods=["POST"])
@@ -3261,18 +3371,14 @@ def login():
             if resultado == 'reset':
                 flash("Sua senha foi redefinida. Use o código enviado para seu e-mail para definir uma nova senha.","error")
                 return redirect(url_for('redefinir_senha'))
-            if resultado in ('ok','politica'):
+            if resultado == 'mfa':
+                return redirect(url_for('mfa_verificar'))
+            if resultado == 'politica':
                 registrar_acesso(request.remote_addr,siape)
-                if resultado == 'politica':
-                    flash("Sua senha não atende aos requisitos de segurança atuais. Defina uma nova senha.","error")
-                    return redirect(url_for('nova_senha'))
-                if senha_vazada_detectada():
-                    session['senha_vazada'] = True
-                    with logger.contextualize(ip=request.remote_addr,username=siape,rota=request.path,metodo=request.method,erro=""):
-                        logger.warning("Login com senha identificada como vazada (Cloudflare Leaked Credential Check)")
-                    flash("Sua senha foi identificada em um vazamento de dados conhecido. Por segurança, defina uma nova senha.","error")
-                    return redirect(url_for('nova_senha'))
-                return(redirect(url_for('home')))
+                flash("Sua senha não atende aos requisitos de segurança atuais. Defina uma nova senha.","error")
+                return redirect(url_for('nova_senha'))
+            if resultado == 'ok':
+                return pos_login(siape, senha_vazada_detectada())
             else:
                 flash("Usuário ou senha inválidos. Tente novamente.","error")
                 return redirect(url_for('login'))
@@ -3408,15 +3514,15 @@ def definir_senha():
             flash("Não foi possível concluir o primeiro acesso. Tente entrar novamente.", 'error')
             return redirect(url_for('login'))
         try:
-            iniciar_sessao_cognito(username)
+            concluir_login_cognito(username, resposta['AuthenticationResult'], via_mfa=False)
         except (ClientError, BotoCoreError) as e:
             log_migracao('login_falha_cognito', username, nivel='error', erro=str(e), classe_erro=codigo_erro(e))
             flash("Senha definida. Entre novamente com a nova senha.")
             return redirect(url_for('login'))
         registrar_acesso(request.remote_addr, username)
         log_migracao('senha_definida_primeiro_acesso', username, origem='primeiro_acesso')
-        flash("Senha definida com sucesso!")
-        return redirect(url_for('home'))
+        flash("Senha definida com sucesso! Agora configure a verificação em duas etapas (MFA).")
+        return redirect(url_for('mfa_configurar'))
     return render_template('definirSenha.html')
 
 @app.route("/logout", methods=['GET', 'POST'])
@@ -3424,6 +3530,281 @@ def definir_senha():
 def encerrarSessao():
     logout()
     return redirect(url_for('home'))
+
+# ---------------------------------------------------------------------------
+# MFA (somente produção/Cognito): app autenticador (TOTP) ou código por e-mail
+# ---------------------------------------------------------------------------
+
+def mascarar_email(email):
+    nome, _, dominio = str(email or '').partition('@')
+    return f"{nome[:2]}***@{dominio}" if dominio else ''
+
+def sessao_mfa_expirada():
+    """Sem access token válido não há como cadastrar o MFA: encerra e pede novo login."""
+    logout()
+    flash("Sua sessão expirou. Entre novamente para configurar a verificação em duas etapas.", 'error')
+    return redirect(url_for('login'))
+
+def metodos_mfa_ativos(access_token):
+    """Métodos de MFA habilitados no Cognito (ex.: ['SOFTWARE_TOKEN_MFA']) e o e-mail do usuário."""
+    usuario = cognito.get_user(AccessToken=access_token)
+    email = atributos_para_dict(usuario.get('UserAttributes', [])).get('email', '')
+    return usuario.get('UserMFASettingList', []), email
+
+def definir_metodo_mfa(access_token, metodo):
+    """Ativa o método escolhido como preferido e desativa o outro (um único método por
+    usuário: assim o Cognito nunca pede SELECT_MFA_TYPE)."""
+    ativos, _ = metodos_mfa_ativos(access_token)
+    preferencias = {}
+    if metodo == 'SOFTWARE_TOKEN_MFA':
+        preferencias['SoftwareTokenMfaSettings'] = {'Enabled': True, 'PreferredMfa': True}
+        if 'EMAIL_OTP' in ativos:
+            preferencias['EmailMfaSettings'] = {'Enabled': False, 'PreferredMfa': False}
+    else:
+        preferencias['EmailMfaSettings'] = {'Enabled': True, 'PreferredMfa': True}
+        if 'SOFTWARE_TOKEN_MFA' in ativos:
+            preferencias['SoftwareTokenMfaSettings'] = {'Enabled': False, 'PreferredMfa': False}
+    cognito.set_user_mfa_preference(AccessToken=access_token, **preferencias)
+
+def qrcode_totp_svg(username, secret):
+    """URI otpauth:// (padrão do Google Authenticator) e o QR code correspondente em SVG inline."""
+    uri = (f"otpauth://totp/{quote(EMISSOR_TOTP)}:{quote(str(username))}"
+           f"?secret={secret}&issuer={quote(EMISSOR_TOTP)}")
+    buffer = io.BytesIO()
+    pyqrcode.create(uri, error='M').svg(buffer, scale=5, xmldecl=False, svgns=True, omithw=True,
+                                        background='#ffffff', title='QR code do MFA')
+    return uri, buffer.getvalue().decode('utf-8')
+
+@app.route("/mfa/configurar", methods=['GET'])
+@login_required(role='user')
+@log_required
+def mfa_configurar():
+    """Escolha do método de MFA (obrigatório no primeiro acesso após a migração; depois, troca de método)."""
+    if not USAR_COGNITO:
+        return redirect(url_for('home'))
+    access_token = obter_access_token()
+    if access_token is None:
+        return sessao_mfa_expirada()
+    try:
+        ativos, email = metodos_mfa_ativos(access_token)
+    except (ClientError, BotoCoreError) as e:
+        log_migracao('mfa_falha', session['username'], nivel='error', etapa='get_user', classe_erro=codigo_erro(e))
+        return sessao_mfa_expirada()
+    return render_template('mfaConfigurar.html', ativos=ativos, email=mascarar_email(email),
+                           pendente=bool(session.get('mfa_pendente')))
+
+@app.route("/mfa/totp", methods=['GET', 'POST'])
+@login_required(role='user')
+@log_required
+@limiter.limit("20/hour;5/minute", methods=["POST"])
+def mfa_totp():
+    """Cadastro do app autenticador: QR code (associate_software_token) e confirmação do código."""
+    if not USAR_COGNITO:
+        return redirect(url_for('home'))
+    username = session['username']
+    access_token = obter_access_token()
+    if access_token is None:
+        return sessao_mfa_expirada()
+    if request.method == 'POST':
+        codigo = str(request.form.get('codigo', '')).strip().replace(' ', '')
+        secret = session.get('mfa_totp_secret')
+        if not secret:
+            return redirect(url_for('mfa_totp'))
+        if not re.fullmatch(r'\d{6}', codigo):
+            flash("Informe o código de 6 dígitos exibido no aplicativo.", 'error')
+            return render_template('mfaTotp.html', secret=secret, qrcode=qrcode_totp_svg(username, secret)[1])
+        try:
+            resposta = cognito.verify_software_token(AccessToken=access_token, UserCode=codigo,
+                                                     FriendlyDeviceName='Google Authenticator')
+            if resposta.get('Status') != 'SUCCESS':
+                raise ValueError('verify_software_token sem SUCCESS')
+            definir_metodo_mfa(access_token, 'SOFTWARE_TOKEN_MFA')
+        except (ClientError, ValueError) as e:
+            classe = codigo_erro(e)
+            log_migracao('mfa_codigo_invalido', username, nivel='warning', origem='cadastro_totp', classe_erro=classe)
+            if classe in ('CodeMismatchException', 'EnableSoftwareTokenMFAException', 'ValueError'):
+                flash("Código incorreto. Confira se a hora do celular está automática e tente o código atual.", 'error')
+            else:
+                flash("Não foi possível ativar o aplicativo autenticador. Tente novamente.", 'error')
+            return render_template('mfaTotp.html', secret=secret, qrcode=qrcode_totp_svg(username, secret)[1])
+        except BotoCoreError as e:
+            log_migracao('mfa_falha', username, nivel='error', origem='cadastro_totp', classe_erro=codigo_erro(e))
+            flash("Não foi possível ativar o aplicativo autenticador. Tente novamente.", 'error')
+            return render_template('mfaTotp.html', secret=secret, qrcode=qrcode_totp_svg(username, secret)[1])
+        session.pop('mfa_totp_secret', None)
+        session.pop('mfa_pendente', None)
+        log_migracao('mfa_cadastro_totp', username, origem='cadastro_totp')
+        flash("Verificação em duas etapas ativada! A partir de agora, o código do aplicativo será pedido a cada login.")
+        return redirect(url_for('home'))
+    try:
+        secret = cognito.associate_software_token(AccessToken=access_token)['SecretCode']
+    except (ClientError, BotoCoreError) as e:
+        log_migracao('mfa_falha', username, nivel='error', origem='cadastro_totp', etapa='associate_software_token',
+                     classe_erro=codigo_erro(e))
+        flash("Não foi possível iniciar o cadastro do aplicativo autenticador. Tente novamente.", 'error')
+        return redirect(url_for('mfa_configurar'))
+    session['mfa_totp_secret'] = secret
+    return render_template('mfaTotp.html', secret=secret, qrcode=qrcode_totp_svg(username, secret)[1])
+
+@app.route("/mfa/email", methods=['POST'])
+@login_required(role='user')
+@log_required
+@limiter.limit("10/hour;3/minute", methods=["POST"])
+def mfa_email():
+    """Ativa o código por e-mail (EMAIL_OTP do Cognito) como método de MFA."""
+    if not USAR_COGNITO:
+        return redirect(url_for('home'))
+    username = session['username']
+    access_token = obter_access_token()
+    if access_token is None:
+        return sessao_mfa_expirada()
+    try:
+        definir_metodo_mfa(access_token, 'EMAIL_OTP')
+    except (ClientError, BotoCoreError) as e:
+        log_migracao('mfa_falha', username, nivel='error', origem='cadastro_email', classe_erro=codigo_erro(e))
+        flash("Não foi possível ativar o código por e-mail. Tente novamente.", 'error')
+        return redirect(url_for('mfa_configurar'))
+    session.pop('mfa_totp_secret', None)
+    session.pop('mfa_pendente', None)
+    log_migracao('mfa_cadastro_email', username, origem='cadastro_email')
+    flash("Verificação em duas etapas ativada! A partir de agora, um código será enviado ao seu e-mail a cada login.")
+    return redirect(url_for('home'))
+
+@app.route("/mfa/verificar", methods=['GET', 'POST'])
+@log_required
+@limiter.limit("30/hour;5/minute", methods=["POST"])
+def mfa_verificar():
+    """Segunda etapa do login: código do app autenticador ou do e-mail."""
+    desafio = session.get('cognito_mfa')
+    if not USAR_COGNITO or not desafio:
+        return redirect(url_for('login'))
+    username, tipo = desafio['username'], desafio['tipo']
+    if request.method == 'POST':
+        codigo = str(request.form.get('codigo', '')).strip().replace(' ', '')
+        if not re.fullmatch(r'\d{6,8}', codigo):
+            flash("Informe o código numérico recebido.", 'error')
+            return redirect(url_for('mfa_verificar'))
+        try:
+            resposta = cognito.admin_respond_to_auth_challenge(
+                UserPoolId=COGNITO_USER_POOL_ID,
+                ClientId=COGNITO_APP_CLIENT_ID,
+                ChallengeName=tipo,
+                Session=desafio['session'],
+                ChallengeResponses={'USERNAME': username, MFA_TIPOS[tipo]: codigo},
+            )
+        except (ClientError, BotoCoreError) as e:
+            classe = codigo_erro(e)
+            if classe == 'CodeMismatchException':
+                log_migracao('mfa_codigo_invalido', username, nivel='warning', origem='login', etapa=tipo)
+                flash("Código incorreto. Tente novamente.", 'error')
+                return redirect(url_for('mfa_verificar'))
+            session.pop('cognito_mfa', None)
+            log_migracao('mfa_falha', username, nivel='warning', origem='login', etapa=tipo, classe_erro=classe)
+            flash("Sessão de verificação expirada. Entre novamente com seu SIAPE e senha.", 'error')
+            return redirect(url_for('login'))
+        session.pop('cognito_mfa', None)
+        if 'AuthenticationResult' not in resposta:
+            log_migracao('login_desafio_nao_suportado', username, nivel='error', classe_erro=resposta.get('ChallengeName'))
+            flash("Não foi possível concluir o login. Tente novamente.", 'error')
+            return redirect(url_for('login'))
+        try:
+            concluir_login_cognito(username, resposta['AuthenticationResult'], via_mfa=True)
+        except (ClientError, BotoCoreError) as e:
+            log_migracao('login_falha_cognito', username, nivel='error', erro=str(e), classe_erro=codigo_erro(e))
+            flash("Não foi possível concluir o login. Tente novamente.", 'error')
+            return redirect(url_for('login'))
+        log_migracao('mfa_ok', username, origem='login', etapa=tipo)
+        with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
+            logger.info("Usuário autenticado com sucesso (Cognito + MFA)")
+        return pos_login(username, desafio.get('senha_vazada', False))
+    return render_template('mfaVerificar.html', tipo=tipo, destino=desafio.get('destino', ''))
+
+MFA_RECUPERACAO_VALIDADE = 600  # segundos
+MFA_RECUPERACAO_TENTATIVAS = 5
+
+def hash_codigo_recuperacao(codigo, sal):
+    return hmac.new(bytes.fromhex(sal), codigo.encode(), hashlib.sha256).hexdigest()
+
+@app.route("/mfa/recuperar", methods=['GET', 'POST'])
+@log_required
+@limiter.limit("3/hour", methods=["POST"])
+def mfa_recuperar():
+    """Perdeu o app autenticador: envia um código de uso único ao e-mail cadastrado.
+    Só é possível no meio do login, depois de a senha ter sido validada pelo Cognito."""
+    desafio = session.get('cognito_mfa')
+    if not USAR_COGNITO or not desafio or desafio['tipo'] != 'SOFTWARE_TOKEN_MFA':
+        return redirect(url_for('login'))
+    username = desafio['username']
+    if request.method == 'POST':
+        linha = buscar_usuario(username)
+        if linha is None or not linha[7]:
+            log_migracao('mfa_falha', username, nivel='error', origem='recuperacao', etapa='email_ausente')
+            flash("Não há e-mail cadastrado para a recuperação. Procure a coordenação de pesquisa.", 'error')
+            return redirect(url_for('mfa_verificar'))
+        codigo = f"{secrets.randbelow(10**8):08d}"
+        sal = secrets.token_hex(16)
+        session['mfa_recuperacao'] = {
+            'username': username,
+            'sal': sal,
+            'hash': hash_codigo_recuperacao(codigo, sal),
+            'expira': time.time() + MFA_RECUPERACAO_VALIDADE,
+            'tentativas': 0,
+        }
+        corpo = render_template('email_mfa_recuperacao.html', codigo=codigo, username=username,
+                                minutos=MFA_RECUPERACAO_VALIDADE // 60)
+        if not send_email_async(str(linha[7]), "Plataforma Yoko - Código de recuperação da verificação em duas etapas", corpo):
+            log_migracao('mfa_falha', username, nivel='error', origem='recuperacao', etapa='envio_email')
+            flash("Não foi possível enviar o e-mail. Tente novamente mais tarde.", 'error')
+            return redirect(url_for('mfa_verificar'))
+        log_migracao('mfa_recuperacao_enviada', username, origem='recuperacao')
+        flash(f"Enviamos um código para {mascarar_email(linha[7])}. Ele vale por {MFA_RECUPERACAO_VALIDADE // 60} minutos.")
+        return redirect(url_for('mfa_recuperar_confirmar'))
+    return render_template('mfaRecuperar.html', etapa='enviar')
+
+@app.route("/mfa/recuperar/confirmar", methods=['GET', 'POST'])
+@log_required
+@limiter.limit("10/hour;3/minute", methods=["POST"])
+def mfa_recuperar_confirmar():
+    """Confere o código de recuperação e desativa o app autenticador no Cognito;
+    no próximo login o usuário cadastra um novo método de MFA."""
+    recuperacao = session.get('mfa_recuperacao')
+    if not USAR_COGNITO or not recuperacao:
+        return redirect(url_for('login'))
+    username = recuperacao['username']
+    if time.time() > recuperacao['expira'] or recuperacao['tentativas'] >= MFA_RECUPERACAO_TENTATIVAS:
+        session.pop('mfa_recuperacao', None)
+        session.pop('cognito_mfa', None)
+        flash("Código de recuperação expirado ou bloqueado. Entre novamente para solicitar outro.", 'error')
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        codigo = str(request.form.get('codigo', '')).strip().replace(' ', '')
+        if not hmac.compare_digest(hash_codigo_recuperacao(codigo, recuperacao['sal']), recuperacao['hash']):
+            recuperacao['tentativas'] += 1
+            session['mfa_recuperacao'] = recuperacao
+            log_migracao('mfa_codigo_invalido', username, nivel='warning', origem='recuperacao')
+            flash("Código incorreto.", 'error')
+            return redirect(url_for('mfa_recuperar_confirmar'))
+        try:
+            cognito.admin_set_user_mfa_preference(
+                UserPoolId=COGNITO_USER_POOL_ID,
+                Username=username,
+                SoftwareTokenMfaSettings={'Enabled': False, 'PreferredMfa': False},
+            )
+        except (ClientError, BotoCoreError) as e:
+            log_migracao('mfa_falha', username, nivel='error', origem='recuperacao',
+                         etapa='admin_set_user_mfa_preference', erro=str(e), classe_erro=codigo_erro(e))
+            flash("Não foi possível redefinir a verificação em duas etapas. Tente novamente mais tarde.", 'error')
+            return redirect(url_for('mfa_recuperar_confirmar'))
+        session.pop('mfa_recuperacao', None)
+        session.pop('cognito_mfa', None)
+        log_migracao('mfa_recuperacao_ok', username, origem='recuperacao')
+        linha = buscar_usuario(username)
+        if linha is not None and linha[7]:
+            send_email_async(str(linha[7]), "Plataforma Yoko - Verificação em duas etapas redefinida",
+                             render_template('email_mfa_redefinido.html', username=username))
+        flash("O aplicativo autenticador foi desvinculado da sua conta. Entre novamente com seu SIAPE e senha para configurar um novo método de verificação.")
+        return redirect(url_for('login'))
+    return render_template('mfaRecuperar.html', etapa='confirmar')
 
 def projetoAprovado(idProjeto):
 
@@ -5270,18 +5651,16 @@ def nova_senha():
             return redirect(url_for('nova_senha'))
         no_cognito = USAR_COGNITO and int(linha[5]) == 1
 
-        # Confere a senha atual (no Cognito, o access token é usado só no change_password)
+        # No Cognito a senha atual é conferida pelo próprio change_password, com o access
+        # token do login (reautenticar dispararia o desafio de MFA)
         access_token = None
         if no_cognito:
-            try:
-                access_token = cognito_autenticar(username, senha_atual)['AuthenticationResult']['AccessToken']
-            except (ClientError, BotoCoreError, KeyError):
-                access_token = None
-            senha_atual_valida = access_token is not None
-        else:
-            senha_atual_valida = verificar_senha_legado(linha, senha_atual)
-
-        if not senha_atual_valida:
+            access_token = obter_access_token()
+            if access_token is None:
+                logout()
+                flash("Sua sessão expirou. Entre novamente para alterar a senha.", 'error')
+                return redirect(url_for('login'))
+        elif not verificar_senha_legado(linha, senha_atual):
             flash("Senha atual incorreta.", 'error')
             return redirect(url_for('nova_senha'))
 
@@ -5297,6 +5676,15 @@ def nova_senha():
             elif USAR_COGNITO:
                 # Ainda não migrado (senha antiga fora da política): a troca conclui a migração
                 cognito_migrar_usuario(linha, nova, origem='nova_senha')
+                # Obtém os tokens com a nova senha; o usuário ainda não tem MFA e cai no cadastro
+                try:
+                    resposta = cognito_autenticar(username, nova)
+                    if 'AuthenticationResult' in resposta:
+                        concluir_login_cognito(username, resposta['AuthenticationResult'], via_mfa=False)
+                except (ClientError, BotoCoreError) as e:
+                    # A senha já foi trocada; o MFA será exigido no próximo login
+                    log_migracao('mfa_falha', username, nivel='warning', origem='nova_senha',
+                                 etapa='login_pos_migracao', classe_erro=codigo_erro(e))
             else:
                 hash_nova_senha = cripto.hash_argon2id(nova)
                 consulta = """UPDATE users SET password=%s WHERE username=%s"""
@@ -5306,6 +5694,10 @@ def nova_senha():
         except (ClientError, BotoCoreError) as e:
             if codigo_erro(e) == 'InvalidPasswordException':
                 flash("A nova senha não atende aos requisitos de segurança.", 'error')
+            elif no_cognito and codigo_erro(e) == 'NotAuthorizedException':
+                flash("Senha atual incorreta.", 'error')
+            elif no_cognito and codigo_erro(e) == 'LimitExceededException':
+                flash("Muitas tentativas. Aguarde alguns minutos e tente novamente.", 'error')
             else:
                 log_migracao('troca_senha_falha_cognito', username, nivel='error', origem='nova_senha',
                              erro=str(e), classe_erro=codigo_erro(e))

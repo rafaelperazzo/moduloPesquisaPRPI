@@ -1,0 +1,56 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+  <div class="max-w-2xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4"><i class="bi bi-shield-lock"></i> Verificação em duas etapas (MFA)</h2>
+
+    <div class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-md mb-6 text-sm">
+      <b>Por que isso é importante?</b> Com o MFA, sua conta continua protegida mesmo que sua senha seja descoberta:
+      além da senha, a cada login será pedido um código que só você tem. O MFA é obrigatório para todos os usuários da plataforma.
+    </div>
+
+    {% if pendente %}
+      <p class="text-sm text-gray-700 mb-6">Para continuar usando a plataforma, escolha abaixo como deseja receber o código de verificação.</p>
+    {% elif ativos %}
+      <p class="text-sm text-gray-700 mb-6">
+        Método atual:
+        <b>{% if 'SOFTWARE_TOKEN_MFA' in ativos %}aplicativo autenticador{% else %}código por e-mail{% endif %}</b>.
+        Você pode trocar de método a qualquer momento.
+      </p>
+    {% endif %}
+
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="border border-gray-200 rounded-lg p-4 flex flex-col">
+        <h3 class="font-semibold text-gray-800 mb-1"><i class="bi bi-phone"></i> Aplicativo autenticador <span class="text-xs text-emerald-700 font-normal">(recomendado)</span></h3>
+        <p class="text-sm text-gray-600 mb-4 flex-1">Use o <b>Google Authenticator</b> no celular para gerar os códigos. Funciona mesmo sem internet no celular.</p>
+        {% if 'SOFTWARE_TOKEN_MFA' in ativos %}
+          <span class="text-sm text-emerald-700"><i class="bi bi-check-circle"></i> Ativo</span>
+          <a href="{{ url_for('mfa_totp') }}" class="text-sm text-blue-600 hover:underline mt-2">Cadastrar em outro celular</a>
+        {% else %}
+          <a href="{{ url_for('mfa_totp') }}"
+            class="text-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium">Usar aplicativo</a>
+        {% endif %}
+      </div>
+
+      <div class="border border-gray-200 rounded-lg p-4 flex flex-col">
+        <h3 class="font-semibold text-gray-800 mb-1"><i class="bi bi-envelope"></i> Código por e-mail</h3>
+        <p class="text-sm text-gray-600 mb-4 flex-1">A cada login, enviaremos um código para <b>{{ email or 'o e-mail cadastrado' }}</b>.</p>
+        {% if 'EMAIL_OTP' in ativos %}
+          <span class="text-sm text-emerald-700"><i class="bi bi-check-circle"></i> Ativo</span>
+        {% else %}
+          <form action="{{ url_for('mfa_email') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit"
+              class="w-full px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 transition-colors font-medium">Usar e-mail</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if pendente %}
+      <p class="text-xs text-gray-500 mt-6">Prefere fazer isso depois? <a href="{{ url_for('encerrarSessao') }}" class="text-blue-600 hover:underline">Sair</a> — o cadastro será pedido novamente no próximo login.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

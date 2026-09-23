@@ -6,7 +6,11 @@
 > - **`/pesquisa/ARQUIVOS_LINK_KEY` criada no SSM** (SecureString, 32 bytes aleatórios; fase 0, item 6);
 > - **download real conferido:** um arquivo de `submissoes` e um de `docs_indicacoes` responderam com `aws:kms`, a chave `aws/s3` e o `ContentType` certo. Pela URL assinada, os dois devolveram `%PDF` e o `Content-Disposition` inline; sem a assinatura, o S3 devolveu 403;
 > - **pendência da fase 0:** o acesso de dev (item 4, manual);
-> - **código da fase 2 implementado** (não commitado): `enviar_arquivo_s3`, uploads em memória, `id_generator` com `secrets` e o script de migração protegido contra sobrescrever uploads do app; bucket policy validada, **a aplicar depois do deploy**;
+> - **fase 2 em produção** (`13f196c`, v10.3.0): `enviar_arquivo_s3`, uploads em memória, `id_generator` com `secrets` e o script de migração protegido contra sobrescrever uploads do app;
+> - **bucket policy aplicada** depois do deploy, na mesma data. Conferido com arquivos descartáveis, apagados depois:
+>   - em `pesquisa/submissoes/` e `pesquisa/docs_indicacoes/`, a gravação é negada sem criptografia, com SSE-S3 (AES256) e com outra chave KMS, e é permitida com `aws:kms`, que grava com a chave `aws/s3`;
+>   - em `cppgi/`, a gravação continua permitida;
+> - **falta:** conferir uma submissão e uma indicação reais, enviadas pelo app;
 > - fases 3 e 4: não iniciadas.
 >
 > Item do TODO: "Utilizar função Lambda para lidar com o download, upload e criptografia dos arquivos do app que estão no S3".
@@ -251,7 +255,7 @@ Os arquivos enviados entre a migração e o deploy da fase 2 ainda saem em `.gpg
 **Ordem do deploy da fase 2:**
 1. Fazer o commit e o deploy do código.
 2. Aplicar a bucket policy (eu aplico, com confirmação). **Nunca antes do deploy:** o código anterior grava `.pdf.gpg` sem KMS nesses prefixos e seria bloqueado.
-3. Rodar de novo o script de migração (fase 1, passo 6), para os `.gpg` enviados desde a migração.
+3. ~~Rodar de novo o script de migração~~: **não é necessário.** Conferido em 2026-09-23: nenhum `.gpg` foi gravado nas duas pastas desde o início da migração. O script só volta a ser necessário se algum `.gpg` aparecer antes do deploy.
 4. Conferir (seção 6, fase 2): enviar uma submissão de teste; um `put-object` sem KMS em `pesquisa/submissoes/` deve ser negado; um `put-object` em `cppgi/` deve continuar funcionando.
 
 **Plano original:**
@@ -263,7 +267,7 @@ Os arquivos enviados entre a migração e o deploy da fase 2 ainda saem em `.gpg
 - **Bucket policy** (só para `pesquisa/submissoes/*` e `pesquisa/docs_indicacoes/*`): nega `s3:PutObject` quando `s3:x-amz-server-side-encryption` é diferente de `aws:kms`, ou quando `s3:x-amz-server-side-encryption-aws-kms-key-id` é diferente da `aws/s3` (`arn:aws:kms:us-east-2:584868042744:key/36d0ea20-0a5b-4420-acfd-a5895f190e78`). Assim, ninguém grava ali com outra chave.
 - **Dev (`PRODUCAO=0`):** continua **sem enviar ao S3**, como hoje (o arquivo é descartado). A leitura dos arquivos de produção funciona pela URL assinada, com o `kms:Decrypt` dado ao usuário de dev na fase 0.
 
-**Bucket policy (a aplicar depois do deploy):**
+**Bucket policy (aplicada em 2026-09-23, depois do deploy da v10.3.0):**
 ```json
 {
   "Version": "2012-10-17",

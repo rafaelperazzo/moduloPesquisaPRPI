@@ -1,6 +1,14 @@
 # Arquivos do S3: criptografia com KMS, URLs assinadas e Lambdas
 
-> **Status:** plano, sem nada implementado ainda (levantamento de 2026-09-23; decisões da seção 7 registradas em 2026-09-23). Item do TODO: "Utilizar função Lambda para lidar com o download, upload e criptografia dos arquivos do app que estão no S3".
+> **Status (2026-09-23):**
+> - **acervo migrado** pela máquina local (`migrar_s3_local.sh`): 6.634 de 6.634 em `submissoes` e 12.251 de 12.251 em `docs_indicacoes`, 0 falha, verificação final OK;
+> - **código da fase 1 implementado** (não commitado): `url_download`, `/verArquivosProjeto` com login, `/arquivo/<token>` e `test_download_s3.py`;
+> - **`/pesquisa/ARQUIVOS_LINK_KEY` criada no SSM** (SecureString, 32 bytes aleatórios; fase 0, item 6);
+> - **download real conferido:** um arquivo de `submissoes` e um de `docs_indicacoes` responderam com `aws:kms`, a chave `aws/s3` e o `ContentType` certo. Pela URL assinada, os dois devolveram `%PDF` e o `Content-Disposition` inline; sem a assinatura, o S3 devolveu 403;
+> - **pendência da fase 0:** o acesso de dev (item 4, manual);
+> - fases 2, 3 e 4: não iniciadas.
+>
+> Item do TODO: "Utilizar função Lambda para lidar com o download, upload e criptografia dos arquivos do app que estão no S3".
 
 ## Contexto
 
@@ -131,7 +139,15 @@ Com a chave gerenciada pela AWS, a fase 0 fica bem menor: **não se cria chave e
 6. **Novo parâmetro no SSM:** `/pesquisa/ARQUIVOS_LINK_KEY` (SecureString, 32 bytes aleatórios), a chave que assina os links dos avaliadores. **Não pode ser a `SECRET_KEY` do Flask**, que muda a cada reinício do serviço e invalidaria os links. Em dev, a mesma variável vai no `.env`, com outro valor.
 
 ### Fase 1: download por URL assinada e migração do acervo
-**Código:**
+**Implementado em 2026-09-23** (`app/pesquisa.py`, `templates/link_expirado.html`, `app/test_download_s3.py`, com 20 testes passando):
+- o cliente `s3` passou a usar `signature_version='s3v4'`, obrigatória para URLs assinadas de objetos SSE-KMS;
+- em `head_object`, os erros 404 **e 403** contam como "não migrado". O 403 é o que o S3 devolve para credenciais sem `s3:ListBucket`, como as de dev;
+- o dono do projeto é conferido na `editalProjeto`: o `siape` da sessão e o nome em qualquer uma das 7 colunas `arquivo_*`;
+- os links do avaliador levam `{'p': prefixo, 'n': nome}`, com salt `arquivo-avaliador`. Um link vencido devolve 410 e um link adulterado devolve 403, os dois com a página `link_expirado.html`;
+- sem a `ARQUIVOS_LINK_KEY`, o app registra um aviso e usa uma chave temporária, e os links deixam de valer a cada reinício;
+- no log, o avaliador aparece como `avaliador <12 primeiros caracteres do sha256 do token>`.
+
+**Código (plano original):**
 - Nova função `url_download(prefixo, nome)`:
   - tenta `head_object` em `pesquisa/<prefixo>/<nome>`, o objeto já migrado;
   - se existir, gera a URL assinada de 60 s e retorna `redirect(url)`;
@@ -205,8 +221,16 @@ Opções: `--sem-teste` (retomar depois de uma interrupção) e `--workers N`. O
 5. **Conferência:** `env/bin/python scripts/migrar_gpg_kms.py --verificar` deve mostrar 0 pendente e 0 falha nos dois prefixos. Me mande o resumo ou o CSV de falhas.
 6. **Depois dos deploys das fases 1 e 2,** rodar de novo os passos 4 e 5. Isso pega os arquivos enviados ou trocados desde a última rodada, que ainda saíram em `.gpg`. Só esses serão processados.
 
+**Resultado da execução (2026-09-23, máquina local):**
+- `submissoes`: 6.634 arquivos, com 6.588 PDFs, 14 de tipo "desconhecido" e 12 vazios;
+- `docs_indicacoes`: 12.251 arquivos, com 11.664 PDFs, 300 JPEGs, 16 PNGs, 101 "desconhecido" e 154 vazios;
+- nenhuma falha e nenhum `.gpg` alterado depois da migração;
+- relatórios em `~/migracao_s3/` e em `pesquisa/_migracao/`.
+
+Os arquivos enviados entre a migração e o deploy da fase 2 ainda saem em `.gpg`. O app os lê pelo caminho de transição. Depois do deploy da fase 2, repetir o script (passo 6) para migrá-los.
+
 **Critério de saída:**
-- 100% dos objetos migrados (contagem com e sem `.gpg` igual por prefixo);
+- 100% dos objetos migrados (contagem com e sem `.gpg` igual por prefixo): **ok em 2026-09-23**;
 - os logs mostram só downloads pelo caminho novo por alguns dias.
 
 ### Fase 2: upload do app direto em SSE-KMS (ainda pelo formulário atual)

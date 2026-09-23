@@ -58,6 +58,7 @@ import geoip2.database
 import boto3
 from botocore.exceptions import ClientError, BotoCoreError
 from botocore.config import Config
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from dotenv import load_dotenv
 from requests_auth_aws_sigv4 import AWSSigV4
 from relatorio_edital_pdf import gerar_pdf_resultado_edital
@@ -291,14 +292,25 @@ AWS_S3_KEY_ID = os.environ.pop("AWS_S3_KEY_ID", "default_key_id")
 AWS_S3_SECRET_KEY = os.environ.pop("AWS_S3_SECRET_KEY", "default_secret_key")
 AWS_REGION = os.getenv("AWS_REGION", "us-east-2")
 AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET", "default_bucket")
+# signature_version='s3v4': obrigatória para URLs assinadas de objetos SSE-KMS
 if PRODUCAO==1:
     s3 = boto3.client('s3', region_name=AWS_REGION,
-                      config=Config(use_dualstack_endpoint=True))
+                      config=Config(use_dualstack_endpoint=True, signature_version='s3v4'))
 else:
     s3 = boto3.client('s3', region_name=AWS_REGION,
                       aws_access_key_id=AWS_S3_KEY_ID,
                       aws_secret_access_key=AWS_S3_SECRET_KEY,
-                      config=Config(use_dualstack_endpoint=True))
+                      config=Config(use_dualstack_endpoint=True, signature_version='s3v4'))
+
+#Arquivos no S3: URLs assinadas de download e links dos avaliadores (migracao.s3.md, fase 1)
+URL_DOWNLOAD_VALIDADE = 60  # segundos
+ARQUIVOS_LINK_VALIDADE = 30 * 24 * 3600  # links dos PDFs na página /avaliacao: 30 dias
+ARQUIVOS_LINK_KEY = os.environ.pop("ARQUIVOS_LINK_KEY", "")
+if not ARQUIVOS_LINK_KEY:
+    # Sem a chave fixa, os links dos avaliadores deixam de valer a cada reinício do serviço
+    logger.warning("ARQUIVOS_LINK_KEY não definida: usando chave temporária")
+    ARQUIVOS_LINK_KEY = secrets.token_hex(32)
+assinador_arquivos = URLSafeTimedSerializer(ARQUIVOS_LINK_KEY, salt='arquivo-avaliador')
 
 lambda_client = boto3.client('lambda', region_name='us-east-2')
 
@@ -2009,11 +2021,11 @@ def getPaginaAvaliacao():
                 return "Token de avaliação inválido!"
             arquivos = getFiles(idProjeto)
             if str(arquivos[0])!="0":
-                link_projeto = url_for('verArquivosProjeto',filename=str(arquivos[0]))
+                link_projeto = link_arquivo_avaliador(str(arquivos[0]))
             if str(arquivos[1])!="0":
-                link_plano1 = url_for('verArquivosProjeto',filename=str(arquivos[1]))
+                link_plano1 = link_arquivo_avaliador(str(arquivos[1]))
             if str(arquivos[2])!="0":
-                link_plano2 = url_for('verArquivosProjeto',filename=str(arquivos[2]))
+                link_plano2 = link_arquivo_avaliador(str(arquivos[2]))
             links = ""
             if 'link_projeto' in locals():
                 links = links + "<a href=\"" + link_projeto + "\" target=\"_blank\">PROJETO</a><BR>"
@@ -4343,6 +4355,68 @@ def esperar(arquivo):
         except FileNotFoundError as e:
             logger.warning("Erro ao remover arquivo temporário (função esperar({})):{}",arquivo + '.gpg',str(e))
 
+# prefixo no S3 -> (pasta local do caminho de transição, pasta absoluta do send_from_directory)
+PREFIXOS_ARQUIVOS = {
+    'submissoes': (SUBMISSOES_DIR, app.config['UPLOADED_SUBMISSOES_DEST']),
+    'docs_indicacoes': (ATTACHMENTS_DIR, app.config['UPLOADED_DOCUMENTS_DEST']),
+}
+COLUNAS_ARQUIVOS_PROJETO = ('arquivo_projeto', 'arquivo_plano1', 'arquivo_plano2', 'arquivo_plano3',
+                            'arquivo_lattes', 'arquivo_lattes_pdf', 'arquivo_comprovantes')
+
+def objeto_s3_existe(chave):
+    """head_object: 404 (ou 403, para credenciais sem s3:ListBucket, como as de dev) = não existe."""
+    try:
+        s3.head_object(Bucket=AWS_S3_BUCKET, Key=chave)
+        return True
+    except ClientError as e:
+        if e.response.get('Error', {}).get('Code') in ('404', '403', 'NoSuchKey', 'NotFound'):
+            return False
+        raise
+
+def url_download(prefixo, nome, quem):
+    """
+    Entrega um arquivo do S3 ('submissoes' ou 'docs_indicacoes'). Quem chama já autorizou o acesso.
+
+    Caminho novo: objeto SSE-KMS sem .gpg -> redirect para URL assinada de 60 s.
+    Caminho de transição: arquivo ainda em .gpg (enviado antes do deploy da fase 2) ->
+    download, GPG em disco e remoção 3 s depois, como antes.
+    """
+    nome = secure_filename(nome)
+    if not nome:
+        return("Arquivo não encontrado!")
+    pasta_local, pasta_envio = PREFIXOS_ARQUIVOS[prefixo]
+    chave = 'pesquisa/' + pasta_local + nome
+    try:
+        if objeto_s3_existe(chave):
+            url = s3.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': AWS_S3_BUCKET, 'Key': chave,
+                        'ResponseContentDisposition': f'inline; filename="{nome}"'},
+                ExpiresIn=URL_DOWNLOAD_VALIDADE,
+            )
+            logger.info("[download] {} abriu {} (caminho novo)", quem, chave)
+            return redirect(url)
+        s3.download_file(AWS_S3_BUCKET, chave + '.gpg', pasta_local + nome + '.gpg')
+        cripto.aes_gpg_decrypt_file(GPG_KEY, pasta_local + nome + '.gpg', pasta_local + nome)
+        thread = threading.Thread(target=esperar, args=(pasta_local + nome,))
+        thread.start()
+        logger.info("[download] {} abriu {} (caminho antigo, .gpg)", quem, chave)
+        return(send_from_directory(pasta_envio, nome))
+    except Exception as e:
+        logger.warning("[download] Erro ao recuperar arquivo {}: {}", chave, str(e))
+        return("Arquivo não encontrado!")
+
+def dono_do_arquivo(nome, siape):
+    """True se o arquivo pertence a um projeto do siape (qualquer coluna de arquivo da editalProjeto)."""
+    consulta = ("SELECT id FROM editalProjeto WHERE siape=%s AND %s IN ("
+                + ",".join(COLUNAS_ARQUIVOS_PROJETO) + ") LIMIT 1")
+    resultado = executarSelect2(consulta, valores=[siape, secure_filename(nome)])
+    return resultado is not None and resultado[1] > 0
+
+def link_arquivo_avaliador(nome):
+    """Link de um arquivo de submissão para a página /avaliacao, válido por 30 dias."""
+    return url_for('arquivo_assinado', token=assinador_arquivos.dumps({'p': 'submissoes', 'n': nome}))
+
 @app.route("/admin/verArquivo", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
@@ -4350,37 +4424,40 @@ def verArquivo():
     if request.method == "GET":
         #Recuperando arquivo
         if 'file' in request.args:
-            arquivo = str(request.args['file'])
-            arquivo = secure_filename(arquivo) + ".gpg"
-            #INCLUÍNDO CÓDIGO S3
-            try:
-                s3.download_file(AWS_S3_BUCKET, 'pesquisa/' + ATTACHMENTS_DIR + arquivo, ATTACHMENTS_DIR + arquivo)
-                cripto.aes_gpg_decrypt_file(GPG_KEY,ATTACHMENTS_DIR + arquivo, ATTACHMENTS_DIR + arquivo.replace(".gpg",""))
-                thread = threading.Thread(target=esperar,args=(ATTACHMENTS_DIR + arquivo.replace(".gpg",""),))
-                thread.start()
-                return(send_from_directory(app.config['UPLOADED_DOCUMENTS_DEST'], arquivo.replace(".gpg","")))
-            except Exception as e:
-                logger.warning("[verArquivo] Erro ao recuperar arquivo {}: {}", arquivo, str(e))
-                return("Arquivo não encontrado!")
-            #FIM DO CÓDIGO S3
+            return url_download('docs_indicacoes', str(request.args['file']), session['username'])
         else:
             return("OK")
     else:
         return("OK")
-    
+
 @app.route("/verArquivosProjeto/<filename>", methods=['GET'])
 @log_required
 def verArquivosProjeto(filename):
-    arquivo = secure_filename(filename) + ".gpg"
+    """Arquivos dos projetos: só admin ou o dono do projeto. Avaliadores usam /arquivo/<token>."""
+    if 'username' not in session:
+        return render_template('login.html')
+    if 'admin' not in session['roles'] and not dono_do_arquivo(filename, session['username']):
+        flash('Você não tem permissão para acessar este recurso.','error')
+        return redirect(url_for('home'))
+    return url_download('submissoes', filename, session['username'])
+
+@app.route("/arquivo/<token>", methods=['GET'])
+@log_required
+def arquivo_assinado(token):
+    """Link dos avaliadores (gerado na página /avaliacao), sem login, válido por 30 dias."""
     try:
-        s3.download_file(AWS_S3_BUCKET, 'pesquisa/' + SUBMISSOES_DIR + arquivo, SUBMISSOES_DIR + arquivo)
-        cripto.aes_gpg_decrypt_file(GPG_KEY,SUBMISSOES_DIR + arquivo, SUBMISSOES_DIR + arquivo.replace(".gpg",""))
-        thread = threading.Thread(target=esperar,args=(SUBMISSOES_DIR + arquivo.replace(".gpg",""),))
-        thread.start()
-        return(send_from_directory(app.config['UPLOADED_SUBMISSOES_DEST'], arquivo.replace(".gpg","")))
-    except Exception as e:
-        logger.warning("[verArquivosProjeto] Erro ao recuperar arquivo {}: {}", arquivo, str(e))
-        return("Arquivo não encontrado!")
+        dados = assinador_arquivos.loads(token, max_age=ARQUIVOS_LINK_VALIDADE)
+        prefixo, nome = dados['p'], dados['n']
+        if prefixo not in PREFIXOS_ARQUIVOS:
+            raise BadSignature("prefixo inválido")
+    except SignatureExpired:
+        logger.info("[arquivo_assinado] Link expirado")
+        return render_template('link_expirado.html'), 410
+    except (BadSignature, KeyError, TypeError) as e:
+        logger.warning("[arquivo_assinado] Link inválido: {}", str(e))
+        return render_template('link_expirado.html'), 403
+    quem = "avaliador " + hashlib.sha256(token.encode()).hexdigest()[:12]
+    return url_download(prefixo, nome, quem)
 
 @app.route("/admin/situacaoIndicacoes", methods=['GET', 'POST'])
 @login_required(role='admin')

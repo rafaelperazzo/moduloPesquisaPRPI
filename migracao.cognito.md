@@ -251,3 +251,10 @@ aws cognito-idp admin-create-user --region $R --user-pool-id $P --username 99999
 aws cognito-idp admin-delete-user --region $R --user-pool-id $P --username 9999901
 aws cognito-idp admin-delete-user --region $R --user-pool-id $P --username 9999903
 ```
+
+## 10. Templates de e-mail do Cognito
+Os e-mails do Cognito usam HTML com CSS inline, no visual do `lembrete_frequencia.html`. A versão versionada fica em:
+- `docs/cognito/convite.html`: `AdminCreateUserConfig.InviteMessageTemplate.EmailMessage` (precisa conter `{username}` e `{####}`)
+- `docs/cognito/codigo.html`: `VerificationMessageTemplate.EmailMessage` e `EmailVerificationMessage`, com o mesmo conteúdo nos dois (precisa conter `{####}`); é usado no esqueci a senha e no reset pelo admin
+
+Limite de 20.000 caracteres por mensagem. Para alterar, edite o arquivo e aplique com `update-user-pool`, partindo do `describe-user-pool` atual (campos omitidos voltam ao padrão). Aplicado e testado em 23/09/2026.

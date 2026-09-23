@@ -172,7 +172,16 @@ Com a chave gerenciada pela AWS, a fase 0 fica bem menor: **não se cria chave e
   - **Nenhum conteúdo de arquivo nem a senha aparecem no log.**
 - **Tempo estimado:** cerca de 1 a 2 horas para os 18,9 mil arquivos (9,5 GB) com 4 threads. **O site continua no ar**, porque o código da fase 1 lê os dois formatos.
 
-**Como executar (roteiro para você, na EC2):**
+**Execução na máquina local (preferida, decidida em 2026-09-23):** a EC2 tem só 927 MB de RAM (cerca de 250 MB livres) e não tem swap, o que não basta para arquivos de até 66 MB. Por isso, a migração roda na máquina do usuário com `app/scripts/migrar_s3_local.sh`. Esse script:
+- cria a venv `~/venv-migracao` com `boto3`, `python-gnupg` e `botocore[crt]`;
+- mostra a identidade AWS e pede confirmação se for a conta root;
+- roda o lote de teste (10 de cada pasta) e a verificação, e pede confirmação;
+- migra `submissoes` e `docs_indicacoes` em sequência, impedindo a suspensão do computador (`systemd-inhibit`);
+- faz a verificação final e grava o log em `~/migracao_s3/`.
+
+Opções: `--sem-teste` (retomar depois de uma interrupção) e `--workers N`. O custo é de cerca de US$ 0,85 de transferência (download de 9,5 GB).
+
+**Como executar na EC2 (alternativa; exige swap temporário e `--workers 1`):**
 1. Fazer o commit e o deploy do script. O `git pull` do deploy o leva para `/opt/moduloPesquisaPRPI/app/scripts/`. **Não é preciso esperar o código da fase 1.**
    Antes de rodar, conferir a memória livre com `free -m`. Com menos de cerca de 1,5 GB livre, use `--workers 2`, porque há arquivos de até 66 MB.
 2. Abrir uma sessão que sobreviva à queda do SSH:

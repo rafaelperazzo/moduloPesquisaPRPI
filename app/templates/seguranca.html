@@ -167,6 +167,18 @@
 
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
       <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+        <i class="bi bi-shield-shaded text-emerald-600"></i> Acesso administrativo com proteção tripla
+      </h5>
+      <p class="text-gray-600 text-sm">
+        O acesso dos administradores é protegido por três camadas independentes: a senha, a
+        verificação em duas etapas do AWS Cognito e uma segunda autenticação multifator (MFA)
+        exigida pelo Cloudflare antes que a requisição chegue ao servidor. Mesmo que uma das
+        camadas seja comprometida, as outras duas continuam impedindo o acesso à área administrativa.
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
         <i class="bi bi-envelope-slash text-emerald-600"></i> Nenhuma senha enviada pelo sistema
       </h5>
       <p class="text-gray-600 text-sm">

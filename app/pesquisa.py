@@ -34,7 +34,7 @@ from functools import wraps
 from functools import lru_cache
 from urllib.parse import quote
 import pyqrcode
-from datetime import timedelta
+from datetime import datetime, timedelta
 from datetime import date
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
@@ -5596,23 +5596,92 @@ def carregar_mensagens():
         lista.append(mensagem)
     return lista
 
-@app.route("/admin/mensagens", methods=['GET', 'POST'])
+def ler_formulario_mensagem():
+    """Valida o formulário de mensagem. Retorna (mensagem, validade, erro)."""
+    mensagem = str(request.form.get('mensagem', '')).strip()
+    validade = str(request.form.get('validade', '')).strip()
+    if not mensagem:
+        return mensagem, validade, "Informe o texto da mensagem."
+    try:
+        datetime.strptime(validade, '%Y-%m-%dT%H:%M')
+    except ValueError:
+        return mensagem, validade, "Informe uma data de validade válida."
+    return mensagem, validade, None
+
+def buscar_mensagem(id_mensagem):
+    resultado = executarSelect2("SELECT id,mensagem,validade FROM mensagens WHERE id=%s", valores=(id_mensagem,))
+    if resultado is None or resultado[1] == 0:
+        return None
+    return resultado[0][0]
+
+@app.route("/admin/mensagens", methods=['GET'])
 @login_required(role='admin')
 @log_required
 def mensagens():
     """
-    Página para enviar mensagens aos usuários do sistema.
+    Lista todas as mensagens gerais (ativas e vencidas) para gerenciamento.
+    """
+    consulta = """SELECT id,mensagem,validade,data,validade>NOW() as ativa
+    FROM mensagens ORDER BY data DESC"""
+    resultado = executarSelect2(consulta)
+    linhas, total = resultado if resultado is not None else ([], 0)
+    return render_template('mensagens.html', linhas=linhas, total=total)
+
+@app.route("/admin/mensagens/nova", methods=['GET', 'POST'])
+@login_required(role='admin')
+@log_required
+def mensagem_nova():
+    """
+    Cadastra uma mensagem geral, exibida no topo das páginas até a validade.
     """
     if request.method == 'POST':
-        mensagem = str(request.form['mensagem'])
-        validade = str(request.form['validade'])
-        consulta = """INSERT INTO mensagens (mensagem,validade) 
+        mensagem, validade, erro = ler_formulario_mensagem()
+        if erro:
+            flash(erro, 'error')
+            return render_template('mensagemForm.html', mensagem=mensagem, validade=validade, id_mensagem=None)
+        consulta = """INSERT INTO mensagens (mensagem,validade)
         VALUES (%s, %s)"""
         atualizar2(consulta, valores=[mensagem,validade])
-        flash("Mensagem enviada com sucesso!")
-        return redirect(url_for('admin'))
-    else:
-        return render_template('mensagens.html')
+        flash("Mensagem cadastrada com sucesso!")
+        return redirect(url_for('mensagens'))
+    return render_template('mensagemForm.html', mensagem='', validade='', id_mensagem=None)
+
+@app.route("/admin/mensagens/<int:id_mensagem>/editar", methods=['GET', 'POST'])
+@login_required(role='admin')
+@log_required
+def mensagem_editar(id_mensagem):
+    """
+    Altera o texto e a validade de uma mensagem geral.
+    """
+    linha = buscar_mensagem(id_mensagem)
+    if linha is None:
+        flash("Mensagem não encontrada.", 'error')
+        return redirect(url_for('mensagens'))
+    if request.method == 'POST':
+        mensagem, validade, erro = ler_formulario_mensagem()
+        if erro:
+            flash(erro, 'error')
+            return render_template('mensagemForm.html', mensagem=mensagem, validade=validade, id_mensagem=id_mensagem)
+        atualizar2("UPDATE mensagens SET mensagem=%s, validade=%s WHERE id=%s",
+                   valores=[mensagem, validade, id_mensagem])
+        flash("Mensagem alterada com sucesso!")
+        return redirect(url_for('mensagens'))
+    return render_template('mensagemForm.html', mensagem=linha[1], validade=linha[2].strftime('%Y-%m-%dT%H:%M'),
+                           id_mensagem=id_mensagem)
+
+@app.route("/admin/mensagens/<int:id_mensagem>/remover", methods=['POST'])
+@login_required(role='admin')
+@log_required
+def mensagem_remover(id_mensagem):
+    """
+    Remove uma mensagem geral.
+    """
+    if buscar_mensagem(id_mensagem) is None:
+        flash("Mensagem não encontrada.", 'error')
+        return redirect(url_for('mensagens'))
+    atualizar2("DELETE FROM mensagens WHERE id=%s", valores=[id_mensagem])
+    flash("Mensagem removida com sucesso!")
+    return redirect(url_for('mensagens'))
 
 def senha_segura_valida(senha):
     """Verifica se uma senha atende aos requisitos mínimos de segurança.

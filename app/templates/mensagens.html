@@ -25,6 +25,7 @@
             <th class="px-4 py-3 font-semibold text-gray-700">Mensagem</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Validade</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Criada em</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Postada por</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Situação</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Ações</th>
           </tr>
@@ -35,6 +36,13 @@
             <td class="px-4 py-3 text-gray-700 whitespace-pre-line">{{ linha[1] }}</td>
             <td class="px-4 py-3 text-gray-700 whitespace-nowrap">{{ linha[2].strftime('%d/%m/%Y %H:%M') if linha[2] else '' }}</td>
             <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ linha[3].strftime('%d/%m/%Y %H:%M') if linha[3] else '' }}</td>
+            <td class="px-4 py-3 text-gray-700">
+              {% if linha[5] %}
+                {{ linha[6] or linha[5] }}{% if linha[6] %} <span class="text-gray-400 text-xs font-mono">({{ linha[5] }})</span>{% endif %}
+              {% else %}
+                <span class="text-gray-400">Não registrado</span>
+              {% endif %}
+            </td>
             <td class="px-4 py-3 whitespace-nowrap">
               {% if linha[4] %}
                 <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">Ativa</span>

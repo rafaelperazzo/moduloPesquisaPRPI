@@ -5621,8 +5621,9 @@ def mensagens():
     """
     Lista todas as mensagens gerais (ativas e vencidas) para gerenciamento.
     """
-    consulta = """SELECT id,mensagem,validade,data,validade>NOW() as ativa
-    FROM mensagens ORDER BY data DESC"""
+    consulta = """SELECT mensagens.id,mensagem,validade,data,validade>NOW() as ativa,autor,users.nome
+    FROM mensagens LEFT JOIN users ON users.username=mensagens.autor
+    ORDER BY data DESC"""
     resultado = executarSelect2(consulta)
     linhas, total = resultado if resultado is not None else ([], 0)
     return render_template('mensagens.html', linhas=linhas, total=total)
@@ -5639,9 +5640,9 @@ def mensagem_nova():
         if erro:
             flash(erro, 'error')
             return render_template('mensagemForm.html', mensagem=mensagem, validade=validade, id_mensagem=None)
-        consulta = """INSERT INTO mensagens (mensagem,validade)
-        VALUES (%s, %s)"""
-        atualizar2(consulta, valores=[mensagem,validade])
+        consulta = """INSERT INTO mensagens (mensagem,validade,autor)
+        VALUES (%s, %s, %s)"""
+        atualizar2(consulta, valores=[mensagem,validade,session['username']])
         flash("Mensagem cadastrada com sucesso!")
         return redirect(url_for('mensagens'))
     return render_template('mensagemForm.html', mensagem='', validade='', id_mensagem=None)

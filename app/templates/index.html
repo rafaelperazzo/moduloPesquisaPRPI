@@ -32,9 +32,6 @@
 
   <div class="flex-1 container mx-auto px-4 max-w-screen-xl py-8">
 
-    <h1 class="text-2xl font-bold text-gray-800 mb-4">Editais</h1>
-    <hr class="border-gray-200 mb-4">
-
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         {% for message in messages %}
@@ -45,57 +42,9 @@
       {% endif %}
     {% endwith %}
 
-    <div class="flex gap-4 mb-6">
-      <a href="{{url_for('meusProjetos')}}" class="text-blue-600 hover:underline text-sm">Ir para Meus Projetos</a>
-      <span class="text-gray-300">|</span>
-      <a href="{{url_for('cadastrar_usuario')}}" class="text-blue-600 hover:underline text-sm">Cadastrar novo usuário</a>
-      <span class="text-gray-300">|</span>
-      <a href="{{url_for('listar_usuarios')}}" class="text-blue-600 hover:underline text-sm">Listar usuários</a>
-      <span class="text-gray-300">|</span>
-      <a href="{{url_for('listar_editais')}}" class="text-blue-600 hover:underline text-sm">Listar editais</a>
-      <span class="text-gray-300">|</span>
-      <a href="{{url_for('inserir_edital')}}" class="text-blue-600 hover:underline text-sm">Inserir edital</a>
-    </div>
-
-    <!-- Tabela de editais -->
-    <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm mb-8">
-      <table class="w-full text-sm text-left border-collapse">
-        <thead class="bg-gray-50 border-b border-gray-200">
-          <tr>
-            <th class="px-4 py-3 font-semibold text-gray-700">Edital</th>
-            <th class="px-4 py-3 font-semibold text-gray-700">Cadastrar Usuários</th>
-            <th class="px-4 py-3 font-semibold text-gray-700">Lista de Bolsistas</th>
-            <th class="px-4 py-3 font-semibold text-gray-700">Lista de Voluntários</th>
-            <th class="px-4 py-3 font-semibold text-gray-700">Situação das Indicações</th>
-            <th class="px-4 py-3 font-semibold text-gray-700">Desligamentos e Substituições</th>
-            <th class="px-4 py-3 font-semibold text-gray-700">Estatísticas</th>
-            <th class="px-4 py-3 font-semibold text-gray-700">Atualizar Projetos</th>
-            <th class="px-4 py-3 font-semibold text-gray-700">Resultados</th>
-            <th class="px-4 py-3 font-semibold text-gray-700">Gerenciar Projetos</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for edital in editais %}
-          <tr class="border-b border-gray-100 hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium text-gray-800">{{edital[1]}}</td>
-            <td class="px-4 py-3"><a href="{{url_for('cadastrar_usuarios_projetos', edital=edital[0])}}" class="text-blue-600 hover:underline">Cadastrar</a></td>
-            <td class="px-4 py-3"><a href="{{url_for('indicacoes', edital=edital[0], tipo=1)}}" class="text-blue-600 hover:underline">BOLSISTAS</a></td>
-            <td class="px-4 py-3"><a href="{{url_for('indicacoes', edital=edital[0], tipo=0)}}" class="text-blue-600 hover:underline">VOLUNTÁRIOS</a></td>
-            <td class="px-4 py-3"><a href="{{url_for('situacaoIndicacoes', edital=edital[0])}}" class="text-blue-600 hover:underline">Situação das indicações</a></td>
-            <td class="px-4 py-3"><a href="{{url_for('substituicoes', id=edital[0])}}" class="text-blue-600 hover:underline">Desligamentos e Substituições</a></td>
-            <td class="px-4 py-3"><a href="{{url_for('editalProjeto', edital=edital[0])}}" class="text-blue-600 hover:underline">Estatísticas</a></td>
-            <td class="px-4 py-3"><a href="{{url_for('aprovar_projetos', edital=edital[0])}}" class="text-blue-600 hover:underline">Atualizar Projetos</a></td>
-            <td class="px-4 py-3"><a href="{{url_for('editalProjeto', edital=edital[0], resultado=1)}}" class="text-blue-600 hover:underline">Resultados</a></td>
-            <td class="px-4 py-3"><a href="{{url_for('listar_projetos', edital=edital[0])}}" class="text-blue-600 hover:underline">Gerenciar</a></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
     <!-- Ações gerais -->
     <h2 class="text-lg font-semibold text-gray-700 mb-4">Ações Gerais</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
 
       <a href="{{url_for('mensagens')}}" class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:border-blue-300 hover:shadow-md transition-all block">
         <p class="font-medium text-blue-600 text-sm">Gerenciar Mensagens Gerais</p>
@@ -133,7 +82,63 @@
         <p class="font-medium text-blue-600 text-sm">Tarefas Agendadas</p>
       </a>
 
+      <a href="{{url_for('limitador')}}" class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:border-blue-300 hover:shadow-md transition-all block">
+        <p class="font-medium text-blue-600 text-sm">Limitador de Acessos</p>
+      </a>
+
     </div>
+
+    <h1 class="text-2xl font-bold text-gray-800 mb-4">Editais</h1>
+    <hr class="border-gray-200 mb-4">
+
+    <div class="flex gap-4 mb-6">
+      <a href="{{url_for('meusProjetos')}}" class="text-blue-600 hover:underline text-sm">Ir para Meus Projetos</a>
+      <span class="text-gray-300">|</span>
+      <a href="{{url_for('cadastrar_usuario')}}" class="text-blue-600 hover:underline text-sm">Cadastrar novo usuário</a>
+      <span class="text-gray-300">|</span>
+      <a href="{{url_for('listar_usuarios')}}" class="text-blue-600 hover:underline text-sm">Listar usuários</a>
+      <span class="text-gray-300">|</span>
+      <a href="{{url_for('listar_editais')}}" class="text-blue-600 hover:underline text-sm">Listar editais</a>
+      <span class="text-gray-300">|</span>
+      <a href="{{url_for('inserir_edital')}}" class="text-blue-600 hover:underline text-sm">Inserir edital</a>
+    </div>
+
+    <!-- Tabela de editais -->
+    <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm">
+      <table class="w-full text-sm text-left border-collapse">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="px-4 py-3 font-semibold text-gray-700">Edital</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Cadastrar Usuários</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Lista de Bolsistas</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Lista de Voluntários</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Situação das Indicações</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Desligamentos e Substituições</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Estatísticas</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Atualizar Projetos</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Resultados</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Gerenciar Projetos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for edital in editais %}
+          <tr class="border-b border-gray-100 hover:bg-gray-50">
+            <td class="px-4 py-3 font-medium text-gray-800">{{edital[1]}}</td>
+            <td class="px-4 py-3"><a href="{{url_for('cadastrar_usuarios_projetos', edital=edital[0])}}" class="text-blue-600 hover:underline">Cadastrar</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('indicacoes', edital=edital[0], tipo=1)}}" class="text-blue-600 hover:underline">BOLSISTAS</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('indicacoes', edital=edital[0], tipo=0)}}" class="text-blue-600 hover:underline">VOLUNTÁRIOS</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('situacaoIndicacoes', edital=edital[0])}}" class="text-blue-600 hover:underline">Situação das indicações</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('substituicoes', id=edital[0])}}" class="text-blue-600 hover:underline">Desligamentos e Substituições</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('editalProjeto', edital=edital[0])}}" class="text-blue-600 hover:underline">Estatísticas</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('aprovar_projetos', edital=edital[0])}}" class="text-blue-600 hover:underline">Atualizar Projetos</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('editalProjeto', edital=edital[0], resultado=1)}}" class="text-blue-600 hover:underline">Resultados</a></td>
+            <td class="px-4 py-3"><a href="{{url_for('listar_projetos', edital=edital[0])}}" class="text-blue-600 hover:underline">Gerenciar</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
   </div>
 
   <!-- Footer -->

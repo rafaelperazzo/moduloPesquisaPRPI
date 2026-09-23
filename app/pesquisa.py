@@ -8,6 +8,7 @@ import mariadb as MySQLdb
 from werkzeug.utils import secure_filename
 import hashlib
 import hmac
+import ipaddress
 import os
 import string
 import random
@@ -5578,12 +5579,74 @@ def scheduler_jobs():
     else:
         return render_template('schedulerJobs.html', scheduler_running=False, jobs=[])
 
+# Contadores do Flask-Limiter no Redis: LIMITS:LIMITER/<ip>/<rota>/<quantidade>/<múltiplo>/<período>
+PREFIXO_CHAVES_LIMITADOR = "LIMITS:LIMITER/"
+
+def log_limitador(acao, nivel='info', **extra):
+    with logger.contextualize(ip=request.remote_addr, username=session.get('username', 'N/A'), rota=request.path,
+                              metodo=request.method, acao=acao, **extra):
+        logger.log(nivel.upper(), "Limitador de acessos: {}", acao)
+
+@app.route("/admin/limitador", methods=['GET'])
+@login_required(role='admin')
+@log_required
+def limitador():
+    """
+    Página para liberar os contadores do limitador de acessos (Flask-Limiter).
+    """
+    return render_template('limitador.html', ip_atual=request.remote_addr)
+
+@app.route("/admin/limitador/liberar_ip", methods=['POST'])
+@login_required(role='admin')
+@log_required
+def limitador_liberar_ip():
+    """
+    Zera os contadores do limitador de acessos de um único IP.
+    """
+    try:
+        ip = str(ipaddress.ip_address(str(request.form.get('ip', '')).strip()))
+    except ValueError:
+        flash("Informe um endereço IP válido (IPv4 ou IPv6).", 'error')
+        return redirect(url_for('limitador'))
+    try:
+        redis_limitador = app.config['SESSION_REDIS']
+        chaves = list(redis_limitador.scan_iter(match=f"{PREFIXO_CHAVES_LIMITADOR}{ip}/*", count=1000))
+        if chaves:
+            redis_limitador.delete(*chaves)
+    except Exception as e:
+        log_limitador('liberar_ip', nivel='error', ip_liberado=ip, erro=str(e), classe_erro=type(e).__name__)
+        flash("Não foi possível acessar o armazenamento do limitador. Tente novamente.", 'error')
+        return redirect(url_for('limitador'))
+    log_limitador('liberar_ip', ip_liberado=ip, contadores=len(chaves))
+    if chaves:
+        flash(f"Acessos do IP {ip} liberados ({len(chaves)} contador(es) zerado(s)).")
+    else:
+        flash(f"Nenhum contador encontrado para o IP {ip}.", 'error')
+    return redirect(url_for('limitador'))
+
+@app.route("/admin/limitador/zerar", methods=['POST'])
+@login_required(role='admin')
+@log_required
+def limitador_zerar():
+    """
+    Zera todos os contadores do limitador de acessos.
+    """
+    try:
+        limiter.storage.reset()
+    except Exception as e:
+        log_limitador('zerar_todos', nivel='error', erro=str(e), classe_erro=type(e).__name__)
+        flash("Não foi possível zerar o limitador. Tente novamente.", 'error')
+        return redirect(url_for('limitador'))
+    log_limitador('zerar_todos', nivel='warning')
+    flash("Todos os contadores do limitador de acessos foram zerados.")
+    return redirect(url_for('limitador'))
+
 def carregar_mensagens():
     """
     Carrega as mensagens do banco de dados para exibição.
     """
-    consulta = """SELECT mensagem,validade,data 
-    FROM mensagens 
+    consulta = """SELECT mensagem,validade,data,users.nome
+    FROM mensagens LEFT JOIN users ON users.username=mensagens.autor
     WHERE validade>NOW() ORDER BY data DESC LIMIT 1"""
     linhas,total = executarSelect(consulta)
     lista = []
@@ -5592,6 +5655,7 @@ def carregar_mensagens():
             'mensagem': linha[0],
             'validade': str(linha[1]),
             'data': str(linha[2]),
+            'autor': linha[3] or '',
         }
         lista.append(mensagem)
     return lista

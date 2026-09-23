@@ -7,6 +7,7 @@ Sistema de gerenciamento de projetos de pesquisa
 - [ ] Remover email NAO-RESPONDA e colocar no infisical
 - [ ] Criptografar dados da tabela users (nome e email)
 - [ ] Avaliar unificar `permissao` e `roles`
+- [ ] Utilizar função Lambda para lidar com o download, upload e criptografia dos arquivos do app que estão no S3
 
 ## Em progresso
 
@@ -18,10 +19,10 @@ Sistema de gerenciamento de projetos de pesquisa
   - [ ] Testes manuais em produção (seção 8 do plano)
   - [ ] Após ~60 dias: tratar quem não migrou, limpar `users.password` dos migrados e remover o Argon2 do caminho de produção
 
-- [ ] MFA obrigatório via Cognito (TOTP/Google Authenticator ou código por e-mail), seção 11 de `migracao.cognito.md`
+- [x] MFA obrigatório via Cognito (TOTP/Google Authenticator ou código por e-mail), seção 11 de `migracao.cognito.md`
   - [x] Código: cadastro com QR code, desafio no login, recuperação por e-mail, troca de método, `/novaSenha` via access token, testes `app/test_mfa.py`
   - [x] AWS: `set-user-pool-mfa-config` (OPTIONAL + TOTP + e-mail), `AuthSessionValidity` 5 min, `AdminSetUserMFAPreference` na role `CloudWatch` (aplicado e conferido em 2026-09-23)
-  - [ ] Deploy e testes manuais em produção (seção 11.4)
+  - [x] Deploy e testes manuais em produção (seção 11.4) (v10.0.0, testado em 2026-09-23)
 
 - [ ] Remover lazy logs
 

@@ -11,7 +11,8 @@
 >   - em `pesquisa/submissoes/` e `pesquisa/docs_indicacoes/`, a gravação é negada sem criptografia, com SSE-S3 (AES256) e com outra chave KMS, e é permitida com `aws:kms`, que grava com a chave `aws/s3`;
 >   - em `cppgi/`, a gravação continua permitida;
 > - **falta:** conferir uma submissão e uma indicação reais, enviadas pelo app;
-> - fases 3 e 4: não iniciadas.
+> - **fase 3: código pronto, NÃO commitado; recursos da AWS criados e testados** (detalhes na seção da fase 3);
+> - fase 4: não iniciada.
 >
 > Item do TODO: "Utilizar função Lambda para lidar com o download, upload e criptografia dos arquivos do app que estão no S3".
 
@@ -304,6 +305,67 @@ Os arquivos enviados entre a migração e o deploy da fase 2 ainda saem em `.gpg
 Comando: `aws s3api put-bucket-policy --region us-east-2 --bucket rajardekalambur --policy file://bucket-policy.json`. Para desfazer (não há política hoje): `aws s3api delete-bucket-policy --region us-east-2 --bucket rajardekalambur`.
 
 ### Fase 3: upload direto do navegador e Lambda `validar-upload`
+**Implementado em 2026-09-23.** Decisões do usuário:
+- as indicações aceitam PDF, JPEG e PNG; as submissões aceitam só PDF;
+- se o envio direto falhar, o formulário volta ao envio pelo app, da fase 2.
+
+**Código (não commitado):**
+- **`app/pesquisa.py`:**
+  - rota `POST /arquivos/url_upload`:
+    - exige login e devolve 404 em dev;
+    - aceita só os campos de `CAMPOS_UPLOAD_DIRETO`, o tipo declarado permitido naquele prefixo e 1 byte a 16 MB;
+    - nas submissões, exige um edital aberto; nas indicações, exige ser o dono do projeto ou admin;
+    - gera a chave `pesquisa/incoming/<prefixo>/<nome>`, com 32 caracteres aleatórios no nome;
+  - nomes amarrados ao dono:
+    - submissões: `<rótulo>_<siape>_<32>.pdf`;
+    - indicações: `<RÓTULO>.<idProjeto>.<32>.pdf`;
+  - `uploads_diretos()`, chamada **antes** do `INSERT` em `cadastrarProjeto` e `efetivarIndicacao`:
+    - confere o nome de cada campo oculto `<campo>_s3`;
+    - espera até 15 s a Lambda mover o arquivo;
+    - se algo falhar, nada é gravado e o usuário vê a mensagem de erro;
+- **`app/static/js/upload_direto.js`**, ligado por `data-upload-direto` nos formulários:
+  - envia cada arquivo, com o progresso, antes do submit;
+  - desativa o input do arquivo enviado e cria o campo oculto com o nome;
+  - qualquer falha deixa o input como está, e o formulário segue pelo envio tradicional;
+- **`lambda/validar_upload/lambda_function.py`:**
+  - confere a chave, o tamanho e os primeiros 8 bytes (`Range` e `IfMatch`);
+  - copia com `CopySourceIfMatch`, em SSE-KMS, com o `ContentType` real e a metadata `enviado-por=navegador`;
+  - apaga o arquivo de `incoming/`, seja ele válido ou não;
+- **testes:** `app/test_upload_direto.py`, com 74 testes passando no total junto com os de upload e download.
+
+**Recursos da AWS (criados em 2026-09-23, com a confirmação do usuário):**
+| Recurso | Configuração |
+|---|---|
+| Role `validar-upload-role` | `AWSLambdaBasicExecutionRole` + inline `ValidarUploadS3`: `GetObject`/`DeleteObject` em `pesquisa/incoming/*`, `PutObject` em `submissoes/*` e `docs_indicacoes/*`, `ListBucket` com `s3:prefix` `pesquisa/incoming/*` (sem ele, o S3 devolve 403 em vez de 404) |
+| Lambda `validar-upload` | python3.14, x86_64, 256 MB, 30 s; log `/aws/lambda/validar-upload` com retenção de 30 dias |
+| Regra do EventBridge `pesquisa-validar-upload` | `aws.s3` "Object Created", bucket `rajardekalambur`, chave com prefixo `pesquisa/incoming/`. O EventBridge já estava ligado no bucket, então **a notificação do bucket não foi alterada** |
+| Lifecycle | nova regra `pesquisa-incoming-1-dia` (Expiration de 1 dia em `pesquisa/incoming/`); a regra `S3 Lifecycle Rule` foi mantida |
+| CORS | só `POST`, a partir de `https://aws.yokoapps.com.br` (antes, não havia CORS) |
+| Bucket policy | `pesquisa/incoming/*` acrescentado às duas regras |
+
+**Teste de ponta a ponta (2026-09-23, com uma URL assinada igual à do app e `Origin` de produção):**
+- os POSTs devolveram 204, com `Access-Control-Allow-Origin` de produção;
+- um PDF em `submissoes` e um JPEG em `docs_indicacoes` foram aceitos: chegaram ao prefixo final com `aws:kms`, o tipo certo e `enviado-por=navegador`;
+- um `.exe` declarado como PDF e um JPEG em `submissoes` foram recusados e apagados;
+- um arquivo acima de 16 MB recebeu 400;
+- um `put-object` sem KMS em `incoming/` recebeu `AccessDenied`;
+- nos dois casos, nada sobrou em `incoming/`, os logs da Lambda não mostraram erro e os arquivos de teste foram apagados.
+
+**Para desfazer (a ordem importa):**
+```bash
+R="--region us-east-2"
+aws events remove-targets $R --rule pesquisa-validar-upload --ids validar-upload
+aws events delete-rule $R --name pesquisa-validar-upload
+aws lambda delete-function $R --function-name validar-upload
+aws iam delete-role-policy --role-name validar-upload-role --policy-name ValidarUploadS3
+aws iam detach-role-policy --role-name validar-upload-role --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+aws iam delete-role --role-name validar-upload-role
+aws s3api delete-bucket-cors $R --bucket rajardekalambur
+# lifecycle e policy: reaplicar as versões anteriores (só a regra de versões antigas; policy sem incoming/*)
+```
+Com os recursos no ar e o código antigo, nada quebra: a rota `/arquivos/url_upload` não existe, e ninguém grava em `incoming/`.
+
+**Plano original:**
 - Rota nova, `POST /arquivos/url_upload`:
   - exige login;
   - valida o edital, o tipo do arquivo e se o projeto pertence ao usuário;

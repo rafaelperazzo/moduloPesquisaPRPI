@@ -166,7 +166,9 @@
   </header>
 
   <div class="max-w-3xl mx-auto px-4 py-8">
-    <form name="frmCadastroProjeto" action="/pesquisa/cadastrarProjeto" onsubmit="return humano()" method="POST" enctype="multipart/form-data">
+    <form name="frmCadastroProjeto" action="/pesquisa/cadastrarProjeto" onsubmit="return humano()" method="POST" enctype="multipart/form-data"
+      data-upload-direto="submissoes" data-url-upload="{{ url_for('url_upload') }}"
+      data-campos="arquivo_projeto,arquivo_plano1,arquivo_plano2,arquivo_plano3,arquivo_comprovantes">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
       <!-- 1. Classificação -->
@@ -659,5 +661,6 @@
     })();
   </script>
 
+  <script src="{{ url_for('static', filename='js/upload_direto.js') }}"></script>
 </body>
 </html>

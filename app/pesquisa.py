@@ -1614,6 +1614,11 @@ def cadastrarProjeto():
         justificativa = removerAspas(justificativa)
         cpf = str(request.form.get('cpf',''))
 
+        #ARQUIVOS ENVIADOS DIRETO AO S3 PELO NAVEGADOR: conferidos antes de gravar o projeto
+        arquivos_diretos, erro_upload = uploads_diretos('submissoes', siape)
+        if erro_upload:
+            return erro_upload
+
         #DADOS PESSOAIS E BÁSICOS DO PROJETO
         consulta = """INSERT INTO editalProjeto 
         (categoria,tipo,nome,siape,email,ua,area_capes,grande_area,grupo,data,ods,inovacao,justificativa) 
@@ -1737,6 +1742,10 @@ def cadastrarProjeto():
                     atualizar2(consulta, valores=[filename,ultimo_id])
                 else:
                     falhas_envio.append("arquivo_comprovantes")
+
+        #ARQUIVOS ENVIADOS DIRETO PELO NAVEGADOR (já conferidos; o campo vem de CAMPOS_UPLOAD_DIRETO)
+        for campo, nome_arquivo in arquivos_diretos.items():
+            atualizar2("UPDATE editalProjeto SET " + campo + "= %s WHERE id= %s", valores=[nome_arquivo, ultimo_id])
 
         #CADASTRAR AVALIADORES SUGERIDOS
         if 'avaliador1_email' in request.form:
@@ -4199,6 +4208,109 @@ def enviar_arquivo_s3(arquivo, prefixo, nome):
         logger.error("[S3] Erro ao enviar o arquivo {}: {}", chave, e)
         return False
 
+# Upload direto do navegador (migracao.s3.md, fase 3): o navegador envia a pesquisa/incoming/<prefixo>/<nome>,
+# a Lambda validar-upload confere o tipo e move para pesquisa/<prefixo>/<nome>, e o formulário leva só o nome
+# no campo oculto <campo>_s3. Se algo falhar no navegador, o formulário envia o arquivo ao app (fase 2).
+UPLOAD_DIRETO_VALIDADE = 300  # segundos
+UPLOAD_DIRETO_ESPERA = 15  # segundos esperando a Lambda mover o arquivo
+CAMPOS_UPLOAD_DIRETO = {
+    'submissoes': {'arquivo_projeto': 'projeto', 'arquivo_plano1': 'plano1', 'arquivo_plano2': 'plano2',
+                   'arquivo_plano3': 'plano3', 'arquivo_comprovantes': 'Comprovantes'},
+    'docs_indicacoes': {'termo': 'TERMO', 'rg_cpf': 'RG_CPF', 'extrato': 'EXTRATO',
+                        'historico': 'HISTORICO', 'plano': 'PLANO'},
+}
+TIPOS_UPLOAD_DIRETO = {
+    'submissoes': ('application/pdf',),
+    'docs_indicacoes': ('application/pdf', 'image/jpeg', 'image/png'),
+}
+TIPOS_UPLOAD_DIRETO_TEXTO = {'submissoes': 'precisa ser PDF', 'docs_indicacoes': 'precisa ser PDF, JPEG ou PNG'}
+
+def inicio_nome_upload_direto(prefixo, rotulo, siape, idProjeto):
+    """Início obrigatório do nome: amarra o arquivo ao usuário (submissões) ou ao projeto (indicações)."""
+    if prefixo == 'submissoes':
+        return rotulo + '_' + str(siape) + '_'
+    return rotulo + '.' + str(idProjeto) + '.'
+
+@app.route("/arquivos/url_upload", methods=['POST'])
+@login_required(role='user')
+@limiter.limit("100 per hour")
+def url_upload():
+    """URL assinada (POST) para o navegador enviar um arquivo direto a pesquisa/incoming/. Em dev: 404."""
+    if PRODUCAO != 1:
+        return jsonify(erro="upload direto desativado fora de produção"), 404
+    dados = request.get_json(silent=True) or {}
+    prefixo = str(dados.get('tipo', ''))
+    campo = str(dados.get('campo', ''))
+    content_type = str(dados.get('content_type', ''))
+    tamanho = dados.get('tamanho')
+    idProjeto = str(dados.get('idProjeto', ''))
+    siape = session['username']
+    if campo not in CAMPOS_UPLOAD_DIRETO.get(prefixo, {}):
+        return jsonify(erro="campo inválido"), 400
+    if content_type not in TIPOS_UPLOAD_DIRETO[prefixo]:
+        return jsonify(erro="tipo de arquivo não aceito no envio direto"), 415
+    if type(tamanho) is not int or not 0 < tamanho <= app.config['MAX_CONTENT_LENGTH']:
+        return jsonify(erro="tamanho inválido"), 413
+    if prefixo == 'submissoes':
+        if not getEditaisAbertos():
+            return jsonify(erro="nenhum edital aberto"), 403
+    elif not numero_valido(idProjeto) or not (idSiape(idProjeto, siape) or 'admin' in session['roles']):
+        return jsonify(erro="projeto inválido"), 403
+    nome = inicio_nome_upload_direto(prefixo, CAMPOS_UPLOAD_DIRETO[prefixo][campo], siape, idProjeto) \
+        + id_generator(32) + '.pdf'
+    if secure_filename(nome) != nome:
+        return jsonify(erro="nome inválido"), 400
+    chave = 'pesquisa/incoming/' + prefixo + '/' + nome
+    try:
+        post = s3.generate_presigned_post(
+            AWS_S3_BUCKET, chave,
+            Fields={'Content-Type': content_type, 'x-amz-server-side-encryption': 'aws:kms'},
+            Conditions=[{'Content-Type': content_type},
+                        {'x-amz-server-side-encryption': 'aws:kms'},
+                        ['content-length-range', 1, app.config['MAX_CONTENT_LENGTH']]],
+            ExpiresIn=UPLOAD_DIRETO_VALIDADE,
+        )
+    except (ClientError, BotoCoreError) as e:
+        logger.error("[url_upload] Erro ao gerar a URL de upload {}: {}", chave, e)
+        return jsonify(erro="erro ao gerar a URL de upload"), 500
+    logger.info("[url_upload] {} vai enviar {} ({}, {} bytes)", siape, chave, content_type, tamanho)
+    return jsonify(url=post['url'], fields=post['fields'], nome=nome)
+
+def confirmar_upload_direto(prefixo, nome):
+    """Espera a Lambda validar-upload mover o arquivo para pesquisa/<prefixo>/. False: recusado ou atrasado."""
+    chave = 'pesquisa/' + PREFIXOS_ARQUIVOS[prefixo][0] + nome
+    for tentativa in range(UPLOAD_DIRETO_ESPERA):
+        try:
+            if objeto_s3_existe(chave):
+                return True
+        except (ClientError, BotoCoreError) as e:
+            logger.error("[upload direto] Erro ao conferir {}: {}", chave, e)
+            return False
+        time.sleep(1)
+    logger.warning("[upload direto] {} não chegou ao prefixo final (recusado pela Lambda ou atrasado)", chave)
+    return False
+
+def uploads_diretos(prefixo, siape, idProjeto=''):
+    """
+    Arquivos que o navegador enviou direto ao S3 (campos ocultos <campo>_s3), conferidos ANTES de gravar
+    qualquer coisa na tabela. Retorna ({campo: nome}, None) ou ({}, mensagem de erro para o usuário).
+    """
+    diretos = {}
+    for campo, rotulo in CAMPOS_UPLOAD_DIRETO[prefixo].items():
+        nome = str(request.form.get(campo + '_s3', ''))
+        if not nome:
+            continue
+        inicio = inicio_nome_upload_direto(prefixo, rotulo, siape, idProjeto)
+        if not re.fullmatch(re.escape(inicio) + r'[A-Za-z0-9]{32}\.pdf', nome):
+            logger.warning("[upload direto] Nome recusado no campo {}: {!r}", campo, nome)
+            return {}, "Arquivo inválido no campo '" + campo + "'. Nada foi gravado: envie o formulário de novo."
+        if not confirmar_upload_direto(prefixo, nome):
+            return {}, ("O arquivo do campo '" + campo + "' não foi aceito (" + TIPOS_UPLOAD_DIRETO_TEXTO[prefixo]
+                        + ") ou ainda não terminou de ser processado. Nada foi gravado: confira o arquivo e "
+                        + "envie o formulário de novo.")
+        diretos[campo] = nome
+    return diretos, None
+
 @app.route("/efetivarIndicacao", methods=['GET', 'POST'])
 @login_required(role='user')
 @log_required
@@ -4246,6 +4358,13 @@ def efetivarIndicacao():
                 escola = str(request.form['escola'])
                 conclusao = int(request.form['conclusao'])
 
+                #ARQUIVOS ENVIADOS DIRETO AO S3 PELO NAVEGADOR: conferidos antes de gravar a indicação
+                if not numero_valido(idProjeto):
+                    return("Projeto inválido!")
+                arquivos_diretos, erro_upload = uploads_diretos('docs_indicacoes', session['username'], idProjeto)
+                if erro_upload:
+                    return(erro_upload)
+
                 nomeDoArquivoTermo = ""
                 if 'termo' in request.files:
                     token = id_generator()
@@ -4276,6 +4395,11 @@ def efetivarIndicacao():
                     nomeDoArquivoPlano = "PLANO." + idProjeto + "." + token + ".pdf"
                     if not enviar_arquivo_s3(request.files['plano'], 'docs_indicacoes', nomeDoArquivoPlano):
                         return("Erro ao enviar o documento 'plano'. A indicação NÃO foi gravada: tente novamente.")
+                nomeDoArquivoTermo = arquivos_diretos.get('termo', nomeDoArquivoTermo)
+                nomeDoArquivoRg = arquivos_diretos.get('rg_cpf', nomeDoArquivoRg)
+                nomeDoArquivoExtrato = arquivos_diretos.get('extrato', nomeDoArquivoExtrato)
+                nomeDoArquivoHistorico = arquivos_diretos.get('historico', nomeDoArquivoHistorico)
+                nomeDoArquivoPlano = arquivos_diretos.get('plano', nomeDoArquivoPlano)
                 codigoEdital = obterColunaUnica('editalProjeto','tipo','id',idProjeto)
                 if (substituicao==1):
                     inicio = timestamp()

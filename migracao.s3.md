@@ -154,7 +154,7 @@ Com a chave gerenciada pela AWS, a fase 0 fica bem menor: **não se cria chave e
 - **Para cada `pesquisa/<prefixo>/*.gpg`:**
   1. baixa o arquivo para a memória (média de 500 KB, máximo de 16 MB);
   2. descriptografa com `python-gnupg` a partir dos bytes (`gpg.decrypt`), **sem gravar nada sem criptografia no disco**;
-  3. confere que o resultado começa com `%PDF`;
+  3. identifica o tipo real pelo conteúdo e o grava no `ContentType`. Nem todo arquivo é PDF: no lote de teste de `docs_indicacoes` apareceram um **JPEG salvo como `.pdf`** (foto de extrato) e **3 arquivos vazios** (uploads vazios de 2025, já vazios no `.gpg`). Esses casos são migrados sem alteração e marcados na coluna `tipo` do CSV. A integridade vem do `gpg` (MDC): só migra se ele der `ok`;
   4. faz `put_object` com o nome sem `.gpg`, `ServerSideEncryption='aws:kms'` (sem `SSEKMSKeyId`, então vale a `aws/s3`) e a metadata `migrado-de=<nome>.gpg`;
   5. relê com `head_object` para conferir a criptografia e o tamanho.
 - **Idempotente:** pula quem já tem a versão sem `.gpg`, então pode ser interrompido e rodado de novo.
@@ -231,7 +231,8 @@ Opções: `--sem-teste` (retomar depois de uma interrupção) e `--workers N`. O
 - **Lambda `validar-upload`:**
   - runtime Python, 256 MB, timeout de 30 s;
   - trigger S3 `ObjectCreated:*` com prefixo `pesquisa/incoming/`;
-  - lê só os primeiros bytes (`Range: bytes=0-4`).
+  - lê só os primeiros bytes (`Range: bytes=0-7`);
+  - **aceitar PDF, JPEG e PNG** em `docs_indicacoes`, porque o formulário de indicação aceita fotos de documentos; em `submissoes`, só PDF. **Decidir antes da fase 3:** continuar aceitando imagens nas indicações ou exigir PDF.
 - **Regra do bucket:** apaga `pesquisa/incoming/` depois de 1 dia. Ao editar a regra, preservar a regra existente de versões antigas.
 - **CORS do bucket:** só `POST` a partir de `https://aws.yokoapps.com.br`.
 - **Cloudflare:** o upload vai direto ao S3, então o WAF e o limite de tamanho da borda não se aplicam. As condições da URL assinada e a Lambda de validação fazem esse papel.

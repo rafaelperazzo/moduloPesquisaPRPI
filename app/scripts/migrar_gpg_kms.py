@@ -6,7 +6,9 @@ gerenciada pela AWS (aws/s3). Plano completo: migracao.s3.md (fase 1).
 Para cada pesquisa/<prefixo>/<nome>.gpg:
   1. baixa o .gpg para a memória;
   2. descriptografa em memória com a GPG_KEY (nada sem criptografia vai para o disco);
-  3. confere que o resultado é um PDF (%PDF);
+  3. identifica o tipo real pelo conteúdo (PDF, JPEG, PNG; vazio ou desconhecido
+     também são migrados, sem alteração, e ficam marcados no relatório). A
+     integridade é garantida pelo próprio gpg (MDC): só migra se ele der ok;
   4. grava pesquisa/<prefixo>/<nome> com SSE-KMS (aws/s3), guardando na metadata
      o .gpg de origem e o ETag dele;
   5. relê o objeto novo (head_object) para conferir a criptografia e o tamanho.
@@ -96,33 +98,50 @@ def situacao(s3, bucket, chave_gpg, etag_gpg, objetos):
     return "migrado"
 
 
+ASSINATURAS = (
+    (b"%PDF", "application/pdf", "pdf"),
+    (b"\xff\xd8\xff", "image/jpeg", "jpeg"),
+    (b"\x89PNG\r\n\x1a\n", "image/png", "png"),
+)
+
+
+def tipo_do_conteudo(conteudo):
+    """(content_type, rótulo) pelo início do arquivo. Os nomes terminam sempre em .pdf,
+    mas o formulário de indicação aceita qualquer tipo (ex.: foto do extrato em JPEG)."""
+    if not conteudo:
+        return "application/octet-stream", "vazio"
+    for assinatura, content_type, rotulo in ASSINATURAS:
+        if conteudo.startswith(assinatura):
+            return content_type, rotulo
+    return "application/octet-stream", "desconhecido"
+
+
 def migrar_um(s3, bucket, senha, chave_gpg, etag_gpg, simular):
-    """Migra um .gpg. Retorna (status, tamanho, erro)."""
+    """Migra um .gpg. Retorna (status, tamanho, tipo, erro)."""
     destino = chave_gpg[:-4]
     if simular:
-        return "simulado", 0, ""
+        return "simulado", 0, "", ""
     cifrado = s3.get_object(Bucket=bucket, Key=chave_gpg, IfMatch=etag_gpg)["Body"].read()
     resultado = gpg_da_thread().decrypt(cifrado, passphrase=senha)
     del cifrado
     if not resultado.ok:
-        return "falha", 0, f"gpg: {resultado.status}"
+        return "falha", 0, "", f"gpg: {resultado.status}"
     conteudo = resultado.data
-    if not conteudo.startswith(b"%PDF"):
-        return "falha", len(conteudo), "conteúdo descriptografado não é PDF"
+    content_type, rotulo = tipo_do_conteudo(conteudo)
     s3.put_object(
         Bucket=bucket,
         Key=destino,
         Body=conteudo,
-        ContentType="application/pdf",
+        ContentType=content_type,
         ServerSideEncryption="aws:kms",  # sem SSEKMSKeyId: chave gerenciada pela AWS (aws/s3)
         Metadata={META_ORIGEM: chave_gpg.rsplit("/", 1)[-1], META_ETAG: etag_gpg},
     )
     conferencia = s3.head_object(Bucket=bucket, Key=destino)
     if conferencia.get("ServerSideEncryption") != "aws:kms":
-        return "falha", len(conteudo), "objeto gravado sem SSE-KMS"
+        return "falha", len(conteudo), rotulo, "objeto gravado sem SSE-KMS"
     if conferencia.get("ContentLength") != len(conteudo):
-        return "falha", len(conteudo), "tamanho gravado diferente do original"
-    return "migrado", len(conteudo), ""
+        return "falha", len(conteudo), rotulo, "tamanho gravado diferente do original"
+    return "migrado", len(conteudo), rotulo, ""
 
 
 def processar(s3, bucket, senha, prefixo, limite, simular, workers, pasta_saida):
@@ -155,11 +174,12 @@ def processar(s3, bucket, senha, prefixo, limite, simular, workers, pasta_saida)
     carimbo = datetime.now().strftime("%Y%m%d_%H%M%S")
     caminho_csv = os.path.join(pasta_saida, f"migracao_{prefixo}_{carimbo}{'_simulacao' if simular else ''}.csv")
     contagem = {"migrado": 0, "falha": 0, "simulado": 0}
+    nao_pdf = {}
     inicio = time.time()
     with open(caminho_csv, "w", newline="", encoding="utf-8") as arquivo_csv, \
             ThreadPoolExecutor(max_workers=workers) as executor:
         escritor = csv.writer(arquivo_csv)
-        escritor.writerow(["chave_gpg", "status", "tamanho_bytes", "erro"])
+        escritor.writerow(["chave_gpg", "status", "tamanho_bytes", "tipo", "erro"])
         futuros = {executor.submit(migrar_um, s3, bucket, senha, k, v["etag"], simular): k for k, v, _ in a_migrar}
         cancelados = False
         for n, futuro in enumerate(as_completed(futuros), start=1):
@@ -171,19 +191,24 @@ def processar(s3, bucket, senha, prefixo, limite, simular, workers, pasta_saida)
                 continue
             k = futuros[futuro]
             try:
-                status, tamanho, erro = futuro.result()
+                status, tamanho, tipo, erro = futuro.result()
             except (ClientError, BotoCoreError) as e:
-                status, tamanho, erro = "falha", 0, f"{type(e).__name__}: {getattr(e, 'response', {}).get('Error', {}).get('Code', str(e))}"
+                status, tamanho, tipo, erro = "falha", 0, "", f"{type(e).__name__}: {getattr(e, 'response', {}).get('Error', {}).get('Code', str(e))}"
             except Exception as e:  # noqa: BLE001 - registra e segue para o próximo arquivo
-                status, tamanho, erro = "falha", 0, f"{type(e).__name__}: {e}"
+                status, tamanho, tipo, erro = "falha", 0, "", f"{type(e).__name__}: {e}"
             contagem[status] += 1
-            escritor.writerow([k, status, tamanho, erro])
+            if status == "migrado" and tipo != "pdf":
+                nao_pdf[tipo] = nao_pdf.get(tipo, 0) + 1
+            escritor.writerow([k, status, tamanho, tipo, erro])
             if status == "falha":
                 print(f"  FALHA {k}: {erro}", flush=True)
             if n % 100 == 0 or n == len(futuros):
                 decorrido = time.time() - inicio
                 print(f"[{prefixo}] {n}/{len(futuros)} | migrados {contagem['migrado']} | falhas {contagem['falha']}"
                       f" | {n / decorrido:.1f} arq/s", flush=True)
+    if nao_pdf:
+        resumo = ", ".join(f"{qtd} {tipo}" for tipo, qtd in sorted(nao_pdf.items()))
+        print(f"[{prefixo}] migrados que não são PDF (conteúdo preservado, ver coluna 'tipo' do CSV): {resumo}", flush=True)
     if parar.is_set():
         print(f"[{prefixo}] interrompido: rode o mesmo comando de novo para continuar de onde parou.", flush=True)
     print(f"[{prefixo}] relatório: {caminho_csv}", flush=True)

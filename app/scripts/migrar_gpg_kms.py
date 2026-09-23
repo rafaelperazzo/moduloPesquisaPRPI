@@ -18,6 +18,11 @@ de 90 dias, fase 4 do plano). Pode ser interrompido e executado de novo: pula qu
 já foi migrado a partir do mesmo .gpg (compara o ETag) e refaz quem teve o .gpg
 substituído depois da migração.
 
+Nunca sobrescreve um arquivo enviado pelo app depois da fase 2 (objeto sem a
+metadata migrado-de): esse é mais novo que o .gpg e fica como "substituido". A
+gravação é condicional (IfNoneMatch/IfMatch): se o app gravar o arquivo entre a
+conferência e o PUT, o S3 recusa (412) e o arquivo sai como falha, sem perda.
+
 Execução na EC2 (roteiro completo em migracao.s3.md):
     sudo -u pesquisa -H tmux new -s migracao
     cd /opt/moduloPesquisaPRPI/app
@@ -86,11 +91,14 @@ def listar_prefixo(s3, bucket, prefixo):
 
 
 def situacao(s3, bucket, chave_gpg, etag_gpg, objetos):
-    """'pendente', 'migrado' ou 'desatualizado' (o .gpg mudou depois da migração)."""
+    """'pendente', 'migrado', 'desatualizado' (o .gpg mudou depois da migração) ou
+    'substituido' (o app enviou uma versão nova, sem .gpg: nunca é sobrescrita)."""
     destino = chave_gpg[:-4]
     if destino not in objetos:
         return "pendente"
     cabecalho = s3.head_object(Bucket=bucket, Key=destino)
+    if META_ORIGEM not in cabecalho.get("Metadata", {}):
+        return "substituido"
     if cabecalho.get("Metadata", {}).get(META_ETAG) != etag_gpg:
         return "desatualizado"
     if cabecalho.get("ServerSideEncryption") != "aws:kms":
@@ -116,8 +124,9 @@ def tipo_do_conteudo(conteudo):
     return "application/octet-stream", "desconhecido"
 
 
-def migrar_um(s3, bucket, senha, chave_gpg, etag_gpg, simular):
-    """Migra um .gpg. Retorna (status, tamanho, tipo, erro)."""
+def migrar_um(s3, bucket, senha, chave_gpg, etag_gpg, simular, etag_destino=None):
+    """Migra um .gpg. Retorna (status, tamanho, tipo, erro).
+    etag_destino: ETag do objeto sem .gpg já existente (desatualizado) ou None (pendente)."""
     destino = chave_gpg[:-4]
     if simular:
         return "simulado", 0, "", ""
@@ -128,9 +137,11 @@ def migrar_um(s3, bucket, senha, chave_gpg, etag_gpg, simular):
         return "falha", 0, "", f"gpg: {resultado.status}"
     conteudo = resultado.data
     content_type, rotulo = tipo_do_conteudo(conteudo)
+    condicao = {"IfMatch": etag_destino} if etag_destino else {"IfNoneMatch": "*"}
     s3.put_object(
         Bucket=bucket,
         Key=destino,
+        **condicao,
         Body=conteudo,
         ContentType=content_type,
         ServerSideEncryption="aws:kms",  # sem SSEKMSKeyId: chave gerenciada pela AWS (aws/s3)
@@ -157,7 +168,7 @@ def processar(s3, bucket, senha, prefixo, limite, simular, workers, pasta_saida)
         for futuro in as_completed(futuros):
             k, v = futuros[futuro]
             estado = futuro.result()
-            if estado == "migrado":
+            if estado in ("migrado", "substituido"):
                 ja_migrados += 1
             else:
                 a_migrar.append((k, v, estado))
@@ -165,7 +176,7 @@ def processar(s3, bucket, senha, prefixo, limite, simular, workers, pasta_saida)
     if limite:
         a_migrar = a_migrar[:limite]
     desatualizados = sum(1 for _, _, e in a_migrar if e == "desatualizado")
-    print(f"[{prefixo}] já migrados: {ja_migrados} | a processar agora: {len(a_migrar)}"
+    print(f"[{prefixo}] já migrados ou substituídos pelo app: {ja_migrados} | a processar agora: {len(a_migrar)}"
           f" (dos quais {desatualizados} com .gpg alterado depois da migração)"
           f"{' | SIMULAÇÃO: nada será gravado' if simular else ''}", flush=True)
     if not a_migrar:
@@ -180,7 +191,9 @@ def processar(s3, bucket, senha, prefixo, limite, simular, workers, pasta_saida)
             ThreadPoolExecutor(max_workers=workers) as executor:
         escritor = csv.writer(arquivo_csv)
         escritor.writerow(["chave_gpg", "status", "tamanho_bytes", "tipo", "erro"])
-        futuros = {executor.submit(migrar_um, s3, bucket, senha, k, v["etag"], simular): k for k, v, _ in a_migrar}
+        futuros = {executor.submit(migrar_um, s3, bucket, senha, k, v["etag"], simular,
+                                   objetos.get(k[:-4], {}).get("etag") if e == "desatualizado" else None): k
+                   for k, v, e in a_migrar}
         cancelados = False
         for n, futuro in enumerate(as_completed(futuros), start=1):
             if parar.is_set() and not cancelados:
@@ -228,18 +241,19 @@ def verificar(s3, bucket, workers):
     for prefixo in PREFIXOS:
         objetos = listar_prefixo(s3, bucket, prefixo)
         gpgs = [(k, v) for k, v in objetos.items() if k.endswith(".gpg")]
-        estados = {"migrado": 0, "pendente": 0, "desatualizado": 0}
+        estados = {"migrado": 0, "pendente": 0, "desatualizado": 0, "substituido": 0}
         faltando = []
         with ThreadPoolExecutor(max_workers=max(workers, 8)) as executor:
             futuros = {executor.submit(situacao, s3, bucket, k, v["etag"], objetos): k for k, v in gpgs}
             for futuro in as_completed(futuros):
                 estado = futuro.result()
                 estados[estado] += 1
-                if estado != "migrado":
+                if estado in ("pendente", "desatualizado"):
                     faltando.append(futuros[futuro])
         pendencias += estados["pendente"] + estados["desatualizado"]
         print(f"[{prefixo}] .gpg: {len(gpgs)} | migrados: {estados['migrado']} | pendentes: {estados['pendente']}"
-              f" | .gpg alterado depois da migração: {estados['desatualizado']}")
+              f" | .gpg alterado depois da migração: {estados['desatualizado']}"
+              f" | substituídos pelo app: {estados['substituido']}")
         for k in sorted(faltando)[:20]:
             print(f"    falta: {k}")
         if len(faltando) > 20:

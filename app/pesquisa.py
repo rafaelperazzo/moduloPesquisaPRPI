@@ -11,7 +11,6 @@ import hmac
 import ipaddress
 import os
 import string
-import random
 import sys
 import re
 from flask_uploads import UploadSet, configure_uploads, ALL, DOCUMENTS
@@ -177,7 +176,14 @@ DSN_SENTRY = os.environ.pop("DSN_SENTRY", "")
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 URL_LAMBDA = os.getenv("URL_LAMBDA","")
 
+class RequestArquivosEmMemoria(Flask.request_class):
+    """Uploads ficam em memória (o Werkzeug grava em /tmp os maiores que 500 KB): os PDFs vão
+    direto ao S3 sem passar pelo disco. O MAX_CONTENT_LENGTH (16 MB) limita a memória por requisição."""
+    def _get_file_stream(self, total_content_length, content_type, filename=None, content_length=None):
+        return io.BytesIO()
+
 app = Flask(__name__)
+app.request_class = RequestArquivosEmMemoria
 auth = HTTPBasicAuth()
 csrf = CSRFProtect(app)
 app.config['producao'] = PRODUCAO
@@ -849,7 +855,8 @@ def nome_valido(nome):
         return False
 
 def id_generator(size=20, chars=string.ascii_uppercase + string.digits + string.ascii_lowercase):
-    return ''.join(random.choice(chars) for _ in range(size))
+    """Sufixo dos nomes de arquivo e tokens de avaliação: gerador criptográfico (secrets)."""
+    return ''.join(secrets.choice(chars) for _ in range(size))
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -1663,16 +1670,18 @@ def cadastrarProjeto():
         consulta = "UPDATE editalProjeto SET fim= %s WHERE id= %s "
         atualizar2(consulta, valores=[fim,ultimo_id])
         codigo = id_generator()
+        falhas_envio = []  # arquivos que não chegaram ao S3: a coluna não é gravada
 
         if ('arquivo_projeto' in request.files):
             arquivo_projeto = request.files['arquivo_projeto']
             if arquivo_projeto and allowed_file(arquivo_projeto.filename) :
                 arquivo_projeto.filename = "projeto_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
                 filename = secure_filename(arquivo_projeto.filename)
-                submissoes.save(arquivo_projeto, name=filename)
-                encripta_e_apaga(SUBMISSOES_DIR + filename)
-                consulta = "UPDATE editalProjeto SET arquivo_projeto= %s WHERE id= %s "
-                atualizar2(consulta, valores=[filename,ultimo_id])
+                if enviar_arquivo_s3(arquivo_projeto, 'submissoes', filename):
+                    consulta = "UPDATE editalProjeto SET arquivo_projeto= %s WHERE id= %s "
+                    atualizar2(consulta, valores=[filename,ultimo_id])
+                else:
+                    falhas_envio.append("arquivo_projeto")
             elif not allowed_file(arquivo_projeto.filename):
                 return ("Arquivo de projeto não permitido")
 
@@ -1682,10 +1691,11 @@ def cadastrarProjeto():
             if arquivo_plano1 and allowed_file(arquivo_plano1.filename):
                 arquivo_plano1.filename = "plano1_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
                 filename = secure_filename(arquivo_plano1.filename)
-                submissoes.save(arquivo_plano1, name=filename)
-                encripta_e_apaga(SUBMISSOES_DIR + filename)
-                consulta = "UPDATE editalProjeto SET arquivo_plano1= %s WHERE id= %s "
-                atualizar2(consulta, valores=[filename,ultimo_id])
+                if enviar_arquivo_s3(arquivo_plano1, 'submissoes', filename):
+                    consulta = "UPDATE editalProjeto SET arquivo_plano1= %s WHERE id= %s "
+                    atualizar2(consulta, valores=[filename,ultimo_id])
+                else:
+                    falhas_envio.append("arquivo_plano1")
             elif not allowed_file(arquivo_plano1.filename):
                 return ("Arquivo de plano 1 de trabalho não permitido")
 
@@ -1694,10 +1704,11 @@ def cadastrarProjeto():
             if arquivo_plano2 and allowed_file(arquivo_plano2.filename):
                 arquivo_plano2.filename = "plano2_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
                 filename = secure_filename(arquivo_plano2.filename)
-                submissoes.save(arquivo_plano2, name=filename)
-                encripta_e_apaga(SUBMISSOES_DIR + filename)
-                consulta = "UPDATE editalProjeto SET arquivo_plano2= %s WHERE id= %s "
-                atualizar2(consulta, valores=[filename,ultimo_id])
+                if enviar_arquivo_s3(arquivo_plano2, 'submissoes', filename):
+                    consulta = "UPDATE editalProjeto SET arquivo_plano2= %s WHERE id= %s "
+                    atualizar2(consulta, valores=[filename,ultimo_id])
+                else:
+                    falhas_envio.append("arquivo_plano2")
             elif not allowed_file(arquivo_plano2.filename):
                 return ("Arquivo de plano 2 de trabalho não permitido")
 
@@ -1707,10 +1718,11 @@ def cadastrarProjeto():
                 if arquivo_plano3 and allowed_file(arquivo_plano3.filename):
                     arquivo_plano3.filename = "plano3_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
                     filename = secure_filename(arquivo_plano3.filename)
-                    submissoes.save(arquivo_plano3, name=filename)
-                    encripta_e_apaga(SUBMISSOES_DIR + filename)
-                    consulta = "UPDATE editalProjeto SET arquivo_plano3= %s WHERE id= %s "
-                    atualizar2(consulta, valores=[filename,ultimo_id])
+                    if enviar_arquivo_s3(arquivo_plano3, 'submissoes', filename):
+                        consulta = "UPDATE editalProjeto SET arquivo_plano3= %s WHERE id= %s "
+                        atualizar2(consulta, valores=[filename,ultimo_id])
+                    else:
+                        falhas_envio.append("arquivo_plano3")
                 elif not allowed_file(arquivo_plano3.filename):
                         return ("Arquivo de plano 3 de trabalho não permitido")
 
@@ -1720,10 +1732,11 @@ def cadastrarProjeto():
             if allowed_file(arquivo_comprovantes.filename):
                 arquivo_comprovantes.filename = "Comprovantes_" + ultimo_id_str + "_" + str(siape) + "_" + codigo + ".pdf"
                 filename = secure_filename(arquivo_comprovantes.filename)
-                submissoes.save(arquivo_comprovantes, name=filename)
-                encripta_e_apaga(SUBMISSOES_DIR + filename)
-                consulta = "UPDATE editalProjeto SET arquivo_comprovantes= %s WHERE id= %s "
-                atualizar2(consulta, valores=[filename,ultimo_id])
+                if enviar_arquivo_s3(arquivo_comprovantes, 'submissoes', filename):
+                    consulta = "UPDATE editalProjeto SET arquivo_comprovantes= %s WHERE id= %s "
+                    atualizar2(consulta, valores=[filename,ultimo_id])
+                else:
+                    falhas_envio.append("arquivo_comprovantes")
 
         #CADASTRAR AVALIADORES SUGERIDOS
         if 'avaliador1_email' in request.form:
@@ -1770,6 +1783,11 @@ def cadastrarProjeto():
             t.start()
         else:
             return "Erro: informe o CPF ou anexe o arquivo do Currículo Lattes (XML ou ZIP)."
+        if falhas_envio:
+            logger.error("[cadastrarProjeto] Projeto id={} sem os arquivos {}", ultimo_id, falhas_envio)
+            return("Submissão registrada (projeto " + ultimo_id_str + "), MAS houve erro ao enviar os arquivos: "
+                   + ", ".join(falhas_envio) + ". Entre em contato com a Coordenadoria de Pesquisa ("
+                   + DEFAULT_SUPPORT + ") para enviá-los. NÃO faça uma nova submissão.")
         return("Submissão realizada com sucesso. ESTA PÁGINA JÁ PODE SER FECHADA COM SEGURANÇA.")
     else:
         editaisAbertos = getEditaisAbertos()
@@ -4134,31 +4152,52 @@ def podeSerIndicado(matricula):
     else:
         return (True)
 
-def upload_s3(origem,destino):
-    try:
-        s3.upload_file(origem, AWS_S3_BUCKET, destino)
-        os.remove(origem)
-        logger.info("[S3] Upload de arquivo {} para o S3 concluído com sucesso.", origem)
-    except (ClientError,FileNotFoundError) as e:
-        logger.error("[S3] Erro ao fazer upload ({}, {}) para o S3: {}", origem, destino, e)
+ASSINATURAS_ARQUIVOS = (
+    (b"%PDF", "application/pdf"),
+    (b"\xff\xd8\xff", "image/jpeg"),
+    (b"\x89PNG\r\n\x1a\n", "image/png"),
+)
 
-def encripta_e_apaga(arquivo):
+def tipo_do_arquivo(inicio):
+    """ContentType pelo conteúdo (os nomes terminam em .pdf, mas as indicações aceitam fotos)."""
+    for assinatura, content_type in ASSINATURAS_ARQUIVOS:
+        if inicio.startswith(assinatura):
+            return content_type
+    return "application/octet-stream"
+
+def enviar_arquivo_s3(arquivo, prefixo, nome):
     """
-    Encripta e apaga o arquivo
+    Envia um arquivo do formulário (FileStorage) direto ao S3, em SSE-KMS com a chave aws/s3,
+    sem gravar em disco e sem GPG (migracao.s3.md, fase 2). Retorna False se o envio falhar.
+
+    put_object (e não upload_fileobj): um único PUT leva o cabeçalho de criptografia que a
+    bucket policy exige; as partes de um multipart não o levam. O limite de 16 MB do app cabe.
+    Em dev (PRODUCAO!=1) o arquivo é descartado, como antes: o dev nunca grava no bucket.
     """
-    separados = arquivo.split("/")
-    nome_arquivo = separados[1]
-    pasta = 'pesquisa/' + separados[0] + "/"
-    destino = pasta + nome_arquivo + '.gpg'
-    origem = arquivo + '.gpg'
-    cripto.aes_gpg_encrypt_file(GPG_KEY,arquivo, arquivo + ".gpg")
-    os.remove(arquivo)
-    #Faz o upload do gpg para o S3
-    if PRODUCAO == 1:
-        thread_s3_upload = threading.Thread(target=upload_s3, args=(origem,destino,))
-        thread_s3_upload.start()
-    else:
-        os.remove(origem)
+    if not nome or secure_filename(nome) != nome:  # o nome vai para a chave no S3 e para a tabela
+        logger.error("[S3] Nome de arquivo recusado: {!r}", nome)
+        return False
+    chave = 'pesquisa/' + PREFIXOS_ARQUIVOS[prefixo][0] + nome
+    if PRODUCAO != 1:
+        logger.info("PRODUCAO!=1: arquivo {} NÃO enviado ao S3", chave)
+        return True
+    try:
+        arquivo.stream.seek(0)
+        content_type = tipo_do_arquivo(arquivo.stream.read(8))
+        arquivo.stream.seek(0)
+        s3.put_object(
+            Bucket=AWS_S3_BUCKET,
+            Key=chave,
+            Body=arquivo.stream,
+            ContentType=content_type,
+            ServerSideEncryption='aws:kms',  # sem SSEKMSKeyId: chave gerenciada pela AWS (aws/s3)
+            Metadata={'enviado-por': 'app'},
+        )
+        logger.info("[S3] Arquivo {} enviado ({})", chave, content_type)
+        return True
+    except (ClientError, BotoCoreError, OSError, ValueError) as e:
+        logger.error("[S3] Erro ao enviar o arquivo {}: {}", chave, e)
+        return False
 
 @app.route("/efetivarIndicacao", methods=['GET', 'POST'])
 @login_required(role='user')
@@ -4211,32 +4250,32 @@ def efetivarIndicacao():
                 if 'termo' in request.files:
                     token = id_generator()
                     nomeDoArquivoTermo = "TERMO." + idProjeto + "." + token + ".pdf"
-                    filename = anexos.save(request.files['termo'],name=nomeDoArquivoTermo)
-                    encripta_e_apaga(ATTACHMENTS_DIR + nomeDoArquivoTermo)
+                    if not enviar_arquivo_s3(request.files['termo'], 'docs_indicacoes', nomeDoArquivoTermo):
+                        return("Erro ao enviar o documento 'termo'. A indicação NÃO foi gravada: tente novamente.")
                 nomeDoArquivoRg = ""
                 if 'rg_cpf' in request.files:
                     token = id_generator()
                     nomeDoArquivoRg = "RG_CPF." + idProjeto + "." + token + ".pdf"
-                    filename = anexos.save(request.files['rg_cpf'],name=nomeDoArquivoRg)
-                    encripta_e_apaga(ATTACHMENTS_DIR + nomeDoArquivoRg)
+                    if not enviar_arquivo_s3(request.files['rg_cpf'], 'docs_indicacoes', nomeDoArquivoRg):
+                        return("Erro ao enviar o documento 'rg_cpf'. A indicação NÃO foi gravada: tente novamente.")
                 nomeDoArquivoExtrato = ""
                 if 'extrato' in request.files:
                     token = id_generator()
                     nomeDoArquivoExtrato = "EXTRATO." + idProjeto + "." + token + ".pdf"
-                    filename = anexos.save(request.files['extrato'],name=nomeDoArquivoExtrato)
-                    encripta_e_apaga(ATTACHMENTS_DIR + nomeDoArquivoExtrato)
+                    if not enviar_arquivo_s3(request.files['extrato'], 'docs_indicacoes', nomeDoArquivoExtrato):
+                        return("Erro ao enviar o documento 'extrato'. A indicação NÃO foi gravada: tente novamente.")
                 nomeDoArquivoHistorico = ""
                 if 'historico' in request.files:
                     token = id_generator()
                     nomeDoArquivoHistorico = "HISTORICO." + idProjeto + "." + token + ".pdf"
-                    filename = anexos.save(request.files['historico'],name=nomeDoArquivoHistorico)
-                    encripta_e_apaga(ATTACHMENTS_DIR + nomeDoArquivoHistorico)
+                    if not enviar_arquivo_s3(request.files['historico'], 'docs_indicacoes', nomeDoArquivoHistorico):
+                        return("Erro ao enviar o documento 'historico'. A indicação NÃO foi gravada: tente novamente.")
                 nomeDoArquivoPlano = "N/A"
                 if 'plano' in request.files:
                     token = id_generator()
                     nomeDoArquivoPlano = "PLANO." + idProjeto + "." + token + ".pdf"
-                    filename = anexos.save(request.files['plano'],name=nomeDoArquivoPlano)
-                    encripta_e_apaga(ATTACHMENTS_DIR + nomeDoArquivoPlano)
+                    if not enviar_arquivo_s3(request.files['plano'], 'docs_indicacoes', nomeDoArquivoPlano):
+                        return("Erro ao enviar o documento 'plano'. A indicação NÃO foi gravada: tente novamente.")
                 codigoEdital = obterColunaUnica('editalProjeto','tipo','id',idProjeto)
                 if (substituicao==1):
                     inicio = timestamp()
@@ -5439,8 +5478,8 @@ def alterar_projeto(id):
                 arq.filename = filename
                 filename = secure_filename(filename)
                 try:
-                    submissoes.save(arq, name=filename)
-                    encripta_e_apaga(SUBMISSOES_DIR + filename)
+                    if not enviar_arquivo_s3(arq, 'submissoes', filename):
+                        raise RuntimeError("envio ao S3 falhou")
                     atualizar2("UPDATE editalProjeto SET " + campo + "=%s WHERE id=%s", valores=[filename, id])
                 except Exception as e:
                     logger.warning("Erro ao salvar arquivo {} do projeto id={}: {}", campo, id, str(e))

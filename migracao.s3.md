@@ -2,11 +2,12 @@
 
 > **Status (2026-09-23):**
 > - **acervo migrado** pela máquina local (`migrar_s3_local.sh`): 6.634 de 6.634 em `submissoes` e 12.251 de 12.251 em `docs_indicacoes`, 0 falha, verificação final OK;
-> - **código da fase 1 implementado** (não commitado): `url_download`, `/verArquivosProjeto` com login, `/arquivo/<token>` e `test_download_s3.py`;
+> - **código da fase 1 commitado** (`daafb16`): `url_download`, `/verArquivosProjeto` com login, `/arquivo/<token>` e `test_download_s3.py`;
 > - **`/pesquisa/ARQUIVOS_LINK_KEY` criada no SSM** (SecureString, 32 bytes aleatórios; fase 0, item 6);
 > - **download real conferido:** um arquivo de `submissoes` e um de `docs_indicacoes` responderam com `aws:kms`, a chave `aws/s3` e o `ContentType` certo. Pela URL assinada, os dois devolveram `%PDF` e o `Content-Disposition` inline; sem a assinatura, o S3 devolveu 403;
 > - **pendência da fase 0:** o acesso de dev (item 4, manual);
-> - fases 2, 3 e 4: não iniciadas.
+> - **código da fase 2 implementado** (não commitado): `enviar_arquivo_s3`, uploads em memória, `id_generator` com `secrets` e o script de migração protegido contra sobrescrever uploads do app; bucket policy validada, **a aplicar depois do deploy**;
+> - fases 3 e 4: não iniciadas.
 >
 > Item do TODO: "Utilizar função Lambda para lidar com o download, upload e criptografia dos arquivos do app que estão no S3".
 
@@ -234,6 +235,26 @@ Os arquivos enviados entre a migração e o deploy da fase 2 ainda saem em `.gpg
 - os logs mostram só downloads pelo caminho novo por alguns dias.
 
 ### Fase 2: upload do app direto em SSE-KMS (ainda pelo formulário atual)
+**Implementado em 2026-09-23.** O código está em `app/pesquisa.py`, `app/scripts/migrar_gpg_kms.py` e `app/test_upload_s3.py`; os 37 testes de upload e download passam. Diferenças em relação ao plano original:
+- **`put_object`, e não `upload_fileobj`.** Um único PUT leva o cabeçalho de criptografia. No multipart, as partes (`UploadPart`) não o levam, e a bucket policy recusaria. O limite de 16 MB cabe num PUT só.
+- **O `ContentType` vem do conteúdo** (PDF, JPEG, PNG ou `octet-stream`), como na migração. Os objetos também levam a metadata `enviado-por=app`.
+- **Uploads em memória:** a `RequestArquivosEmMemoria` troca o `_get_file_stream` do Werkzeug, que gravaria em `/tmp` os uploads maiores que 500 KB. O `MAX_CONTENT_LENGTH` limita a memória a 16 MB por requisição.
+- **Nomes:** o `id_generator` passou a usar `secrets.choice`, no lugar de `random.choice`, com o mesmo formato de 20 caracteres. Isso também vale para os tokens de avaliação. Um nome que o `secure_filename` alteraria é recusado.
+- **Falhas de envio:**
+  - na submissão de projeto, a linha já existe. A coluna do arquivo não é gravada, e a mensagem final lista os arquivos que faltaram e pede para **não** submeter de novo;
+  - na indicação, o envio acontece antes do `INSERT`. Com uma falha, nada é gravado e aparece a mensagem de erro;
+  - em `alterarProjeto`, uma falha mostra o flash de erro que já existia.
+- **Script de migração:** com o novo estado `substituido`, um objeto sem a metadata `migrado-de`, enviado pelo app, nunca é sobrescrito pelo `.gpg` antigo. O `put_object` do script agora é condicional (`IfNoneMatch='*'` ou `IfMatch=<etag>`): se o app gravar o arquivo entre a conferência e o PUT, o S3 devolve 412 em vez de sobrescrever.
+- **Removidos:** `encripta_e_apaga`, `upload_s3` e o `import random`. O `esperar` e o GPG do download continuam no caminho de transição até a fase 4.
+- **Bucket policy:** a condição da chave usa `StringNotEqualsIfExists`. Sem `SSEKMSKeyId`, o cabeçalho da chave não é enviado, e `StringNotEquals` negaria o próprio upload do app. A política foi validada pelo IAM Access Analyzer, sem nenhum apontamento, e está no fim desta seção.
+
+**Ordem do deploy da fase 2:**
+1. Fazer o commit e o deploy do código.
+2. Aplicar a bucket policy (eu aplico, com confirmação). **Nunca antes do deploy:** o código anterior grava `.pdf.gpg` sem KMS nesses prefixos e seria bloqueado.
+3. Rodar de novo o script de migração (fase 1, passo 6), para os `.gpg` enviados desde a migração.
+4. Conferir (seção 6, fase 2): enviar uma submissão de teste; um `put-object` sem KMS em `pesquisa/submissoes/` deve ser negado; um `put-object` em `cppgi/` deve continuar funcionando.
+
+**Plano original:**
 - `encripta_e_apaga` passa a ser `enviar_arquivo_s3(arquivo_do_form, prefixo, nome)`:
   - `put_object`/`upload_fileobj` **direto do stream do formulário**, com `ServerSideEncryption='aws:kms'`, sem `SSEKMSKeyId` (usa a `aws/s3`);
   - sem gravar em disco, sem GPG e sem thread;
@@ -241,6 +262,42 @@ Os arquivos enviados entre a migração e o deploy da fase 2 ainda saem em `.gpg
 - Os nomes passam a ser gerados com `secrets.token_urlsafe` em vez de `random`.
 - **Bucket policy** (só para `pesquisa/submissoes/*` e `pesquisa/docs_indicacoes/*`): nega `s3:PutObject` quando `s3:x-amz-server-side-encryption` é diferente de `aws:kms`, ou quando `s3:x-amz-server-side-encryption-aws-kms-key-id` é diferente da `aws/s3` (`arn:aws:kms:us-east-2:584868042744:key/36d0ea20-0a5b-4420-acfd-a5895f190e78`). Assim, ninguém grava ali com outra chave.
 - **Dev (`PRODUCAO=0`):** continua **sem enviar ao S3**, como hoje (o arquivo é descartado). A leitura dos arquivos de produção funciona pela URL assinada, com o `kms:Decrypt` dado ao usuário de dev na fase 0.
+
+**Bucket policy (a aplicar depois do deploy):**
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PesquisaExigeSSEKMS",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:PutObject",
+      "Resource": [
+        "arn:aws:s3:::rajardekalambur/pesquisa/submissoes/*",
+        "arn:aws:s3:::rajardekalambur/pesquisa/docs_indicacoes/*"
+      ],
+      "Condition": {
+        "StringNotEquals": {"s3:x-amz-server-side-encryption": "aws:kms"}
+      }
+    },
+    {
+      "Sid": "PesquisaSomenteChaveAwsS3",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": "s3:PutObject",
+      "Resource": [
+        "arn:aws:s3:::rajardekalambur/pesquisa/submissoes/*",
+        "arn:aws:s3:::rajardekalambur/pesquisa/docs_indicacoes/*"
+      ],
+      "Condition": {
+        "StringNotEqualsIfExists": {"s3:x-amz-server-side-encryption-aws-kms-key-id": "arn:aws:kms:us-east-2:584868042744:key/36d0ea20-0a5b-4420-acfd-a5895f190e78"}
+      }
+    }
+  ]
+}
+```
+Comando: `aws s3api put-bucket-policy --region us-east-2 --bucket rajardekalambur --policy file://bucket-policy.json`. Para desfazer (não há política hoje): `aws s3api delete-bucket-policy --region us-east-2 --bucket rajardekalambur`.
 
 ### Fase 3: upload direto do navegador e Lambda `validar-upload`
 - Rota nova, `POST /arquivos/url_upload`:

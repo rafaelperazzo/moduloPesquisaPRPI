@@ -45,6 +45,8 @@ Os logs da aplicação são monitorados via **AWS CloudWatch**.
 - 🧾 Consulta e visualização de resultados dos projetos
 - 👨‍🎓 Indicação e acompanhamento de discentes vinculados
 - 📤 Envio de folhas de frequência mensal
+- 📢 Mensagens gerais no topo das páginas, com cadastro, edição e remoção pelos admins (`/admin/mensagens`) e exibição do autor
+- 🚦 Liberação do limitador de acessos pelos admins (`/admin/limitador`): por IP ou de todos os contadores
 
 ---
 
@@ -86,7 +88,7 @@ Uma página com o detalhamento completo dos recursos abaixo está disponível em
 - O sistema não envia senhas por e-mail: cadastro de usuário (convite), esqueci minha senha e reset pelo admin (código) usam os e-mails do próprio Cognito.
 - Senhas ainda não migradas continuam com Argon2id, e a política de senha forte vale nos dois lados (mínimo 12 caracteres, com maiúsculas, minúsculas, números e caracteres especiais).
 - Bloqueio automático de acesso quando a senha do usuário é identificada como vazada no login.
-- Limitação de tentativas (rate limiting) por rota em Flask-Limiter, com destaque para login e redefinição de senha.
+- Limitação de tentativas (rate limiting) por rota em Flask-Limiter, com destaque para login e redefinição de senha. Os admins podem liberar um IP bloqueado (ou zerar todos os contadores) em `/admin/limitador`, e cada liberação fica registrada no log.
 - Proteção contra CSRF (Flask-WTF), cabeçalhos de segurança HTTP (Flask-Talisman) e reCAPTCHA em formulários sensíveis.
 - Sessões armazenadas no servidor (Redis), com expiração automática.
 - Registro e auditoria de acessos (usuário, IP, rota e localização).

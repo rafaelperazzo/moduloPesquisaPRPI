@@ -7,7 +7,7 @@ Sistema de gerenciamento de projetos de pesquisa
 - [ ] Remover email NAO-RESPONDA e colocar no infisical
 - [ ] Criptografar dados da tabela users (nome e email)
 - [ ] Avaliar unificar `permissao` e `roles`
-- [ ] Utilizar função Lambda para lidar com o download, upload e criptografia dos arquivos do app que estão no S3
+- [ ] Utilizar função Lambda para lidar com o download, upload e criptografia dos arquivos do app que estão no S3 (plano em `migracao.s3.md`)
 
 ## Em progresso
 

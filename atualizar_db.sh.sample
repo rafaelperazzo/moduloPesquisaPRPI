@@ -19,6 +19,9 @@ GPG_KEY=$(grep -E "^GPG_KEY=" .env | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
 # Garante que o diretório temporário exista
 mkdir -p share
 
+# O dump decifrado tem dados pessoais reais: apaga os temporários mesmo se algum passo falhar (set -e)
+trap 'rm -f share/ultimo.sql share/ultimo.sql.gz share/*.gpg' EXIT
+
 echo "==> BAIXANDO O ÚLTIMO BACKUP DO BANCO DE DADOS (S3)"
 S3_BUCKET="s3://rajardekalambur/pesquisa/backup/"
 arquivo=$(aws s3 ls "$S3_BUCKET" | sort -k1,2 | tail -1 | awk '{print $4}')
@@ -38,12 +41,19 @@ gunzip -f share/ultimo.sql.gz
 echo "==> ATUALIZANDO O BANCO PRINCIPAL ($MYSQL_DATABASE)"
 docker compose exec -T db_pesquisa bash -c "mariadb -u root -p'$MYSQL_ROOT_PASSWORD' '$MYSQL_DATABASE' < /share/ultimo.sql"
 
+# LGPD: o dump restaurado tem CPF, dados bancários etc. reais. Anonimiza antes de qualquer uso em dev.
+echo "==> ANONIMIZANDO O BANCO PRINCIPAL ($MYSQL_DATABASE)"
+docker compose exec -T db_pesquisa mariadb -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < anonimizar_dev.sql
+
 echo "==> CLONANDO/CRIANDO O BANCO DE TESTE (pesquisa_test)"
 docker compose exec -T db_pesquisa bash -c "
   mariadb -u root -p'$MYSQL_ROOT_PASSWORD' -e 'DROP DATABASE IF EXISTS \`pesquisa_test\`; CREATE DATABASE \`pesquisa_test\`;'
   mariadb -u root -p'$MYSQL_ROOT_PASSWORD' pesquisa_test < /share/ultimo.sql
   mariadb -u root -p'$MYSQL_ROOT_PASSWORD' -e \"GRANT ALL PRIVILEGES ON \\\`pesquisa_test\\\`.* TO 'pesquisa'@'%'; FLUSH PRIVILEGES;\"
 "
+
+echo "==> ANONIMIZANDO O BANCO DE TESTE (pesquisa_test)"
+docker compose exec -T db_pesquisa mariadb -u root -p"$MYSQL_ROOT_PASSWORD" pesquisa_test < anonimizar_dev.sql
 
 echo "==> LIMPANDO ARQUIVOS TEMPORÁRIOS"
 rm -f share/ultimo.sql

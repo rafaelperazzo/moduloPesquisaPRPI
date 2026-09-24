@@ -43,6 +43,7 @@
 | Sem política, sem canal do titular e sem registro de ciência | **Implementado** (seção 3) |
 | Sentry com `send_default_pii=True`: IP, usuário e dados da requisição vão para os EUA | Declarado na política; **recomendação:** `send_default_pii=False` |
 | CPF, dados bancários, nome e e-mail do discente sem criptografia por coluna | Recomendação (exige migrar os dados) |
+| Backup de produção restaurado **em claro** na máquina de dev (`atualizar_db.sh`), com CPF e dados bancários reais | **`anonimizar_dev.sql`**, chamado pelo `atualizar_db.sh.sample` nos bancos `pesquisa` e `pesquisa_test`: CPF vira pseudônimo (o mesmo em todas as tabelas), dados bancários, RG, telefone, endereço e nascimento viram `ANONIMIZADO`, e-mail do discente e IPs são trocados, e as colunas suspeitas não tratadas são listadas para revisão. Um `trap` apaga o dump decifrado mesmo se o script falhar. Testado num MariaDB 11 descartável |
 | Tabela `acessos` sem expurgo | Depende do prazo de guarda (seção 4) |
 | Terceiros recebem o IP: Cloudflare, reCAPTCHA, CDNs (Tailwind, jsDelivr, cdnjs, googleapis, jQuery) e shields.io | Declarados na política; recomendação: hospedar os assets e trocar o reCAPTCHA pelo Turnstile |
 

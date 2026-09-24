@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solicitação LGPD</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f3f4f6; font-family:Arial, Helvetica, sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6;">
+  <tr>
+    <td align="center" style="padding:32px 16px;">
+      <table width="620" cellpadding="0" cellspacing="0" border="0" style="max-width:620px; width:100%;">
+
+        <!-- Cabeçalho -->
+        <tr>
+          <td style="background-color:#1e3a5f; border-radius:8px 8px 0 0; padding:28px 36px; text-align:center;">
+            <p style="margin:0 0 6px 0; color:#93c5fd; font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase;">Plataforma Yoko &middot; Universidade Federal do Cariri</p>
+            <h1 style="margin:0; color:#ffffff; font-size:20px; font-weight:700; line-height:1.3; text-transform:uppercase; letter-spacing:1px;">{{ 'Nova solicitação LGPD' if para_prpi else 'Solicitação LGPD recebida' }}</h1>
+          </td>
+        </tr>
+
+        <!-- Corpo -->
+        <tr>
+          <td style="background-color:#ffffff; padding:32px 36px;">
+            {% if para_prpi %}
+            <p style="margin:0 0 16px 0; font-size:13px; color:#374151; line-height:1.7;">Uma solicitação de titular foi registrada na página de Privacidade e LGPD. <strong>Confira a identidade do titular antes de enviar qualquer dado pessoal</strong> e registre a resposta no painel administrativo (Solicitações LGPD).</p>
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px; font-size:13px; color:#374151;">
+              <tr><td style="padding:4px 0; width:140px;"><strong>Protocolo</strong></td><td style="padding:4px 0; font-family:monospace;">{{ protocolo }}</td></tr>
+              <tr><td style="padding:4px 0;"><strong>Prazo</strong></td><td style="padding:4px 0;">{{ prazo }}</td></tr>
+              <tr><td style="padding:4px 0;"><strong>Nome</strong></td><td style="padding:4px 0;">{{ campos.nome }}</td></tr>
+              <tr><td style="padding:4px 0;"><strong>E-mail</strong></td><td style="padding:4px 0;">{{ campos.email }}</td></tr>
+              <tr><td style="padding:4px 0;"><strong>Vínculo</strong></td><td style="padding:4px 0;">{{ vinculo }}</td></tr>
+              <tr><td style="padding:4px 0;"><strong>Tipo</strong></td><td style="padding:4px 0;">{{ tipo }}</td></tr>
+              <tr><td style="padding:4px 0; vertical-align:top;"><strong>Descrição</strong></td><td style="padding:4px 0; white-space:pre-line;">{{ campos.descricao }}</td></tr>
+            </table>
+            {% else %}
+            <p style="margin:0 0 16px 0; font-size:14px; color:#374151; line-height:1.7;">Olá, {{ campos.nome }},</p>
+            <p style="margin:0 0 16px 0; font-size:13px; color:#374151; line-height:1.7;">Recebemos sua solicitação de <strong>{{ tipo|lower }}</strong>, feita com base na Lei Geral de Proteção de Dados Pessoais.</p>
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+              <tr>
+                <td style="background-color:#eff6ff; border-left:4px solid #1e3a5f; border-radius:4px; padding:14px 18px; font-size:13px; color:#374151; line-height:1.6;">
+                  Protocolo: <strong style="font-family:monospace;">{{ protocolo }}</strong><br>
+                  Prazo de resposta: até <strong>{{ prazo }}</strong>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:0 0 16px 0; font-size:13px; color:#374151; line-height:1.7;">A resposta será enviada para este e-mail e também poderá ser consultada, com o protocolo, em <a href="{{ link_consulta }}" style="color:#1e3a5f;">{{ link_consulta }}</a>.</p>
+            <p style="margin:0 0 20px 0; font-size:13px; color:#374151; line-height:1.7;">Para proteger seus dados, a PRPI pode pedir a confirmação da sua identidade antes de responder. <strong>Não foi você?</strong> Basta ignorar esta mensagem.</p>
+            {% endif %}
+            <p style="margin:0; font-size:13px; color:#374151;">Atenciosamente,<br><strong>Coordenadoria de Pesquisa/UFCA</strong></p>
+          </td>
+        </tr>
+
+        <!-- Rodapé -->
+        <tr>
+          <td style="background-color:#f9fafb; border-top:1px solid #e5e7eb; border-radius:0 0 8px 8px; padding:18px 36px; text-align:center;">
+            <p style="margin:0 0 6px 0; font-size:12px; color:#6b7280;">Esta mensagem foi enviada automaticamente. <strong>Não responda este e-mail.</strong></p>
+            <p style="margin:0; font-size:12px;"><a href="https://prpi.ufca.edu.br" style="color:#1e3a5f; text-decoration:none;">https://prpi.ufca.edu.br</a></p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

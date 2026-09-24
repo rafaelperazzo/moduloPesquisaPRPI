@@ -1,0 +1,114 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2"><i class="bi bi-person-vcard text-blue-600"></i> Meus dados</h2>
+      <p class="text-sm text-gray-500">Dados pessoais que a plataforma guarda sobre você (art. 18 da LGPD).</p>
+    </div>
+    <a href="{{ url_for('meus_dados_json') }}"
+       class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm">
+      <i class="bi bi-download"></i> Baixar em JSON
+    </a>
+  </div>
+
+  <h3 class="text-lg font-semibold text-gray-700 mb-3">Cadastro</h3>
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-8 text-sm">
+    {% if dados.cadastro %}
+      <dl class="grid grid-cols-1 sm:grid-cols-[10rem_1fr] gap-x-4 gap-y-2">
+        <dt class="font-medium text-gray-500">Usuário (SIAPE)</dt><dd class="text-gray-800">{{ dados.cadastro.usuario }}</dd>
+        <dt class="font-medium text-gray-500">Nome</dt><dd class="text-gray-800">{{ dados.cadastro.nome }}</dd>
+        <dt class="font-medium text-gray-500">E-mail</dt><dd class="text-gray-800">{{ dados.cadastro.email }}</dd>
+        <dt class="font-medium text-gray-500">Papéis</dt><dd class="text-gray-800">{{ dados.cadastro.papeis }}</dd>
+      </dl>
+    {% else %}
+      <p class="text-gray-500">Cadastro não encontrado.</p>
+    {% endif %}
+  </div>
+
+  <h3 class="text-lg font-semibold text-gray-700 mb-3">Projetos submetidos ({{ dados.projetos|length }})</h3>
+  {% if dados.projetos %}
+    <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm mb-8">
+      <table class="w-full text-sm text-left border-collapse">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="px-4 py-3 font-semibold text-gray-700">ID</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Edital</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Título</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Unidade / área</th>
+            <th class="px-4 py-3 font-semibold text-gray-700">Submetido em</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in dados.projetos %}
+          <tr class="border-b border-gray-100 align-top">
+            <td class="px-4 py-3 text-gray-500">{{ p.id }}</td>
+            <td class="px-4 py-3 text-gray-700">{{ p.edital or '' }}</td>
+            <td class="px-4 py-3 text-gray-800">{{ p.titulo or '' }}</td>
+            <td class="px-4 py-3 text-gray-700">{{ p.ua or '' }}{% if p.area_capes %} / {{ p.area_capes }}{% endif %}</td>
+            <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ p.data.strftime('%d/%m/%Y') if p.data else '' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-sm text-gray-500 mb-8">Nenhum projeto encontrado.</p>
+  {% endif %}
+
+  <h3 class="text-lg font-semibold text-gray-700 mb-3">Discentes indicados</h3>
+  <p class="text-sm text-gray-700 mb-8">Você indicou <strong>{{ dados.total_indicacoes_de_discentes }}</strong> discente(s). Os dados pessoais deles pertencem a cada discente e não aparecem aqui. O(a) próprio(a) discente pode pedi-los pelo <a href="{{ url_for('lgpd_solicitacao') }}" class="text-blue-600 hover:underline">formulário de solicitação</a>.</p>
+
+  <h3 class="text-lg font-semibold text-gray-700 mb-3">Ciência dos termos</h3>
+  <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm mb-8">
+    <table class="w-full text-sm text-left border-collapse">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="px-4 py-3 font-semibold text-gray-700">Versão</th>
+          <th class="px-4 py-3 font-semibold text-gray-700">Data</th>
+          <th class="px-4 py-3 font-semibold text-gray-700">IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in dados.ciencia_dos_termos %}
+        <tr class="border-b border-gray-100">
+          <td class="px-4 py-3 text-gray-800">{{ a.versao }}</td>
+          <td class="px-4 py-3 text-gray-700">{{ a.data.strftime('%d/%m/%Y %H:%M') if a.data else '' }}</td>
+          <td class="px-4 py-3 text-gray-500 font-mono">{{ a.ip or '' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="px-4 py-3 text-gray-500">Nenhum registro.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="text-lg font-semibold text-gray-700 mb-1">Acessos</h3>
+  <p class="text-sm text-gray-500 mb-3">{{ dados.total_acessos }} registro(s); abaixo, os 50 mais recentes.</p>
+  {% if dados.acessos %}
+    <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm mb-8">
+      <table class="w-full text-sm text-left border-collapse">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            {% for coluna in dados.acessos[0].keys() %}
+            <th class="px-4 py-3 font-semibold text-gray-700">{{ coluna }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for acesso in dados.acessos %}
+          <tr class="border-b border-gray-100">
+            {% for valor in acesso.values() %}
+            <td class="px-4 py-3 text-gray-700 font-mono text-xs">{{ valor if valor is not none else '' }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  <p class="text-sm text-gray-600">Encontrou algum dado incorreto ou quer fazer outro pedido? Use o <a href="{{ url_for('lgpd_solicitacao') }}" class="text-blue-600 hover:underline">formulário de solicitação</a> ou veja a <a href="{{ url_for('lgpd') }}" class="text-blue-600 hover:underline">Política de Privacidade</a>.</p>
+</div>
+{% endblock %}

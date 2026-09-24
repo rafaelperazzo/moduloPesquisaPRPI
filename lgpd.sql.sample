@@ -1,0 +1,33 @@
+-- LGPD (migracao.lgpd.md): rodar no banco `pesquisa` ANTES do deploy.
+-- Sem as tabelas, o login continua funcionando (a consulta de aceite falha e é ignorada),
+-- mas a ciência dos termos e as solicitações não são gravadas.
+
+CREATE TABLE IF NOT EXISTS lgpd_aceites (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(100) NOT NULL,
+  versao VARCHAR(20) NOT NULL,
+  data DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ip VARCHAR(45),
+  UNIQUE KEY uk_aceite (username, versao)
+);
+
+CREATE TABLE IF NOT EXISTS lgpd_solicitacoes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  protocolo CHAR(12) NOT NULL UNIQUE,
+  nome VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  vinculo VARCHAR(30) NOT NULL,      -- discente, orientador, avaliador, outro
+  tipo VARCHAR(30) NOT NULL,         -- confirmacao, acesso, correcao, eliminacao, portabilidade, compartilhamento, outro
+  descricao TEXT NOT NULL,
+  data DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  prazo DATE NOT NULL,               -- data + 15 dias (art. 19, II)
+  situacao VARCHAR(20) NOT NULL DEFAULT 'aberta',
+  resposta TEXT,
+  respondido_em DATETIME,
+  respondido_por VARCHAR(100),
+  KEY idx_situacao_prazo (situacao, prazo)
+);
+
+-- Conferência:
+-- SHOW CREATE TABLE lgpd_aceites;
+-- SHOW CREATE TABLE lgpd_solicitacoes;

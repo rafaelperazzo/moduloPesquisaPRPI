@@ -1,13 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-164056633-1"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'UA-164056633-1');
-  </script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cadastro de Projeto de Pesquisa - Plataforma Yoko</title>
@@ -587,6 +580,7 @@
           <p>Para garantir a correta pontuação da produção, os <strong>ISSNs dos periódicos</strong> devem estar cadastrados na Plataforma Lattes.</p>
         </div>
         <div class="text-center">
+          <p class="text-xs text-gray-500 mb-2"><i class="bi bi-person-lock"></i> Os dados informados são tratados pela UFCA para a submissão, a avaliação e o acompanhamento do projeto; o CPF é usado para obter o currículo Lattes junto ao CNPq. Os dados ficam hospedados na AWS (Estados Unidos). Saiba mais na <a href="{{ url_for('lgpd') }}" target="_blank" class="text-blue-600 hover:underline">Política de Privacidade</a>.</p>
           <p class="text-xs text-gray-500 italic mb-4">Clique em "Enviar" apenas uma vez e aguarde a conclusão da submissão — o processo pode demorar alguns minutos.</p>
           <input name="btnEnviar" value="Enviar Projeto" formenctype="multipart/form-data" type="submit"
             class="px-10 py-3 bg-blue-800 text-white rounded-full font-medium tracking-widest uppercase text-sm hover:bg-blue-600 transition-colors cursor-pointer shadow-md">

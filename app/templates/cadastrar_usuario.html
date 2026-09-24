@@ -46,6 +46,7 @@
           <input type="email" placeholder="E-mail institucional" name="email" required
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
         </div>
+        <p class="text-xs text-gray-500 mb-3"><i class="bi bi-person-lock"></i> Nome, SIAPE e e-mail são tratados pela UFCA para o acesso à plataforma. Os dados ficam hospedados na AWS (Estados Unidos). Saiba mais na <a href="{{ url_for('lgpd') }}" target="_blank" class="text-blue-600 hover:underline">Política de Privacidade</a>.</p>
         <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium">Cadastrar</button>
       </form>
       {% if session['PRODUCAO']==1 %}

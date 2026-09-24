@@ -255,19 +255,23 @@ logger.disable("sentry_sdk")
 logger.enable("apscheduler")
 logger.enable("flask-limiter")
 
+# LGPD: os logs (IP, rota, localização) são apagados após este prazo, declarado em /lgpd.
+# Com rotation por tamanho, o loguru confere a idade dos arquivos antigos a cada rotação.
+LOG_RETENCAO = "90 days"
+
 if PRODUCAO==1:
     #handler = LogtailHandler(
     #    source_token=BS_SOURCE_TOKEN,
     #    host=BS_HOST,
     #)
-    logger.add("app.json", rotation="20 MB", retention=30, backtrace=False,
+    logger.add("app.json", rotation="20 MB", retention=LOG_RETENCAO, backtrace=False,
                diagnose=False, level="INFO", serialize=True,mode='a',
                format="{time} | {name} | {level} | {message} | {extra}",
                compression='gz')
     #logger.add(handler, format="{time} | {name} | {level} | {message} | {extra}", level="INFO",
     #           serialize=True,backtrace=False, diagnose=False)
 else:
-    logger.add("app.log", rotation="20 MB", retention=30, backtrace=False,
+    logger.add("app.log", rotation="20 MB", retention=LOG_RETENCAO, backtrace=False,
                diagnose=False, level="INFO", serialize=True,mode='w',
                format="{time} | {name} | {level} | {message} | {extra}",
                compression='gz')
@@ -478,6 +482,20 @@ def exigir_cadastro_mfa():
     if session.get('mfa_pendente') and request.endpoint not in ROTAS_PERMITIDAS_MFA_PENDENTE:
         flash("Para continuar, configure a verificação em duas etapas (MFA).", "error")
         return redirect(url_for('mfa_configurar'))
+
+ROTAS_PERMITIDAS_ACEITE = ({'lgpd', 'lgpd_aceite', 'lgpd_solicitacao', 'lgpd_consulta', 'health', 'version'}
+                           | ROTAS_PERMITIDAS_MFA_PENDENTE | ROTAS_PERMITIDAS_SENHA_VAZADA | ROTAS_BASIC_AUTH)
+
+@app.before_request
+def exigir_aceite_lgpd():
+    """
+    LGPD (migracao.lgpd.md): o login marca a sessão com 'aceite_pendente' quando o usuário
+    ainda não registrou ciência da versão atual dos Termos de Uso e da Política de Privacidade.
+    Até registrar, só acessa a política, o próprio aceite, o logout e as telas de MFA/senha.
+    Roda depois dos bloqueios de senha vazada e de MFA, que têm prioridade.
+    """
+    if session.get('aceite_pendente') and request.endpoint not in ROTAS_PERMITIDAS_ACEITE:
+        return redirect(url_for('lgpd_aceite'))
 
 def log_required(f):
     @wraps(f)
@@ -1011,6 +1029,10 @@ def iniciar_sessao(username, permissao, roles):
     session['permissao'] = int(permissao)
     session['roles'] = str(roles).split(',')
     session['edital'] = 0
+    if aceite_pendente(username):
+        session['aceite_pendente'] = True
+    else:
+        session.pop('aceite_pendente', None)
 
 def codigo_erro(e):
     """Código do erro retornado pela AWS (ex.: NotAuthorizedException)."""
@@ -1388,6 +1410,274 @@ def seguranca():
     """Página informativa sobre os recursos de segurança da infraestrutura
     (Cloudflare) e da aplicação, para dar transparência aos usuários."""
     return render_template('seguranca.html')
+
+# ---------------------------------------------------------------------------
+# LGPD (migracao.lgpd.md): política de privacidade, ciência dos termos após o login,
+# "Meus dados" (acesso e portabilidade) e solicitações dos titulares
+# ---------------------------------------------------------------------------
+
+LGPD_VERSAO = "1.0"          # mudar a versão faz todos os usuários registrarem a ciência de novo
+LGPD_VIGENCIA = "24/09/2026"
+LGPD_PRAZO_RESPOSTA = 15     # dias (art. 19, II)
+LGPD_VINCULOS = {
+    'discente': 'Discente (bolsista ou voluntário)',
+    'orientador': 'Orientador(a) / servidor(a)',
+    'avaliador': 'Avaliador(a) de projetos',
+    'outro': 'Outro',
+}
+LGPD_TIPOS = {
+    'confirmacao': 'Confirmação da existência de tratamento',
+    'acesso': 'Acesso aos dados',
+    'correcao': 'Correção de dados incompletos, inexatos ou desatualizados',
+    'eliminacao': 'Anonimização, bloqueio ou eliminação',
+    'portabilidade': 'Portabilidade dos dados',
+    'compartilhamento': 'Informação sobre compartilhamento',
+    'outro': 'Outro',
+}
+LGPD_SITUACOES = {'aberta': 'Aberta', 'respondida': 'Respondida'}
+LGPD_LINK_CONSULTA = ROOT_SITE + URL_PREFIX + "/lgpd/consulta"
+
+def aceite_pendente(username):
+    """True se o usuário ainda não registrou ciência da versão atual dos termos.
+    Erro de banco (ex.: tabela ainda não criada) conta como sem pendência, para nunca travar o login."""
+    try:
+        resultado = executarSelect2("SELECT 1 FROM lgpd_aceites WHERE username=%s AND versao=%s LIMIT 1",
+                                    valores=(str(username), LGPD_VERSAO))
+    except Exception as e:
+        resultado = None
+        logger.warning("[lgpd] Erro ao consultar o aceite: {}", str(e))
+    if resultado is None:
+        logger.warning("[lgpd] Consulta de aceite falhou; o login segue sem exigir a ciência")
+        return False
+    return resultado[1] == 0
+
+def consultar_dicts(consulta, valores=()):
+    """SELECT que devolve uma lista de dicionários (coluna -> valor), para "Meus dados"."""
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
+    conn.select_db(MYSQL_DATABASE)
+    cursor = conn.cursor()
+    try:
+        cursor.execute(consulta, tuple(valores))
+        colunas = [c[0] for c in cursor.description]
+        return [dict(zip(colunas, linha)) for linha in cursor.fetchall()]
+    except Exception as e:
+        logger.warning("[lgpd] Erro em consultar_dicts: {}", str(e))
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+def valor_exportavel(valor):
+    """Converte datas, decimais e bytes para tipos que o JSON aceita."""
+    if isinstance(valor, (datetime, date)):
+        return valor.isoformat()
+    if isinstance(valor, bytes):
+        return valor.decode('utf-8', errors='replace')
+    if valor is None or isinstance(valor, (str, int, float, bool)):
+        return valor
+    return str(valor)
+
+def dados_do_titular(username):
+    """Dados pessoais do usuário logado (art. 18, I, II e V). Não inclui dados de outros
+    titulares (discentes indicados): deles, só a quantidade."""
+    linha = buscar_usuario(username)
+    cadastro = {}
+    if linha is not None:
+        cadastro = {'usuario': linha[1], 'nome': linha[6], 'email': linha[7], 'papeis': linha[3]}
+    projetos = consultar_dicts("""SELECT editalProjeto.id, editais.nome AS edital, editalProjeto.titulo,
+        editalProjeto.categoria, editalProjeto.nome, editalProjeto.email, editalProjeto.ua,
+        editalProjeto.area_capes, editalProjeto.grande_area, editalProjeto.grupo,
+        editalProjeto.data, editalProjeto.inicio, editalProjeto.fim
+        FROM editalProjeto LEFT JOIN editais ON editais.id=editalProjeto.tipo
+        WHERE editalProjeto.siape=%s ORDER BY editalProjeto.data DESC""", (str(username),))
+    indicacoes = consultar_dicts("""SELECT COUNT(*) AS total FROM indicacoes, editalProjeto
+        WHERE editalProjeto.id=indicacoes.idProjeto AND editalProjeto.siape=%s""", (str(username),))
+    # A tabela acessos não tem esquema no repositório: lê todas as colunas e ordena pela 1ª data
+    acessos = consultar_dicts("SELECT * FROM acessos WHERE username=%s", (str(username),))
+    if acessos:
+        coluna_data = next((c for c, v in acessos[0].items() if isinstance(v, (datetime, date))), None)
+        if coluna_data:
+            acessos.sort(key=lambda a: a[coluna_data] or datetime.min, reverse=True)
+    aceites = consultar_dicts("SELECT versao, data, ip FROM lgpd_aceites WHERE username=%s ORDER BY data DESC",
+                              (str(username),))
+    return {
+        'gerado_em': datetime.now().isoformat(timespec='seconds'),
+        'controlador': 'Universidade Federal do Cariri (UFCA) - PRPI',
+        'cadastro': cadastro,
+        'projetos': projetos,
+        'total_indicacoes_de_discentes': indicacoes[0]['total'] if indicacoes else 0,
+        'acessos': acessos[:50],
+        'total_acessos': len(acessos),
+        'ciencia_dos_termos': aceites,
+    }
+
+@app.route("/lgpd")
+@log_required
+def lgpd():
+    """Política de privacidade e quadro de atendimento aos requisitos da LGPD (público)."""
+    return render_template('lgpd.html', versao=LGPD_VERSAO, vigencia=LGPD_VIGENCIA,
+                           prazo=LGPD_PRAZO_RESPOSTA, url_validade=URL_DOWNLOAD_VALIDADE,
+                           link_dias=ARQUIVOS_LINK_VALIDADE // 86400)
+
+@app.route("/lgpd/aceite", methods=['GET', 'POST'])
+@log_required
+def lgpd_aceite():
+    """Registro de ciência dos Termos de Uso e da Política de Privacidade, pedido após o login.
+    Não é consentimento (art. 7, I): a base legal do tratamento é outra (ver /lgpd)."""
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        if request.form.get('ciente') != '1':
+            flash("Marque a caixa de ciência para continuar.", 'error')
+            return render_template('lgpd_aceite.html', versao=LGPD_VERSAO, vigencia=LGPD_VIGENCIA)
+        atualizar2("INSERT IGNORE INTO lgpd_aceites (username, versao, ip) VALUES (%s, %s, %s)",
+                   valores=[session['username'], LGPD_VERSAO, request.remote_addr])
+        session.pop('aceite_pendente', None)
+        logger.info("[lgpd] Ciência dos termos registrada: usuario={} versao={}", session['username'], LGPD_VERSAO)
+        flash("Ciência registrada. Obrigado!")
+        return redirect(url_for('home'))
+    return render_template('lgpd_aceite.html', versao=LGPD_VERSAO, vigencia=LGPD_VIGENCIA)
+
+@app.route("/meusDados", methods=['GET'])
+@login_required(role='user')
+@log_required
+def meus_dados():
+    """Acesso aos próprios dados (art. 18, I e II)."""
+    return render_template('meus_dados.html', dados=dados_do_titular(session['username']))
+
+@app.route("/meusDados.json", methods=['GET'])
+@login_required(role='user')
+@log_required
+def meus_dados_json():
+    """Portabilidade (art. 18, V): os mesmos dados de /meusDados em JSON."""
+    dados = dados_do_titular(session['username'])
+    for chave in ('projetos', 'acessos', 'ciencia_dos_termos'):
+        dados[chave] = [{c: valor_exportavel(v) for c, v in item.items()} for item in dados[chave]]
+    corpo = json.dumps(dados, ensure_ascii=False, indent=2)
+    logger.info("[lgpd] Exportação de dados pessoais: usuario={}", session['username'])
+    return Response(corpo, mimetype='application/json',
+                    headers={'Content-Disposition': f'attachment; filename="meus_dados_{secure_filename(session["username"])}.json"'})
+
+def ler_formulario_solicitacao():
+    """Lê e valida o formulário de solicitação. Retorna (campos, erro)."""
+    campos = {c: str(request.form.get(c, '')).strip() for c in ('nome', 'email', 'vinculo', 'tipo', 'descricao')}
+    if not all(campos.values()):
+        return campos, "Preencha todos os campos."
+    if len(campos['nome']) > 255 or len(campos['email']) > 255 or len(campos['descricao']) > 5000:
+        return campos, "Algum campo passou do tamanho máximo (descrição: até 5000 caracteres)."
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", campos['email']):
+        return campos, "Informe um e-mail válido."
+    if campos['vinculo'] not in LGPD_VINCULOS or campos['tipo'] not in LGPD_TIPOS:
+        return campos, "Selecione o vínculo e o tipo de solicitação."
+    return campos, None
+
+@app.route("/lgpd/solicitacao", methods=['GET', 'POST'])
+@log_required
+@limiter.limit("3/day;2/hour;1/minute", methods=["POST"])
+def lgpd_solicitacao():
+    """Canal do titular (art. 18): registra o pedido, avisa a PRPI e confirma o protocolo ao titular.
+    Nunca devolve dados pessoais por aqui: a PRPI confere a identidade antes de responder."""
+    if request.method == 'POST':
+        campos, erro = ler_formulario_solicitacao()
+        if erro:
+            flash(erro, 'error')
+            return render_template('lgpd_solicitacao.html', campos=campos, vinculos=LGPD_VINCULOS,
+                                   tipos=LGPD_TIPOS, prazo=LGPD_PRAZO_RESPOSTA)
+        protocolo = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(12))
+        prazo = date.today() + timedelta(days=LGPD_PRAZO_RESPOSTA)
+        atualizar2("""INSERT INTO lgpd_solicitacoes (protocolo, nome, email, vinculo, tipo, descricao, prazo)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                   valores=[protocolo, campos['nome'], campos['email'], campos['vinculo'], campos['tipo'],
+                            campos['descricao'], prazo])
+        contexto = dict(protocolo=protocolo, prazo=prazo.strftime('%d/%m/%Y'), campos=campos,
+                        vinculo=LGPD_VINCULOS[campos['vinculo']], tipo=LGPD_TIPOS[campos['tipo']],
+                        link_consulta=LGPD_LINK_CONSULTA)
+        send_email_async(DEFAULT_INSTITUCIONAL, f"Plataforma Yoko - Solicitação LGPD {protocolo}",
+                         render_template('email_lgpd_solicitacao.html', para_prpi=True, **contexto))
+        send_email_async(campos['email'], f"Plataforma Yoko - Solicitação LGPD recebida ({protocolo})",
+                         render_template('email_lgpd_solicitacao.html', para_prpi=False, **contexto))
+        logger.info("[lgpd] Solicitação registrada: protocolo={} tipo={} vinculo={}",
+                    protocolo, campos['tipo'], campos['vinculo'])
+        return render_template('lgpd_solicitacao.html', protocolo=protocolo, prazo=contexto['prazo'],
+                               email=campos['email'])
+    return render_template('lgpd_solicitacao.html', campos={}, vinculos=LGPD_VINCULOS, tipos=LGPD_TIPOS,
+                           prazo=LGPD_PRAZO_RESPOSTA)
+
+@app.route("/lgpd/consulta", methods=['GET', 'POST'])
+@log_required
+@limiter.limit("20/day;10/hour;3/minute", methods=["POST"])
+def lgpd_consulta():
+    """Consulta da solicitação pelo protocolo e pelo e-mail usado no pedido: situação, prazo e resposta.
+    A resposta registrada pela PRPI não contém dados pessoais (regra do painel)."""
+    if request.method == 'POST':
+        protocolo = str(request.form.get('protocolo', '')).strip().upper()
+        email = str(request.form.get('email', '')).strip()
+        linha = None
+        if re.fullmatch(r"[A-Z0-9]{12}", protocolo) and email:
+            resultado = executarSelect2("""SELECT protocolo, tipo, data, prazo, situacao, resposta, respondido_em
+                FROM lgpd_solicitacoes WHERE protocolo=%s AND LOWER(email)=LOWER(%s)""",
+                                        tipo=1, valores=(protocolo, email))
+            if resultado is not None and resultado[1] > 0:
+                linha = resultado[0]
+        if linha is None:
+            logger.info("[lgpd] Consulta de solicitação sem resultado")
+            flash("Nenhuma solicitação encontrada com esse protocolo e e-mail.", 'error')
+            return render_template('lgpd_consulta.html', protocolo=protocolo, email=email)
+        logger.info("[lgpd] Consulta de solicitação: protocolo={}", protocolo)
+        return render_template('lgpd_consulta.html', solicitacao=linha, tipos=LGPD_TIPOS, situacoes=LGPD_SITUACOES)
+    return render_template('lgpd_consulta.html', protocolo=str(request.args.get('protocolo', ''))[:12], email='')
+
+@app.route("/admin/lgpd/solicitacoes", methods=['GET'])
+@login_required(role='admin')
+@log_required
+def lgpd_solicitacoes():
+    """Solicitações dos titulares, com o prazo de resposta em destaque."""
+    situacao = request.args.get('situacao', 'aberta')
+    consulta = """SELECT id, protocolo, nome, email, vinculo, tipo, descricao, data, prazo, situacao,
+        resposta, respondido_em, respondido_por, DATEDIFF(prazo, CURDATE()) AS dias_restantes
+        FROM lgpd_solicitacoes"""
+    if situacao in LGPD_SITUACOES:
+        resultado = executarSelect2(consulta + " WHERE situacao=%s ORDER BY prazo, data", valores=(situacao,))
+    else:
+        situacao = 'todas'
+        resultado = executarSelect2(consulta + " ORDER BY data DESC")
+    linhas, total = resultado if resultado is not None else ([], 0)
+    return render_template('lgpd_solicitacoes.html', linhas=linhas, total=total, situacao=situacao,
+                           vinculos=LGPD_VINCULOS, tipos=LGPD_TIPOS, situacoes=LGPD_SITUACOES)
+
+@app.route("/admin/lgpd/solicitacoes/<int:id_solicitacao>/responder", methods=['POST'])
+@login_required(role='admin')
+@log_required
+def lgpd_solicitacao_responder(id_solicitacao):
+    """Registra a resposta e a envia por e-mail ao titular; ela também aparece em /lgpd/consulta.
+    Por isso a resposta não pode conter dados pessoais: esses só seguem após a confirmação da identidade."""
+    resposta = str(request.form.get('resposta', '')).strip()
+    if not resposta:
+        flash("Descreva a resposta dada ao titular.", 'error')
+        return redirect(url_for('lgpd_solicitacoes'))
+    resultado = executarSelect2("SELECT protocolo, nome, email, tipo, situacao FROM lgpd_solicitacoes WHERE id=%s",
+                                tipo=1, valores=(id_solicitacao,))
+    if resultado is None or resultado[1] == 0 or resultado[0] is None:
+        flash("Solicitação não encontrada.", 'error')
+        return redirect(url_for('lgpd_solicitacoes'))
+    protocolo, nome, email, tipo, situacao = resultado[0]
+    if situacao == 'respondida':
+        flash("Esta solicitação já foi respondida.", 'error')
+        return redirect(url_for('lgpd_solicitacoes'))
+    atualizar2("""UPDATE lgpd_solicitacoes SET situacao='respondida', resposta=%s, respondido_em=NOW(),
+        respondido_por=%s WHERE id=%s AND situacao='aberta'""", valores=[resposta, session['username'], id_solicitacao])
+    enviado = send_email_async(email, f"Plataforma Yoko - Resposta à solicitação LGPD {protocolo}",
+                               render_template('email_lgpd_resposta.html', nome=nome, protocolo=protocolo,
+                                               tipo=LGPD_TIPOS.get(tipo, tipo), resposta=resposta,
+                                               link_consulta=LGPD_LINK_CONSULTA))
+    logger.info("[lgpd] Solicitação {} respondida por {} (e-mail ao titular: {})",
+                protocolo, session['username'], 'enfileirado' if enviado else 'FALHOU')
+    if enviado:
+        flash(f"Solicitação {protocolo} respondida. A resposta foi enviada para {email}.")
+    else:
+        flash(f"Solicitação {protocolo} marcada como respondida, mas o e-mail para {email} falhou. "
+              "Envie a resposta manualmente; ela já aparece na consulta pelo protocolo.", 'error')
+    return redirect(url_for('lgpd_solicitacoes'))
 
 @app.route("/version")
 def version():

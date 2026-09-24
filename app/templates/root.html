@@ -57,6 +57,17 @@
       <a href="{{ url_for('seguranca') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm">VER INFORMAÇÕES DE SEGURANÇA</a>
     </div>
 
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h5 class="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2"><i class="bi bi-person-lock text-blue-600"></i> Privacidade e LGPD</h5>
+      <p class="text-gray-600 text-sm mb-4">Termos de uso, política de privacidade, seus direitos e o atendimento à LGPD</p>
+      <div class="flex flex-wrap gap-2">
+        <a href="{{ url_for('lgpd') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm">VER POLÍTICA DE PRIVACIDADE</a>
+        {% if session.get('username') %}
+        <a href="{{ url_for('meus_dados') }}" class="px-4 py-2 bg-white border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors font-medium text-sm">MEUS DADOS</a>
+        {% endif %}
+      </div>
+    </div>
+
   </div>
 </div>
 {% endblock %}

@@ -1,0 +1,274 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+      <i class="bi bi-person-lock text-blue-600"></i>
+      Privacidade e LGPD
+    </h1>
+    <p class="text-gray-600 text-sm mt-2 max-w-3xl">
+      Termos de Uso e Política de Privacidade da Plataforma Yoko - Pesquisa, com as informações exigidas pela
+      Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018, LGPD) e o quadro de atendimento aos
+      requisitos da lei.
+    </p>
+    <p class="text-gray-400 text-xs mt-2">Versão {{ versao }}, vigente desde {{ vigencia }}.</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Controlador</p>
+      <p class="text-sm text-gray-800">Universidade Federal do Cariri (UFCA), por meio da Pró-reitoria de Pesquisa,
+        Pós-graduação e Inovação (PRPI).</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Canal do titular</p>
+      <p class="text-sm text-gray-800"><a href="mailto:{{ default_institutional }}" class="text-blue-600 hover:underline">{{ default_institutional }}</a>
+        ou o <a href="{{ url_for('lgpd_solicitacao') }}" class="text-blue-600 hover:underline">formulário de solicitação</a>.
+        Os pedidos são repassados ao Encarregado pelo Tratamento de Dados Pessoais da UFCA.</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Hospedagem</p>
+      <p class="text-sm text-gray-800">Amazon Web Services (AWS), região us-east-2 (Ohio, Estados Unidos).
+        Veja a seção <a href="#transferencia" class="text-blue-600 hover:underline">Transferência internacional</a>.</p>
+    </div>
+  </div>
+
+  <!-- 1. Termos de uso -->
+  <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+    <i class="bi bi-file-earmark-text text-blue-600"></i> 1. Termos de uso
+  </h2>
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-10 text-sm text-gray-700 space-y-2">
+    <p>A plataforma é de uso institucional, para a gestão dos editais de pesquisa e iniciação científica da UFCA. Ao usá-la, você se compromete a:</p>
+    <ul class="list-disc pl-6 space-y-1">
+      <li>manter em sigilo sua senha e seu segundo fator de autenticação (MFA), que são pessoais e intransferíveis;</li>
+      <li>informar dados verdadeiros e mantê-los atualizados;</li>
+      <li>usar os dados pessoais de terceiros a que tiver acesso (por exemplo, de discentes indicados ou de projetos em avaliação) apenas para a finalidade do edital, sem copiá-los ou repassá-los;</li>
+      <li>ao indicar um discente, avisá-lo de que os dados dele serão tratados pela UFCA conforme esta política;</li>
+      <li>comunicar à PRPI qualquer suspeita de uso indevido da sua conta ou de incidente com dados pessoais.</li>
+    </ul>
+    <p>O descumprimento pode levar ao bloqueio do acesso, sem prejuízo das medidas administrativas cabíveis.</p>
+  </div>
+
+  <!-- 2. Dados tratados -->
+  <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+    <i class="bi bi-database text-blue-600"></i> 2. Quais dados pessoais são tratados
+  </h2>
+  <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm mb-10">
+    <table class="w-full text-sm text-left border-collapse">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="px-4 py-3 font-semibold text-gray-700">Titular</th>
+          <th class="px-4 py-3 font-semibold text-gray-700">Dados</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="border-b border-gray-100 align-top">
+          <td class="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">Discente indicado(a)</td>
+          <td class="px-4 py-3 text-gray-700">Nome, data de nascimento, estado civil, sexo, RG (órgão emissor e UF), CPF, curso, matrícula, ano de ingresso, currículo Lattes, dados bancários (banco, agência e conta), telefone, celular, e-mail, endereço, escola e ano de conclusão do ensino médio, frequência mensal; documentos enviados: RG/CPF, extrato bancário, histórico escolar, termo de compromisso e plano de trabalho.</td>
+        </tr>
+        <tr class="border-b border-gray-100 align-top">
+          <td class="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">Orientador(a) / usuário(a)</td>
+          <td class="px-4 py-3 text-gray-700">SIAPE, nome, e-mail, CPF (para obter o currículo Lattes junto ao CNPq), unidade acadêmica, área, grupo de pesquisa, projetos e planos de trabalho submetidos, currículo Lattes e sua pontuação, registros de acesso (data e IP) e da ciência destes termos.</td>
+        </tr>
+        <tr class="border-b border-gray-100 align-top">
+          <td class="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">Avaliador(a) de projetos</td>
+          <td class="px-4 py-3 text-gray-700">Nome, e-mail e o parecer emitido.</td>
+        </tr>
+        <tr class="align-top">
+          <td class="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">Qualquer visitante</td>
+          <td class="px-4 py-3 text-gray-700">Endereço IP, página acessada, data e hora, e a localização aproximada (cidade, estado e país) deduzida do IP, nos registros de segurança; cookie de sessão.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 3. Finalidades e bases legais -->
+  <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+    <i class="bi bi-bullseye text-blue-600"></i> 3. Finalidades e bases legais
+  </h2>
+  <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm mb-3">
+    <table class="w-full text-sm text-left border-collapse">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="px-4 py-3 font-semibold text-gray-700">Finalidade</th>
+          <th class="px-4 py-3 font-semibold text-gray-700">Base legal (LGPD)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="border-b border-gray-100 align-top">
+          <td class="px-4 py-3 text-gray-700">Submissão, avaliação, classificação e acompanhamento dos projetos dos editais</td>
+          <td class="px-4 py-3 text-gray-700">Execução de políticas públicas (art. 7º, III, e art. 23)</td>
+        </tr>
+        <tr class="border-b border-gray-100 align-top">
+          <td class="px-4 py-3 text-gray-700">Indicação de discentes, pagamento e prestação de contas das bolsas, declarações e certificados</td>
+          <td class="px-4 py-3 text-gray-700">Cumprimento de obrigação legal ou regulatória e execução de políticas públicas (art. 7º, II e III)</td>
+        </tr>
+        <tr class="border-b border-gray-100 align-top">
+          <td class="px-4 py-3 text-gray-700">Obtenção e pontuação do currículo Lattes junto ao CNPq</td>
+          <td class="px-4 py-3 text-gray-700">Execução de políticas públicas e uso compartilhado entre órgãos públicos (art. 7º, III, e art. 26)</td>
+        </tr>
+        <tr class="border-b border-gray-100 align-top">
+          <td class="px-4 py-3 text-gray-700">Envio de convites e pareceres aos avaliadores</td>
+          <td class="px-4 py-3 text-gray-700">Execução de políticas públicas (art. 7º, III)</td>
+        </tr>
+        <tr class="align-top">
+          <td class="px-4 py-3 text-gray-700">Segurança, prevenção a fraudes e auditoria de acessos</td>
+          <td class="px-4 py-3 text-gray-700">Cumprimento de obrigação legal (art. 7º, II), em atenção ao dever de segurança (art. 46)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="text-sm text-gray-600 mb-10 space-y-2 max-w-4xl">
+    <p><strong>O consentimento não é a base legal do tratamento.</strong> A ciência destes termos, registrada após o login, apenas documenta que você foi informado(a). O tratamento necessário aos editais e às bolsas continua mesmo sem ela.</p>
+    <p><strong>Adolescentes:</strong> nas modalidades de ensino médio (como o PIBIC-EM), os dados de discentes menores de 18 anos são tratados no seu melhor interesse (art. 14), só para as finalidades acima.</p>
+    <p>Não há decisões tomadas unicamente de forma automatizada: a pontuação Lattes é um dos critérios, e a classificação final segue o edital e é homologada pela PRPI.</p>
+  </div>
+
+  <!-- 4. Compartilhamento -->
+  <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+    <i class="bi bi-share text-blue-600"></i> 4. Compartilhamento e operadores
+  </h2>
+  <p class="text-gray-600 text-sm mb-4 max-w-4xl">Os dados não são vendidos nem usados para publicidade. Eles são compartilhados apenas com:</p>
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <h5 class="text-sm font-semibold text-gray-800 mb-1">Amazon Web Services (EUA)</h5>
+      <p class="text-gray-600 text-sm">Hospedagem do servidor, do banco de dados e dos arquivos; autenticação (Cognito); envio de e-mails (SQS/SES); funções de criptografia e de validação de arquivos.</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <h5 class="text-sm font-semibold text-gray-800 mb-1">Cloudflare (rede global)</h5>
+      <p class="text-gray-600 text-sm">Proteção do domínio: TLS, firewall de aplicação, bloqueio de bots e de ataques. Todo o tráfego passa por ela.</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <h5 class="text-sm font-semibold text-gray-800 mb-1">CNPq (Brasil)</h5>
+      <p class="text-gray-600 text-sm">Consulta do currículo Lattes a partir do CPF do(a) orientador(a).</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <h5 class="text-sm font-semibold text-gray-800 mb-1">Google reCAPTCHA (EUA)</h5>
+      <p class="text-gray-600 text-sm">Proteção contra robôs nos formulários de cadastro de projeto e de usuário. Recebe o IP e dados do navegador.</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <h5 class="text-sm font-semibold text-gray-800 mb-1">Sentry (EUA)</h5>
+      <p class="text-gray-600 text-sm">Registro de erros da aplicação, que pode incluir o IP, o usuário e a página em que o erro ocorreu.</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <h5 class="text-sm font-semibold text-gray-800 mb-1">Bibliotecas públicas (CDNs)</h5>
+      <p class="text-gray-600 text-sm">Arquivos de estilo e de script (Tailwind, jsDelivr, cdnjs, Google APIs, jQuery, shields.io). Recebem apenas o IP e os dados do navegador ao carregar a página.</p>
+    </div>
+  </div>
+  <p class="text-gray-600 text-sm mb-10 max-w-4xl">Também pode haver compartilhamento com as agências de fomento das bolsas (CNPq e FUNCAP) e com os órgãos de controle, quando exigido pelas regras do edital ou por lei.</p>
+
+  <!-- 5. Transferência internacional -->
+  <h2 id="transferencia" class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+    <i class="bi bi-globe-americas text-blue-600"></i> 5. Transferência internacional
+  </h2>
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-10 text-sm text-gray-700 space-y-2">
+    <p>Os dados são armazenados e processados nos <strong>Estados Unidos</strong> (AWS, região us-east-2, Ohio), o que caracteriza transferência internacional (art. 33 da LGPD). Cloudflare, Google e Sentry também podem processar dados fora do Brasil.</p>
+    <p><strong>Salvaguardas:</strong></p>
+    <ul class="list-disc pl-6 space-y-1">
+      <li>adoção das cláusulas-padrão contratuais aprovadas pela ANPD (Resolução CD/ANPD nº 19/2024) nos contratos com os operadores (art. 33, II, "b");</li>
+      <li>criptografia em trânsito (TLS) e em repouso: banco de dados criptografado, campos pessoais com criptografia própria e arquivos no S3 criptografados com chaves gerenciadas pelo AWS KMS;</li>
+      <li>acesso aos arquivos apenas por links temporários, gerados depois da verificação de permissão;</li>
+      <li>permissões mínimas para o servidor e para as funções da AWS, e autenticação com MFA.</li>
+    </ul>
+  </div>
+
+  <!-- 6. Segurança -->
+  <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+    <i class="bi bi-shield-check text-emerald-600"></i> 6. Segurança
+  </h2>
+  <p class="text-gray-600 text-sm mb-10 max-w-4xl">As medidas técnicas estão descritas na página
+    <a href="{{ url_for('seguranca') }}" class="text-blue-600 hover:underline">Segurança do sistema</a>.
+    Em caso de incidente que possa causar risco ou dano relevante, a UFCA comunicará a ANPD e os titulares afetados, conforme o art. 48 da LGPD.</p>
+
+  <!-- 7. Retenção -->
+  <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+    <i class="bi bi-hourglass-split text-blue-600"></i> 7. Por quanto tempo os dados são guardados
+  </h2>
+  <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm mb-10">
+    <table class="w-full text-sm text-left border-collapse">
+      <tbody>
+        <tr class="border-b border-gray-100 align-top">
+          <td class="px-4 py-3 font-medium text-gray-800">Projetos, indicações e documentos</td>
+          <td class="px-4 py-3 text-gray-700">Pelo prazo exigido para a prestação de contas das bolsas e para a guarda de documentos públicos. Depois disso, são eliminados ou anonimizados.</td>
+        </tr>
+        <tr class="border-b border-gray-100 align-top">
+          <td class="px-4 py-3 font-medium text-gray-800">Registros de segurança (logs)</td>
+          <td class="px-4 py-3 text-gray-700">90 dias.</td>
+        </tr>
+        <tr class="border-b border-gray-100 align-top">
+          <td class="px-4 py-3 font-medium text-gray-800">Links de acesso aos arquivos</td>
+          <td class="px-4 py-3 text-gray-700">{{ url_validade }} segundos; os links enviados aos avaliadores valem {{ link_dias }} dias e abrem apenas o projeto ou o plano de trabalho.</td>
+        </tr>
+        <tr class="align-top">
+          <td class="px-4 py-3 font-medium text-gray-800">Sessão</td>
+          <td class="px-4 py-3 text-gray-700">Encerrada no logout ou depois de 1 hora de inatividade.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 8. Cookies -->
+  <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+    <i class="bi bi-cookie text-blue-600"></i> 8. Cookies
+  </h2>
+  <p class="text-gray-600 text-sm mb-10 max-w-4xl">A plataforma usa apenas o cookie de sessão, estritamente necessário para manter o login, sem rastreamento nem publicidade. Nos formulários com reCAPTCHA, o Google pode gravar cookies próprios para diferenciar pessoas de robôs.</p>
+
+  <!-- 9. Direitos -->
+  <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+    <i class="bi bi-person-check text-blue-600"></i> 9. Seus direitos
+  </h2>
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-10 text-sm text-gray-700 space-y-3">
+    <p>Pelo art. 18 da LGPD, você pode pedir: confirmação de que seus dados são tratados; acesso aos dados; correção de dados incompletos, inexatos ou desatualizados; anonimização, bloqueio ou eliminação de dados desnecessários ou excessivos; portabilidade; informação sobre com quem os dados são compartilhados. Dados necessários ao cumprimento de obrigação legal ou à prestação de contas das bolsas podem ser mantidos pelo prazo legal (art. 16).</p>
+    <p>A resposta é dada em até <strong>{{ prazo }} dias</strong>, enviada ao e-mail informado no pedido e disponível na consulta pelo protocolo. Para proteger seus dados, a PRPI pode pedir a confirmação da sua identidade antes de responder.</p>
+    <div class="flex flex-wrap gap-3 pt-1">
+      <a href="{{ url_for('meus_dados') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm"><i class="bi bi-person-vcard"></i> Meus dados (usuários)</a>
+      <a href="{{ url_for('lgpd_solicitacao') }}" class="px-4 py-2 bg-white border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors font-medium text-sm"><i class="bi bi-envelope-paper"></i> Fazer uma solicitação</a>
+      <a href="{{ url_for('lgpd_consulta') }}" class="px-4 py-2 bg-white border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors font-medium text-sm"><i class="bi bi-search"></i> Consultar solicitação</a>
+    </div>
+    <p class="text-gray-500 text-xs">Você também pode apresentar reclamação à Autoridade Nacional de Proteção de Dados (ANPD).</p>
+  </div>
+
+  <!-- 10. Quadro de atendimento -->
+  <h2 class="text-lg font-semibold text-gray-800 mb-1 flex items-center gap-2">
+    <i class="bi bi-list-check text-emerald-600"></i> 10. Atendimento aos requisitos da LGPD
+  </h2>
+  <p class="text-gray-500 text-sm mb-4">Situação atual de cada requisito na plataforma.</p>
+  {% set requisitos = [
+    ('Art. 6º', 'Princípios (finalidade, necessidade, transparência)', 'implementado', 'Coleta limitada ao que os editais exigem; esta página publica as finalidades; ferramenta de estatísticas do Google Analytics removida.'),
+    ('Art. 9º', 'Acesso facilitado às informações', 'implementado', 'Política publicada nesta página, com link no rodapé e avisos nos formulários de indicação, de submissão e de cadastro.'),
+    ('Art. 14', 'Dados de adolescentes', 'implementado', 'Tratamento no melhor interesse, restrito às finalidades do edital de ensino médio.'),
+    ('Arts. 18 e 19', 'Direitos do titular e prazo de resposta', 'implementado', '"Meus dados" com download em JSON (portabilidade), formulário de solicitação com protocolo, consulta pelo protocolo, resposta por e-mail e controle do prazo de ' ~ prazo ~ ' dias.'),
+    ('Art. 33', 'Transferência internacional', 'andamento', 'Transferência informada nesta página; adoção das cláusulas-padrão da ANPD com os operadores em andamento.'),
+    ('Art. 37', 'Registro das operações de tratamento', 'andamento', 'Registro de acessos, de operações sensíveis e da ciência destes termos; inventário de dados a cargo do Encarregado da UFCA.'),
+    ('Art. 38', 'Relatório de impacto (RIPD)', 'andamento', 'Em elaboração, pelos dados financeiros e de identidade dos discentes.'),
+    ('Art. 41', 'Encarregado', 'andamento', 'Pedidos recebidos pela PRPI e repassados ao Encarregado da UFCA.'),
+    ('Art. 46', 'Segurança da informação', 'implementado', 'TLS, WAF, MFA obrigatório, criptografia em repouso (banco e S3 com KMS), links temporários, permissões mínimas e limite de tentativas.'),
+    ('Art. 48', 'Comunicação de incidentes', 'andamento', 'Plano de resposta com comunicação à ANPD e aos titulares em elaboração.'),
+    ('Arts. 15 e 16', 'Término do tratamento e eliminação', 'andamento', 'Logs apagados após 90 dias; prazos de guarda dos documentos das bolsas em definição.'),
+  ] %}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+    {% for artigo, titulo, situacao, descricao in requisitos %}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <h5 class="text-sm font-semibold text-gray-800">{{ artigo }} &middot; {{ titulo }}</h5>
+        {% if situacao == 'implementado' %}
+          <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium whitespace-nowrap">Implementado</span>
+        {% else %}
+          <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium whitespace-nowrap">Em andamento</span>
+        {% endif %}
+      </div>
+      <p class="text-gray-600 text-sm">{{ descricao }}</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- 11. Alterações -->
+  <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+    <i class="bi bi-clock-history text-blue-600"></i> 11. Alterações desta política
+  </h2>
+  <p class="text-gray-600 text-sm mb-6 max-w-4xl">Quando houver mudança relevante, a versão será atualizada e a ciência será pedida novamente no próximo login.
+    Versão atual: <strong>{{ versao }}</strong>, vigente desde {{ vigencia }}.</p>
+
+</div>
+{% endblock %}

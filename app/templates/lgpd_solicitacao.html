@@ -1,0 +1,73 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+  <div class="max-w-2xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-2 flex items-center gap-2">
+      <i class="bi bi-envelope-paper text-blue-600"></i> Solicitação do titular (LGPD)
+    </h2>
+
+    {% if protocolo %}
+      <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-4 rounded-md text-sm space-y-2 mt-4">
+        <p><strong>Solicitação registrada.</strong></p>
+        <p>Protocolo: <span class="font-mono font-semibold">{{ protocolo }}</span></p>
+        <p>Prazo de resposta: até <strong>{{ prazo }}</strong>. Uma confirmação foi enviada para <strong>{{ email }}</strong>.</p>
+        <p class="text-emerald-700 text-xs">Para proteger seus dados, a PRPI pode pedir a confirmação da sua identidade antes de responder.</p>
+      </div>
+      <p class="text-sm mt-6"><a href="{{ url_for('lgpd_consulta', protocolo=protocolo) }}" class="text-blue-600 hover:underline">Acompanhar esta solicitação</a>
+        &middot; <a href="{{ url_for('lgpd') }}" class="text-blue-600 hover:underline">Voltar à Política de Privacidade</a></p>
+    {% else %}
+      <p class="text-sm text-gray-600 mb-6">
+        Use este formulário para exercer os direitos do art. 18 da LGPD: confirmação, acesso, correção, eliminação,
+        portabilidade ou informação sobre o compartilhamento dos seus dados. A PRPI responde em até
+        <strong>{{ prazo }} dias</strong> e repassa ao Encarregado da UFCA quando for o caso. Nenhum dado pessoal é
+        enviado de volta por esta página.
+      </p>
+      <form method="post" action="{{ url_for('lgpd_solicitacao') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="mb-4">
+          <label for="nome" class="block text-sm font-medium text-gray-700 mb-1">Nome completo</label>
+          <input type="text" id="nome" name="nome" maxlength="255" required value="{{ campos.nome or '' }}"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        </div>
+        <div class="mb-4">
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-1">E-mail para resposta</label>
+          <input type="email" id="email" name="email" maxlength="255" required value="{{ campos.email or '' }}"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label for="vinculo" class="block text-sm font-medium text-gray-700 mb-1">Vínculo com a plataforma</label>
+            <select id="vinculo" name="vinculo" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+              <option value="" disabled {% if not campos.vinculo %}selected{% endif %}>--selecione--</option>
+              {% for chave, rotulo in vinculos.items() %}
+              <option value="{{ chave }}" {% if campos.vinculo == chave %}selected{% endif %}>{{ rotulo }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label for="tipo" class="block text-sm font-medium text-gray-700 mb-1">Tipo de solicitação</label>
+            <select id="tipo" name="tipo" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+              <option value="" disabled {% if not campos.tipo %}selected{% endif %}>--selecione--</option>
+              {% for chave, rotulo in tipos.items() %}
+              <option value="{{ chave }}" {% if campos.tipo == chave %}selected{% endif %}>{{ rotulo }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="mb-6">
+          <label for="descricao" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+          <textarea id="descricao" name="descricao" rows="5" maxlength="5000" required
+                    placeholder="Descreva o pedido. Não informe senhas nem números de documentos aqui."
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">{{ campos.descricao or '' }}</textarea>
+        </div>
+        <div class="flex items-center gap-4">
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium">Enviar solicitação</button>
+          <a href="{{ url_for('lgpd_consulta') }}" class="text-sm text-blue-600 hover:underline">Consultar uma solicitação</a>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

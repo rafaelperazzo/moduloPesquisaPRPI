@@ -1,0 +1,35 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+  <div class="max-w-2xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-2 flex items-center gap-2">
+      <i class="bi bi-person-lock text-blue-600"></i> Termos de Uso e Política de Privacidade
+    </h2>
+    <p class="text-gray-400 text-xs mb-6">Versão {{ versao }}, vigente desde {{ vigencia }}.</p>
+
+    <div class="text-sm text-gray-700 space-y-3 mb-6">
+      <p>Antes de continuar, leia os Termos de Uso e a Política de Privacidade da plataforma. Em resumo:</p>
+      <ul class="list-disc pl-6 space-y-1">
+        <li>a UFCA, por meio da PRPI, trata os dados pessoais de orientadores, discentes e avaliadores para executar os editais de pesquisa e iniciação científica e pagar as bolsas;</li>
+        <li>os dados ficam hospedados na AWS, nos <strong>Estados Unidos</strong>, com criptografia e salvaguardas contratuais;</li>
+        <li>os dados de terceiros a que você tiver acesso, como os dos discentes que indicar, devem ser usados só para o edital;</li>
+        <li>você pode consultar seus dados em "Meus dados" e fazer pedidos pelo canal da PRPI.</li>
+      </ul>
+      <p><a href="{{ url_for('lgpd') }}" target="_blank" class="text-blue-600 hover:underline"><i class="bi bi-box-arrow-up-right"></i> Ler os Termos de Uso e a Política de Privacidade completos</a></p>
+      <p class="text-gray-500 text-xs">Este registro documenta que você foi informado(a). Ele não é um consentimento: o tratamento dos dados se baseia na execução de políticas públicas e no cumprimento de obrigações legais (art. 7º, II e III, da LGPD).</p>
+    </div>
+
+    <form method="post" action="{{ url_for('lgpd_aceite') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <label class="flex items-start gap-2 text-sm text-gray-800 mb-6">
+        <input type="checkbox" name="ciente" value="1" required class="mt-1">
+        <span>Li e estou ciente dos Termos de Uso e da Política de Privacidade (versão {{ versao }}).</span>
+      </label>
+      <div class="flex items-center gap-4">
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium">Registrar ciência e continuar</button>
+        <a href="{{ url_for('encerrarSessao') }}" class="text-sm text-blue-600 hover:underline">Sair</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

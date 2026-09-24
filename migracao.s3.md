@@ -1,6 +1,6 @@
 # Arquivos do S3: criptografia com KMS, URLs assinadas e Lambdas
 
-> **Status (2026-09-23):**
+> **Status (2026-09-24):**
 > - **acervo migrado** pela máquina local (`migrar_s3_local.sh`): 6.634 de 6.634 em `submissoes` e 12.251 de 12.251 em `docs_indicacoes`, 0 falha, verificação final OK;
 > - **código da fase 1 commitado** (`daafb16`): `url_download`, `/verArquivosProjeto` com login, `/arquivo/<token>` e `test_download_s3.py`;
 > - **`/pesquisa/ARQUIVOS_LINK_KEY` criada no SSM** (SecureString, 32 bytes aleatórios; fase 0, item 6);
@@ -10,9 +10,10 @@
 > - **bucket policy aplicada** depois do deploy, na mesma data. Conferido com arquivos descartáveis, apagados depois:
 >   - em `pesquisa/submissoes/` e `pesquisa/docs_indicacoes/`, a gravação é negada sem criptografia, com SSE-S3 (AES256) e com outra chave KMS, e é permitida com `aws:kms`, que grava com a chave `aws/s3`;
 >   - em `cppgi/`, a gravação continua permitida;
-> - **falta:** conferir uma submissão e uma indicação reais, enviadas pelo app;
-> - **fase 3: código pronto, NÃO commitado; recursos da AWS criados e testados** (detalhes na seção da fase 3);
-> - fase 4: não iniciada.
+> - **fase 3 em produção** (`2c51eba`): deploy feito e testado pelo navegador em 2026-09-24; recursos da AWS criados e testados de ponta a ponta (detalhes na seção da fase 3);
+> - **falta:** conferir uma submissão e uma indicação reais com `head-object` (`aws:kms` e metadata `enviado-por=navegador`, ou `enviado-por=app` se o formulário voltou ao envio pelo app). Até 2026-09-24, nenhum arquivo tinha sido enviado depois da migração;
+> - **fase 4, item 5 feito antes da hora (2026-09-24):** `AmazonS3FullAccess` removida da role `CloudWatch` (`detach-role-policy`). O S3 da EC2 agora vem só da `S3_ec2_PESQUISA_CPPGI` (`pesquisa/*`, `cppgi/*` e `cppgi_backup/*`); o simulador mostrou `allowed` nesses prefixos e `implicitDeny` em `avaliacao/` e `docs/`, cujos backups vêm de outras máquinas. Para desfazer: `aws iam attach-role-policy --role-name CloudWatch --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess`;
+> - resto da fase 4: só depois dos 90 dias de segurança, a partir de cerca de 2026-12-22.
 >
 > Item do TODO: "Utilizar função Lambda para lidar com o download, upload e criptografia dos arquivos do app que estão no S3".
 
@@ -305,11 +306,11 @@ Os arquivos enviados entre a migração e o deploy da fase 2 ainda saem em `.gpg
 Comando: `aws s3api put-bucket-policy --region us-east-2 --bucket rajardekalambur --policy file://bucket-policy.json`. Para desfazer (não há política hoje): `aws s3api delete-bucket-policy --region us-east-2 --bucket rajardekalambur`.
 
 ### Fase 3: upload direto do navegador e Lambda `validar-upload`
-**Implementado em 2026-09-23.** Decisões do usuário:
+**Implementado em 2026-09-23; em produção desde 2026-09-24 (`2c51eba`).** Decisões do usuário:
 - as indicações aceitam PDF, JPEG e PNG; as submissões aceitam só PDF;
 - se o envio direto falhar, o formulário volta ao envio pelo app, da fase 2.
 
-**Código (não commitado):**
+**Código (`2c51eba`):**
 - **`app/pesquisa.py`:**
   - rota `POST /arquivos/url_upload`:
     - exige login e devolve 404 em dev;
@@ -398,13 +399,13 @@ Com os recursos no ar e o código antigo, nada quebra: a rota `/arquivos/url_upl
    - `esperar` e `upload_s3`;
    - o `gnupg`, se nada mais o usar.
 4. Remover a `GPG_KEY` do SSM e do código **depois** de apagar os `.gpg`.
-5. Remover `AmazonS3FullAccess` da role `CloudWatch` (seção 4). **Com a chave `aws/s3`, isso fica mais importante:** o KMS não é mais uma barreira separada, então quem tem `s3:GetObject` lê os arquivos. **Antes, confirmar o que o cppgi e os backups usam**, porque a política limitada atual já cobre `cppgi/` e `cppgi_backup/`.
+5. **Feito em 2026-09-24:** remover `AmazonS3FullAccess` da role `CloudWatch` (seção 4). **Com a chave `aws/s3`, isso fica mais importante:** o KMS não é mais uma barreira separada, então quem tem `s3:GetObject` lê os arquivos. **Antes, confirmar o que o cppgi e os backups usam**, porque a política limitada atual já cobre `cppgi/` e `cppgi_backup/`.
 6. Remover o script `scripts/migrar_gpg_kms.py` do repositório.
 
 ## 4. Permissões (resumo)
 | Principal | S3 | KMS |
 |---|---|---|
-| EC2 `CloudWatch` (app) | Fases 0 a 3: as políticas atuais, sem alteração. Fase 4: `GetObject`/`PutObject`/`DeleteObject` em `pesquisa/*`, `ListBucket` com prefixo `pesquisa/`, **sem** `AmazonS3FullAccess` | Nenhuma: a `aws/s3` autoriza pelo S3 |
+| EC2 `CloudWatch` (app) | Desde 2026-09-24, só a `S3_ec2_PESQUISA_CPPGI`: `GetObject`/`PutObject`/`DeleteObject`/`AbortMultipartUpload` em `pesquisa/*`, `cppgi/*` e `cppgi_backup/*`, e `ListBucket` com esses prefixos. **Sem** `AmazonS3FullAccess` | Nenhuma: a `aws/s3` autoriza pelo S3 |
 | Lambda `validar-upload` | `GetObject`/`DeleteObject` em `pesquisa/incoming/*`, `PutObject` em `pesquisa/submissoes/*` e `pesquisa/docs_indicacoes/*` | Nenhuma |
 | Script de migração (na EC2) | Usa a role `CloudWatch`, sem nenhuma permissão nova | Nenhuma |
 | Usuário IAM de dev (manual, fase 0, item 4) | **Só `GetObject`** em `pesquisa/submissoes/*` e `pesquisa/docs_indicacoes/*` | Nenhuma |

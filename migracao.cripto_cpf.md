@@ -1,6 +1,8 @@
 # Criptografia do CPF e dos dados bancários (levantamento)
 
-> **Status (2026-09-24): código pronto e NÃO commitado; falta o deploy (seção 7).** Faz parte das recomendações da LGPD (`migracao.lgpd.md`, art. 46).
+> **Status (2026-09-24): EM PRODUÇÃO (v12.0.0, `8095f26`) e dados migrados.** Estrutura aplicada pelo phpMyAdmin; migração na EC2: `indicacoes` 2.845, `alunos` 685 e `cadastro_geral` 773 linhas cifradas, 0 falha, `--verificar` OK nas três (pendentes 0; amostra de 200 sem problemas). Pendente: conferir as telas. Observações: 7 indicações com CPF fora do formato (ids 5094, 5517, 5637, 6184, 6508, 7100 e 7975; a busca por CPF não as acha, como antes) e 522 CPFs fora do formato em `alunos` (sem efeito, porque a tabela não é consultada por CPF).
+>
+> **Histórico:** código pronto em 2026-09-24; deploy pela seção 7. Faz parte das recomendações da LGPD (`migracao.lgpd.md`, art. 46).
 > - Testado de ponta a ponta num MariaDB 11 descartável (com `aes-256-cbc`, como em produção): o `cripto_cpf.sql.sample`, o script em todos os modos (inclusive rodando de novo) e as consultas reais geradas pelo `pesquisa.py`, capturadas e executadas no banco;
 > - 28 testes em `app/test_cripto_cpf.py`, que passam junto com os demais testes com mocks (180 no total).
 

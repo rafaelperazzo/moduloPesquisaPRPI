@@ -30,7 +30,7 @@ Sistema de gerenciamento de projetos de pesquisa
   - [ ] Fora do código: cláusulas-padrão da ANPD com a AWS (AWS Artifact) e DPAs da Cloudflare/Google/Sentry; revisão do texto pelo Encarregado da UFCA; inventário (art. 37); RIPD (art. 38); prazos de guarda e expurgo; plano de incidentes (art. 48)
   - [x] reCAPTCHA trocado pelo Cloudflare Turnstile, com validação no servidor (`migracao.lgpd.md`, seção 6); em produção na v11.1.0
   - [x] Dev: `anonimizar_dev.sql` no `atualizar_db.sh.sample` (backup de produção anonimizado ao restaurar)
-  - [ ] Criptografia do CPF e dos dados bancários: código pronto (`migracao.cripto_cpf.md`); falta o deploy (seção 7)
+  - [x] Criptografia do CPF e dos dados bancários (`migracao.cripto_cpf.md`): v12.0.0, dados migrados e verificados em 2026-09-24
   - [ ] Recomendações: `send_default_pii=False` no Sentry; hospedar os assets de CDN e badges
 
 - [ ] Remover lazy logs

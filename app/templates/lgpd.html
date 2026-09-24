@@ -158,15 +158,18 @@
   <h2 id="transferencia" class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
     <i class="bi bi-globe-americas text-blue-600"></i> 5. Transferência internacional
   </h2>
-  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-10 text-sm text-gray-700 space-y-2">
-    <p>Os dados são armazenados e processados nos <strong>Estados Unidos</strong> (AWS, região us-east-2, Ohio), o que caracteriza transferência internacional (art. 33 da LGPD). Cloudflare e Sentry também podem processar dados fora do Brasil.</p>
-    <p><strong>Salvaguardas:</strong></p>
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-10 text-sm text-gray-700 space-y-3">
+    <p><strong>5.1.</strong> Os dados pessoais tratados pela Plataforma Yoko - Pesquisa são armazenados em servidores de computação em nuvem da <strong>Amazon Web Services (AWS)</strong>, localizados nos <strong>Estados Unidos da América</strong> (região us-east-2, Ohio), exclusivamente para a hospedagem, o processamento e a segurança da infraestrutura tecnológica do sistema. A Cloudflare (proteção do domínio) e o Sentry (registro de erros) também podem tratar dados fora do Brasil, nas finalidades descritas na seção 4.</p>
+    <p><strong>5.2.</strong> Essa transferência internacional se fundamenta no <strong>art. 33 da LGPD</strong> (Lei nº 13.709/2018) e na regulamentação da Autoridade Nacional de Proteção de Dados (Resolução CD/ANPD nº 19/2024). Ela é amparada pelo <strong>Adendo de Tratamento de Dados da AWS</strong> (<em>AWS Data Processing Addendum</em>), que integra o contrato de serviço. A adoção das cláusulas-padrão contratuais aprovadas pela ANPD (art. 33, II, "b"), que devem ser usadas sem alteração, está em andamento (ver o quadro da seção 10).</p>
+    <p><strong>5.3.</strong> A AWS mantém certificações internacionais de segurança da informação, como a ISO/IEC 27001 e os relatórios SOC 2. Na plataforma, os dados são protegidos por:</p>
     <ul class="list-disc pl-6 space-y-1">
-      <li>adoção das cláusulas-padrão contratuais aprovadas pela ANPD (Resolução CD/ANPD nº 19/2024) nos contratos com os operadores (art. 33, II, "b");</li>
-      <li>criptografia em trânsito (TLS) e em repouso: banco de dados criptografado, campos pessoais com criptografia própria e arquivos no S3 criptografados com chaves gerenciadas pelo AWS KMS;</li>
+      <li>criptografia em trânsito (TLS) em toda a comunicação entre o navegador e o servidor;</li>
+      <li>criptografia em repouso do disco do servidor e dos arquivos enviados, com chaves gerenciadas pelo AWS KMS, e do banco de dados;</li>
+      <li>criptografia própria dos campos pessoais mais sensíveis: CPF, RG, dados bancários, data de nascimento, telefone e endereço;</li>
       <li>acesso aos arquivos apenas por links temporários, gerados depois da verificação de permissão;</li>
-      <li>permissões mínimas para o servidor e para as funções da AWS, e autenticação com MFA.</li>
+      <li>permissões mínimas para o servidor e para as funções da AWS, e autenticação em duas etapas (MFA) para os usuários.</li>
     </ul>
+    <p><strong>5.4.</strong> Ao registrar ciência destes termos, o usuário declara estar ciente do armazenamento dos dados em infraestrutura situada no exterior, nos limites e para as finalidades estritamente necessárias ao funcionamento da plataforma. Essa ciência não é consentimento e não é a base legal da transferência (seção 3).</p>
   </div>
 
   <!-- 6. Segurança -->
@@ -235,7 +238,7 @@
     ('Art. 9º', 'Acesso facilitado às informações', 'implementado', 'Política publicada nesta página, com link no rodapé e avisos nos formulários de indicação, de submissão e de cadastro.'),
     ('Art. 14', 'Dados de adolescentes', 'implementado', 'Tratamento no melhor interesse, restrito às finalidades do edital de ensino médio.'),
     ('Arts. 18 e 19', 'Direitos do titular e prazo de resposta', 'implementado', '"Meus dados" com download em JSON (portabilidade), formulário de solicitação com protocolo, consulta pelo protocolo, resposta por e-mail e controle do prazo de ' ~ prazo ~ ' dias.'),
-    ('Art. 33', 'Transferência internacional', 'andamento', 'Transferência informada nesta página; adoção das cláusulas-padrão da ANPD com os operadores em andamento.'),
+    ('Art. 33', 'Transferência internacional', 'andamento', 'Transferência informada nesta página e amparada pelo AWS Data Processing Addendum; adoção das cláusulas-padrão da ANPD com os operadores em andamento.'),
     ('Art. 37', 'Registro das operações de tratamento', 'andamento', 'Registro de acessos, de operações sensíveis e da ciência destes termos; inventário de dados a cargo do Encarregado da UFCA.'),
     ('Art. 38', 'Relatório de impacto (RIPD)', 'andamento', 'Em elaboração, pelos dados financeiros e de identidade dos discentes.'),
     ('Art. 41', 'Encarregado', 'andamento', 'Pedidos recebidos pela PRPI e repassados ao Encarregado da UFCA.'),

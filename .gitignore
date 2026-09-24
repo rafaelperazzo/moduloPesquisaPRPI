@@ -28,6 +28,7 @@ cron.avaliacao.sh
 *.zip
 *.pass
 *.sql
+!anonimizar_dev.sql
 *.sh
 !systemd/pesquisa-healthcheck.sh
 !systemd/instalar-healthcheck.sh

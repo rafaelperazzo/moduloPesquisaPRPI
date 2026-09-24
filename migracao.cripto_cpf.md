@@ -1,6 +1,8 @@
 # Criptografia do CPF e dos dados bancários (levantamento)
 
-> **Status (2026-09-24):** levantamento feito; **nada implementado**. Faz parte das recomendações da LGPD (`migracao.lgpd.md`, art. 46).
+> **Status (2026-09-24): código pronto e NÃO commitado; falta o deploy (seção 7).** Faz parte das recomendações da LGPD (`migracao.lgpd.md`, art. 46).
+> - Testado de ponta a ponta num MariaDB 11 descartável (com `aes-256-cbc`, como em produção): o `cripto_cpf.sql.sample`, o script em todos os modos (inclusive rodando de novo) e as consultas reais geradas pelo `pesquisa.py`, capturadas e executadas no banco;
+> - 28 testes em `app/test_cripto_cpf.py`, que passam junto com os demais testes com mocks (180 no total).
 
 ## 1. Situação atual
 
@@ -123,3 +125,68 @@ Não mudam: os templates, que recebem os valores já decifrados, exceto no item 
 7. Depois de alguns dias, remover a leitura de transição.
 
 **Esforço estimado:** cerca de 1 dia de desenvolvimento e testes, mais a janela de migração (minutos, porque são alguns milhares de linhas).
+
+## 7. Implementação (2026-09-24) e roteiro de deploy
+
+**Arquivos:**
+- `cripto_cpf.sql.sample`: os `ALTER TABLE` da seção 3, incluindo `cadastro_geral` para InnoDB;
+- `app/pesquisa.py`:
+  - `CPF_HMAC_KEY`, `normalizar_cpf`, `hash_cpf`, `mascarar_cpf`, `sql_decifra`, `sql_busca_cpf`/`valores_busca_cpf` e `montar_insert_indicacao`;
+  - os 11 pontos da seção 4;
+- `app/scripts/cifrar_cpf_banco.py`: a migração dos dados existentes;
+- `app/test_cripto_cpf.py`;
+- `anonimizar_dev.sql`: `cpf_hash = NULL` em dev, para o app ler os pseudônimos como texto, e o pseudônimo do CPF gerado a partir do `cpf_hash`, para ser o mesmo entre as tabelas.
+
+**Decisões tomadas na implementação:**
+- **O CPF é cifrado como foi digitado**, com ou sem pontuação, para as declarações continuarem iguais. Só o hash usa os dígitos. Com isso, a busca por CPF passa a achar o discente **com ou sem pontuação**, o que antes falhava.
+- **A leitura de transição `IF(cpf_hash IS NULL ...)` fica permanente.** Ela é barata e é o que faz o banco de dev anonimizado funcionar. Em produção, o `--verificar` garante que não sobram linhas com `cpf_hash` nulo.
+- **Os valores vazios continuam vazios**, sem cifrar, e a leitura os devolve como estão, para não aparecer "None" nas telas. Os `N/A` dos voluntários são cifrados.
+- **Linhas com `iv` curto** (menos de 16 caracteres) são **puladas e informadas pelo id**. Nelas, as outras colunas provavelmente nunca foram cifradas, e é preciso decidir caso a caso.
+- A indicação nova grava as **9 colunas pessoais cifradas no próprio `INSERT`**, e o `UPDATE` que cifrava depois foi removido.
+- **Tamanho das colunas:** o valor gravado é `TO_BASE64(AES_ENCRYPT(...))`. O AES-256-CBC completa até o próximo múltiplo de 16 bytes, e o `TO_BASE64` do MariaDB quebra a linha a cada 76 caracteres. Medido num MariaDB 11: 14 bytes viram 24, 100 viram 153 e 367 viram 498. Então, `varchar(500)` aceita valores de até 367 bytes, e `varchar(64)` (`alunos.cpf`) aceita até 47. Antes de alterar qualquer linha, o script confere o maior valor de cada coluna e **para** se algum não couber. Isso evita que um banco fora do modo estrito corte o texto cifrado sem aviso.
+
+**Roteiro (nesta ordem):**
+1. **Criar a chave do HMAC** (o valor não aparece na tela). **Ela nunca deve mudar depois da migração**, senão as buscas por CPF deixam de achar as linhas:
+   ```bash
+   aws ssm put-parameter --region us-east-2 --name /pesquisa/CPF_HMAC_KEY --type SecureString --value "$(openssl rand -hex 32)"
+   ```
+2. **Backup do banco**, com o `backup.mysql.sh` de sempre, e conferir se ele chegou ao S3.
+3. **Rodar o `cripto_cpf.sql.sample`** no banco `pesquisa`, pelo phpMyAdmin, e conferir com as consultas do final do arquivo. **Tem que ser antes do deploy**, porque o `INSERT` novo usa o `cpf_hash`.
+4. **Commit, tag e deploy.** A partir daqui, as indicações novas já saem cifradas, e as antigas continuam aparecendo pela leitura de transição.
+5. **Migração, na EC2:**
+   ```bash
+   cd /opt/moduloPesquisaPRPI/app
+   env/bin/python scripts/cifrar_cpf_banco.py --simular      # só contagens: pendentes, CPF vazio/fora do formato, iv inválido
+   env/bin/python scripts/cifrar_cpf_banco.py --limite 10    # 10 linhas por tabela
+   env/bin/python scripts/cifrar_cpf_banco.py --verificar    # a amostra deve dar problemas: 0
+   env/bin/python scripts/cifrar_cpf_banco.py                # o restante (poucos minutos)
+   env/bin/python scripts/cifrar_cpf_banco.py --verificar    # OK nas três tabelas
+   ```
+   Se o `--simular` mostrar linhas com **iv inválido**, anote os ids e me avise antes de seguir.
+6. **Conferência nas telas:**
+   - a lista de indicações do admin, com banco, agência e conta legíveis, nos dois formatos;
+   - as substituições;
+   - a declaração e o certificado de um discente de 2019 em diante e de um legado (`cadastro_geral`);
+   - a verificação pública de declaração, com o CPF mascarado;
+   - a consulta de projetos por CPF, com e sem pontuação;
+   - uma indicação nova.
+7. Conferir no phpMyAdmin que os dados estão cifrados, sem mostrar valores:
+   ```sql
+   SELECT COUNT(*) total, SUM(cpf_hash IS NULL) sem_hash, SUM(cpf REGEXP '^[0-9.\\-]{11,14}$') cpf_em_claro FROM indicacoes;
+   ```
+
+**Plano B (desfazer):** reverter o commit e o deploy e, se for preciso, decifrar de volta. O SQL abaixo não depende da chave do HMAC:
+```sql
+SET @k = '<AES_KEY>';
+UPDATE indicacoes SET
+  cpf = IF(cpf = '', cpf, CONVERT(AES_DECRYPT(FROM_BASE64(cpf), @k, iv, 'aes-256-cbc'), CHAR)),
+  nome_banco = IF(nome_banco = '', nome_banco, CONVERT(AES_DECRYPT(FROM_BASE64(nome_banco), @k, iv, 'aes-256-cbc'), CHAR)),
+  agencia = IF(agencia = '', agencia, CONVERT(AES_DECRYPT(FROM_BASE64(agencia), @k, iv, 'aes-256-cbc'), CHAR)),
+  conta = IF(conta = '', conta, CONVERT(AES_DECRYPT(FROM_BASE64(conta), @k, iv, 'aes-256-cbc'), CHAR)),
+  cpf_hash = NULL
+WHERE cpf_hash IS NOT NULL;
+UPDATE alunos SET cpf = IF(cpf IS NULL OR cpf = '', cpf, CONVERT(AES_DECRYPT(FROM_BASE64(cpf), @k, iv, 'aes-256-cbc'), CHAR)), cpf_hash = NULL WHERE cpf_hash IS NOT NULL;
+UPDATE cadastro_geral SET cpf = IF(cpf IS NULL OR cpf = '', cpf, CONVERT(AES_DECRYPT(FROM_BASE64(cpf), @k, iv, 'aes-256-cbc'), CHAR)), cpf_hash = NULL WHERE cpf_hash IS NOT NULL;
+SET @k = NULL;
+```
+Atenção: as indicações gravadas depois do deploy também têm as 5 colunas antigas (rg, nascimento, telefone, celular e endereco) cifradas no `INSERT`. Isso é compatível com o código antigo, que já as decifrava.

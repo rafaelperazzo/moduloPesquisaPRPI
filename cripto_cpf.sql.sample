@@ -1,0 +1,30 @@
+-- Criptografia do CPF e dos dados bancários (migracao.cripto_cpf.md): estrutura.
+-- Rodar no banco `pesquisa` ANTES do deploy do código (o INSERT da indicação passa a gravar cpf_hash).
+-- É compatível com o código atual: só amplia colunas e acrescenta outras.
+
+-- indicacoes: cpf, agencia e conta já são varchar(500); nome_banco precisa crescer (texto cifrado em base64)
+ALTER TABLE indicacoes
+  MODIFY nome_banco VARCHAR(500) NOT NULL,
+  ADD cpf_hash CHAR(64) NULL AFTER cpf,
+  ADD INDEX idx_cpf_hash (cpf_hash);
+
+-- alunos (legada): cpf varchar(16) precisa crescer; a tabela não tinha iv
+ALTER TABLE alunos
+  MODIFY cpf VARCHAR(64) NULL,
+  ADD cpf_hash CHAR(64) NULL AFTER cpf,
+  ADD iv VARCHAR(30) NULL,
+  ADD INDEX idx_cpf_hash (cpf_hash);
+
+-- cadastro_geral (legada): era MyISAM, sem criptografia em repouso. Com innodb_encrypt_tables=FORCE,
+-- passa a ser cifrada no disco ao virar InnoDB. O iv já existe.
+ALTER TABLE cadastro_geral
+  ENGINE = InnoDB,
+  ADD cpf_hash CHAR(64) NULL AFTER cpf,
+  ADD INDEX idx_cpf_hash (cpf_hash);
+
+-- Conferência (uma linha por coluna, cabe no phpMyAdmin):
+-- SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE FROM information_schema.COLUMNS
+--  WHERE TABLE_SCHEMA = DATABASE() AND COLUMN_NAME IN ('cpf', 'cpf_hash', 'iv', 'nome_banco')
+--    AND TABLE_NAME IN ('indicacoes', 'alunos', 'cadastro_geral') ORDER BY 1, 2;
+-- SELECT TABLE_NAME, ENGINE, CREATE_OPTIONS FROM information_schema.TABLES
+--  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'cadastro_geral';

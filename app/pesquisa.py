@@ -242,6 +242,61 @@ GPG_KEY = os.environ.pop("GPG_KEY", "000000")
 OPENVPN_KEY = os.environ.pop("OPENVPN_KEY", "000000")
 cripto = SecCripto(AES_KEY)
 
+# ---------------------------------------------------------------------------
+# Criptografia do CPF e dos dados bancários (migracao.cripto_cpf.md): AES-256-CBC do MariaDB,
+# com a AES_KEY e o iv de cada linha, como as demais colunas cifradas (rg, telefone...).
+# A busca por CPF usa cpf_hash = HMAC-SHA256(CPF só com dígitos), com a chave /pesquisa/CPF_HMAC_KEY.
+# cpf_hash IS NULL marca a linha ainda não cifrada: a leitura devolve o valor como está
+# (transição da migração e banco de dev anonimizado).
+# ---------------------------------------------------------------------------
+CPF_HMAC_KEY = os.environ.pop("CPF_HMAC_KEY", "")
+if not CPF_HMAC_KEY:
+    if PRODUCAO == 1:
+        logger.error("[cripto_cpf] CPF_HMAC_KEY ausente: as buscas por CPF não vão encontrar as linhas cifradas")
+    CPF_HMAC_KEY = "chave-hmac-cpf-somente-dev"
+SQL_CIFRA = "TO_BASE64(AES_ENCRYPT(%s, %s, %s, 'aes-256-cbc'))"  # parâmetros: valor, AES_KEY, iv
+
+def normalizar_cpf(cpf):
+    """Só os dígitos do CPF (com ou sem pontuação)."""
+    return re.sub(r'\D', '', str(cpf or ''))
+
+def hash_cpf(cpf):
+    """Índice cego do CPF: HMAC-SHA256 dos dígitos. CPF vazio também gera hash (marca a linha como cifrada)."""
+    return hmac.new(CPF_HMAC_KEY.encode(), normalizar_cpf(cpf).encode(), hashlib.sha256).hexdigest()
+
+def mascarar_cpf(cpf):
+    """CPF para exibição pública: ***.456.789-**."""
+    digitos = normalizar_cpf(cpf)
+    return f"***.{digitos[3:6]}.{digitos[6:9]}-**" if len(digitos) == 11 else ''
+
+def sql_decifra(coluna, tabela=None):
+    """Trecho SQL com a coluna decifrada. Consome 1 parâmetro (AES_KEY), na ordem em que aparece na consulta."""
+    p = f"{tabela}." if tabela else ""
+    return (f"IF({p}cpf_hash IS NULL OR {p}{coluna} IS NULL OR {p}{coluna} = '', {p}{coluna}, "
+            f"CONVERT(AES_DECRYPT(FROM_BASE64({p}{coluna}), %s, {p}iv, 'aes-256-cbc'), CHAR))")
+
+def sql_busca_cpf(tabela=None):
+    """Condição de busca por CPF. Consome 2 parâmetros: valores_busca_cpf(cpf)."""
+    p = f"{tabela}." if tabela else ""
+    return f"({p}cpf_hash = %s OR ({p}cpf_hash IS NULL AND {p}cpf = %s))"
+
+def valores_busca_cpf(cpf):
+    return (hash_cpf(cpf), str(cpf))
+
+# Colunas de indicacoes cifradas já no INSERT, sem janela em claro
+COLUNAS_CIFRADAS_INDICACAO = {'nascimento', 'rg', 'cpf', 'nome_banco', 'agencia', 'conta', 'telefone', 'celular', 'endereco'}
+
+def montar_insert_indicacao(campos, iv, cpf):
+    """INSERT de indicacoes com as colunas pessoais cifradas e o cpf_hash. campos: [(coluna, valor), ...]."""
+    colunas = [c for c, _ in campos] + ['cpf_hash']
+    marcadores = [SQL_CIFRA if c in COLUNAS_CIFRADAS_INDICACAO else '%s' for c, _ in campos] + ['%s']
+    valores = []
+    for coluna, valor in campos:
+        valores.extend((valor, AES_KEY, iv) if coluna in COLUNAS_CIFRADAS_INDICACAO else (valor,))
+    valores.append(hash_cpf(cpf))
+    consulta = f"INSERT INTO indicacoes ({','.join(colunas)}) VALUES ({','.join(marcadores)})"
+    return consulta, tuple(valores)
+
 def gerar_codigo_auth(identificador, titulo, prefixo='declaracao_orientador'):
     msg = f"{prefixo}:{identificador}:{titulo}".encode()
     return hmac.new(AES_KEY.encode(), msg, hashlib.sha256).hexdigest()
@@ -950,8 +1005,8 @@ def gerarDeclaracao(identificador):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
-    consulta = "SELECT nome,cpf,modalidade,orientador,projeto,inicio,fim,id,ch FROM alunos WHERE id=%s"
-    cursor.execute(consulta, (identificador,))
+    consulta = f"SELECT nome,{sql_decifra('cpf')},modalidade,orientador,projeto,inicio,fim,id,ch FROM alunos WHERE id=%s"
+    cursor.execute(consulta, (AES_KEY, identificador))
     linha = cursor.fetchone()
 
     #RECUPERANDO DADOS
@@ -998,17 +1053,19 @@ def gerarDeclaracaoOrientador(identificador):
     return (linha,frase_bolsistas)
 
 def gerarProjetosPorAluno(cpf):
+    if len(normalizar_cpf(cpf)) != 11:
+        return ([], [])
     try:
         conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
         conn.select_db(MYSQL_DATABASE)
         cursor  = conn.cursor()
-        consulta = """SELECT estudante_nome_completo,cpf,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,estudante_inicio,estudante_fim,token FROM cadastro_geral WHERE cpf = %s """
-        cursor.execute(consulta, (cpf,))
+        consulta = f"""SELECT estudante_nome_completo,{sql_decifra('cpf')},estudante_modalidade,nome_do_coordenador,titulo_do_projeto,estudante_inicio,estudante_fim,token FROM cadastro_geral WHERE {sql_busca_cpf()} """
+        cursor.execute(consulta, (AES_KEY,) + valores_busca_cpf(cpf))
         linhas = cursor.fetchall()
-        consulta = """SELECT indicacoes.nome,indicacoes.cpf,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),editalProjeto.nome,editalProjeto.titulo,indicacoes.inicio,indicacoes.fim,indicacoes.id
+        consulta = f"""SELECT indicacoes.nome,{sql_decifra('cpf', 'indicacoes')},IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),editalProjeto.nome,editalProjeto.titulo,indicacoes.inicio,indicacoes.fim,indicacoes.id
                     FROM indicacoes,editalProjeto
-                    WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.cpf= %s """
-        cursor.execute(consulta, (cpf,))
+                    WHERE indicacoes.idProjeto=editalProjeto.id AND {sql_busca_cpf('indicacoes')} """
+        cursor.execute(consulta, (AES_KEY,) + valores_busca_cpf(cpf))
         linhas2019 = cursor.fetchall()
         return (linhas,linhas2019)
     except Exception as e:
@@ -1035,8 +1092,8 @@ def gerarAutenticacao(identificador):
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     conn.select_db(MYSQL_DATABASE)
     cursor  = conn.cursor()
-    consulta = "SELECT a.nome,a.cpf,a.modalidade,a.orientador,a.projeto,a.inicio,a.fim,b.codigo FROM alunos a, autenticacao b WHERE a.id=b.idAluno and b.codigo=%s ORDER BY b.data DESC LIMIT 1"
-    cursor.execute(consulta, (identificador,))
+    consulta = f"SELECT a.nome,{sql_decifra('cpf', 'a')},a.modalidade,a.orientador,a.projeto,a.inicio,a.fim,b.codigo FROM alunos a, autenticacao b WHERE a.id=b.idAluno and b.codigo=%s ORDER BY b.data DESC LIMIT 1"
+    cursor.execute(consulta, (AES_KEY, identificador))
     linha = cursor.fetchone()
     conn.close()
     return (linha)
@@ -1856,9 +1913,9 @@ def verificarDeclaracao():
             if verificar_codigo_auth(id_doc, linha[2], codigo, prefixo):
                 return render_template('verificar_declaracao.html', resultado='valido', tipo='projeto', dados=linha, erro=None)
     # Busca como indicação (discente)
-    consulta_disc = """SELECT
+    consulta_disc = f"""SELECT
         indicacoes.nome,
-        indicacoes.cpf,
+        {sql_decifra('cpf', 'indicacoes')},
         UPPER(editalProjeto.titulo),
         DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),
         DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'),
@@ -1866,9 +1923,10 @@ def verificarDeclaracao():
         indicacoes.id
         FROM indicacoes, editalProjeto
         WHERE indicacoes.idProjeto = editalProjeto.id AND indicacoes.id=%s"""
-    resultado_disc, _ = executarSelect2(consulta_disc, tipo=0, valores=(id_doc,))
+    resultado_disc, _ = executarSelect2(consulta_disc, tipo=0, valores=(AES_KEY, id_doc))
     if resultado_disc:
-        linha_disc = resultado_disc[0]
+        # Página pública: o CPF aparece mascarado (LGPD, necessidade)
+        linha_disc = (resultado_disc[0][0], mascarar_cpf(resultado_disc[0][1])) + tuple(resultado_disc[0][2:])
         if verificar_codigo_auth(id_doc, linha_disc[2], codigo, 'declaracao_discente'):
             return render_template('verificar_declaracao.html', resultado='valido', tipo='discente', dados=linha_disc, erro=None)
     return render_template('verificar_declaracao.html', resultado='invalido', tipo=None, dados=None, erro="Código inválido. Este documento pode não ter sido emitido pelo sistema.")
@@ -3428,9 +3486,9 @@ def minhaDeclaracaoDiscente():
         # Recuperando o token da declaração
         if 'token' in request.args:
             token = str(request.args.get('token'))
-            consulta = """SELECT estudante_nome_completo,cpf,if(estudante_fim>NOW(),1,0) as verbo,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,
+            consulta = f"""SELECT estudante_nome_completo,{sql_decifra('cpf')},if(estudante_fim>NOW(),1,0) as verbo,estudante_modalidade,nome_do_coordenador,titulo_do_projeto,
                         ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(estudante_fim,'%d/%m/%Y') as final,id FROM cadastro_geral WHERE token=%s"""
-            projeto, total = executarSelect2(consulta, tipo=1, valores=(token,))
+            projeto, total = executarSelect2(consulta, tipo=1, valores=(AES_KEY, token))
             data_agora = getData()
 
             if total == 1:
@@ -3477,8 +3535,8 @@ def meuCertificado2018():
     if request.method == "GET":
         if 'token' in request.args:
             token = str(request.args.get('token'))
-            consulta = """
-            SELECT estudante_nome_completo,cpf,estudante_tipo_de_vaga,estudante_modalidade,
+            consulta = f"""
+            SELECT estudante_nome_completo,{sql_decifra('cpf')},estudante_tipo_de_vaga,estudante_modalidade,
             nome_do_coordenador,titulo_do_projeto,ch_semanal,DATE_FORMAT(estudante_inicio,'%d/%m/%Y'),
             DATE_FORMAT(estudante_fim,'%d/%m/%Y') ,
             ROUND((DATEDIFF(estudante_fim,estudante_inicio)/7)*ch_semanal) as ch_total
@@ -3486,7 +3544,7 @@ def meuCertificado2018():
             consulta2 = """SELECT * from gestores ORDER BY id"""
             
             from datetime import datetime
-            projeto, total = executarSelect2(consulta, tipo=1, valores=(token,))
+            projeto, total = executarSelect2(consulta, tipo=1, valores=(AES_KEY, token))
             
             if total != 1:
                 return "declaração inexistente!"
@@ -3545,7 +3603,7 @@ def meuCertificado():
     if request.method == "GET":
         if 'id' in request.args:
             idIndicacao = str(request.args.get('id'))
-            consulta = """SELECT i.nome,i.cpf,
+            consulta = f"""SELECT i.nome,{sql_decifra('cpf', 'i')},
             IF(i.modalidade=1,'PIBIC',IF(i.modalidade=2,'PIBITI',IF(i.modalidade=3,'PIBIC-EM','PIBIC-AF'))) as modalidade,
             IF(i.tipo_de_vaga=1,'BOLSISTA','VOLUNTÁRIO') as vaga,
             e.nome,e.titulo,i.ch,DATE_FORMAT(i.inicio,'%d/%m/%Y') as inicio, DATE_FORMAT(i.fim,'%d/%m/%Y') as fim,
@@ -3554,7 +3612,7 @@ def meuCertificado():
             consulta2 = """SELECT * from gestores ORDER BY id"""
             
             from datetime import datetime
-            projeto, total = executarSelect2(consulta, tipo=1, valores=(idIndicacao,))
+            projeto, total = executarSelect2(consulta, tipo=1, valores=(AES_KEY, idIndicacao))
             
             if total != 1:
                 return "declaração inexistente!"
@@ -3614,8 +3672,8 @@ def minhaDeclaracaoDiscente2019():
     if request.method == "GET":
         if 'id' in request.args:
             idIndicacao = str(request.args.get('id'))
-            consulta = """SELECT 
-            indicacoes.nome,indicacoes.cpf,if(indicacoes.fim>NOW(),1,0) as verbo,
+            consulta = f"""SELECT 
+            indicacoes.nome,{sql_decifra('cpf', 'indicacoes')},if(indicacoes.fim>NOW(),1,0) as verbo,
             IF(indicacoes.modalidade=1,'PIBIC',
             IF(indicacoes.modalidade=2,'PIBITI',
             IF(indicacoes.modalidade=3,'PIBIC-EM','PIBIC-AF'))),
@@ -3626,7 +3684,7 @@ def minhaDeclaracaoDiscente2019():
             WHERE indicacoes.idProjeto=editalProjeto.id AND indicacoes.id=%s"""
             
             from datetime import datetime
-            projeto, total = executarSelect2(consulta, tipo=1, valores=(idIndicacao,))
+            projeto, total = executarSelect2(consulta, tipo=1, valores=(AES_KEY, idIndicacao))
             
             if total != 1:
                 return "declaração inexistente!"
@@ -4757,26 +4815,19 @@ def efetivarIndicacao():
                         inicio=agora
                 fim = obterColunaUnica('editais','discente_fim','id',str(codigoEdital))
                 iv = secrets.token_urlsafe(16)
-                consulta = """INSERT INTO indicacoes (idProjeto,nome,nascimento,estado_civil,sexo,rg,orgao_emissor,uf,
-                cpf,tipo_de_vaga,modalidade,curso,matricula,ano_de_ingresso,lattes,nome_banco,agencia,conta,telefone,celular,
-                email,endereco,escola,ano_conclusao,arquivo_cpf_rg,arquivo_extrato,arquivo_historico,arquivo_termo,inicio,fim,arquivo_plano,substituido,fomento,iv)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) """
-                valores = (int(idProjeto),nome,nascimento,estado_civil,sexo,rg,orgao,uf,cpf,vaga,modalidade,curso,matricula,ingresso,lattes,banco,agencia,conta,telefone,celular,email,endereco,escola,conclusao,nomeDoArquivoRg,nomeDoArquivoExtrato,nomeDoArquivoHistorico,nomeDoArquivoTermo,inicio,fim,nomeDoArquivoPlano,substituido,fomento,iv)
+                campos = [('idProjeto', int(idProjeto)), ('nome', nome), ('nascimento', nascimento), ('estado_civil', estado_civil),
+                          ('sexo', sexo), ('rg', rg), ('orgao_emissor', orgao), ('uf', uf), ('cpf', cpf), ('tipo_de_vaga', vaga),
+                          ('modalidade', modalidade), ('curso', curso), ('matricula', matricula), ('ano_de_ingresso', ingresso),
+                          ('lattes', lattes), ('nome_banco', banco), ('agencia', agencia), ('conta', conta), ('telefone', telefone),
+                          ('celular', celular), ('email', email), ('endereco', endereco), ('escola', escola), ('ano_conclusao', conclusao),
+                          ('arquivo_cpf_rg', nomeDoArquivoRg), ('arquivo_extrato', nomeDoArquivoExtrato),
+                          ('arquivo_historico', nomeDoArquivoHistorico), ('arquivo_termo', nomeDoArquivoTermo), ('inicio', inicio),
+                          ('fim', fim), ('arquivo_plano', nomeDoArquivoPlano), ('substituido', substituido), ('fomento', fomento), ('iv', iv)]
+                consulta, valores = montar_insert_indicacao(campos, iv, cpf)
                 inserir(consulta,valores)
                 lastID = "SELECT id FROM indicacoes WHERE idProjeto=%s ORDER BY id DESC LIMIT 1"
                 ultimo_id,total = executarSelect2(lastID,tipo=1,valores=(idProjeto,))
                 idIndicacao = int(ultimo_id[0])
-                chave = AES_KEY
-                consulta_criptografar = """
-                UPDATE indicacoes SET
-                    rg=TO_BASE64(AES_ENCRYPT(rg,%s,iv)),
-                    nascimento=TO_BASE64(AES_ENCRYPT(nascimento,%s,iv)),
-                    telefone=TO_BASE64(AES_ENCRYPT(telefone,%s,iv)),
-                    celular=TO_BASE64(AES_ENCRYPT(celular,%s,iv)),
-                    endereco=TO_BASE64(AES_ENCRYPT(endereco,%s,iv))
-                WHERE id=%s;
-                """
-                atualizar2(consulta_criptografar, valores=(chave,chave,chave,chave,chave,idIndicacao))
                 titulo_projeto = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
                 orientador = obterColunaUnica('editalProjeto','nome','id',idProjeto)
                 email = obterColunaUnica('editalProjeto','email','id',idProjeto)
@@ -4806,14 +4857,14 @@ def indicacoes():
             descricao_edital = obterColunaUnica('editais','nome','id',codigoEdital)
             if 'tipo' in request.args:
                 tipo_de_vaga = str(request.args.get('tipo'))
-                consulta = """SELECT indicacoes.id,
+                consulta = f"""SELECT indicacoes.id,
                 indicacoes.idProjeto, 
                 indicacoes.nome,
                 IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
                 IF(tipo_de_vaga=1, 'BOLSISTA','VOLUNTÁRIO(A)'), 
-                nome_banco,
-                agencia,
-                conta, 
+                {sql_decifra('nome_banco', 'indicacoes')},
+                {sql_decifra('agencia', 'indicacoes')},
+                {sql_decifra('conta', 'indicacoes')}, 
                 arquivo_cpf_rg,
                 arquivo_extrato,
                 arquivo_historico,
@@ -4833,14 +4884,14 @@ def indicacoes():
                 WHERE indicacoes.tipo_de_vaga=%s
                 AND indicacoes.idProjeto=editalProjeto.id AND tipo=%s
                 ORDER BY editalProjeto.tipo,editalProjeto.nome,indicacoes.id """
-                parametros_consulta = (AES_KEY,AES_KEY,AES_KEY,AES_KEY,AES_KEY,tipo_de_vaga,codigoEdital)
+                parametros_consulta = (AES_KEY,) * 8 + (tipo_de_vaga, codigoEdital)
             else:
-                consulta = """SELECT indicacoes.id,indicacoes.idProjeto, indicacoes.nome,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
-                IF(tipo_de_vaga=1, 'BOLSISTA','VOLUNTÁRIO(A)'), nome_banco,agencia,conta, arquivo_cpf_rg,arquivo_extrato,
+                consulta = f"""SELECT indicacoes.id,indicacoes.idProjeto, indicacoes.nome,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
+                IF(tipo_de_vaga=1, 'BOLSISTA','VOLUNTÁRIO(A)'), {sql_decifra('nome_banco', 'indicacoes')},{sql_decifra('agencia', 'indicacoes')},{sql_decifra('conta', 'indicacoes')}, arquivo_cpf_rg,arquivo_extrato,
                 arquivo_historico,arquivo_termo,DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'), editalProjeto.nome,editalProjeto.obs,
                 editalProjeto.tipo,IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPQ','FUNCAP'))
                 FROM indicacoes,editalProjeto WHERE indicacoes.idProjeto=editalProjeto.id AND tipo=%s ORDER BY editalProjeto.tipo,editalProjeto.nome,indicacoes.id """
-                parametros_consulta = (codigoEdital,)
+                parametros_consulta = (AES_KEY,) * 3 + (codigoEdital,)
             linhas,total = executarSelect2(consulta,valores=parametros_consulta)
             return(render_template('listar_indicacoes.html',listaIndicacoes=linhas,total=total,descricao=descricao_edital))
         else:
@@ -5338,17 +5389,17 @@ def substituicoes():
     if 'id' in request.args:
         id = str(request.args.get('id'))
         descricao = obterColunaUnica('editais','nome','id',id)
-        consulta1 = """SELECT indicacoes.id,idProjeto,editalProjeto.tipo,IF(tipo_de_vaga=1,'BOLSISTA','VOLUNARIO(A)') AS tipo,IF(indicacoes.situacao=1,'DESLIGADO(A)','SUBSTITUIDO(A)') AS tipo_situacao,indicacoes.nome,nome_banco,agencia,conta, DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y') as inicio,
+        consulta1 = f"""SELECT indicacoes.id,idProjeto,editalProjeto.tipo,IF(tipo_de_vaga=1,'BOLSISTA','VOLUNARIO(A)') AS tipo,IF(indicacoes.situacao=1,'DESLIGADO(A)','SUBSTITUIDO(A)') AS tipo_situacao,indicacoes.nome,{sql_decifra('nome_banco', 'indicacoes')},{sql_decifra('agencia', 'indicacoes')},{sql_decifra('conta', 'indicacoes')}, DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y') as inicio,
         DATE_FORMAT(indicacoes.fim,'%d/%m/%Y') as final,editalProjeto.nome FROM indicacoes,editalProjeto WHERE indicacoes.idProjeto=editalProjeto.id AND
         indicacoes.situacao in (1,2) AND editalProjeto.tipo=%s ORDER BY indicacoes.tipo_de_vaga DESC,indicacoes.fim DESC"""
-        linhas,total = executarSelect2(consulta1,valores=(id,))
+        linhas,total = executarSelect2(consulta1,valores=(AES_KEY,) * 3 + (id,))
 
 
-        consulta2 = """SELECT indicacoes.id,idProjeto,editalProjeto.tipo,IF(tipo_de_vaga=1,'BOLSISTA','VOLUNARIO(A)') AS tipo,IF(indicacoes.substituido!=0,'SUBSTITUTO(A)','N/A') AS tipo_situacao,indicacoes.nome,nome_banco,agencia,conta, DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y') as inicio,
+        consulta2 = f"""SELECT indicacoes.id,idProjeto,editalProjeto.tipo,IF(tipo_de_vaga=1,'BOLSISTA','VOLUNARIO(A)') AS tipo,IF(indicacoes.substituido!=0,'SUBSTITUTO(A)','N/A') AS tipo_situacao,indicacoes.nome,{sql_decifra('nome_banco', 'indicacoes')},{sql_decifra('agencia', 'indicacoes')},{sql_decifra('conta', 'indicacoes')}, DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y') as inicio,
         DATE_FORMAT(indicacoes.fim,'%d/%m/%Y') as final,indicacoes.substituido,editalProjeto.nome FROM indicacoes,editalProjeto WHERE indicacoes.idProjeto=editalProjeto.id AND
         indicacoes.situacao in (0) AND indicacoes.substituido!=0 AND editalProjeto.tipo=%s ORDER BY indicacoes.tipo_de_vaga DESC,indicacoes.fim DESC"""
 
-        linhas2,total2 = executarSelect2(consulta2,valores=(id,))
+        linhas2,total2 = executarSelect2(consulta2,valores=(AES_KEY,) * 3 + (id,))
         return(render_template('substituicoes.html',linhas=linhas,linhas2=linhas2,total=total,total2=total2,edital=descricao))
 
     else:
@@ -5541,7 +5592,7 @@ def get_dados_indicacao(cpf):
     cpf_corrigido = cpf_corrigido[:3] + '.' + cpf_corrigido[3:]
     cpf_corrigido = cpf_corrigido[:7] + '.' + cpf_corrigido[7:]
     cpf_corrigido = cpf_corrigido[:11] + '-' + cpf_corrigido[11:]
-    consulta = """
+    consulta = f"""
     SELECT upper(indicacoes.nome),
     indicacoes.email,
     IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')) as modalidade,
@@ -5553,10 +5604,11 @@ def get_dados_indicacao(cpf):
     INNER JOIN editalProjeto
     ON indicacoes.idProjeto=editalProjeto.id
     WHERE editalProjeto.valendo=1 AND
-    cpf=%s
+    {sql_busca_cpf('indicacoes')}
     ORDER BY indicacoes.id DESC
     """
-    linhas,total = executarSelect2(consulta,valores=(cpf_corrigido,))
+    # O hash usa só os dígitos; o cpf_corrigido (com pontuação) serve às linhas ainda não cifradas
+    linhas,total = executarSelect2(consulta,valores=valores_busca_cpf(cpf_corrigido)) if len(normalizar_cpf(cpf)) == 11 else ([], 0)
     dados = []
     for linha in linhas:
         dado = {'nome': linha[0],'email': linha[1],'modalidade': linha[2],'tipo_vinculo': linha[3],'fomento': linha[4],'idProjeto': linha[5],'dados': linha[6]}

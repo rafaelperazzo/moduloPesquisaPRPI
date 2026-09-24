@@ -112,6 +112,8 @@
 
 ## 6. Cloudflare Turnstile (no lugar do reCAPTCHA), 2026-09-24
 
+> **Em produção desde a v11.1.0 (`a7e54cc`).** O usuário conferiu em 2026-09-24, e está funcionando.
+
 - **Chaves no SSM:** `/pesquisa/TURNSTILE_SITE_KEY` (String) e `/pesquisa/TURNSTILE_SECRET_KEY` (SecureString), criadas pelo usuário e conferidas. Sem elas, o app usa as chaves de teste da Cloudflare.
 - **Servidor:** `turnstile_valido()` valida o `cf-turnstile-response` no `siteverify`, enviando o IP do `CF-Connecting-IP`, **só em produção**, como o MFA. Sem token ou com token recusado, o envio é recusado. Se a Cloudflare não responder, o envio é aceito e fica um aviso no log, para não travar o login. O decorator `@exigir_turnstile(<endpoint>)` volta ao formulário com uma mensagem.
 - **Rotas protegidas:**

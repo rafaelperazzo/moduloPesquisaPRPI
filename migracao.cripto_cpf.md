@@ -13,7 +13,7 @@
 - para ler, o SQL decifra com `CONVERT(AES_DECRYPT(FROM_BASE64(col), chave, iv, 'AES-256-CBC'), CHAR)` ([pesquisa.py:4770](app/pesquisa.py#L4770)).
 
 **Problemas desse esquema, que a mudança deve evitar:**
-1. **Janela em claro:** o `INSERT` grava os dados em claro e só depois um `UPDATE` cifra ([pesquisa.py:4702-4720](app/pesquisa.py#L4702-L4720)). Nesse intervalo, e em qualquer binlog ou log geral do MariaDB, o valor fica em claro.
+1. **Janela em claro:** o `INSERT` grava os dados em claro e só depois um `UPDATE` cifra ([pesquisa.py:4702-4720](app/pesquisa.py#L4702-L4720)). Em produção, o `encrypt_binlog` e o `innodb_encrypt_log` estão ligados (conferido em 2026-09-24), então os logs em disco estão cifrados e o risco é baixo. Ainda assim, vale cifrar direto no `INSERT`.
 2. **O modo de cifra depende do servidor:** o `AES_ENCRYPT(rg, chave, iv)` não informa o modo e usa o `block_encryption_mode` do servidor. Em dev, ele está no `docker-compose.yml` (`--block-encryption-mode=aes-256-cbc`). **Em produção, conferido em 2026-09-24: `aes-256-cbc`**, tanto global quanto de sessão. Assim, as colunas já cifradas estão no mesmo modo em que o código decifra. Mesmo assim, o código novo deve sempre informar o modo `'aes-256-cbc'`.
 3. **A chave vai no texto da consulta** como parâmetro. Ela nunca é gravada no banco, mas aparece no `PROCESSLIST` e no log geral, se ele estiver ligado. Isso é aceitável, mas vale registrar.
 
@@ -23,7 +23,7 @@
 |---|---|---|
 | `indicacoes` | `cpf`, `nome_banco`, `agencia`, `conta` | Tabela principal (desde 2019) |
 | `alunos` | `cpf` | Legada. Conferido: **não tem dados bancários**; o `cpf varchar(16)` precisa crescer; não tem `iv`; guarda o `email` do discente (fora do escopo) |
-| `cadastro_geral` | `cpf`, `orientador_cpf`, `rg`, `telefone`, `celular`, `estudante_banco`, `estudante_no_agencia`, `estudante_no_conta_corrente` | Legada (antes de 2019), com cerca de 800 linhas. Conferido: todas as colunas são `text` e já existe `iv varchar(100) NOT NULL DEFAULT ''`. Contagem de 2026-09-24: 773 linhas, todas com `iv`; `rg`, `telefone` e `estudante_no_conta_corrente` **parecem já cifrados** (770 a 772 linhas em base64); o **`cpf` está em claro** em 718 linhas. O escopo provável é só `cpf` e `orientador_cpf`. Falta conferir as 55 linhas restantes de `cpf`, o `orientador_cpf` e se as colunas cifradas decifram com a `AES_KEY` atual Também guarda `e-mail` e `orientador_email` (fora do escopo). **É `ENGINE=MyISAM`** (ver a seção 5.4) |
+| `cadastro_geral` | `cpf`, `orientador_cpf`, `rg`, `telefone`, `celular`, `estudante_banco`, `estudante_no_agencia`, `estudante_no_conta_corrente` | Legada (antes de 2019), com cerca de 800 linhas. Conferido: todas as colunas são `text` e já existe `iv varchar(100) NOT NULL DEFAULT ''`. Contagem de 2026-09-24: 773 linhas, todas com `iv`; `rg`, `telefone` e `estudante_no_conta_corrente` **parecem já cifrados** (770 a 772 linhas em base64); o **`cpf` está em claro** em 718 linhas. Segunda conferência, também em 2026-09-24: `orientador_cpf` (773), `celular`, `estudante_banco` e `estudante_no_agencia` (770) **já estão cifrados** e **decifram com a `AES_KEY` atual** no modo `aes-256-cbc`. O `cpf` tem 718 linhas em claro, 54 vazias e 1 em outro formato, que o script registra sem mostrar o valor. **Escopo nesta tabela: só o `cpf`**, mais a conversão para InnoDB Também guarda `e-mail` e `orientador_email` (fora do escopo). **É `ENGINE=MyISAM`** (ver a seção 5.4) |
 
 O CPF dos orientadores não é gravado: ele só é usado para buscar o Lattes.
 
@@ -77,7 +77,7 @@ O CPF dos orientadores não é gravado: ele só é usado para buscar o Lattes.
    O script é idempotente e pode ser repetido. Nas tabelas legadas, ele gera o `iv` antes. Na verificação, confere que `COUNT(cpf_hash IS NULL) = 0` e que o CPF decifrado bate com o hash, numa amostra.
 4. **Backup** logo antes de rodar o script. Um script de reversão (decifrar de volta), guardado junto, serve de plano B.
 
-**Por quanto tempo o CPF em claro ainda existe:** os backups antigos em `pesquisa/backup/`, cifrados com GPG, continuam com o CPF em claro até expirarem, e o mesmo vale para os binlogs. Isso está coberto pela política de retenção dos backups, que deve ser definida (`migracao.lgpd.md`, seção 4).
+**Por quanto tempo o CPF em claro ainda existe:** os backups antigos em `pesquisa/backup/`, cifrados com GPG, continuam com o CPF em claro até expirarem. Os binlogs são cifrados (`encrypt_binlog=ON`) e expiram conforme a configuração do servidor. Isso está coberto pela política de retenção dos backups, que deve ser definida (`migracao.lgpd.md`, seção 4).
 
 ## 4. Adaptações no código (`app/pesquisa.py`)
 
@@ -107,10 +107,10 @@ Não mudam: os templates, que recebem os valores já decifrados, exceto no item 
 
 ## 5. Problemas de segurança encontrados no levantamento (independentes da criptografia)
 
-1. **`/indicacao/<cpf>` é pública, sem limite e com `Access-Control-Allow-Origin: *`.** Qualquer site ou script consegue testar CPFs e receber o **nome e o e-mail** do discente, a modalidade e o projeto. É uma enumeração de dados pessoais. **Quem usa essa rota?** O CORS aberto sugere outro sistema. A correção é exigir autenticação (Basic Auth ou token, como as rotas de `ROTAS_BASIC_AUTH`) ou remover a rota, e, no mínimo, pôr um limitador. **Prioridade alta**, e dá para fazer antes da criptografia.
+1. **`/indicacao/<cpf>` é pública, sem limite e com `Access-Control-Allow-Origin: *`.** Qualquer site ou script consegue testar CPFs e receber o **nome e o e-mail** do discente, a modalidade e o projeto. É uma enumeração de dados pessoais. **Quem usa: outro app** (resposta do usuário em 2026-09-24), então a rota não pode ser removida. A correção é exigir uma credencial desse app e pôr um limitador. Se o outro app chama a rota **pelo navegador** (JavaScript), qualquer segredo colocado ali fica exposto: o backend desse app precisa fazer a chamada. **Prioridade alta**, e dá para fazer antes da criptografia.
 2. **`/projetosAluno` e `/projetos_discente`** fazem busca pública por CPF e devolvem os projetos e o `token` das declarações, que mostram o CPF completo. O reCAPTCHA só é conferido no navegador (ver o Turnstile, em `migracao.lgpd.md`), e a `/projetosAluno` não tem limitador.
 3. ~~Produção: confirmar `@@block_encryption_mode`~~ **Conferido em 2026-09-24: `aes-256-cbc`.** Não é preciso recifrar as colunas existentes.
-4. **`cadastro_geral` é `ENGINE=MyISAM`.** A criptografia em repouso do MariaDB (`file_key_management`) **não se aplica a MyISAM**, só a InnoDB e Aria. Então, essa tabela, com CPF, RG, telefone e dados bancários de cerca de 800 discentes e o CPF de orientadores, fica **em claro no disco**. A correção é `ALTER TABLE cadastro_geral ENGINE=InnoDB`, rápida nesse tamanho. Também é preciso conferir se há outras tabelas MyISAM e se `innodb_encrypt_tables` está ligado.
+4. **`cadastro_geral` é `ENGINE=MyISAM`.** A criptografia em repouso do MariaDB (`file_key_management`) **não se aplica a MyISAM**, só a InnoDB e Aria. Então, essa tabela, com CPF, RG, telefone e dados bancários de cerca de 800 discentes e o CPF de orientadores, fica **em claro no disco**. A correção é `ALTER TABLE cadastro_geral ENGINE=InnoDB`, rápida nesse tamanho. **Conferido em 2026-09-24:** é a **única** tabela MyISAM. Em produção, `innodb_encrypt_tables = FORCE`, `innodb_encrypt_log = ON`, `encrypt_binlog = ON`, `encrypt_tmp_disk_tables = ON` e `aria_encrypt_tables = OFF` (sem tabelas Aria). Com o `FORCE`, a tabela passa a ser cifrada em disco assim que for convertida para InnoDB.
 
 ## 6. Ordem de execução sugerida
 

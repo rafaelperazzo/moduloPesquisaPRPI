@@ -26,10 +26,11 @@ Sistema de gerenciamento de projetos de pesquisa
 
 - [ ] Adequação à LGPD (plano em `migracao.lgpd.md`)
   - [x] Código: `/lgpd` (política e quadro de requisitos), ciência dos termos após o login, `/meusDados` + JSON, `/lgpd/solicitacao` com protocolo e prazo, `/lgpd/consulta` (protocolo + e-mail), painel `/admin/lgpd/solicitacoes` com resposta enviada por e-mail ao titular, avisos nos formulários, Google Analytics removido, logs com retenção de 90 dias, `app/test_lgpd.py`
-  - [ ] Rodar `lgpd.sql.sample` no banco `pesquisa` e fazer o deploy (conferência em produção: seção 5 do plano)
+  - [x] Rodar `lgpd.sql.sample` no banco `pesquisa` e fazer o deploy (v11.0.0)
   - [ ] Fora do código: cláusulas-padrão da ANPD com a AWS (AWS Artifact) e DPAs da Cloudflare/Google/Sentry; revisão do texto pelo Encarregado da UFCA; inventário (art. 37); RIPD (art. 38); prazos de guarda e expurgo; plano de incidentes (art. 48)
+  - [x] reCAPTCHA trocado pelo Cloudflare Turnstile, com validação no servidor (`migracao.lgpd.md`, seção 6)
   - [x] Dev: `anonimizar_dev.sql` no `atualizar_db.sh.sample` (backup de produção anonimizado ao restaurar)
-  - [ ] Recomendações: criptografar CPF e dados bancários por coluna; `send_default_pii=False` no Sentry; hospedar os assets de CDN e badges; trocar reCAPTCHA por Turnstile
+  - [ ] Recomendações: criptografar CPF e dados bancários por coluna; `send_default_pii=False` no Sentry; hospedar os assets de CDN e badges
 
 - [ ] Remover lazy logs
 

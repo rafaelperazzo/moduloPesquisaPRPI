@@ -45,7 +45,8 @@
 | CPF, dados bancários, nome e e-mail do discente sem criptografia por coluna | Recomendação (exige migrar os dados) |
 | Backup de produção restaurado **em claro** na máquina de dev (`atualizar_db.sh`), com CPF e dados bancários reais | **`anonimizar_dev.sql`**, chamado pelo `atualizar_db.sh.sample` nos bancos `pesquisa` e `pesquisa_test`: CPF vira pseudônimo (o mesmo em todas as tabelas), dados bancários, RG, telefone, endereço e nascimento viram `ANONIMIZADO`, e-mail do discente e IPs são trocados, e as colunas suspeitas não tratadas são listadas para revisão. Um `trap` apaga o dump decifrado mesmo se o script falhar. Testado num MariaDB 11 descartável |
 | Tabela `acessos` sem expurgo | Depende do prazo de guarda (seção 4) |
-| Terceiros recebem o IP: Cloudflare, reCAPTCHA, CDNs (Tailwind, jsDelivr, cdnjs, googleapis, jQuery) e shields.io | Declarados na política; recomendação: hospedar os assets e trocar o reCAPTCHA pelo Turnstile |
+| Terceiros recebem o IP: Cloudflare, reCAPTCHA, CDNs (Tailwind, jsDelivr, cdnjs, googleapis, jQuery) e shields.io | Declarados na política. **reCAPTCHA trocado pelo Cloudflare Turnstile** (seção 6), e o Google saiu da lista de operadores. Recomendação que continua: hospedar os assets |
+| reCAPTCHA **conferido só no navegador**, sem validação no servidor, e com a caixa fora do `<form>` em 5 páginas; o script do Google era carregado em **todas** as páginas | **Resolvido pelo Turnstile** (seção 6) |
 
 **Base legal:** a UFCA é a controladora, como órgão público (arts. 7º, II e III, 23 e 26). **O consentimento não é a base legal.** O aceite pedido é o **registro de ciência** dos Termos de Uso e da Política de Privacidade, e a página deixa isso claro. Assim, se o titular "revogar", o tratamento obrigatório para as bolsas não precisa parar.
 
@@ -108,3 +109,24 @@
 9. Acompanhar os eventos `[lgpd]` no log nas primeiras horas.
 
 **Para desfazer:** reverter o commit e fazer o deploy. As tabelas podem ficar no banco.
+
+## 6. Cloudflare Turnstile (no lugar do reCAPTCHA), 2026-09-24
+
+- **Chaves no SSM:** `/pesquisa/TURNSTILE_SITE_KEY` (String) e `/pesquisa/TURNSTILE_SECRET_KEY` (SecureString), criadas pelo usuário e conferidas. Sem elas, o app usa as chaves de teste da Cloudflare.
+- **Servidor:** `turnstile_valido()` valida o `cf-turnstile-response` no `siteverify`, enviando o IP do `CF-Connecting-IP`, **só em produção**, como o MFA. Sem token ou com token recusado, o envio é recusado. Se a Cloudflare não responder, o envio é aceito e fica um aviso no log, para não travar o login. O decorator `@exigir_turnstile(<endpoint>)` volta ao formulário com uma mensagem.
+- **Rotas protegidas:**
+  - `/login`;
+  - `/enviarMinhaSenha`;
+  - `/projetosAluno`, que também ganhou o limitador que não tinha;
+  - `/projetos_discente`;
+  - `/score2`;
+  - `/lgpd/consulta`;
+  - `/lgpd/solicitacao`, que devolve o formulário preenchido.
+- **Sem captcha:** `/cadastrarProjeto` e o cadastro de usuário. As duas rotas já exigem login com MFA, e o formulário de projeto é longo, com anexos.
+- **Templates:** o widget fica em `templates/_turnstile.html`, incluído **dentro** do `<form>` e carregado só nessas páginas. O `BASE_v3.html` deixou de carregar o script do Google em todas as páginas. `base.html` e `consulta.html` ainda citam o reCAPTCHA, mas nenhuma rota os renderiza.
+- **Testes:** `app/test_turnstile.py`, com 23 testes.
+- **Conferência em produção:**
+  1. fazer login, conferindo se a caixa aparece dentro do formulário e se o login funciona;
+  2. abrir "esqueci minha senha" e a consulta de projetos por CPF;
+  3. no log, os eventos `[turnstile]` não devem mostrar recusas de usuários legítimos;
+  4. **para desfazer:** reverter o commit (o reCAPTCHA antigo não validava nada no servidor).

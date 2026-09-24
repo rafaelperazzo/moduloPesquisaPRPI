@@ -44,6 +44,7 @@
           <input type="email" id="email" name="email" maxlength="255" required value="{{ email or '' }}"
                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
         </div>
+        {% include '_turnstile.html' %}
         <div class="flex items-center gap-4">
           <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium">Consultar</button>
           <a href="{{ url_for('lgpd_solicitacao') }}" class="text-sm text-blue-600 hover:underline">Fazer uma solicitação</a>

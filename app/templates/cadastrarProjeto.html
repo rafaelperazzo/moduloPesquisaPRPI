@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cadastro de Projeto de Pesquisa - Plataforma Yoko</title>
-  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   <script src="https://cdn.tailwindcss.com"></script>
 
   <script>
@@ -97,10 +96,6 @@
       if (autorizacoes.length === 0) {
         alert("Selecione ao menos uma opção em Autorizações necessárias para a pesquisa.");
         document.getElementById("NAO_SE_APLICA").scrollIntoView();
-        return false;
-      }
-      if (grecaptcha.getResponse() == "") {
-        alert("Marque a caixa abaixo para continuar...");
         return false;
       }
       return true;
@@ -570,11 +565,6 @@
 
       <!-- Submit -->
       <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6 border-t-4 border-t-blue-800">
-        {% if session['PRODUCAO']==1 %}
-        <div class="flex justify-center mb-4">
-          <div class="g-recaptcha" data-sitekey="6LcTP7IrAAAAAEGXU_wjThN5GsBZ3mZCy67tzQyH"></div>
-        </div>
-        {% endif %}
         <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-800">
           <p class="mb-2">O Qualis dos periódicos é extraído da <a href="https://sucupira-legado.capes.gov.br/sucupira/public/consultas/coleta/veiculoPublicacaoQualis/listaConsultaGeralPeriodicos.jsf" target="_blank" class="underline font-medium hover:text-blue-600">Plataforma Sucupira</a>, considerando o evento de classificação <strong>2021-2024</strong>.</p>
           <p>Para garantir a correta pontuação da produção, os <strong>ISSNs dos periódicos</strong> devem estar cadastrados na Plataforma Lattes.</p>

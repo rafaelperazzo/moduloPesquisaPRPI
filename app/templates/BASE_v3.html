@@ -10,17 +10,7 @@
     <script nonce="{{ csp_nonce() }}" src="https://cdn.tailwindcss.com"></script>
     <link nonce="{{ csp_nonce() }}" rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link nonce="{{ csp_nonce() }}" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-    <script nonce="{{ csp_nonce() }}" src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script nonce="{{ csp_nonce() }}">
-        function humano() {
-        if (grecaptcha.getResponse() == ""){
-            alert("Marque a caixa abaixo para continuar...");
-            return (false);
-        } else {
-            return (true);
-            }
-        }
-
         function voltar() {
             history.back();
         }
@@ -106,17 +96,10 @@
                 window.history.back();
             });
             form = document.getElementById("form");
-            if (form) {
+            if (form && typeof humano === 'function') {
                 form.addEventListener("submit", function(event) {
-                    if (typeof grecaptcha != 'undefined') {
-                        if (grecaptcha.getResponse() == "") {
-                            event.preventDefault();
-                            alert("Por favor, complete o reCAPTCHA.");
-                            return false;
-                        }
-                        else {
-                            return true;
-                        }
+                    if (!humano()) {
+                        event.preventDefault();
                     }
                 });
             }

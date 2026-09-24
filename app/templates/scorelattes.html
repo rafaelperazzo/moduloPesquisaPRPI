@@ -88,13 +88,9 @@
           <p>Para garantir a correta pontuação da produção, os <strong>ISSNs dos periódicos</strong> devem estar cadastrados na Plataforma Lattes.</p>
         </div>
         <p class="text-amber-700 font-medium mb-4">Clique em "Calcular" apenas uma vez e aguarde a conclusão do processo (o processo pode demorar alguns minutos)!</p>
+        {% include '_turnstile.html' %}
         <input name="btnEnviar" value="Calcular" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium cursor-pointer" type="submit">
       </form>
-      {% if config['producao']==1 %}
-        <div class="flex justify-center mt-4">
-          <div class="g-recaptcha" data-sitekey="6LcTP7IrAAAAAEGXU_wjThN5GsBZ3mZCy67tzQyH"></div>
-        </div>
-      {% endif %}
     </div>
   </div>
   <script nonce="{{ csp_nonce() }}">

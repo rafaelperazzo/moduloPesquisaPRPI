@@ -410,6 +410,55 @@ def inject_messages():
 def inject_default_support():
     return dict(default_support=DEFAULT_SUPPORT, default_institutional=DEFAULT_INSTITUCIONAL)
 
+# ---------------------------------------------------------------------------
+# Cloudflare Turnstile (substitui o reCAPTCHA): o widget fica em templates/_turnstile.html e o
+# token (cf-turnstile-response) é validado no servidor, só em produção, como o MFA.
+# Sem as chaves no SSM, valem as chaves de teste da Cloudflare, que sempre aprovam.
+# ---------------------------------------------------------------------------
+TURNSTILE_SITE_KEY = os.getenv("TURNSTILE_SITE_KEY", "1x00000000000000000000AA")
+TURNSTILE_SECRET_KEY = os.environ.pop("TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA")
+TURNSTILE_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+MENSAGEM_TURNSTILE = "Não foi possível confirmar a verificação de segurança. Aguarde a caixa de verificação e tente novamente."
+
+@app.context_processor
+def inject_turnstile():
+    return dict(turnstile_site_key=TURNSTILE_SITE_KEY)
+
+def turnstile_valido():
+    """Valida o token do Turnstile com a Cloudflare. Sem token ou recusado: False.
+    Se a própria Cloudflare não responder, aceita e registra aviso, para não travar o login."""
+    if PRODUCAO != 1:
+        return True
+    token = str(request.form.get('cf-turnstile-response', ''))
+    if not token:
+        logger.info("[turnstile] Envio sem token: rota={}", request.path)
+        return False
+    ip = request.headers.get('CF-Connecting-IP') or request.remote_addr
+    try:
+        resposta = requests.post(TURNSTILE_URL, timeout=5,
+                                 data={'secret': TURNSTILE_SECRET_KEY, 'response': token[:2048], 'remoteip': ip})
+        resposta.raise_for_status()
+        resultado = resposta.json()
+    except (requests.RequestException, ValueError) as e:
+        logger.warning("[turnstile] Cloudflare indisponível; envio aceito sem validação: rota={} erro={}", request.path, str(e))
+        return True
+    if not resultado.get('success'):
+        logger.info("[turnstile] Token recusado: rota={} erros={}", request.path, resultado.get('error-codes'))
+        return False
+    return True
+
+def exigir_turnstile(voltar):
+    """Decorator para as rotas de formulário: no POST sem Turnstile válido, volta ao formulário (endpoint `voltar`)."""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if request.method == 'POST' and not turnstile_valido():
+                flash(MENSAGEM_TURNSTILE, 'error')
+                return redirect(url_for(voltar))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
 @lru_cache(maxsize=None)
 def imagem_base64(filename):
     """Lê um arquivo de app/static e retorna como data URI base64, para embutir em PDFs sem depender de requisição HTTP."""
@@ -1579,6 +1628,8 @@ def lgpd_solicitacao():
     Nunca devolve dados pessoais por aqui: a PRPI confere a identidade antes de responder."""
     if request.method == 'POST':
         campos, erro = ler_formulario_solicitacao()
+        if not erro and not turnstile_valido():
+            erro = MENSAGEM_TURNSTILE
         if erro:
             flash(erro, 'error')
             return render_template('lgpd_solicitacao.html', campos=campos, vinculos=LGPD_VINCULOS,
@@ -1606,6 +1657,7 @@ def lgpd_solicitacao():
 @app.route("/lgpd/consulta", methods=['GET', 'POST'])
 @log_required
 @limiter.limit("20/day;10/hour;3/minute", methods=["POST"])
+@exigir_turnstile('lgpd_consulta')
 def lgpd_consulta():
     """Consulta da solicitação pelo protocolo e pelo e-mail usado no pedido: situação, prazo e resposta.
     A resposta registrada pela PRPI não contém dados pessoais (regra do painel)."""
@@ -1748,6 +1800,8 @@ def declaracao():
 
 @app.route("/projetosAluno", methods=['POST'])
 @log_required
+@limiter.limit("30/day;10/hour;3/minute",methods=["POST"])
+@exigir_turnstile('get_projetos_discente')
 def projetos():
     try:
         projetosAluno,projetosAluno2019 = gerarProjetosPorAluno(str(request.form['txtNome']))
@@ -2187,6 +2241,7 @@ def obter_score_lattes(xml_content: str, ano_inicio: int, ano_fim: int, area_cap
 @app.route("/score2", methods=['POST'])
 @log_required
 @limiter.limit("30/day;15/hour;5/minute",methods=["POST"])
+@exigir_turnstile('calcularScorelattesFromID')
 def getScoreLattesFromFile2():
     area_capes = str(request.form['area_capes'])
     cpf = str(request.form['cpf'])
@@ -3685,6 +3740,7 @@ def pos_login(username, senha_vazada):
 @app.route("/login", methods=['POST','GET'])
 @log_required
 @limiter.limit("30/day;15/hour;3/minute",methods=["POST"])
+@exigir_turnstile('login')
 def login():
     '''
     Método que ativa a sessão com os dados do usuário
@@ -3728,6 +3784,7 @@ MENSAGEM_RECUPERACAO = "Se o e-mail estiver cadastrado, você receberá uma mens
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 @log_required
 @limiter.limit("3/day;2/hour;1/minute",methods=["POST"])
+@exigir_turnstile('esqueciMinhaSenha')
 def enviarMinhaSenha():
     """Esqueci minha senha: em produção o Cognito envia o código (ou reenvia o convite).
     A resposta é sempre a mesma, para não revelar quais e-mails estão cadastrados."""
@@ -5512,6 +5569,7 @@ def get_dados_indicacao(cpf):
 @app.route("/projetos_discente", methods=['GET','POST'])
 @log_required
 @limiter.limit("30/day;10/hour;3/minute",methods=["POST"])
+@exigir_turnstile('get_projetos_discente')
 def get_projetos_discente():
     if request.method == "GET":
         return (render_template('projetos.html'))

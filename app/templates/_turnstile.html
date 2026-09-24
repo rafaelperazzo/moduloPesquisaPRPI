@@ -1,0 +1,18 @@
+{# Cloudflare Turnstile: incluir DENTRO do <form>, para o token (cf-turnstile-response) ir junto no envio.
+   O script só é carregado nas páginas que incluem este trecho. A validação é feita no servidor (turnstile_valido). #}
+<div class="flex justify-center mb-4">
+  <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-language="pt-br"></div>
+</div>
+<script nonce="{{ csp_nonce() }}" src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script nonce="{{ csp_nonce() }}">
+  // Mantém o nome usado pelos formulários (onsubmit="return humano()"). Se o widget não carregou,
+  // deixa enviar: quem decide é o servidor.
+  function humano() {
+    var token = document.querySelector('[name="cf-turnstile-response"]');
+    if (token && token.value === '') {
+      alert("Aguarde a verificação de segurança terminar e tente novamente.");
+      return false;
+    }
+    return true;
+  }
+</script>

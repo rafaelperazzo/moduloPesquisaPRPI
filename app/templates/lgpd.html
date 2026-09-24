@@ -145,7 +145,7 @@
     </div>
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
       <h5 class="text-sm font-semibold text-gray-800 mb-1">Sentry (EUA)</h5>
-      <p class="text-gray-600 text-sm">Registro de erros da aplicação, que pode incluir o IP, o usuário e a página em que o erro ocorreu.</p>
+      <p class="text-gray-600 text-sm">Registro de erros da aplicação: a página e a descrição técnica do erro, sem IP, usuário, cookies nem dados pessoais (removidos ou mascarados antes do envio).</p>
     </div>
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
       <h5 class="text-sm font-semibold text-gray-800 mb-1">Bibliotecas públicas (CDNs)</h5>
@@ -242,7 +242,7 @@
     ('Art. 37', 'Registro das operações de tratamento', 'andamento', 'Registro de acessos, de operações sensíveis e da ciência destes termos; inventário de dados a cargo do Encarregado da UFCA.'),
     ('Art. 38', 'Relatório de impacto (RIPD)', 'andamento', 'Em elaboração, pelos dados financeiros e de identidade dos discentes.'),
     ('Art. 41', 'Encarregado', 'andamento', 'Pedidos recebidos pela PRPI e repassados ao Encarregado da UFCA.'),
-    ('Art. 46', 'Segurança da informação', 'implementado', 'TLS, WAF, MFA obrigatório, criptografia em repouso (banco e S3 com KMS), links temporários, permissões mínimas e limite de tentativas.'),
+    ('Art. 46', 'Segurança da informação', 'implementado', 'TLS, WAF, MFA obrigatório, criptografia em repouso (disco do servidor e arquivos com AWS KMS, e banco de dados), criptografia própria de CPF, RG, dados bancários e contato, links temporários, permissões mínimas, verificação anti-robô (Turnstile) e limite de tentativas.'),
     ('Art. 48', 'Comunicação de incidentes', 'andamento', 'Plano de resposta com comunicação à ANPD e aos titulares em elaboração.'),
     ('Arts. 15 e 16', 'Término do tratamento e eliminação', 'andamento', 'Logs apagados após 90 dias; prazos de guarda dos documentos das bolsas em definição.'),
   ] %}

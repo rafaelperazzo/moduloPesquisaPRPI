@@ -31,7 +31,8 @@ Sistema de gerenciamento de projetos de pesquisa
   - [x] reCAPTCHA trocado pelo Cloudflare Turnstile, com validação no servidor (`migracao.lgpd.md`, seção 6); em produção na v11.1.0
   - [x] Dev: `anonimizar_dev.sql` no `atualizar_db.sh.sample` (backup de produção anonimizado ao restaurar)
   - [x] Criptografia do CPF e dos dados bancários (`migracao.cripto_cpf.md`): v12.0.0, dados migrados e verificados em 2026-09-24
-  - [ ] Recomendações: `send_default_pii=False` no Sentry; hospedar os assets de CDN e badges
+  - [x] Sentry sem dados pessoais (`send_default_pii=False`, sem variáveis locais e com máscaras de IP, e-mail e CPF)
+  - [ ] Recomendações: hospedar os assets de CDN e badges
 
 - [ ] Remover lazy logs
 

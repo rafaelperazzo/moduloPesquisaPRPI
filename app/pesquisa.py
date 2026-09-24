@@ -41,6 +41,7 @@ from sentry_sdk.integrations.flask import FlaskIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.integrations.loguru import LoggingLevels
 from sentry_sdk.integrations.logging import ignore_logger
+from sentry_sdk.scrubber import EventScrubber, DEFAULT_DENYLIST, DEFAULT_PII_DENYLIST
 #from logtail import LogtailHandler
 from flask_talisman import Talisman
 from flask_limiter import Limiter
@@ -331,6 +332,42 @@ else:
                format="{time} | {name} | {level} | {message} | {extra}",
                compression='gz')
 
+# Sentry sem dados pessoais (LGPD, migracao.lgpd.md): sem IP, usuário e cookies (send_default_pii=False),
+# sem as variáveis locais dos stack traces (guardam CPF, senha e dados bancários), com os nomes em
+# português na lista de campos removidos e com IP, e-mail e CPF mascarados nas mensagens e breadcrumbs.
+SENTRY_DENYLIST = DEFAULT_DENYLIST + ['senha', 'cpf', 'rg', 'conta', 'agencia', 'nome_banco', 'nascimento', 'telefone',
+                                      'celular', 'endereco', 'email', 'chave', 'codigo', 'username', 'siape', 'ip']
+SENTRY_PII_DENYLIST = DEFAULT_PII_DENYLIST + ['cf-connecting-ip', 'true-client-ip', 'x-forwarded-for', 'x-real-ip']
+RE_SENTRY_MASCARAS = [
+    (re.compile(r'[\w.+-]+@[\w-]+\.[\w.-]+'), '[email]'),
+    (re.compile(r'\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b'), '[cpf]'),
+    (re.compile(r'\b(?:\d{1,3}\.){3}\d{1,3}\b'), '[ip]'),
+    (re.compile(r'\b(?:[0-9a-fA-F]{1,4}:){3,7}[0-9a-fA-F]{1,4}\b'), '[ip]'),
+]
+
+def mascarar_texto_sentry(texto):
+    if not isinstance(texto, str):
+        return texto
+    for padrao, substituto in RE_SENTRY_MASCARAS:
+        texto = padrao.sub(substituto, texto)
+    return texto
+
+def sentry_before_send(event, hint):
+    """Mascara IP, e-mail e CPF no texto do evento (mensagem, logentry e exceções)."""
+    if 'message' in event:
+        event['message'] = mascarar_texto_sentry(event['message'])
+    for chave in ('message', 'formatted'):
+        if chave in event.get('logentry', {}):
+            event['logentry'][chave] = mascarar_texto_sentry(event['logentry'][chave])
+    for excecao in event.get('exception', {}).get('values', []):
+        excecao['value'] = mascarar_texto_sentry(excecao.get('value'))
+    return event
+
+def sentry_before_breadcrumb(crumb, hint):
+    """Os breadcrumbs repetem as mensagens do log, que citam IP e e-mail."""
+    crumb['message'] = mascarar_texto_sentry(crumb.get('message'))
+    return crumb
+
 if PRODUCAO==1:
     # CONFIGURANDO SENTRY
     sentry_sdk.init(
@@ -348,7 +385,11 @@ if PRODUCAO==1:
                 sentry_logs_level=LoggingLevels.INFO.value,
             ),
         ],
-        send_default_pii=True,
+        send_default_pii=False,
+        include_local_variables=False,
+        event_scrubber=EventScrubber(denylist=SENTRY_DENYLIST, pii_denylist=SENTRY_PII_DENYLIST, recursive=True),
+        before_send=sentry_before_send,
+        before_breadcrumb=sentry_before_breadcrumb,
     )
 
 #AWS

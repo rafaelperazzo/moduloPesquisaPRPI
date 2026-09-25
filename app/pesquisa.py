@@ -434,6 +434,19 @@ def mascarar_texto_sentry(texto):
         texto = padrao.sub(substituto, texto)
     return texto
 
+# Log sem CPF e e-mail (política /lgpd, seção 7): todo registro passa por aqui antes de chegar ao app.json,
+# ao S3 e ao Sentry. Cobre as mensagens com str(e) (um erro do banco pode citar o valor que falhou).
+# O IP não é mascarado: ele é o dado da auditoria de acessos.
+RE_LOG_MASCARAS = [m for m in RE_SENTRY_MASCARAS if m[1] in ('[email]', '[cpf]')]
+
+def mascarar_registro_log(record):
+    for padrao, substituto in RE_LOG_MASCARAS:
+        record['message'] = padrao.sub(substituto, record['message'])
+        if isinstance(record['extra'].get('erro'), str):
+            record['extra']['erro'] = padrao.sub(substituto, record['extra']['erro'])
+
+logger.configure(patcher=mascarar_registro_log)
+
 def sentry_before_send(event, hint):
     """Mascara IP, e-mail e CPF no texto do evento (mensagem, logentry e exceções)."""
     if 'message' in event:
@@ -686,6 +699,10 @@ def resumo_token(token):
     """Token para o log: os 12 primeiros caracteres do SHA-256. Dá para correlacionar, não para usar o link."""
     return 'tok:' + hashlib.sha256(str(token).encode()).hexdigest()[:12]
 
+def resumo_email(email):
+    """E-mail para o log: os 12 primeiros caracteres do SHA-256 do e-mail em minúsculas. Correlaciona sem expor."""
+    return 'email:' + hashlib.sha256(str(email).strip().lower().encode()).hexdigest()[:12]
+
 def rota_para_log():
     """Caminho da requisição para o log, sem dados pessoais nem credenciais: tokens viram os 12 primeiros
     caracteres do SHA-256 (dá para correlacionar, não para usar o link), CPF e e-mail nos parâmetros da rota
@@ -931,7 +948,7 @@ def atualizarPontuacaoLattes(cpf, area, idProjeto):
         SET scorelattes= %s WHERE id= %s"""
         atualizar2(consulta, valores=[pontuacao, idProjeto])
     except Exception as e:
-        logger.warning("Erro ao atualizar o scorelattes: {} com o cpf: {}", str(e), str(cpf))
+        logger.warning("Erro ao atualizar o scorelattes do projeto {}: {}", idProjeto, str(e))
     return pontuacao, sumario
 
 def processarPontuacaoLattes(cpf,area,idProjeto,dados):
@@ -955,7 +972,7 @@ def processarPontuacaoLattes(cpf,area,idProjeto,dados):
         atualizar2(consulta,valores=[pontuacao,idProjeto])
     except Exception as e:
         with app.app_context():
-            logger.warning("Erro ao atualizar o scorelattes: {} com o cpf: {}", str(e),str(cpf))
+            logger.warning("Erro ao atualizar o scorelattes do projeto {}: {}", idProjeto, str(e))
     with app.app_context():
         try:
             #ENVIAR E-MAIL DE CONFIRMAÇÃO
@@ -1090,9 +1107,8 @@ def inserir(consulta,valores):
         cursor.execute(consulta,valores)
         conn.commit()
     except MySQLdb.Error as e:
-        logger.warning(e)
-        logger.warning("Erro ao inserir registro")
-        logger.warning(valores)
+        # NUNCA gravar os valores: no INSERT da indicação eles levam CPF, RG e dados bancários em claro e a AES_KEY
+        logger.warning("Erro ao inserir registro ({} valores): {}", len(valores), e)
     finally:
         cursor.close()
         conn.close()
@@ -2734,7 +2750,7 @@ def enviarAvaliacao():
             atualizar2(consulta, valores=[c7,token])
             consulta = "UPDATE avaliacoes SET cepa= %s WHERE token= %s "
             atualizar2(consulta, valores=[comite,token])
-            logger.info("[{}][/avaliar] Avaliação do projeto {} gravada com sucesso por {}", ip_cliente(),str(idProjeto),str(nome_avaliador))
+            logger.info("[{}][/avaliar] Avaliação do projeto {} gravada com sucesso pelo avaliador {}", ip_cliente(),str(idProjeto),resumo_token(token))
             if modalidade==2:
                 inovacao = str(request.form['inovacao'])
                 consulta = "UPDATE avaliacoes SET inovacao= %s WHERE token= %s "
@@ -4054,7 +4070,7 @@ def enviarMinhaSenha():
             email = str(request.form['email']).strip()
             linha = buscar_usuario(email, 'email')
             if linha is None:
-                with logger.contextualize(ip=ip_cliente(),rota=rota_para_log(),email=email):
+                with logger.contextualize(ip=ip_cliente(),rota=rota_para_log(),email=resumo_email(email)):
                     logger.info("Redefinição de senha para e-mail não cadastrado")
             elif USAR_COGNITO:
                 try:
@@ -4062,7 +4078,7 @@ def enviarMinhaSenha():
                 except (ClientError, BotoCoreError):
                     pass  # Já registrado no log; a resposta continua genérica
             else:
-                with logger.contextualize(ip=ip_cliente(),rota=rota_para_log(),email=email):
+                with logger.contextualize(ip=ip_cliente(),rota=rota_para_log(),email=resumo_email(email)):
                     logger.info("Esqueci minha senha em dev: nenhuma ação (Cognito só em produção)")
             flash(MENSAGEM_RECUPERACAO)
             if USAR_COGNITO:
@@ -5647,9 +5663,9 @@ def enviarPedidoAvaliacao(idProjeto):
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline)
             assunto = "CONVITE: AVALIAÇÃO DE PROJETO DE PESQUISA"
             if send_email_async(email_avaliador, assunto, texto_email):
-                logger.info("E-mail enfileirado: {} para avaliador {}", assunto, email_avaliador)
+                logger.info("E-mail enfileirado: {} para avaliador {}", assunto, resumo_email(email_avaliador))
             else:
-                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: {}", email_avaliador)
+                logger.error("EMAIL SOLICITANDO AVALIACAO FALHOU: {}", resumo_email(email_avaliador))
 
 @app.route("/admin/arquivar/<id_projeto>", methods=['GET', 'POST'])
 @login_required(role='admin')
@@ -6413,11 +6429,11 @@ def task_enviar_email_avaliadores():
             url_declaracao = SERVER_URL + URL_PREFIX + '/declaracaoAvaliador/' + token
             texto_email = render_template('email_avaliador.html',nome_longo=nome_longo,titulo=titulo,resumo=resumo,link=link,link_recusa=link_recusa,deadline=deadline,url_declaracao=url_declaracao,justificativa=justificativa)
             if send_email_async(email_avaliador, assunto, texto_email):
-                logger.info("E-mail enfileirado: {} para o avaliador {}", assunto, email_avaliador)
+                logger.info("E-mail enfileirado: {} para o avaliador {}", assunto, resumo_email(email_avaliador))
                 consulta_update = "UPDATE avaliacoes SET enviado=enviado+1,data_envio=NOW() WHERE id=%s"
                 atualizar2(consulta_update, valores=(str(linha[5]),))
             else:
-                logger.error("Erro ao enfileirar e-mail para {}", email_avaliador)
+                logger.error("Erro ao enfileirar e-mail para {}", resumo_email(email_avaliador))
     logger.info("Tarefa de envio de e-mails para avaliadores concluída com sucesso.")
 
 @scheduler.task('cron', id='do_job_enviar_email_avaliadores', week='*', day_of_week='2', hour='20', minute='05')
@@ -6485,9 +6501,9 @@ def task_enviar_lembrete_frequencia():
                 continue
             texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape)
             if send_email_async(str(linha[4]), assunto, texto_email):
-                logger.info("E-mail enfileirado: Lembrete de frequência {}/{} para {}",nome_mes[str(mes)],ano,orientador)
+                logger.info("E-mail enfileirado: Lembrete de frequência {}/{} para o SIAPE {}",nome_mes[str(mes)],ano,siape)
             else:
-                logger.error("Erro ao enfileirar e-mail. task_enviar_lembrete_frequencia: {}",orientador)
+                logger.error("Erro ao enfileirar e-mail. task_enviar_lembrete_frequencia: SIAPE {}",siape)
 
 @scheduler.task('cron', id='do_job_cobrar_frequencia', week='*', day='5-30/10', hour='12', minute='10')
 def job_cobrar_frequencia():

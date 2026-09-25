@@ -157,3 +157,61 @@ def test_rotas_sem_registro_sao_so_as_esperadas():
                 sem_log.add(no.name)
     # health/version: chamadas pelo healthcheck; home/seguranca: páginas informativas públicas
     assert sem_log == {'home', 'seguranca', 'health', 'version'}
+
+
+# ----- mensagens do log: sem CPF, e-mail, nomes, valores de SQL nem a AES_KEY -----
+
+def test_patcher_mascara_cpf_e_email_mas_mantem_o_ip(registros):
+    logger.warning("Duplicate entry '{}' para {} vindo de {}", CPF, 'fulano@ufca.edu.br', '200.1.2.3')
+    with logger.contextualize(erro="Duplicate entry '52998224725' for key 'cpf'"):
+        logger.error("falhou")
+    textos = json.dumps(registros[-2:])
+    assert CPF not in textos and '52998224725' not in textos and 'fulano@ufca.edu.br' not in textos
+    assert '[cpf]' in textos and '[email]' in textos and '200.1.2.3' in textos
+
+
+def test_erro_no_insert_nao_grava_os_valores_nem_a_chave(registros, monkeypatch):
+    class Cursor:
+        def execute(self, *a):
+            raise P.MySQLdb.Error("Duplicate entry '529.982.247-25' for key 'cpf'")
+        def close(self): pass
+
+    class Conexao:
+        def select_db(self, *a): pass
+        def cursor(self): return Cursor()
+        def close(self): pass
+
+    monkeypatch.setattr(P.MySQLdb, 'connect', lambda *a, **k: Conexao())
+    consulta, valores = P.montar_insert_indicacao([('nome', 'Maria'), ('cpf', CPF), ('conta', '12345-6')], 'iv1', CPF)
+    P.inserir(consulta, valores)
+    textos = json.dumps(registros)
+    assert 'Erro ao inserir registro' in textos
+    for proibido in (P.AES_KEY, CPF, '12345-6', 'Maria'):
+        assert proibido not in textos
+
+
+def test_resumo_email():
+    assert P.resumo_email('Fulano@UFCA.edu.br ') == P.resumo_email('fulano@ufca.edu.br')
+    assert P.resumo_email('fulano@ufca.edu.br').startswith('email:') and '@' not in P.resumo_email('x@y.z')
+
+
+def test_nenhuma_chamada_de_log_recebe_dado_pessoal_ou_valores_de_sql():
+    """Trava contra regressões: nomes de variáveis que carregam dados pessoais, credenciais ou os valores
+    de uma consulta (que levam a AES_KEY) não podem ir direto para o logger."""
+    proibidos = {'valores', 'parametros', 'cpf', 'email', 'email_avaliador', 'nome_avaliador', 'orientador',
+                 'senha', 'password', 'token', 'tokenAvaliacao', 'AES_KEY', 'destinatario'}
+    arvore = ast.parse(open('pesquisa.py', encoding='utf-8').read())
+    achados = []
+    for no in ast.walk(arvore):
+        if isinstance(no, ast.Call) and isinstance(no.func, ast.Attribute) and getattr(no.func.value, 'id', None) == 'logger':
+            valores = list(no.args) + [k.value for k in no.keywords]
+            for valor in valores:
+                for nome in ast.walk(valor):
+                    if isinstance(nome, ast.Name) and nome.id in proibidos:
+                        # permitido só dentro de resumo_token/resumo_email/calcula_hash
+                        pais = [n for n in ast.walk(valor) if isinstance(n, ast.Call)
+                                and getattr(n.func, 'id', '') in ('resumo_token', 'resumo_email', 'calcula_hash', 'len')
+                                and nome in list(ast.walk(n))]
+                        if not pais:
+                            achados.append(f"linha {no.lineno}: {nome.id}")
+    assert achados == []

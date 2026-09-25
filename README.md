@@ -91,7 +91,7 @@ Uma página com o detalhamento completo dos recursos abaixo está disponível em
 - Limitação de tentativas (rate limiting) por rota em Flask-Limiter, com destaque para login e redefinição de senha. Os admins podem liberar um IP bloqueado (ou zerar todos os contadores) em `/admin/limitador`, e cada liberação fica registrada no log.
 - Proteção contra CSRF (Flask-WTF), cabeçalhos de segurança HTTP (Flask-Talisman) e reCAPTCHA em formulários sensíveis.
 - Sessões armazenadas no servidor (Redis), com expiração automática.
-- Registro e auditoria de acessos (usuário, IP, rota e localização).
+- Registro e auditoria de acessos (usuário, IP informado pela Cloudflare, rota, método e localização aproximada), inclusive das tentativas negadas (sem login, sem permissão, MFA ou ciência da política pendente, limite de tentativas e rotas inexistentes). O caminho gravado não leva dados pessoais nem credenciais: CPF e e-mail são mascarados, e os tokens dos avaliadores viram um resumo do hash.
 
 ---
 

@@ -626,7 +626,7 @@ def turnstile_valido():
         return True
     token = str(request.form.get('cf-turnstile-response', ''))
     if not token:
-        logger.info("[turnstile] Envio sem token: rota={}", request.path)
+        logger.info("[turnstile] Envio sem token: rota={}", rota_para_log())
         return False
     ip = request.headers.get('CF-Connecting-IP') or request.remote_addr
     try:
@@ -635,10 +635,10 @@ def turnstile_valido():
         resposta.raise_for_status()
         resultado = resposta.json()
     except (requests.RequestException, ValueError) as e:
-        logger.warning("[turnstile] Cloudflare indisponível; envio aceito sem validação: rota={} erro={}", request.path, str(e))
+        logger.warning("[turnstile] Cloudflare indisponível; envio aceito sem validação: rota={} erro={}", rota_para_log(), str(e))
         return True
     if not resultado.get('success'):
-        logger.info("[turnstile] Token recusado: rota={} erros={}", request.path, resultado.get('error-codes'))
+        logger.info("[turnstile] Token recusado: rota={} erros={}", rota_para_log(), resultado.get('error-codes'))
         return False
     return True
 
@@ -678,13 +678,51 @@ def asset_inline(filename):
 def inject_asset_inline():
     return dict(asset_inline=asset_inline)
 
+def ip_cliente():
+    """IP do visitante: o CF-Connecting-IP da Cloudflare, e o remote_addr só se o cabeçalho não vier."""
+    return request.headers.get('CF-Connecting-IP') or request.remote_addr
+
+def resumo_token(token):
+    """Token para o log: os 12 primeiros caracteres do SHA-256. Dá para correlacionar, não para usar o link."""
+    return 'tok:' + hashlib.sha256(str(token).encode()).hexdigest()[:12]
+
+def rota_para_log():
+    """Caminho da requisição para o log, sem dados pessoais nem credenciais: tokens viram os 12 primeiros
+    caracteres do SHA-256 (dá para correlacionar, não para usar o link), CPF e e-mail nos parâmetros da rota
+    viram [cpf]/[email], e o mascaramento do Sentry (CPF, e-mail e IP) vale para o resto do caminho."""
+    caminho = request.path
+    for nome, valor in (request.view_args or {}).items():
+        valor = str(valor)
+        if not valor:
+            continue
+        nome = nome.lower()
+        if 'token' in nome:
+            caminho = caminho.replace(valor, resumo_token(valor))
+        elif 'cpf' in nome:
+            caminho = caminho.replace(valor, '[cpf]')
+        elif 'email' in nome:
+            caminho = caminho.replace(valor, '[email]')
+    return mascarar_texto_sentry(caminho)
+
+def registrar_log_acesso(mensagem, nivel='INFO'):
+    """Registro de acesso (política /lgpd, seção 7: guardado por 2 anos): IP, usuário, rota mascarada,
+    método e a localização aproximada deduzida do IP."""
+    ip = ip_cliente()
+    geolocalizacao = getDados(ip)
+    with logger.contextualize(ip=ip, username=session.get('username') or "N/A", rota=rota_para_log(),
+                              metodo=request.method, cidade=geolocalizacao['city'], estado=geolocalizacao['state'],
+                              pais=geolocalizacao['country']):
+        logger.log(nivel, mensagem)
+
 def login_required(role='admin'):
     def decorator_login_required(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if not 'username' in session:
+                registrar_log_acesso("Acesso negado (NÃO AUTENTICADO)", 'WARNING')
                 return render_template('login.html')
             if role not in session['roles']:
+                registrar_log_acesso(f"Acesso negado (SEM PERMISSÃO: exige {role})", 'WARNING')
                 flash('Você não tem permissão para acessar este recurso.','error')
                 return redirect(url_for('home'))
             return f(*args, **kwargs)
@@ -703,6 +741,7 @@ def bloquear_acesso_com_senha_vazada():
     redirecionadas até que uma nova senha seja definida.
     """
     if session.get('senha_vazada') and request.endpoint not in ROTAS_PERMITIDAS_SENHA_VAZADA:
+        registrar_log_acesso("Acesso bloqueado (SENHA VAZADA: troca de senha pendente)", 'WARNING')
         flash("Você precisa definir uma nova senha antes de continuar.", "error")
         return redirect(url_for('nova_senha'))
 
@@ -721,9 +760,11 @@ def exigir_cadastro_mfa():
     if not USAR_COGNITO:
         return None
     if session.get('somente_basic_auth') and request.endpoint not in ROTAS_BASIC_AUTH:
+        registrar_log_acesso("Acesso bloqueado (sessão de HTTP Basic Auth fora das suas rotas)", 'WARNING')
         session.clear()
         return redirect(url_for('login'))
     if session.get('mfa_pendente') and request.endpoint not in ROTAS_PERMITIDAS_MFA_PENDENTE:
+        registrar_log_acesso("Acesso bloqueado (MFA pendente)")
         flash("Para continuar, configure a verificação em duas etapas (MFA).", "error")
         return redirect(url_for('mfa_configurar'))
 
@@ -739,18 +780,16 @@ def exigir_aceite_lgpd():
     Roda depois dos bloqueios de senha vazada e de MFA, que têm prioridade.
     """
     if session.get('aceite_pendente') and request.endpoint not in ROTAS_PERMITIDAS_ACEITE:
+        registrar_log_acesso("Acesso bloqueado (ciência da política de privacidade pendente)")
         return redirect(url_for('lgpd_aceite'))
 
 def log_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        geolocalizacao = getDados(request.remote_addr)
         if session.get('username') is None:
-            with logger.contextualize(ip=request.remote_addr,username="N/A",rota=request.path,metodo=request.method,cidade=geolocalizacao['city'],estado=geolocalizacao['state'],pais=geolocalizacao['country']):
-                logger.info("Acesso a recurso (NÃO AUTENTICADO)")
+            registrar_log_acesso("Acesso a recurso (NÃO AUTENTICADO)")
         else:
-            with logger.contextualize(ip=request.remote_addr,username=session['username'],rota=request.path,metodo=request.method,cidade=geolocalizacao['city'],estado=geolocalizacao['state'],pais=geolocalizacao['country']):
-                logger.info("Acesso a recurso (AUTENTICADO)")
+            registrar_log_acesso("Acesso a recurso (AUTENTICADO)")
         return f(*args, **kwargs)
     return decorated_function
 
@@ -1155,7 +1194,14 @@ def getData():
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
+    registrar_log_acesso(f"Acesso bloqueado (LIMITE DE TENTATIVAS: {e.description})", 'WARNING')
     return (render_template('429.html', erro=e.description), 429)
+
+@app.errorhandler(404)
+def nao_encontrado(e):
+    """Registra os 404 (varreduras por rotas inexistentes aparecem no log) e devolve a resposta padrão."""
+    registrar_log_acesso("Recurso inexistente (404)")
+    return e
 
 def gerarDeclaracao(identificador):
     #CONEXÃO COM BD
@@ -1307,7 +1353,7 @@ def log_migracao(evento, username, nivel='info', origem=None, etapa=None, erro=N
     """Registra as operações de migração e de senha no Cognito.
     NUNCA passar senha, código de verificação, tokens ou o Session do desafio."""
     if has_request_context():
-        ip, rota, metodo = request.remote_addr, request.path, request.method
+        ip, rota, metodo = ip_cliente(), rota_para_log(), request.method
         operador = session.get('username', 'N/A')
     else:
         ip = rota = metodo = operador = "N/A"
@@ -1322,10 +1368,10 @@ def verificar_senha_legado(linha, password):
     try:
         valida = cripto.hash_argon2id_verify(str(linha[4]), password)
     except Exception as e:
-        with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=str(e),classe_erro=type(e).__name__):
+        with logger.contextualize(ip=ip_cliente(),username=username,rota=rota_para_log(),metodo=request.method,erro=str(e),classe_erro=type(e).__name__):
             logger.warning("Senha inválida. Erro no Argon2")
         return False
-    with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
+    with logger.contextualize(ip=ip_cliente(),username=username,rota=rota_para_log(),metodo=request.method,erro=""):
         if valida:
             logger.info("Usuário autenticado com sucesso")
         else:
@@ -1544,7 +1590,7 @@ def autenticar_cognito(username, senha, interativo=True):
         if codigo == 'UserNotFoundException':
             log_migracao('login_inconsistente_migrado_sem_cognito', username, nivel='error')
         elif codigo == 'NotAuthorizedException':
-            with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
+            with logger.contextualize(ip=ip_cliente(),username=username,rota=rota_para_log(),metodo=request.method,erro=""):
                 logger.warning("Usuário/Senha inválida")
         else:
             log_migracao('login_falha_cognito', username, nivel='error', erro=str(e), classe_erro=codigo)
@@ -1576,7 +1622,7 @@ def autenticar_cognito(username, senha, interativo=True):
     except (ClientError, BotoCoreError) as e:
         log_migracao('login_falha_cognito', username, nivel='error', erro=str(e), classe_erro=codigo_erro(e))
         return 'invalido'
-    with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
+    with logger.contextualize(ip=ip_cliente(),username=username,rota=rota_para_log(),metodo=request.method,erro=""):
         logger.info("Usuário autenticado com sucesso (Cognito)")
     return 'ok'
 
@@ -1631,7 +1677,7 @@ def verify_password(username, password):
             return username
         return False
     except Exception as e:
-        with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=str(e),classe_erro=type(e).__name__):
+        with logger.contextualize(ip=ip_cliente(),username=username,rota=rota_para_log(),metodo=request.method,erro=str(e),classe_erro=type(e).__name__):
             logger.warning("ERRO Na função verify_password")
         return False
 
@@ -1794,7 +1840,7 @@ def lgpd_aceite():
             flash("Marque a caixa de ciência para continuar.", 'error')
             return render_template('lgpd_aceite.html', versao=LGPD_VERSAO, vigencia=LGPD_VIGENCIA)
         atualizar2("INSERT IGNORE INTO lgpd_aceites (username, versao, ip) VALUES (%s, %s, %s)",
-                   valores=[session['username'], LGPD_VERSAO, request.remote_addr])
+                   valores=[session['username'], LGPD_VERSAO, ip_cliente()])
         session.pop('aceite_pendente', None)
         logger.info("[lgpd] Ciência dos termos registrada: usuario={} versao={}", session['username'], LGPD_VERSAO)
         flash("Ciência registrada. Obrigado!")
@@ -2627,7 +2673,7 @@ def getPaginaAvaliacao():
                 idProjeto = obterColunaUnica_str("avaliacoes","idProjeto","token",tokenAvaliacao)
                 edital = obterColunaUnica("editalProjeto","tipo","id",idProjeto)
                 modalidade = int(obterColunaUnica("editais","modalidade","id",edital))
-                logger.info("[{}][/avaliacao] Avaliador abriu formulário de avaliação do projeto {}.", request.remote_addr,str(idProjeto))
+                logger.info("[{}][/avaliacao] Avaliador abriu formulário de avaliação do projeto {}.", ip_cliente(),str(idProjeto))
                 return render_template('avaliacao.html',arquivos=links,modalidade=modalidade)
             else:
                 return("Projeto já foi avaliado! Não é possível modificar a avaliação!")
@@ -2688,18 +2734,18 @@ def enviarAvaliacao():
             atualizar2(consulta, valores=[c7,token])
             consulta = "UPDATE avaliacoes SET cepa= %s WHERE token= %s "
             atualizar2(consulta, valores=[comite,token])
-            logger.info("[{}][/avaliar] Avaliação do projeto {} gravada com sucesso por {}", request.remote_addr,str(idProjeto),str(nome_avaliador))
+            logger.info("[{}][/avaliar] Avaliação do projeto {} gravada com sucesso por {}", ip_cliente(),str(idProjeto),str(nome_avaliador))
             if modalidade==2:
                 inovacao = str(request.form['inovacao'])
                 consulta = "UPDATE avaliacoes SET inovacao= %s WHERE token= %s "
                 atualizar2(consulta, valores=[inovacao,token])
         except Exception as e:
-            logger.warning("[AVALIACAO] ERRO ao gravar a avaliação: {} - ({})", token, str(e))
+            logger.warning("[AVALIACAO] ERRO ao gravar a avaliação: {} - ({})", resumo_token(token), str(e))
             return("Não foi possível gravar a avaliação. Favor entrar contactar " + DEFAULT_SUPPORT)
         try:
             return (redirect(url_for('getDeclaracaoAvaliador',tokenAvaliacao=token)))
         except Exception as e:
-            logger.warning("[/avaliar] ERRO ao gerar a declaração: {} - ({})",token, str(e))
+            logger.warning("[/avaliar] ERRO ao gerar a declaração: {} - ({})", resumo_token(token), str(e))
             return("Não foi possível gerar a declaração.")
     else:
         return("OK")
@@ -2732,7 +2778,7 @@ def getDeclaracaoAvaliador(tokenAvaliacao):
     Gera a declaração de avaliação do avaliador via Lambda Overlay.
     """
     if not token_valido(tokenAvaliacao):
-        logger.warning("[/declaracaoAvaliador] Token inválido: {}", tokenAvaliacao)
+        logger.warning("[/declaracaoAvaliador] Token inválido: {}", resumo_token(tokenAvaliacao))
         return "Token inválido!"
 
     consulta = """
@@ -2780,7 +2826,7 @@ def getDeclaracaoAvaliador(tokenAvaliacao):
             )
 
         except Exception as e:
-            with logger.contextualize(ip=request.remote_addr, rota=request.path, erro=str(e), classe_erro=type(e).__name__):
+            with logger.contextualize(ip=ip_cliente(), rota=rota_para_log(), erro=str(e), classe_erro=type(e).__name__):
                 logger.warning("Erro ao gerar declaração de avaliador: {}", str(e))
             return "Erro ao gerar declaração. Tente novamente mais tarde."
 
@@ -2805,7 +2851,7 @@ def recusarConvite():
     if request.method == "GET":
         tokenAvaliacao = str(request.args.get('token'))
         if not token_valido(tokenAvaliacao):
-            logger.warning("[/recusarConvite] Token inválido: {}", tokenAvaliacao)
+            logger.warning("[/recusarConvite] Token inválido: {}", resumo_token(tokenAvaliacao))
             return "Token inválido!"
         consulta = "UPDATE avaliacoes SET aceitou=0 WHERE token=%s"
         atualizar2(consulta, valores=(tokenAvaliacao,))
@@ -2890,10 +2936,10 @@ def inserirAvaliador():
 def excluirAvaliador():
     id_avaliacao = str(request.form.get('id_avaliacao', '')).strip()
     if not numero_valido(id_avaliacao):
-        logger.warning("[{}][/excluirAvaliador] ID inválido: {}", request.remote_addr, id_avaliacao)
+        logger.warning("[{}][/excluirAvaliador] ID inválido: {}", ip_cliente(), id_avaliacao)
         return "ID inválido."
     atualizar2("DELETE FROM avaliacoes WHERE id = %s", valores=[id_avaliacao])
-    logger.info("[{}][/excluirAvaliador] Avaliação id={} excluída.", request.remote_addr, id_avaliacao)
+    logger.info("[{}][/excluirAvaliador] Avaliação id={} excluída.", ip_cliente(), id_avaliacao)
     return_url = request.referrer or url_for('avaliacoesNegadas')
     return redirect(return_url)
 
@@ -3444,7 +3490,7 @@ def meusProjetos():
             siape = str(request.args.get('siape'))
             senha = str(request.args.get('senha'))
             if verify_password(siape,senha):
-                registrar_acesso(request.remote_addr,siape)
+                registrar_acesso(ip_cliente(),siape)
     if autenticado():        
         consulta = """SELECT id,nome_do_coordenador,orientador_lotacao,titulo_do_projeto,DATE_FORMAT(inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(termino,'%d/%m/%Y') as fim,estudante_nome_completo,token FROM cadastro_geral WHERE siape=%s ORDER BY inicio,titulo_do_projeto"""
         projetos,total = executarSelect2(consulta,valores=(str(session['username']),))
@@ -3632,7 +3678,7 @@ def minhaDeclaracao():
         )
 
     except Exception as e:
-        with logger.contextualize(ip=request.remote_addr, rota=request.path, erro=str(e), classe_erro=type(e).__name__):
+        with logger.contextualize(ip=ip_cliente(), rota=rota_para_log(), erro=str(e), classe_erro=type(e).__name__):
             logger.warning("Erro ao gerar declaração: {}", str(e))
         return "Erro ao gerar declaração. Tente novamente mais tarde."
 
@@ -3676,7 +3722,7 @@ def minhaDeclaracaoDiscente():
                     )
 
                 except Exception as e:
-                    with logger.contextualize(ip=request.remote_addr, rota=request.path, erro=str(e), classe_erro=type(e).__name__):
+                    with logger.contextualize(ip=ip_cliente(), rota=rota_para_log(), erro=str(e), classe_erro=type(e).__name__):
                         logger.warning("Erro ao gerar declaração: {}", str(e))
                     return "Erro ao gerar declaração. Tente novamente mais tarde."
             else:
@@ -3746,7 +3792,7 @@ def meuCertificado2018():
                 )
 
             except Exception as e:
-                with logger.contextualize(ip=request.remote_addr, rota=request.path, erro=str(e), classe_erro=type(e).__name__):
+                with logger.contextualize(ip=ip_cliente(), rota=rota_para_log(), erro=str(e), classe_erro=type(e).__name__):
                     logger.warning("Erro ao gerar certificado: {}", str(e))
                 return "Erro ao gerar declaração. Tente novamente mais tarde."
         else:
@@ -3814,7 +3860,7 @@ def meuCertificado():
                 )
 
             except Exception as e:
-                with logger.contextualize(ip=request.remote_addr, rota=request.path, erro=str(e), classe_erro=type(e).__name__):
+                with logger.contextualize(ip=ip_cliente(), rota=rota_para_log(), erro=str(e), classe_erro=type(e).__name__):
                     logger.warning("Erro ao gerar certificado: {}", str(e))
                 return "Erro ao gerar declaração. Tente novamente mais tarde."
         else:
@@ -3881,7 +3927,7 @@ def minhaDeclaracaoDiscente2019():
                 )
 
             except Exception as e:
-                with logger.contextualize(ip=request.remote_addr, rota=request.path, erro=str(e), classe_erro=type(e).__name__):
+                with logger.contextualize(ip=ip_cliente(), rota=rota_para_log(), erro=str(e), classe_erro=type(e).__name__):
                     logger.warning("Erro ao gerar declaração: {}", str(e))
                 return "Erro ao gerar declaração. Tente novamente mais tarde."
         else:
@@ -3943,10 +3989,10 @@ def registrar_acesso(ip,usuario):
 
 def pos_login(username, senha_vazada):
     """Etapas finais do login concluído (direto no /login ou após o código do MFA)."""
-    registrar_acesso(request.remote_addr, username)
+    registrar_acesso(ip_cliente(), username)
     if senha_vazada:
         session['senha_vazada'] = True
-        with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
+        with logger.contextualize(ip=ip_cliente(),username=username,rota=rota_para_log(),metodo=request.method,erro=""):
             logger.warning("Login com senha identificada como vazada (Cloudflare Leaked Credential Check)")
         flash("Sua senha foi identificada em um vazamento de dados conhecido. Por segurança, defina uma nova senha.","error")
         return redirect(url_for('nova_senha'))
@@ -3975,7 +4021,7 @@ def login():
             if resultado == 'mfa':
                 return redirect(url_for('mfa_verificar'))
             if resultado == 'politica':
-                registrar_acesso(request.remote_addr,siape)
+                registrar_acesso(ip_cliente(),siape)
                 flash("Sua senha não atende aos requisitos de segurança atuais. Defina uma nova senha.","error")
                 return redirect(url_for('nova_senha'))
             if resultado == 'ok':
@@ -4008,7 +4054,7 @@ def enviarMinhaSenha():
             email = str(request.form['email']).strip()
             linha = buscar_usuario(email, 'email')
             if linha is None:
-                with logger.contextualize(ip=request.remote_addr,rota=request.path,email=email):
+                with logger.contextualize(ip=ip_cliente(),rota=rota_para_log(),email=email):
                     logger.info("Redefinição de senha para e-mail não cadastrado")
             elif USAR_COGNITO:
                 try:
@@ -4016,7 +4062,7 @@ def enviarMinhaSenha():
                 except (ClientError, BotoCoreError):
                     pass  # Já registrado no log; a resposta continua genérica
             else:
-                with logger.contextualize(ip=request.remote_addr,rota=request.path,email=email):
+                with logger.contextualize(ip=ip_cliente(),rota=rota_para_log(),email=email):
                     logger.info("Esqueci minha senha em dev: nenhuma ação (Cognito só em produção)")
             flash(MENSAGEM_RECUPERACAO)
             if USAR_COGNITO:
@@ -4121,7 +4167,7 @@ def definir_senha():
             log_migracao('login_falha_cognito', username, nivel='error', erro=str(e), classe_erro=codigo_erro(e))
             flash("Senha definida. Entre novamente com a nova senha.")
             return redirect(url_for('login'))
-        registrar_acesso(request.remote_addr, username)
+        registrar_acesso(ip_cliente(), username)
         log_migracao('senha_definida_primeiro_acesso', username, origem='primeiro_acesso')
         flash("Senha definida com sucesso! Agora configure a verificação em duas etapas (MFA).")
         return redirect(url_for('mfa_configurar'))
@@ -4316,7 +4362,7 @@ def mfa_verificar():
             flash("Não foi possível concluir o login. Tente novamente.", 'error')
             return redirect(url_for('login'))
         log_migracao('mfa_ok', username, origem='login', etapa=tipo)
-        with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
+        with logger.contextualize(ip=ip_cliente(),username=username,rota=rota_para_log(),metodo=request.method,erro=""):
             logger.info("Usuário autenticado com sucesso (Cognito + MFA)")
         return pos_login(username, desafio.get('senha_vazada', False))
     return render_template('mfaVerificar.html', tipo=tipo, destino=desafio.get('destino', ''))
@@ -4795,6 +4841,7 @@ def inicio_nome_upload_direto(prefixo, rotulo, siape, idProjeto):
 
 @app.route("/arquivos/url_upload", methods=['POST'])
 @login_required(role='user')
+@log_required
 @limiter.limit("100 per hour")
 def url_upload():
     """URL assinada (POST) para o navegador enviar um arquivo direto a pesquisa/incoming/. Em dev: 404."""
@@ -5164,7 +5211,7 @@ def arquivo_assinado(token):
         logger.info("[arquivo_assinado] Link expirado")
         return render_template('link_expirado.html'), 410
     except (BadSignature, KeyError, TypeError) as e:
-        logger.warning("[arquivo_assinado] Link inválido: {}", str(e))
+        logger.warning("[arquivo_assinado] Link inválido: {}", type(e).__name__)  # str(e) traz parte do token
         return render_template('link_expirado.html'), 403
     quem = "avaliador " + hashlib.sha256(token.encode()).hexdigest()[:12]
     return url_download(prefixo, nome, quem)
@@ -6528,7 +6575,7 @@ def scheduler_jobs():
 PREFIXO_CHAVES_LIMITADOR = "LIMITS:LIMITER/"
 
 def log_limitador(acao, nivel='info', **extra):
-    with logger.contextualize(ip=request.remote_addr, username=session.get('username', 'N/A'), rota=request.path,
+    with logger.contextualize(ip=ip_cliente(), username=session.get('username', 'N/A'), rota=rota_para_log(),
                               metodo=request.method, acao=acao, **extra):
         logger.log(nivel.upper(), "Limitador de acessos: {}", acao)
 
@@ -6539,7 +6586,7 @@ def limitador():
     """
     Página para liberar os contadores do limitador de acessos (Flask-Limiter).
     """
-    return render_template('limitador.html', ip_atual=request.remote_addr)
+    return render_template('limitador.html', ip_atual=ip_cliente())
 
 @app.route("/admin/limitador/liberar_ip", methods=['POST'])
 @login_required(role='admin')
@@ -6768,7 +6815,7 @@ def nova_senha():
                 hash_nova_senha = cripto.hash_argon2id(nova)
                 consulta = """UPDATE users SET password=%s WHERE username=%s"""
                 atualizar2(consulta, valores=[hash_nova_senha, username])
-            with logger.contextualize(ip=request.remote_addr,username=username,rota=request.path,metodo=request.method,erro=""):
+            with logger.contextualize(ip=ip_cliente(),username=username,rota=rota_para_log(),metodo=request.method,erro=""):
                 logger.info("Usuário alterou a própria senha")
         except (ClientError, BotoCoreError) as e:
             if codigo_erro(e) == 'InvalidPasswordException':

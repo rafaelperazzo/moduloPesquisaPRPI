@@ -62,7 +62,7 @@ Os dados não são vendidos nem usados para publicidade. Eles são compartilhado
 
 | Operador | Uso |
 |---|---|
-| **Amazon Web Services (EUA)** | Hospedagem do servidor, do banco de dados e dos arquivos; autenticação (Cognito); envio de e-mails (SQS/SES); funções de criptografia e de validação de arquivos. |
+| **Amazon Web Services (EUA)** | Hospedagem do servidor, do banco de dados e dos arquivos; autenticação (Cognito); envio de e-mails (SQS/SES); monitoramento dos logs (CloudWatch); funções de criptografia e de validação de arquivos. |
 | **Cloudflare (rede global)** | Proteção do domínio: TLS, firewall de aplicação, bloqueio de bots e de ataques, e a verificação anti-robô (Turnstile) dos formulários públicos. Todo o tráfego passa por ela. |
 | **CNPq (Brasil)** | Consulta do currículo Lattes a partir do CPF do(a) orientador(a). |
 | **Sentry (EUA)** | Registro de erros da aplicação: a página e a descrição técnica do erro, sem IP, usuário, cookies nem dados pessoais, que são removidos ou mascarados antes do envio. |
@@ -96,7 +96,7 @@ As medidas técnicas estão descritas na página **Segurança do sistema** (`/pe
 |---|---|
 | **Documentos e dados pessoais dos estudantes** | 6 anos após o término da bolsa (5 anos de guarda e 1 ano para a prestação de contas). Depois disso, os documentos enviados na indicação são eliminados e os dados pessoais são anonimizados. Ficam apenas o nome, o projeto e o período da bolsa, para as declarações e o histórico institucional. Nos registros do sistema anterior (bolsas encerradas até 2020), o CPF também é mantido, para a emissão das declarações. |
 | **Projetos** | Pelo prazo exigido para a prestação de contas e para a guarda de documentos públicos. |
-| **Registros de segurança (logs e registros de acesso)** | 2 anos. Os registros de acesso (data e IP de cada login) são apagados automaticamente depois de 2 anos. No dia 1º de cada mês, o registro do mês anterior é fechado, compactado e guardado com criptografia (AWS KMS) no armazenamento da AWS, com acesso restrito à equipe responsável pela plataforma. Depois de 2 anos, ele é apagado automaticamente. A cópia no servidor da aplicação é apagada depois de 90 dias. |
+| **Registros de segurança (logs e registros de acesso)** | 2 anos. Os registros de acesso (data e IP de cada login) são apagados automaticamente depois de 2 anos. Os logs da aplicação são enviados ao serviço de monitoramento da AWS (Amazon CloudWatch), onde ficam disponíveis para consulta por 1 ano, com criptografia em repouso, e são apagados automaticamente depois disso. Além disso, no dia 1º de cada mês, o registro do mês anterior é fechado, compactado e arquivado com criptografia (AWS KMS) no armazenamento da AWS, e é apagado automaticamente depois de 2 anos. O acesso às duas cópias é restrito à equipe responsável pela plataforma. A cópia no servidor da aplicação é apagada depois de 90 dias. |
 | **Links de acesso aos arquivos** | 60 segundos. Os links enviados aos avaliadores valem 30 dias e abrem apenas o projeto ou o plano de trabalho. |
 | **Sessão** | Encerrada no logout ou depois de 1 hora de inatividade. |
 

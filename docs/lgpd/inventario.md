@@ -85,7 +85,7 @@ Os dados não são vendidos nem usados para publicidade.
 
 | Operador | País | Tratamento | Garantias |
 |---|---|---|---|
-| **Amazon Web Services** | EUA | Hospedagem do servidor, do banco de dados e dos arquivos; autenticação e segundo fator (e-mail e credenciais dos usuários); fila e envio de e-mails (endereços dos destinatários e conteúdo das mensagens); funções de criptografia e de validação de arquivos | AWS Data Processing Addendum; ISO/IEC 27001 e SOC 2; criptografia em trânsito e em repouso |
+| **Amazon Web Services** | EUA | Hospedagem do servidor, do banco de dados e dos arquivos; autenticação e segundo fator (e-mail e credenciais dos usuários); fila e envio de e-mails (endereços dos destinatários e conteúdo das mensagens); monitoramento dos logs no CloudWatch (IP, usuário, rota e localização aproximada); funções de criptografia e de validação de arquivos | AWS Data Processing Addendum; ISO/IEC 27001 e SOC 2; criptografia em trânsito e em repouso |
 | **Cloudflare** | Rede global | Proteção do domínio: TLS, firewall, bloqueio de bots e verificação anti-robô dos formulários públicos. Todo o tráfego passa por ela, com o IP do visitante | Termos e DPA da Cloudflare, ainda a arquivar |
 | **Sentry** | EUA | Registro de erros da aplicação. **Sem dados pessoais:** IP, usuário, cookies e variáveis locais não são enviados, e e-mail, CPF e IP são mascarados nas mensagens | DPA do Sentry, ainda a arquivar |
 | **Bibliotecas públicas (CDNs)** | Diversos | Recebem o IP e os dados do navegador ao carregar a página | — |
@@ -97,7 +97,7 @@ Os dados não são vendidos nem usados para publicidade.
 | Dado | Prazo | Como é eliminado |
 |---|---|---|
 | **Documentos e dados pessoais dos discentes** | 6 anos após o término da bolsa (5 anos de guarda e 1 ano para a prestação de contas) | **Automático, uma vez por mês:** os documentos são apagados e os dados pessoais anonimizados. Ficam nome, projeto e período, para as declarações. Nos registros do sistema anterior (bolsas encerradas até 2020), o CPF também fica, para a busca das declarações |
-| **Registros de segurança (logs)** | 2 anos | Guardados por mês, compactados e cifrados; apagados automaticamente depois de 2 anos. A cópia no servidor é apagada depois de 90 dias |
+| **Registros de segurança (logs)** | 1 ano no CloudWatch; 2 anos no arquivo do S3 | Enviados ao Amazon CloudWatch (grupo `logs_pesquisa`, retenção de 365 dias, criptografia em repouso padrão do serviço). Também arquivados por mês, compactados e cifrados (AWS KMS), e apagados automaticamente depois de 2 anos. A cópia no servidor é apagada depois de 90 dias |
 | **Registros de acesso (data e IP de cada login)** | 2 anos | Automático, uma vez por mês |
 | **Sessão** | Até o logout ou 1 hora de inatividade | Automático |
 | **Links de acesso aos arquivos** | 60 segundos; os links dos avaliadores valem 30 dias | Expiram sozinhos |

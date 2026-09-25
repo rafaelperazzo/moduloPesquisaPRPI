@@ -133,7 +133,7 @@
   <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10">
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
       <h5 class="text-sm font-semibold text-gray-800 mb-1">Amazon Web Services (EUA)</h5>
-      <p class="text-gray-600 text-sm">Hospedagem do servidor, do banco de dados e dos arquivos; autenticação (Cognito); envio de e-mails (SQS/SES); funções de criptografia e de validação de arquivos.</p>
+      <p class="text-gray-600 text-sm">Hospedagem do servidor, do banco de dados e dos arquivos; autenticação (Cognito); envio de e-mails (SQS/SES); monitoramento dos logs (CloudWatch); funções de criptografia e de validação de arquivos.</p>
     </div>
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
       <h5 class="text-sm font-semibold text-gray-800 mb-1">Cloudflare (rede global)</h5>
@@ -197,7 +197,7 @@
         </tr>
         <tr class="border-b border-gray-100 align-top">
           <td class="px-4 py-3 font-medium text-gray-800">Registros de segurança (logs e registros de acesso)</td>
-          <td class="px-4 py-3 text-gray-700">2 anos. Os registros de acesso (data e IP de cada login) são apagados automaticamente depois de 2 anos. No dia 1º de cada mês, o registro do mês anterior é fechado, compactado e guardado com criptografia (AWS KMS) no armazenamento da AWS, com acesso restrito à equipe responsável pela plataforma. Depois de 2 anos, ele é apagado automaticamente. A cópia no servidor da aplicação é apagada depois de 90 dias.</td>
+          <td class="px-4 py-3 text-gray-700">2 anos. Os registros de acesso (data e IP de cada login) são apagados automaticamente depois de 2 anos. Os logs da aplicação são enviados ao serviço de monitoramento da AWS (Amazon CloudWatch), onde ficam disponíveis para consulta por 1 ano, com criptografia em repouso, e são apagados automaticamente depois disso. Além disso, no dia 1º de cada mês, o registro do mês anterior é fechado, compactado e arquivado com criptografia (AWS KMS) no armazenamento da AWS, e é apagado automaticamente depois de 2 anos. O acesso às duas cópias é restrito à equipe responsável pela plataforma. A cópia no servidor da aplicação é apagada depois de 90 dias.</td>
         </tr>
         <tr class="border-b border-gray-100 align-top">
           <td class="px-4 py-3 font-medium text-gray-800">Links de acesso aos arquivos</td>

@@ -64,7 +64,7 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from dotenv import load_dotenv
 from requests_auth_aws_sigv4 import AWSSigV4
 from relatorio_edital_pdf import gerar_pdf_resultado_edital
-from modules.retencao import expurgar_dados_estudantes
+from modules.retencao import expurgar_dados_estudantes, expurgar_acessos
 
 def load_ssm_parameters(prefix="/pesquisa", region_name="us-east-2"):
     """
@@ -6278,14 +6278,18 @@ def job_expurgo_retencao():
     """
     Retenção de 6 anos após o fim da bolsa (modules/retencao.py): apaga os documentos da indicação no S3
     e anonimiza os dados pessoais dos estudantes. No máximo 500 linhas por tabela a cada mês.
+    Também apaga da tabela acessos os registros com mais de 2 anos (o prazo dos logs).
     Em dev (PRODUCAO!=1) não toca no S3.
     """
+    conectar = lambda: MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
     try:
-        expurgar_dados_estudantes(
-            lambda: MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required"),
-            s3=s3 if PRODUCAO == 1 else None, bucket=AWS_S3_BUCKET, limite=500)
+        expurgar_dados_estudantes(conectar, s3=s3 if PRODUCAO == 1 else None, bucket=AWS_S3_BUCKET, limite=500)
     except Exception as e:
         logger.error("[retencao] Erro na tarefa de expurgo: {}", type(e).__name__)
+    try:
+        expurgar_acessos(conectar)
+    except Exception as e:
+        logger.error("[retencao] Erro no expurgo da tabela acessos: {}", type(e).__name__)
 
 @app.route("/admin/ligarScheduler", methods=['GET'])
 @login_required(role='admin')

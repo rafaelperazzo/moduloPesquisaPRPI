@@ -6,7 +6,8 @@ Retenção de 6 anos após o fim da bolsa (modules/retencao.py; roteiro em migra
                     inclusive o CPF; ficam nome, projeto e período;
   * alunos:         anonimiza o e-mail; o CPF fica (busca das declarações antigas);
   * cadastro_geral: anonimiza RG, contato e dados bancários do estudante; o CPF e os dados do
-                    orientador ficam.
+                    orientador ficam;
+  * acessos:        apaga os registros (IP e data dos logins) com mais de 2 anos, o prazo dos logs.
 
 É a mesma função da tarefa mensal do app (dia 1º, 21:00), sem o limite de 500 linhas: serve para a
 primeira execução, que pega o acervo antigo. IRREVERSÍVEL: fazer um backup do banco antes.
@@ -28,7 +29,7 @@ import sys
 import mariadb
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from modules.retencao import TABELAS_RETENCAO, expurgar_dados_estudantes  # noqa: E402
+from modules.retencao import TABELAS_RETENCAO, expurgar_acessos, expurgar_dados_estudantes  # noqa: E402
 
 REGIAO = "us-east-2"
 
@@ -54,7 +55,7 @@ def conectar(local):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--tabela", choices=list(TABELAS_RETENCAO), help="só esta tabela (padrão: as três)")
+    parser.add_argument("--tabela", choices=list(TABELAS_RETENCAO) + ['acessos'], help="só esta tabela (padrão: todas)")
     parser.add_argument("--limite", type=int, default=None, help="no máximo N linhas por tabela")
     parser.add_argument("--simular", action="store_true", help="só mostra as contagens, sem alterar nada")
     parser.add_argument("--local", action="store_true",
@@ -71,8 +72,10 @@ def main():
         if not bucket:
             sys.exit("AWS_S3_BUCKET é obrigatório (SSM /pesquisa/AWS_S3_BUCKET).")
 
-    resultado = expurgar_dados_estudantes(lambda: conectar(args.local), s3=s3, bucket=bucket, simular=args.simular,
-                                          limite=args.limite, tabelas=[args.tabela] if args.tabela else None)
+    resultado = {}
+    if args.tabela != 'acessos':
+        resultado = expurgar_dados_estudantes(lambda: conectar(args.local), s3=s3, bucket=bucket, simular=args.simular,
+                                              limite=args.limite, tabelas=[args.tabela] if args.tabela else None)
     falhou = False
     for tabela, r in resultado.items():
         if 'erro' in r:
@@ -98,6 +101,16 @@ def main():
         if r['colunas_nao_classificadas']:
             print(f"[{tabela}]   colunas NÃO classificadas (revisar se são dados pessoais): "
                   f"{', '.join(r['colunas_nao_classificadas'])}", flush=True)
+    if args.tabela in (None, 'acessos'):
+        r = expurgar_acessos(lambda: conectar(args.local), simular=args.simular)
+        if 'erro' in r:
+            falhou = True
+            print(f"[acessos] ERRO: {r['erro']}", flush=True)
+        elif args.simular:
+            print(f"[acessos] SIMULAÇÃO | coluna de data: {r['coluna_data']} | registros com mais de 2 anos: "
+                  f"{r['linhas']} | mais antigo: {r['mais_antigo']}", flush=True)
+        else:
+            print(f"[acessos] registros com mais de 2 anos apagados: {r['linhas']}", flush=True)
     sys.exit(1 if falhou else 0)
 
 

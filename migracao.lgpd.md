@@ -44,7 +44,7 @@
 | Sentry com `send_default_pii=True`: IP, usuário e dados da requisição vão para os EUA | **Resolvido em 2026-09-24:** `send_default_pii=False`; `include_local_variables=False`, porque as variáveis dos stack traces guardam CPF, senha e dados bancários; `EventScrubber` com os nomes de campos em português e o `CF-Connecting-IP`; `before_send` e `before_breadcrumb` mascaram IP, e-mail e CPF no texto. Há 9 testes em `app/test_sentry.py`, com um evento real capturado localmente |
 | CPF, dados bancários, nome e e-mail do discente sem criptografia por coluna | Recomendação (exige migrar os dados) |
 | Backup de produção restaurado **em claro** na máquina de dev (`atualizar_db.sh`), com CPF e dados bancários reais | **`anonimizar_dev.sql`**, chamado pelo `atualizar_db.sh.sample` nos bancos `pesquisa` e `pesquisa_test`: CPF vira pseudônimo (o mesmo em todas as tabelas), dados bancários, RG, telefone, endereço e nascimento viram `ANONIMIZADO`, e-mail do discente e IPs são trocados, e as colunas suspeitas não tratadas são listadas para revisão. Um `trap` apaga o dump decifrado mesmo se o script falhar. Testado num MariaDB 11 descartável |
-| Tabela `acessos` sem expurgo | Depende do prazo de guarda (seção 4) |
+| Tabela `acessos` sem expurgo | **2 anos**, o prazo dos logs, pela tarefa mensal (seção 7) |
 | Terceiros recebem o IP: Cloudflare, reCAPTCHA, CDNs (Tailwind, jsDelivr, cdnjs, googleapis, jQuery) e shields.io | Declarados na política. **reCAPTCHA trocado pelo Cloudflare Turnstile** (seção 6), e o Google saiu da lista de operadores. Recomendação que continua: hospedar os assets |
 | reCAPTCHA **conferido só no navegador**, sem validação no servidor, e com a caixa fora do `<form>` em 5 páginas; o script do Google era carregado em **todas** as páginas | **Resolvido pelo Turnstile** (seção 6) |
 
@@ -88,7 +88,7 @@
 - [ ] **Encarregado da UFCA:** revisar o texto da `/lgpd`, informar o nome e o contato oficial dele (hoje o canal é a PRPI) e registrar o tratamento no inventário de dados (art. 37).
 - [ ] **RIPD** (art. 38), por causa dos dados financeiros e de identidade dos discentes, inclusive de adolescentes.
 - [x] **Prazos de guarda dos documentos das bolsas:** 6 anos após o fim da bolsa, por decisão do usuário em 2026-09-25. O expurgo está na seção 7. Recomendação que continua: formalizar com a CPAD/Arquivo da UFCA (Resolução CONARQ 40/2014).
-- [ ] **Tabela `acessos`** (IP e data dos logins): ainda sem expurgo.
+- [x] **Tabela `acessos`** (IP e data dos logins): os registros com mais de 2 anos, o mesmo prazo dos logs, são apagados pela `expurgar_acessos` na tarefa mensal (seção 7). Código de 2026-09-25; falta a primeira execução em produção.
 - [ ] **Plano de resposta a incidentes:** comunicar a ANPD e os titulares em 3 dias úteis (Resolução CD/ANPD nº 15/2024).
 - [ ] Quando cada item for concluído, mudar o cartão dele na `/lgpd` de "Em andamento" para "Implementado". A lista `requisitos` fica no topo do quadro, em `lgpd.html`.
 
@@ -168,7 +168,7 @@
 
   As colunas não classificadas foram revistas com o usuário.
 
-  Na segunda simulação, `indicacoes` mostrou 656 arquivos em vez de 822. Isso levou a separar, no `--simular`, os valores de preenchimento ignorados e as linhas com nome de arquivo recusado.
+  Na segunda simulação, `indicacoes` mostrou 656 arquivos em vez de 822. A diferença eram 165 valores `N/A` e um `N/D`, na linha 5319. Isso levou a separar, no `--simular`, os valores de preenchimento ignorados e as linhas com nome de arquivo recusado.
 
 **Primeira execução, na EC2 (irreversível):**
 1. aplicar o `retencao.sql.sample`, que cria a coluna `expurgo` nas 3 tabelas;
@@ -185,3 +185,20 @@
 - um arquivo apagado por engano pode ser recuperado por 1 dia, removendo a marca de exclusão. Depois disso, a regra `S3 Lifecycle Rule` apaga a versão antiga;
 - o banco só pode ser recuperado pelo backup;
 - os backups guardam 21 cópias e sincronizam com `--delete`, então o dado anonimizado some dos backups em cerca de 3 semanas.
+
+**Execução em produção (2026-09-25):** `--limite 5` e depois a execução completa.
+- **`indicacoes`:** 175 linhas anonimizadas e 656 arquivos apagados. O S3 conferido mostra 656 marcas de exclusão com data de hoje, e o `head-object` de um arquivo devolve 404.
+- **`alunos`:** 685 linhas.
+- **`cadastro_geral`:** 772 linhas pelo script. A linha 345 não tinha nenhuma data, e as vizinhas (335 a 355) são de 2018. Ela foi anonimizada manualmente, com as mesmas colunas do script. Com isso, as 773 linhas estão tratadas.
+- **Falhas:** nenhuma.
+- **Daqui em diante:** a tarefa mensal do dia 1º, às 21:00, trata as bolsas que completarem 6 anos.
+
+**Tabela `acessos` (IP e data dos logins), 2026-09-25:**
+- **Prazo:** os registros com mais de 2 anos são apagados, o mesmo prazo dos logs. A exclusão é feita em lotes de 5.000 pela `expurgar_acessos`, na mesma tarefa mensal.
+- **Coluna de data:** a tabela não tem esquema no repositório, então a coluna de data é descoberta pelo `information_schema`. O `--simular` mostra qual coluna foi usada.
+- **Script:** `--tabela acessos` trata só essa tabela, e o `--limite` não se aplica a ela.
+- **Validação:** feita num MariaDB 11 descartável. De 1.200 registros, sobraram 729, com o mais antigo de exatamente 2 anos, e a segunda execução não apagou nada.
+- **Primeira execução em produção:**
+  1. backup do banco;
+  2. `env/bin/python scripts/expurgar_dados_estudantes.py --tabela acessos --simular`;
+  3. `env/bin/python scripts/expurgar_dados_estudantes.py --tabela acessos`.

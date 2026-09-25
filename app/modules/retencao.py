@@ -13,6 +13,8 @@ As datas são interpretadas em Python, e não com CAST no SQL: nas tabelas legad
 ("Julho de 2018", "31/07/2019"). As tabelas têm poucos milhares de linhas, então cada execução lê
 id e data de todas as linhas ainda não expurgadas.
 
+A tabela `acessos` (IP e data dos logins) segue o prazo dos logs, 2 anos (expurgar_acessos).
+
 Usado pelo app (tarefa mensal) e por scripts/expurgar_dados_estudantes.py (primeira execução, manual).
 Não importa o pesquisa.py: quem chama passa a conexão e o cliente do S3.
 """
@@ -25,6 +27,8 @@ from loguru import logger
 from werkzeug.utils import secure_filename
 
 RETENCAO_ANOS = 6
+RETENCAO_ACESSOS_ANOS = 2   # tabela acessos (IP e data dos logins): o mesmo prazo dos logs
+LOTE_ACESSOS = 5000
 PREFIXO_DOCS_S3 = 'pesquisa/docs_indicacoes/'
 SEM_ARQUIVO = {'', 'n/a', 'na', 'n/d', 'nd', '-'}   # preenchimentos nas colunas arquivo_* (arquivo_af é sempre "N/A"; id 5319 tem "N/D")
 
@@ -209,6 +213,39 @@ def expurgar_tabela(conn, tabela, config, colunas, vencidas, s3, bucket, limite)
             logger.error("[retencao] {} id={}: erro no expurgo: {}", tabela, id_, type(e).__name__)
     cur.close()
     return resumo
+
+
+def expurgar_acessos(conectar, simular=False, anos=RETENCAO_ACESSOS_ANOS):
+    """
+    Apaga da tabela `acessos` (IP e data dos logins) os registros com mais de `anos` anos, o mesmo prazo dos
+    logs. A tabela não tem esquema no repositório (o INSERT grava só ip e username; a data vem do DEFAULT):
+    a coluna de data é a primeira date/datetime/timestamp dela. Apaga em lotes, para não travar a tabela.
+    """
+    conn = conectar()
+    try:
+        cur = conn.cursor()
+        colunas = colunas_da_tabela(cur, 'acessos')
+        coluna = next((c for c, (tipo, _) in colunas.items() if tipo in TIPOS_DATA), None)
+        if coluna is None:
+            erro = 'tabela acessos inexistente ou sem coluna de data'
+            logger.error("[retencao] acessos: {}", erro)
+            return {'erro': erro}
+        condicao = f"{q(coluna)} < NOW() - INTERVAL {int(anos)} YEAR"
+        if simular:
+            cur.execute(f"SELECT COUNT(*), MIN({q(coluna)}) FROM acessos WHERE {condicao}")
+            total, mais_antigo = cur.fetchone()
+            return {'coluna_data': coluna, 'linhas': int(total or 0), 'mais_antigo': mais_antigo}
+        apagadas = 0
+        while True:
+            cur.execute(f"DELETE FROM acessos WHERE {condicao} LIMIT {LOTE_ACESSOS}")
+            conn.commit()
+            if cur.rowcount <= 0:
+                break
+            apagadas += cur.rowcount
+        logger.info("[retencao] acessos: {} registros com mais de {} anos apagados", apagadas, anos)
+        return {'coluna_data': coluna, 'linhas': apagadas}
+    finally:
+        conn.close()
 
 
 def expurgar_dados_estudantes(conectar, s3=None, bucket=None, simular=False, limite=None, tabelas=None,

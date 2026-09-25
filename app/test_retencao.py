@@ -3,7 +3,7 @@
 Rodar a partir de app/: pytest test_retencao.py -v
 """
 import re
-from datetime import date
+from datetime import date, datetime, timedelta
 
 import pytest
 from loguru import logger
@@ -293,3 +293,76 @@ def test_politica_declara_6_anos():
 @pytest.mark.parametrize('valor', ['N/A', 'n/a', 'N/D', ' N/D ', '-', '', None])
 def test_preenchimentos_nao_sao_arquivos(valor):
     assert R.chaves_dos_arquivos([valor]) == ([], 0)
+
+
+# ----- tabela acessos (IP e data dos logins): 2 anos, o prazo dos logs -----
+
+class AcessosFalso:
+    """Conexão falsa só para a tabela acessos: colunas, COUNT/MIN e DELETE ... LIMIT com rowcount."""
+    def __init__(self, datas, colunas=None, lote=None):
+        self.datas = list(datas)
+        self.colunas = colunas if colunas is not None else [('ip', 'varchar'), ('username', 'varchar'), ('data', 'timestamp')]
+        self.sqls, self.rowcount, self.resultado, self.lote = [], 0, [], lote
+
+    def cursor(self):
+        return self
+
+    def execute(self, sql, params=()):
+        self.sqls.append(sql)
+        corte = datetime.now() - timedelta(days=365 * R.RETENCAO_ACESSOS_ANOS)
+        if 'information_schema' in sql:
+            self.resultado = [(n, t, 'YES') for n, t in self.colunas]
+        elif sql.startswith('SELECT COUNT(*)'):
+            antigas = [d for d in self.datas if d < corte]
+            self.resultado = [(len(antigas), min(antigas, default=None))]
+        elif sql.startswith('DELETE'):
+            limite = int(re.search(r'LIMIT (\d+)', sql)[1])
+            antigas = [d for d in self.datas if d < corte][:self.lote or limite]
+            for d in antigas:
+                self.datas.remove(d)
+            self.rowcount = len(antigas)
+
+    def fetchall(self):
+        return self.resultado
+
+    def fetchone(self):
+        return self.resultado[0]
+
+    def commit(self):
+        pass
+
+    def close(self):
+        pass
+
+
+def datas_de_acesso():
+    agora = datetime.now()
+    return [agora - timedelta(days=d) for d in (1, 300, 700, 800, 1500, 3000)]
+
+
+def test_acessos_simular_conta_sem_apagar():
+    conn = AcessosFalso(datas_de_acesso())
+    r = R.expurgar_acessos(lambda: conn, simular=True)
+    assert r['coluna_data'] == 'data' and r['linhas'] == 3
+    assert len(conn.datas) == 6 and not any(s.startswith('DELETE') for s in conn.sqls)
+
+
+def test_acessos_apaga_so_os_mais_antigos_que_2_anos_em_lotes():
+    conn = AcessosFalso(datas_de_acesso(), lote=2)
+    r = R.expurgar_acessos(lambda: conn)
+    assert r['linhas'] == 3 and len(conn.datas) == 3
+    assert sum(s.startswith('DELETE') for s in conn.sqls) == 3   # 2 + 1 + o lote vazio que encerra
+    assert all((datetime.now() - d).days < 730 for d in conn.datas)
+
+
+def test_acessos_sem_coluna_de_data_nao_apaga():
+    conn = AcessosFalso(datas_de_acesso(), colunas=[('ip', 'varchar'), ('username', 'varchar')])
+    r = R.expurgar_acessos(lambda: conn)
+    assert 'erro' in r and not any(s.startswith('DELETE') for s in conn.sqls)
+
+
+def test_politica_declara_2_anos_para_registros_de_acesso():
+    with open('templates/lgpd.html', encoding='utf-8') as f:
+        html = f.read()
+    assert 'registros de acesso (data e IP de cada login) são apagados automaticamente depois de 2 anos' in html
+    assert 'bolsas encerradas até 2020' in html and 'registros anteriores a 2019' not in html

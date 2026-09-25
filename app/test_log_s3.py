@@ -140,4 +140,4 @@ def test_politica_declara_2_anos():
     with open('templates/lgpd.html', encoding='utf-8') as f:
         html = f.read()
     assert '<td class="px-4 py-3 text-gray-700">2 anos.' in html
-    assert 'logs guardados por 2 anos' in html and 'Logs apagados após 90 dias' not in html
+    assert 'logs e registros de acesso guardados por 2 anos' in html and 'Logs apagados após 90 dias' not in html

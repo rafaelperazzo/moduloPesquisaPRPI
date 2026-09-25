@@ -340,7 +340,7 @@ Comando: `aws s3api put-bucket-policy --region us-east-2 --bucket rajardekalambu
 | Role `validar-upload-role` | `AWSLambdaBasicExecutionRole` + inline `ValidarUploadS3`: `GetObject`/`DeleteObject` em `pesquisa/incoming/*`, `PutObject` em `submissoes/*` e `docs_indicacoes/*`, `ListBucket` com `s3:prefix` `pesquisa/incoming/*` (sem ele, o S3 devolve 403 em vez de 404) |
 | Lambda `validar-upload` | python3.14, x86_64, 256 MB, 30 s; log `/aws/lambda/validar-upload` com retenção de 30 dias |
 | Regra do EventBridge `pesquisa-validar-upload` | `aws.s3` "Object Created", bucket `rajardekalambur`, chave com prefixo `pesquisa/incoming/`. O EventBridge já estava ligado no bucket, então **a notificação do bucket não foi alterada** |
-| Lifecycle | nova regra `pesquisa-incoming-1-dia` (Expiration de 1 dia em `pesquisa/incoming/`); a regra `S3 Lifecycle Rule` foi mantida |
+| Lifecycle | nova regra `pesquisa-incoming-1-dia` (Expiration de 1 dia em `pesquisa/incoming/`); a regra `S3 Lifecycle Rule` foi mantida. **2026-09-25:** nova regra `pesquisa-logs-2-anos` (Expiration de 730 dias em `pesquisa/logs/`, para os logs mensais do app; ver `migracao.lgpd.md`) |
 | CORS | só `POST`, a partir de `https://aws.yokoapps.com.br` (antes, não havia CORS) |
 | Bucket policy | `pesquisa/incoming/*` acrescentado às duas regras |
 

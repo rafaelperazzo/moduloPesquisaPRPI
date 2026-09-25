@@ -193,7 +193,7 @@
         </tr>
         <tr class="border-b border-gray-100 align-top">
           <td class="px-4 py-3 font-medium text-gray-800">Registros de segurança (logs)</td>
-          <td class="px-4 py-3 text-gray-700">90 dias.</td>
+          <td class="px-4 py-3 text-gray-700">2 anos. No dia 1º de cada mês, o registro do mês anterior é fechado, compactado e guardado com criptografia (AWS KMS) no armazenamento da AWS, com acesso restrito à equipe responsável pela plataforma. Depois de 2 anos, ele é apagado automaticamente. A cópia no servidor da aplicação é apagada depois de 90 dias.</td>
         </tr>
         <tr class="border-b border-gray-100 align-top">
           <td class="px-4 py-3 font-medium text-gray-800">Links de acesso aos arquivos</td>
@@ -244,7 +244,7 @@
     ('Art. 41', 'Encarregado', 'andamento', 'Pedidos recebidos pela PRPI e repassados ao Encarregado da UFCA.'),
     ('Art. 46', 'Segurança da informação', 'implementado', 'TLS, WAF, MFA obrigatório, criptografia em repouso (disco do servidor e arquivos com AWS KMS, e banco de dados), criptografia própria de CPF, RG, dados bancários e contato, links temporários, permissões mínimas, verificação anti-robô (Turnstile) e limite de tentativas.'),
     ('Art. 48', 'Comunicação de incidentes', 'andamento', 'Plano de resposta com comunicação à ANPD e aos titulares em elaboração.'),
-    ('Arts. 15 e 16', 'Término do tratamento e eliminação', 'andamento', 'Logs apagados após 90 dias; prazos de guarda dos documentos das bolsas em definição.'),
+    ('Arts. 15 e 16', 'Término do tratamento e eliminação', 'andamento', 'Logs guardados por 2 anos, com criptografia, e apagados automaticamente depois disso; prazos de guarda dos documentos das bolsas em definição.'),
   ] %}
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
     {% for artigo, titulo, situacao, descricao in requisitos %}

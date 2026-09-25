@@ -39,7 +39,7 @@
 | Lacuna | Situação |
 |---|---|
 | Google Analytics `UA-164056633-1` em `avaliacao.html`, `cadastrarProjeto.html` e `editalProjeto.html`. O UA parou em 2023, mas o script ainda mandava o IP ao Google | **Removido** |
-| Retenção de logs `retention=30`: no loguru, isso quer dizer 30 arquivos, não 30 dias | **`LOG_RETENCAO = "90 days"`** |
+| Retenção de logs `retention=30`: no loguru, isso quer dizer 30 arquivos, não 30 dias | **`LOG_RETENCAO = "90 days"`** no servidor. **Desde 2026-09-25, guardados por 2 anos:** só no dia 1º de cada mês, sem limite de tamanho, o `app.json` é fechado, compactado e enviado a `s3://<bucket>/pesquisa/logs/` em SSE-KMS, e a regra de lifecycle `pesquisa-logs-2-anos` apaga os objetos depois de 730 dias. Uma cópia fica no servidor por 90 dias, e os envios que falharam são refeitos quando o app inicia |
 | Sem política, sem canal do titular e sem registro de ciência | **Implementado** (seção 3) |
 | Sentry com `send_default_pii=True`: IP, usuário e dados da requisição vão para os EUA | **Resolvido em 2026-09-24:** `send_default_pii=False`; `include_local_variables=False`, porque as variáveis dos stack traces guardam CPF, senha e dados bancários; `EventScrubber` com os nomes de campos em português e o `CF-Connecting-IP`; `before_send` e `before_breadcrumb` mascaram IP, e-mail e CPF no texto. Há 9 testes em `app/test_sentry.py`, com um evento real capturado localmente |
 | CPF, dados bancários, nome e e-mail do discente sem criptografia por coluna | Recomendação (exige migrar os dados) |

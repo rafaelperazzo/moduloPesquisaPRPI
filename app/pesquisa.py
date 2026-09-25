@@ -17,6 +17,8 @@ from flask_uploads import UploadSet, configure_uploads, ALL, DOCUMENTS
 import threading
 import zeep
 import zipfile
+import gzip
+import glob
 import tempfile
 import shutil
 import xml.etree.ElementTree as ET
@@ -311,19 +313,64 @@ logger.disable("sentry_sdk")
 logger.enable("apscheduler")
 logger.enable("flask-limiter")
 
-# LGPD: os logs (IP, rota, localização) são apagados após este prazo, declarado em /lgpd.
-# Com rotation por tamanho, o loguru confere a idade dos arquivos antigos a cada rotação.
+# LGPD: os logs (IP, rota, localização) são guardados por 2 anos, como declarado em /lgpd.
+# Em produção, o app.json é trocado só no dia 1º de cada mês, sem limite de tamanho, e o arquivo fechado
+# é compactado e enviado ao S3 (LOG_PREFIXO_S3). A regra de lifecycle "pesquisa-logs-2-anos" do bucket
+# apaga os objetos depois de 730 dias. A cópia local fica só LOG_RETENCAO, conferida a cada rotação.
 LOG_RETENCAO = "90 days"
+LOG_PREFIXO_S3 = 'pesquisa/logs/'
+
+class RotacaoMensalDoLog:
+    """rotation do loguru: troca o arquivo só quando muda o mês (dia 1º)."""
+    def __init__(self):
+        self.mes = None
+
+    def __call__(self, message, file):
+        if self.mes is None:
+            # Primeira mensagem depois de iniciar o app: o mês do arquivo é o da última escrita nele.
+            info = os.stat(file.name)
+            inicio = datetime.fromtimestamp(info.st_mtime) if info.st_size else datetime.now()
+            self.mes = (inicio.year, inicio.month)
+        agora = message.record["time"]
+        if (agora.year, agora.month) != self.mes:
+            self.mes = (agora.year, agora.month)
+            return True
+        return False
+
+def enviar_log_s3(caminho_gz):
+    """Envia um log compactado ao S3, em SSE-KMS (aws/s3), como os demais arquivos do pesquisa."""
+    chave = LOG_PREFIXO_S3 + os.path.basename(caminho_gz)
+    try:
+        with open(caminho_gz, 'rb') as arquivo:
+            s3.put_object(Bucket=AWS_S3_BUCKET, Key=chave, Body=arquivo, ContentType='application/gzip',
+                          ServerSideEncryption='aws:kms', Metadata={'enviado-por': 'app'})
+        logger.info("[log] Arquivo {} enviado ao S3", chave)
+        return True
+    except (ClientError, BotoCoreError, OSError) as e:
+        logger.error("[log] Erro ao enviar o arquivo {} ao S3: {}", chave, e)
+        return False
+
+def compactar_e_enviar_log(caminho):
+    """
+    compression do loguru: compacta o arquivo que acabou de ser fechado e o envia ao S3 numa thread.
+    O loguru chama esta função segurando a trava do log, então ela não pode usar o logger (daria
+    deadlock); quem escreve no log é a thread do envio, depois que a rotação termina.
+    """
+    caminho_gz = caminho + '.gz'
+    with open(caminho, 'rb') as origem, gzip.open(caminho_gz, 'wb') as destino:
+        shutil.copyfileobj(origem, destino)
+    os.remove(caminho)
+    threading.Thread(target=enviar_log_s3, args=(caminho_gz,), daemon=True).start()
 
 if PRODUCAO==1:
     #handler = LogtailHandler(
     #    source_token=BS_SOURCE_TOKEN,
     #    host=BS_HOST,
     #)
-    logger.add("app.json", rotation="20 MB", retention=LOG_RETENCAO, backtrace=False,
+    logger.add("app.json", rotation=RotacaoMensalDoLog(), retention=LOG_RETENCAO, backtrace=False,
                diagnose=False, level="INFO", serialize=True,mode='a',
                format="{time} | {name} | {level} | {message} | {extra}",
-               compression='gz')
+               compression=compactar_e_enviar_log)
     #logger.add(handler, format="{time} | {name} | {level} | {message} | {extra}", level="INFO",
     #           serialize=True,backtrace=False, diagnose=False)
 else:
@@ -407,6 +454,22 @@ else:
                       aws_access_key_id=AWS_S3_KEY_ID,
                       aws_secret_access_key=AWS_S3_SECRET_KEY,
                       config=Config(use_dualstack_endpoint=True, signature_version='s3v4'))
+
+def enviar_logs_pendentes():
+    """Reenvia os logs compactados que ainda não estão no S3 (envio que falhou ou app parado no meio)."""
+    for caminho_gz in sorted(glob.glob("app.*.json.gz")):
+        try:
+            s3.head_object(Bucket=AWS_S3_BUCKET, Key=LOG_PREFIXO_S3 + os.path.basename(caminho_gz))
+        except ClientError as e:
+            if e.response.get('Error', {}).get('Code') in ('404', 'NoSuchKey', 'NotFound'):
+                enviar_log_s3(caminho_gz)
+            else:
+                logger.error("[log] Erro ao conferir o arquivo {} no S3: {}", caminho_gz, e)
+        except BotoCoreError as e:
+            logger.error("[log] Erro ao conferir o arquivo {} no S3: {}", caminho_gz, e)
+
+if PRODUCAO==1:
+    threading.Thread(target=enviar_logs_pendentes, daemon=True).start()
 
 #Arquivos no S3: URLs assinadas de download e links dos avaliadores (migracao.s3.md, fase 1)
 URL_DOWNLOAD_VALIDADE = 60  # segundos

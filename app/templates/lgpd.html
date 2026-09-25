@@ -188,8 +188,12 @@
     <table class="w-full text-sm text-left border-collapse">
       <tbody>
         <tr class="border-b border-gray-100 align-top">
-          <td class="px-4 py-3 font-medium text-gray-800">Projetos, indicações e documentos</td>
-          <td class="px-4 py-3 text-gray-700">Pelo prazo exigido para a prestação de contas das bolsas e para a guarda de documentos públicos. Depois disso, são eliminados ou anonimizados.</td>
+          <td class="px-4 py-3 font-medium text-gray-800">Documentos e dados pessoais dos estudantes</td>
+          <td class="px-4 py-3 text-gray-700">6 anos após o término da bolsa (5 anos de guarda e 1 ano para a prestação de contas). Depois disso, os documentos enviados na indicação são eliminados e os dados pessoais são anonimizados, mantendo apenas o nome, o projeto e o período da bolsa, para as declarações e o histórico institucional. Nos registros anteriores a 2019, o CPF também é mantido, para a emissão das declarações.</td>
+        </tr>
+        <tr class="border-b border-gray-100 align-top">
+          <td class="px-4 py-3 font-medium text-gray-800">Projetos</td>
+          <td class="px-4 py-3 text-gray-700">Pelo prazo exigido para a prestação de contas e para a guarda de documentos públicos.</td>
         </tr>
         <tr class="border-b border-gray-100 align-top">
           <td class="px-4 py-3 font-medium text-gray-800">Registros de segurança (logs)</td>
@@ -244,7 +248,7 @@
     ('Art. 41', 'Encarregado', 'andamento', 'Pedidos recebidos pela PRPI e repassados ao Encarregado da UFCA.'),
     ('Art. 46', 'Segurança da informação', 'implementado', 'TLS, WAF, MFA obrigatório, criptografia em repouso (disco do servidor e arquivos com AWS KMS, e banco de dados), criptografia própria de CPF, RG, dados bancários e contato, links temporários, permissões mínimas, verificação anti-robô (Turnstile) e limite de tentativas.'),
     ('Art. 48', 'Comunicação de incidentes', 'andamento', 'Plano de resposta com comunicação à ANPD e aos titulares em elaboração.'),
-    ('Arts. 15 e 16', 'Término do tratamento e eliminação', 'andamento', 'Logs guardados por 2 anos, com criptografia, e apagados automaticamente depois disso; prazos de guarda dos documentos das bolsas em definição.'),
+    ('Arts. 15 e 16', 'Término do tratamento e eliminação', 'implementado', 'Documentos dos estudantes eliminados e dados pessoais anonimizados automaticamente 6 anos após o término da bolsa; logs guardados por 2 anos, com criptografia, e apagados automaticamente depois disso.'),
   ] %}
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
     {% for artigo, titulo, situacao, descricao in requisitos %}

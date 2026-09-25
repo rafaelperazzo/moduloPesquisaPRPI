@@ -59,10 +59,12 @@
               <td class="px-4 py-3 text-gray-700">{{linha[5]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[6]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[7]}}</td>
-              <td class="px-4 py-3 text-gray-700"><a href='{{url_for('verArquivo', file=linha[8])}}' class="text-blue-600 hover:underline">{{linha[8]}}</a></td>
-              <td class="px-4 py-3 text-gray-700"><a href='{{url_for('verArquivo', file=linha[9])}}' class="text-blue-600 hover:underline">{{linha[9]}}</a></td>
-              <td class="px-4 py-3 text-gray-700"><a href='{{url_for('verArquivo', file=linha[10])}}' class="text-blue-600 hover:underline">{{linha[10]}}</a></td>
-              <td class="px-4 py-3 text-gray-700"><a href='{{url_for('verArquivo', file=linha[11])}}' class="text-blue-600 hover:underline">{{linha[11]}}</a></td>
+              {% for arquivo in linha[8:12] %}
+              <td class="px-4 py-3 text-gray-700">
+                {% if arquivo %}<a href='{{url_for('verArquivo', file=arquivo)}}' class="text-blue-600 hover:underline">{{arquivo}}</a>
+                {% else %}<span class="text-gray-400" title="Não enviado, ou eliminado após o prazo de guarda (6 anos após o fim da bolsa)">&mdash;</span>{% endif %}
+              </td>
+              {% endfor %}
               <td class="px-4 py-3 text-gray-700">{{linha[12]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[13]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[18]}}</td>

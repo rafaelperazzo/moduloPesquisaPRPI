@@ -1,0 +1,12 @@
+-- Retenção de 6 anos após o fim da bolsa (modules/retencao.py; migracao.lgpd.md, "Retenção").
+-- `expurgo` guarda quando a linha foi anonimizada; linhas com expurgo preenchido não são processadas de novo.
+-- Aplicar em produção (phpMyAdmin ou cliente mariadb) ANTES do deploy que traz a tarefa mensal.
+
+ALTER TABLE indicacoes     ADD COLUMN expurgo DATETIME NULL DEFAULT NULL;
+ALTER TABLE alunos         ADD COLUMN expurgo DATETIME NULL DEFAULT NULL;
+ALTER TABLE cadastro_geral ADD COLUMN expurgo DATETIME NULL DEFAULT NULL;
+
+-- Conferência das colunas (o --simular do script também lista as colunas não classificadas):
+-- SHOW COLUMNS FROM indicacoes;
+-- SHOW COLUMNS FROM alunos;
+-- SHOW COLUMNS FROM cadastro_geral;

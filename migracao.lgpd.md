@@ -87,7 +87,8 @@
 - [ ] **AWS Artifact:** conferir se há um adendo com as cláusulas-padrão da ANPD e aceitá-lo. Guardar também os DPAs da Cloudflare, do Google (reCAPTCHA) e do Sentry.
 - [ ] **Encarregado da UFCA:** revisar o texto da `/lgpd`, informar o nome e o contato oficial dele (hoje o canal é a PRPI) e registrar o tratamento no inventário de dados (art. 37).
 - [ ] **RIPD** (art. 38), por causa dos dados financeiros e de identidade dos discentes, inclusive de adolescentes.
-- [ ] **Prazos de guarda** dos documentos das bolsas, definidos com a PRPI e o arquivo da UFCA; depois, o expurgo dos arquivos, das indicações e da tabela `acessos`.
+- [x] **Prazos de guarda dos documentos das bolsas:** 6 anos após o fim da bolsa, por decisão do usuário em 2026-09-25. O expurgo está na seção 7. Recomendação que continua: formalizar com a CPAD/Arquivo da UFCA (Resolução CONARQ 40/2014).
+- [ ] **Tabela `acessos`** (IP e data dos logins): ainda sem expurgo.
 - [ ] **Plano de resposta a incidentes:** comunicar a ANPD e os titulares em 3 dias úteis (Resolução CD/ANPD nº 15/2024).
 - [ ] Quando cada item for concluído, mudar o cartão dele na `/lgpd` de "Em andamento" para "Implementado". A lista `requisitos` fica no topo do quadro, em `lgpd.html`.
 
@@ -132,3 +133,41 @@
   2. abrir "esqueci minha senha" e a consulta de projetos por CPF;
   3. no log, os eventos `[turnstile]` não devem mostrar recusas de usuários legítimos;
   4. **para desfazer:** reverter o commit (o reCAPTCHA antigo não validava nada no servidor).
+
+## 7. Retenção dos dados dos estudantes (6 anos após o fim da bolsa), 2026-09-25
+
+**Decisão do usuário:** 6 anos após o término da bolsa, sendo 5 de guarda e mais 1 para a prestação de contas. A regra vale para todos os documentos e dados pessoais dos estudantes. A `LGPD_VERSAO` não muda.
+
+**Por que o prazo vem do banco, e não de uma regra de lifecycle do S3:** os objetos de `pesquisa/docs_indicacoes/` têm a data do reenvio e da migração para o KMS (2025–2026), e não a da indicação. O prazo conta a partir de `indicacoes.fim`, que as rotas de substituição e de cancelamento atualizam para `NOW()`.
+
+| Tabela | Coluna do prazo | Anonimizado (`NULL` ou valor vazio, se a coluna for NOT NULL) | Mantido |
+|---|---|---|---|
+| `indicacoes` | `fim` | CPF, `cpf_hash`, RG, órgão emissor, UF, nascimento, estado civil, sexo, banco, agência, conta, telefone, celular, e-mail, endereço, matrícula, Lattes, escola, ano de conclusão e as 5 colunas `arquivo_*`. Os arquivos são apagados de `pesquisa/docs_indicacoes/` | nome, projeto, modalidade, tipo de vaga, fomento, curso, período, situação |
+| `alunos` (legada) | `fim` | e-mail | nome, **CPF e `cpf_hash`**, para a busca das declarações antigas, e o projeto e o período |
+| `cadastro_geral` (legada) | `estudante_fim` | RG, telefone, celular, banco, agência, conta e `e-mail` do estudante | nome, **CPF e `cpf_hash`**, os dados do orientador e os do projeto |
+
+**Código:**
+- `app/modules/retencao.py`, com a lista `TABELAS_RETENCAO`:
+  - uma linha só é anonimizada depois que o S3 confirma a exclusão dos arquivos dela;
+  - a coluna `expurgo` marca a linha e torna a execução idempotente;
+  - o log leva só contagens e ids.
+- **Tarefa mensal** `job_expurgo_retencao`: roda no dia 1º, às 03:30, com no máximo 500 linhas por tabela.
+- **Script** `app/scripts/expurgar_dados_estudantes.py`: faz a primeira execução, sem limite.
+- **Admin:** na lista de indicações, os documentos eliminados aparecem como "—".
+- **Testes:** 14 em `app/test_retencao.py`. O SQL também foi validado num MariaDB 11 descartável, em modo estrito.
+
+**Primeira execução, na EC2 (irreversível):**
+1. aplicar o `retencao.sql.sample`, que cria a coluna `expurgo` nas 3 tabelas;
+2. fazer o backup do banco;
+3. `env/bin/python scripts/expurgar_dados_estudantes.py --simular` e conferir:
+   - as linhas vencidas e os arquivos;
+   - o `fim` mais antigo;
+   - as linhas **sem data válida**, que não são tratadas. Se forem muitas em `cadastro_geral`, a data pode estar como `dd/mm/aaaa` e precisar de `STR_TO_DATE`;
+   - as **colunas não classificadas**, que precisam ser revisadas: se forem dados pessoais do estudante, entram em `anonimizar`;
+4. `--limite 5`, e conferir essas linhas no admin e a marca de exclusão no S3 (`aws s3api list-object-versions --prefix pesquisa/docs_indicacoes/<arquivo>`);
+5. rodar o script sem `--limite`.
+
+**Recuperação:**
+- um arquivo apagado por engano pode ser recuperado por 1 dia, removendo a marca de exclusão. Depois disso, a regra `S3 Lifecycle Rule` apaga a versão antiga;
+- o banco só pode ser recuperado pelo backup;
+- os backups guardam 21 cópias e sincronizam com `--delete`, então o dado anonimizado some dos backups em cerca de 3 semanas.

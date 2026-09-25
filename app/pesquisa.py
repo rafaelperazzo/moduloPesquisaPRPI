@@ -64,6 +64,7 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from dotenv import load_dotenv
 from requests_auth_aws_sigv4 import AWSSigV4
 from relatorio_edital_pdf import gerar_pdf_resultado_edital
+from modules.retencao import expurgar_dados_estudantes
 
 def load_ssm_parameters(prefix="/pesquisa", region_name="us-east-2"):
     """
@@ -6271,6 +6272,20 @@ def job_cobrar_frequencia():
         logger.info("Tarefa de envio de lembretes de frequência concluída com sucesso.")
     except Exception as e:
         logger.error("Erro ao executar tarefa de envio de lembretes de frequência: {}", str(e))
+
+@scheduler.task('cron', id='do_job_expurgo_retencao', day='1', hour='3', minute='30')
+def job_expurgo_retencao():
+    """
+    Retenção de 6 anos após o fim da bolsa (modules/retencao.py): apaga os documentos da indicação no S3
+    e anonimiza os dados pessoais dos estudantes. No máximo 500 linhas por tabela a cada mês.
+    Em dev (PRODUCAO!=1) não toca no S3.
+    """
+    try:
+        expurgar_dados_estudantes(
+            lambda: MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required"),
+            s3=s3 if PRODUCAO == 1 else None, bucket=AWS_S3_BUCKET, limite=500)
+    except Exception as e:
+        logger.error("[retencao] Erro na tarefa de expurgo: {}", type(e).__name__)
 
 @app.route("/admin/ligarScheduler", methods=['GET'])
 @login_required(role='admin')

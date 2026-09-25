@@ -329,7 +329,7 @@ class AcessosFalso:
         return self.resultado[0]
 
     def commit(self):
-        pass
+        self.rowcount = 0   # como o conector mariadb: o COMMIT zera o rowcount
 
     def close(self):
         pass

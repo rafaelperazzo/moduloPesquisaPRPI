@@ -198,6 +198,7 @@
 - **Coluna de data:** a tabela não tem esquema no repositório, então a coluna de data é descoberta pelo `information_schema`. O `--simular` mostra qual coluna foi usada.
 - **Script:** `--tabela acessos` trata só essa tabela, e o `--limite` não se aplica a ela.
 - **Validação:** feita num MariaDB 11 descartável. De 1.200 registros, sobraram 729, com o mais antigo de exatamente 2 anos, e a segunda execução não apagou nada.
+- **Bug na primeira execução em produção:** o `--simular` mostrou a coluna `hora`, 29.653 registros e o mais antigo de 2019-06-27, mas a execução informou "0 apagados". Causa: no conector `mariadb`, o `COMMIT` zera o `cursor.rowcount`, e o código lia esse número depois do `commit`. Isso foi confirmado com o conector real: 3 antes do `commit` e 0 depois. O código apagou o primeiro lote, provavelmente de 5.000 registros, e parou. A validação anterior usou o `pymysql`, que não tem esse comportamento. Correção: o `rowcount` passa a ser lido antes do `commit`, e o teste falso imita o conector.
 - **Primeira execução em produção:**
   1. backup do banco;
   2. `env/bin/python scripts/expurgar_dados_estudantes.py --tabela acessos --simular`;

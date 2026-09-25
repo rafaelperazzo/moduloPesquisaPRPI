@@ -238,10 +238,13 @@ def expurgar_acessos(conectar, simular=False, anos=RETENCAO_ACESSOS_ANOS):
         apagadas = 0
         while True:
             cur.execute(f"DELETE FROM acessos WHERE {condicao} LIMIT {LOTE_ACESSOS}")
+            # rowcount ANTES do commit: no conector mariadb ele reflete o último comando da conexão,
+            # e o COMMIT o zera (a 1ª execução em produção parou no 1º lote e informou 0)
+            lote = cur.rowcount
             conn.commit()
-            if cur.rowcount <= 0:
+            if lote <= 0:
                 break
-            apagadas += cur.rowcount
+            apagadas += lote
         logger.info("[retencao] acessos: {} registros com mais de {} anos apagados", apagadas, anos)
         return {'coluna_data': coluna, 'linhas': apagadas}
     finally:

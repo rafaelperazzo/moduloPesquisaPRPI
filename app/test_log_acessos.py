@@ -12,7 +12,7 @@ from loguru import logger
 
 import pesquisa as P
 
-TOKEN = 'eyJhbGciOiJIUzI1NiJ9.token-secreto-do-avaliador.assinatura'
+TOKEN = 'token-falso-de-teste-do-avaliador-0001'  # valor inventado; não imita JWT (evita alerta do GitGuardian)
 CPF = '529.982.247-25'
 
 
@@ -68,9 +68,9 @@ def test_sem_cabecalho_da_cloudflare_usa_o_remote_addr(client, registros):
 def test_token_do_avaliador_nao_vai_para_o_log(client, registros):
     client.get('/arquivo/' + TOKEN)
     rota = de_acesso(registros)[0]['extra']['rota']
-    assert TOKEN not in rota and 'token-secreto' not in rota
+    assert TOKEN not in rota and 'falso-de-teste' not in rota
     assert rota == '/arquivo/tok:' + hashlib.sha256(TOKEN.encode()).hexdigest()[:12]
-    assert all(TOKEN not in json.dumps(r) and 'assinatura' not in json.dumps(r) for r in registros)
+    assert all(TOKEN not in json.dumps(r) and 'falso-de-teste' not in json.dumps(r) for r in registros)
 
 
 def test_cpf_no_caminho_nao_vai_para_o_log(client, registros, monkeypatch):

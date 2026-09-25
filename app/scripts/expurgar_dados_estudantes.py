@@ -8,7 +8,7 @@ Retenção de 6 anos após o fim da bolsa (modules/retencao.py; roteiro em migra
   * cadastro_geral: anonimiza RG, contato e dados bancários do estudante; o CPF e os dados do
                     orientador ficam.
 
-É a mesma função da tarefa mensal do app (dia 1º, 03:30), sem o limite de 500 linhas: serve para a
+É a mesma função da tarefa mensal do app (dia 1º, 21:00), sem o limite de 500 linhas: serve para a
 primeira execução, que pega o acervo antigo. IRREVERSÍVEL: fazer um backup do banco antes.
 Idempotente (só processa expurgo IS NULL) e pode ser interrompido e executado de novo.
 Nunca imprime nome, CPF nem nome de arquivo: só contagens.

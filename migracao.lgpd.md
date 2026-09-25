@@ -151,7 +151,7 @@
   - uma linha só é anonimizada depois que o S3 confirma a exclusão dos arquivos dela;
   - a coluna `expurgo` marca a linha e torna a execução idempotente;
   - o log leva só contagens e ids.
-- **Tarefa mensal** `job_expurgo_retencao`: roda no dia 1º, às 03:30, com no máximo 500 linhas por tabela.
+- **Tarefa mensal** `job_expurgo_retencao`: roda no dia 1º, às 21:00, com no máximo 500 linhas por tabela. Não roda de madrugada porque a EC2 desliga às 22:00.
 - **Script** `app/scripts/expurgar_dados_estudantes.py`: faz a primeira execução, sem limite.
 - **Admin:** na lista de indicações, os documentos eliminados aparecem como "—".
 - **Testes:** 14 em `app/test_retencao.py`. O SQL também foi validado num MariaDB 11 descartável, em modo estrito.

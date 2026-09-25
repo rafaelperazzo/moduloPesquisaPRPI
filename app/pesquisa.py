@@ -6273,7 +6273,7 @@ def job_cobrar_frequencia():
     except Exception as e:
         logger.error("Erro ao executar tarefa de envio de lembretes de frequência: {}", str(e))
 
-@scheduler.task('cron', id='do_job_expurgo_retencao', day='1', hour='3', minute='30')
+@scheduler.task('cron', id='do_job_expurgo_retencao', day='1', hour='21', minute='0')
 def job_expurgo_retencao():
     """
     Retenção de 6 anos após o fim da bolsa (modules/retencao.py): apaga os documentos da indicação no S3

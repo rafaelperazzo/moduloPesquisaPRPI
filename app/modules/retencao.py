@@ -184,7 +184,13 @@ def expurgar_tabela(conn, tabela, config, colunas, vencidas, s3, bucket, limite)
         if limite is not None and resumo['linhas'] >= limite:
             break
         chaves, recusados = chaves_dos_arquivos(nomes)
-        resumo['arquivos_recusados'] += recusados
+        if recusados:
+            # anonimizar apagaria a única referência ao arquivo, que ficaria esquecido no S3: fica para revisão
+            resumo['arquivos_recusados'] += recusados
+            resumo['falhas'] += 1
+            logger.error("[retencao] {} id={}: {} nome(s) de arquivo recusado(s); linha mantida para revisão",
+                         tabela, id_, recusados)
+            continue
         try:
             if chaves and s3 is not None:
                 if not apagar_do_s3(s3, bucket, chaves):
@@ -232,8 +238,14 @@ def expurgar_dados_estudantes(conectar, s3=None, bucket=None, simular=False, lim
             cur.close()
             if simular:
                 fins = [fim for _, fim, _ in vencidas]
+                analise = [chaves_dos_arquivos(n) for _, _, n in vencidas]
                 resultado[tabela] = {'linhas': len(vencidas), 'sem_data': sem_data,
-                                     'arquivos': sum(len(chaves_dos_arquivos(n)[0]) for _, _, n in vencidas),
+                                     'arquivos': sum(len(chaves) for chaves, _ in analise),
+                                     'linhas_com_nome_recusado': sum(1 for _, recusados in analise if recusados),
+                                     'ids_com_nome_recusado': [v[0] for v, (_, r) in zip(vencidas, analise) if r][:50],
+                                     'preenchimentos_ignorados': sum(1 for _, _, n in vencidas for nome in n
+                                                                     if nome is not None and str(nome).strip()
+                                                                     and str(nome).strip().lower() in SEM_ARQUIVO),
                                      'fim_mais_antigo': min(fins, default=None),
                                      'fim_mais_recente': max(fins, default=None), **extras}
             else:

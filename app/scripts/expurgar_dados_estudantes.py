@@ -83,6 +83,11 @@ def main():
             print(f"[{tabela}] SIMULAÇÃO | linhas vencidas: {r['linhas']} | arquivos: {r['arquivos']} | "
                   f"fim mais antigo: {r['fim_mais_antigo']} | mais recente: {r['fim_mais_recente']} | "
                   f"sem data válida (não serão tratadas): {r['sem_data']}", flush=True)
+            if r['arquivos'] or r['preenchimentos_ignorados'] or r['linhas_com_nome_recusado']:
+                print(f"[{tabela}]   valores de preenchimento ignorados (N/A, -): {r['preenchimentos_ignorados']} | "
+                      f"linhas com nome de arquivo recusado (ficam para revisão): {r['linhas_com_nome_recusado']}"
+                      f"{' (ids: ' + ', '.join(map(str, r['ids_com_nome_recusado'])) + ')' if r['ids_com_nome_recusado'] else ''}",
+                      flush=True)
         else:
             falhou = falhou or r['falhas'] > 0
             print(f"[{tabela}] anonimizadas: {r['linhas']} | arquivos apagados do S3: {r['arquivos']} | "

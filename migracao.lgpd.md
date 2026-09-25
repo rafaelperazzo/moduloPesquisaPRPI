@@ -149,6 +149,7 @@
 **Código:**
 - `app/modules/retencao.py`, com a lista `TABELAS_RETENCAO`:
   - uma linha só é anonimizada depois que o S3 confirma a exclusão dos arquivos dela;
+  - se a linha tiver um nome de arquivo recusado pelo `secure_filename`, ela é mantida e conta como falha, para revisão manual. Anonimizar essa linha apagaria a única referência ao arquivo, que ficaria esquecido no S3;
   - a coluna `expurgo` marca a linha e torna a execução idempotente;
   - o log leva só contagens e ids.
 - **Tarefa mensal** `job_expurgo_retencao`: roda no dia 1º, às 21:00, com no máximo 500 linhas por tabela. Não roda de madrugada porque a EC2 desliga às 22:00.
@@ -166,6 +167,8 @@
   - `cadastro_geral`: 763 linhas, e 10 ficaram sem data, das quais 9 têm `termino`.
 
   As colunas não classificadas foram revistas com o usuário.
+
+  Na segunda simulação, `indicacoes` mostrou 656 arquivos em vez de 822. Isso levou a separar, no `--simular`, os valores de preenchimento ignorados e as linhas com nome de arquivo recusado.
 
 **Primeira execução, na EC2 (irreversível):**
 1. aplicar o `retencao.sql.sample`, que cria a coluna `expurgo` nas 3 tabelas;

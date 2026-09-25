@@ -138,7 +138,6 @@ def test_indicacao_vencida_perde_arquivos_e_dados_pessoais(ambiente):
     resultado = R.expurgar_dados_estudantes(conectar, s3=s3, bucket='b', tabelas=['indicacoes'])
 
     esperadas = [R.PREFIXO_DOCS_S3 + f'{c.upper()}.1.pdf' for c in DOCS]
-    esperadas += [R.PREFIXO_DOCS_S3 + f'{c.upper()}.5.pdf' for c in ('arquivo_cpf_rg', 'arquivo_extrato', 'arquivo_historico')]
     assert sorted(s3.apagadas) == sorted(esperadas)
     l1 = linha(db, 'indicacoes', 1)
     for c in R.TABELAS_RETENCAO['indicacoes']['anonimizar'] + R.TABELAS_RETENCAO['indicacoes']['arquivos']:
@@ -148,7 +147,7 @@ def test_indicacao_vencida_perde_arquivos_e_dados_pessoais(ambiente):
     assert l1['arquivo_af'] is None                          # "N/A" não é arquivo, mas a coluna é limpa
     assert l1['nome'] == 'Estudante 1' and l1['idProjeto'] == 11 and l1['fim'] == VENCIDA
     assert l1['expurgo'] == HOJE
-    assert resultado['indicacoes']['linhas'] == 2 and resultado['indicacoes']['arquivos'] == 8
+    assert resultado['indicacoes']['linhas'] == 1 and resultado['indicacoes']['arquivos'] == 5
 
 
 def test_no_prazo_sem_data_ou_ja_expurgada_nao_muda(ambiente):
@@ -163,8 +162,10 @@ def test_nome_de_arquivo_suspeito_e_recusado(ambiente):
     db, _, conectar = ambiente
     s3 = S3Falso()
     resultado = R.expurgar_dados_estudantes(conectar, s3=s3, bucket='b', tabelas=['indicacoes'])
-    assert not any('..' in k or 'passwd' in k for k in s3.apagadas)
-    assert resultado['indicacoes']['arquivos_recusados'] == 1
+    assert not any(k.endswith('.5.pdf') or 'passwd' in k for k in s3.apagadas)   # nada da linha 5 é apagado
+    assert resultado['indicacoes']['arquivos_recusados'] == 1 and resultado['indicacoes']['falhas'] == 1
+    l5 = linha(db, 'indicacoes', 5)
+    assert l5['expurgo'] is None and l5['cpf'] == 'cpf-5' and l5['arquivo_cpf_rg'] == 'ARQUIVO_CPF_RG.5.pdf'
 
 
 def test_falha_no_s3_mantem_a_linha(ambiente):
@@ -190,6 +191,8 @@ def test_simular_nao_altera_nada(ambiente):
     assert not any(sql.startswith('UPDATE') for sql, _ in sqls)
     assert resultado['indicacoes']['linhas'] == 2 and resultado['indicacoes']['arquivos'] == 8
     assert resultado['indicacoes']['sem_data'] == 1
+    assert resultado['indicacoes']['linhas_com_nome_recusado'] == 1 and resultado['indicacoes']['ids_com_nome_recusado'] == [5]
+    assert resultado['indicacoes']['preenchimentos_ignorados'] == 2   # arquivo_af "N/A" nas linhas 1 e 5
     assert resultado['alunos']['linhas'] == 2 and resultado['alunos']['fim_mais_recente'] == date(2019, 7, 31)
     assert resultado['cadastro_geral']['linhas'] == 2 and resultado['cadastro_geral']['sem_data'] == 1
 
@@ -204,8 +207,8 @@ def test_limite_por_tabela(ambiente):
 def test_dev_sem_s3_so_anonimiza(ambiente):
     db, _, conectar = ambiente
     resultado = R.expurgar_dados_estudantes(conectar, s3=None, tabelas=['indicacoes'])
-    assert resultado['indicacoes']['linhas'] == 2 and resultado['indicacoes']['arquivos'] == 0
-    assert resultado['indicacoes']['arquivos_mantidos_dev'] == 8
+    assert resultado['indicacoes']['linhas'] == 1 and resultado['indicacoes']['arquivos'] == 0
+    assert resultado['indicacoes']['arquivos_mantidos_dev'] == 5
 
 
 def test_legadas_mantem_cpf_e_dados_do_orientador(ambiente):

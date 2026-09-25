@@ -88,7 +88,7 @@
 - [ ] **Encarregado da UFCA:** revisar o texto da `/lgpd`, informar o nome e o contato oficial dele (hoje o canal é a PRPI) e registrar o tratamento no inventário de dados (art. 37).
 - [ ] **RIPD** (art. 38), por causa dos dados financeiros e de identidade dos discentes, inclusive de adolescentes.
 - [x] **Prazos de guarda dos documentos das bolsas:** 6 anos após o fim da bolsa, por decisão do usuário em 2026-09-25. O expurgo está na seção 7. Recomendação que continua: formalizar com a CPAD/Arquivo da UFCA (Resolução CONARQ 40/2014).
-- [x] **Tabela `acessos`** (IP e data dos logins): os registros com mais de 2 anos, o mesmo prazo dos logs, são apagados pela `expurgar_acessos` na tarefa mensal (seção 7). Código de 2026-09-25; falta a primeira execução em produção.
+- [x] **Tabela `acessos`** (IP e data dos logins): os registros com mais de 2 anos, o mesmo prazo dos logs, são apagados pela `expurgar_acessos` na tarefa mensal (seção 7). Executado em produção em 2026-09-25: 29.653 registros apagados, de 2019-06 a 2024-09.
 - [ ] **Plano de resposta a incidentes:** comunicar a ANPD e os titulares em 3 dias úteis (Resolução CD/ANPD nº 15/2024).
 - [ ] Quando cada item for concluído, mudar o cartão dele na `/lgpd` de "Em andamento" para "Implementado". A lista `requisitos` fica no topo do quadro, em `lgpd.html`.
 
@@ -203,3 +203,4 @@
   1. backup do banco;
   2. `env/bin/python scripts/expurgar_dados_estudantes.py --tabela acessos --simular`;
   3. `env/bin/python scripts/expurgar_dados_estudantes.py --tabela acessos`.
+- **Execução em produção (2026-09-25):** 29.653 registros apagados no total, 5.000 na execução com o bug e 24.653 depois da correção. O `--simular` final mostrou 0 registros com mais de 2 anos.

@@ -26,7 +26,7 @@ from werkzeug.utils import secure_filename
 
 RETENCAO_ANOS = 6
 PREFIXO_DOCS_S3 = 'pesquisa/docs_indicacoes/'
-SEM_ARQUIVO = {'', 'n/a', 'na', '-'}   # valores de preenchimento nas colunas arquivo_* (arquivo_af é sempre "N/A")
+SEM_ARQUIVO = {'', 'n/a', 'na', 'n/d', 'nd', '-'}   # preenchimentos nas colunas arquivo_* (arquivo_af é sempre "N/A"; id 5319 tem "N/D")
 
 # tabela: colunas com o fim da bolsa (a primeira com data válida vale), colunas anonimizadas, colunas com
 # nomes de arquivos no S3 e colunas mantidas (as demais aparecem no --simular como "não classificadas")

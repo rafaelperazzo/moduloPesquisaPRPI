@@ -288,3 +288,8 @@ def test_politica_declara_6_anos():
         html = f.read()
     assert '6 anos após o término da bolsa' in html
     assert "('Arts. 15 e 16', 'Término do tratamento e eliminação', 'implementado'" in html
+
+
+@pytest.mark.parametrize('valor', ['N/A', 'n/a', 'N/D', ' N/D ', '-', '', None])
+def test_preenchimentos_nao_sao_arquivos(valor):
+    assert R.chaves_dos_arquivos([valor]) == ([], 0)

@@ -95,6 +95,12 @@ Uma página com o detalhamento completo dos recursos abaixo está disponível em
 
 ---
 
+## 🛡️ Privacidade e LGPD
+
+Os Termos de Uso e a Política de Privacidade estão em [PRIVACY.md](PRIVACY.md) e, dentro do próprio sistema, na página `/lgpd`. Se houver diferença entre os dois, vale a página do sistema. A política traz os dados tratados, as bases legais, os operadores, a transferência internacional, os prazos de guarda, os direitos do titular e o quadro de atendimento aos requisitos da Lei nº 13.709/2018.
+
+---
+
 ## ⚙️ Instalação
 
 Ainda em fase de desenvolvimento, o passo a passo abaixo ainda precisa de alguns ajustes.

@@ -10,15 +10,22 @@
     <div class="container mx-auto px-4 max-w-screen-xl py-8">
       <h1 class="text-2xl font-bold text-gray-800 mb-2">Lista de indicações</h1>
       <h2 class="text-lg text-gray-700 mb-6">{{descricao}}</h2>
+      {% with mensagens = get_flashed_messages(with_categories=true) %}
+        {% for categoria, mensagem in mensagens %}
+        <div class="rounded-md border p-3 mb-4 text-sm {{ 'bg-red-50 border-red-200 text-red-700' if categoria == 'error' else 'bg-emerald-50 border-emerald-200 text-emerald-800' }}">{{ mensagem }}</div>
+        {% endfor %}
+      {% endwith %}
       <div class="overflow-x-auto">
         <table class="w-full text-sm text-left border-collapse">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
+              <th class="px-4 py-3 font-semibold text-gray-700">Ações</th>
               <th class="px-4 py-3 font-semibold text-gray-700">Edital</th>
               <th class="px-4 py-3 font-semibold text-gray-700">Id da indicação</th>
               <th class="px-4 py-3 font-semibold text-gray-700">idProjeto</th>
               <th class="px-4 py-3 font-semibold text-gray-700">Orientador</th>
               <th class="px-4 py-3 font-semibold text-gray-700">Bolsista</th>
+              <th class="px-4 py-3 font-semibold text-gray-700">CPF</th>
               <th class="px-4 py-3 font-semibold text-gray-700">Fomento</th>
               <th class="px-4 py-3 font-semibold text-gray-700">Modalidade</th>
               <th class="px-4 py-3 font-semibold text-gray-700">Tipo de vaga</th>
@@ -42,6 +49,10 @@
           <tbody>
             {% for linha in listaIndicacoes %}
             <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-700 whitespace-nowrap">
+                {% if linha[24] %}<span class="text-gray-400" title="Dados pessoais eliminados pela retenção de 6 anos após o fim da bolsa">Anonimizada em {{linha[24]}}</span>
+                {% else %}<a href="{{ url_for('editar_indicacao', id=linha[0]) }}" class="text-blue-600 hover:underline">Editar</a>{% endif %}
+              </td>
               <td class="px-4 py-3 text-gray-700">{{linha[16]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[0]}}</td>
               <td class="px-4 py-3 text-gray-700">
@@ -53,6 +64,7 @@
               </td>
               <td class="px-4 py-3 text-gray-700">{{linha[14]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[2]}}</td>
+              <td class="px-4 py-3 text-gray-700 whitespace-nowrap">{{linha[23]|cpf}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[17]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[3]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[4]}}</td>

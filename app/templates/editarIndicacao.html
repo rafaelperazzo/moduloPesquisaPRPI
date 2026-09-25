@@ -1,0 +1,135 @@
+{% extends "BASE_v3.html" %}
+{% macro texto(nome, rotulo, tipo='text', lista=None, extra='') -%}
+  <div>
+    <label for="{{ nome }}" class="block text-sm font-medium text-gray-700 mb-1">{{ rotulo }}</label>
+    <input type="{{ tipo }}" id="{{ nome }}" name="{{ nome }}" value="{{ campos[nome] if campos[nome] is not none else '' }}"
+      {% if lista %}list="{{ lista }}"{% endif %} {{ extra|safe }} class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+  </div>
+{%- endmacro %}
+{% macro opcoes(nome, rotulo, itens) -%}
+  <div>
+    <label for="{{ nome }}" class="block text-sm font-medium text-gray-700 mb-1">{{ rotulo }}</label>
+    <select id="{{ nome }}" name="{{ nome }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+      <option value="">— manter o valor atual —</option>
+      {% for valor, texto_opcao in itens %}
+      <option value="{{ valor }}" {% if campos[nome] is not none and campos[nome]|string == valor|string %}selected{% endif %}>{{ texto_opcao }}</option>
+      {% endfor %}
+    </select>
+  </div>
+{%- endmacro %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+  <div class="max-w-3xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+
+    <h2 class="text-2xl font-semibold text-gray-800 mb-1">Editar indicação</h2>
+    <p class="text-sm text-gray-500 mb-6">Indicação {{ indicacao.id }} &middot; projeto {{ indicacao.idProjeto }}{% if indicacao.orientador %} &middot; {{ indicacao.orientador }}{% endif %}</p>
+
+    {% if indicacao.expurgo %}
+      <div class="rounded-md bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800 mb-6">
+        Esta indicação foi anonimizada em {{ indicacao.expurgo }}, pela retenção de 6 anos após o fim da bolsa
+        (política de privacidade, seção 7). Os dados pessoais foram eliminados e não podem ser editados.
+      </div>
+      <a href="{{ voltar }}" class="text-blue-600 hover:underline text-sm">&larr; Voltar à lista</a>
+    {% else %}
+
+    {% if erros %}
+      <div class="rounded-md bg-red-50 border border-red-200 p-4 text-sm text-red-700 mb-6">
+        <p class="font-medium mb-1">Nada foi gravado. Corrija:</p>
+        <ul class="list-disc pl-5">{% for erro in erros %}<li>{{ erro }}</li>{% endfor %}</ul>
+      </div>
+    {% endif %}
+
+    <form action="{{ url_for('editar_indicacao', id=indicacao.id) }}" method="POST" id="form-indicacao">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Discente</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        {{ texto('nome', 'Nome', extra='required') }}
+        {{ texto('cpf', 'CPF') }}
+        {{ texto('rg', 'RG') }}
+        {{ texto('orgao_emissor', 'Órgão emissor') }}
+        {{ texto('uf', 'UF', lista='lista-uf') }}
+        {{ texto('nascimento', 'Nascimento', tipo='date') }}
+        {{ opcoes('estado_civil', 'Estado civil', [(0, 'Solteiro(a)'), (1, 'Casado(a)'), (2, 'Separado(a)'), (3, 'Divorciado(a)'), (4, 'Viúvo(a)'), (5, 'Outro')]) }}
+        {{ opcoes('sexo', 'Sexo', [(1, 'Masculino'), (2, 'Feminino')]) }}
+      </div>
+
+      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Acadêmico</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        {{ texto('curso', 'Curso', lista='lista-cursos') }}
+        {{ texto('matricula', 'Matrícula') }}
+        {{ texto('ano_de_ingresso', 'Ano de ingresso', extra='inputmode="numeric" pattern="[0-9]{4}"') }}
+        {{ texto('lattes', 'Currículo Lattes') }}
+        {{ texto('escola', 'Escola (ensino médio)') }}
+        {{ texto('ano_conclusao', 'Ano de conclusão do ensino médio', extra='inputmode="numeric" pattern="[0-9]{1,4}"') }}
+      </div>
+
+      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Contato</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        {{ texto('telefone', 'Telefone') }}
+        {{ texto('celular', 'Celular') }}
+        {{ texto('email', 'E-mail', tipo='email') }}
+        {{ texto('endereco', 'Endereço') }}
+      </div>
+
+      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Dados bancários</h3>
+      <p id="aviso-voluntario" class="text-xs text-gray-500 mb-2 hidden">Voluntário(a): os dados bancários são gravados como N/A.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" id="dados-bancarios">
+        {{ texto('nome_banco', 'Banco') }}
+        {{ texto('agencia', 'Agência (número-DV)') }}
+        {{ texto('conta', 'Conta (número-DV)') }}
+      </div>
+
+      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Vínculo</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        {{ opcoes('modalidade', 'Modalidade', [(1, 'PIBIC'), (2, 'PIBITI'), (3, 'PIBIC-EM')]) }}
+        {{ opcoes('tipo_de_vaga', 'Tipo de vaga', [(1, 'Bolsista'), (0, 'Voluntário(a)')]) }}
+        {{ opcoes('fomento', 'Fomento', [(0, 'UFCA'), (1, 'CNPq'), (2, 'FUNCAP')]) }}
+        <div></div>
+        {{ texto('inicio', 'Início', tipo='date') }}
+        {{ texto('fim', 'Fim', tipo='date') }}
+      </div>
+
+      <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Documentos (não são alterados aqui)</h3>
+      <ul class="text-sm mb-6 space-y-1">
+        {% for coluna, rotulo in [('arquivo_cpf_rg', 'CPF/RG'), ('arquivo_extrato', 'Comprovante bancário'), ('arquivo_historico', 'Histórico'), ('arquivo_termo', 'Termo'), ('arquivo_plano', 'Plano de trabalho')] %}
+        <li>{{ rotulo }}:
+          {% if indicacao[coluna] and indicacao[coluna]|lower not in ['n/a', 'n/d', '-'] %}
+            <a href="{{ url_for('verArquivo', file=indicacao[coluna]) }}" class="text-blue-600 hover:underline">{{ indicacao[coluna] }}</a>
+          {% else %}<span class="text-gray-400">&mdash;</span>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+
+      <p class="text-xs text-gray-500 mb-4">Campos de data, de opção, CPF e e-mail deixados em branco mantêm o valor atual. A alteração fica registrada no log (só os nomes dos campos alterados).</p>
+      <div class="flex gap-3">
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium">Salvar</button>
+        <a href="{{ voltar }}" class="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">Cancelar</a>
+      </div>
+    </form>
+
+    <datalist id="lista-uf">
+      {% for uf in ['AC - Acre', 'AL - Alagoas', 'AM - Amazonas', 'AP - Amapá', 'BA - Bahia', 'CE - Ceará', 'DF - Distrito Federal', 'ES - Espírito Santo', 'GO - Goiás', 'MA - Maranhão', 'MG - Minas Gerais', 'MS - Mato Grosso do Sul', 'MT - Mato Grosso', 'PA - Pará', 'PE - Pernambuco', 'PB - Paraíba', 'PI - Piauí', 'PR - Paraná', 'RJ - Rio de Janeiro', 'RN - Rio Grande do Norte', 'RO - Rondônia', 'RS - Rio Grande do Sul', 'SC - Santa Catarina', 'SE - Sergipe', 'SP - São Paulo', 'TO - Tocantins'] %}<option value="{{ uf }}">{% endfor %}
+    </datalist>
+    <datalist id="lista-cursos">
+      {% for curso in ['Administração', 'Administração Pública', 'Agronomia', 'Análise e Desenvolvimento de Sistemas', 'Arquivologia', 'Biblioteconomia', 'Ciência da Computação', 'Ciências Contábeis', 'Design', 'Engenharia Civil', 'Engenharia de Materiais', 'Engenharia de Software', 'Farmácia', 'Filosofia - Bacharelado', 'Filosofia - Licenciatura', 'Interdisciplinar entre Ciências Naturais e Matemática', 'Jornalismo', 'Letras - Libras', 'Licenciatura em Biologia', 'Licenciatura em Física', 'Licenciatura em Matemática', 'Licenciatura em Química', 'Matemática Computacional', 'Medicina', 'Medicina Veterinária', 'Museologia', 'Música', 'Pedagogia', 'Psicologia'] %}<option value="{{ curso }}">{% endfor %}
+    </datalist>
+
+    <script>
+      (function () {
+        var vaga = document.getElementById('tipo_de_vaga');
+        var atual = "{{ indicacao.tipo_de_vaga if indicacao.tipo_de_vaga is not none else '' }}";
+        function atualizar() {
+          var valor = vaga.value === '' ? atual : vaga.value;
+          var voluntario = valor === '0';
+          document.querySelectorAll('#dados-bancarios input').forEach(function (campo) { campo.disabled = voluntario; });
+          document.getElementById('aviso-voluntario').classList.toggle('hidden', !voluntario);
+        }
+        vaga.addEventListener('change', atualizar);
+        atualizar();
+      })();
+    </script>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -40,3 +40,7 @@ home/perazzo/teste.py
 *.pyc
 home/perazzo/pesquisa/static/plots/*.png
 cron.frequencia.sh
+
+# Roteiro da migração do S3: tem o número da conta AWS, o bucket, o ARN da chave KMS e as roles.
+# Fica só local (retirado do repositório público em 2026-09-25).
+migracao.s3.md

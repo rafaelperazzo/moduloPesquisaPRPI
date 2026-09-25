@@ -273,6 +273,24 @@ def mascarar_cpf(cpf):
     digitos = normalizar_cpf(cpf)
     return f"***.{digitos[3:6]}.{digitos[6:9]}-**" if len(digitos) == 11 else ''
 
+def formatar_cpf(cpf):
+    """CPF completo para as telas do admin: 000.000.000-00. Fora do formato, volta como está (para ser corrigido)."""
+    digitos = normalizar_cpf(cpf)
+    if len(digitos) != 11:
+        return '' if cpf is None else str(cpf)
+    return f"{digitos[:3]}.{digitos[3:6]}.{digitos[6:9]}-{digitos[9:]}"
+
+def cpf_valido(cpf):
+    """11 dígitos, não todos iguais, com os dois dígitos verificadores corretos."""
+    d = normalizar_cpf(cpf)
+    if len(d) != 11 or d == d[0] * 11:
+        return False
+    for tamanho in (9, 10):
+        soma = sum(int(d[i]) * (tamanho + 1 - i) for i in range(tamanho))
+        if (soma * 10 % 11) % 10 != int(d[tamanho]):
+            return False
+    return True
+
 def sql_decifra(coluna, tabela=None):
     """Trecho SQL com a coluna decifrada. Consome 1 parâmetro (AES_KEY), na ordem em que aparece na consulta."""
     p = f"{tabela}." if tabela else ""
@@ -299,6 +317,22 @@ def montar_insert_indicacao(campos, iv, cpf):
         valores.extend((valor, AES_KEY, iv) if coluna in COLUNAS_CIFRADAS_INDICACAO else (valor,))
     valores.append(hash_cpf(cpf))
     consulta = f"INSERT INTO indicacoes ({','.join(colunas)}) VALUES ({','.join(marcadores)})"
+    return consulta, tuple(valores)
+
+def montar_update_indicacao(campos, iv, cpf, id_indicacao):
+    """UPDATE de indicacoes no mesmo esquema do INSERT: colunas pessoais cifradas com o iv DA PRÓPRIA LINHA (as
+    colunas cifradas que não mudam continuam decifrando), cpf_hash recalculado e nada em indicações expurgadas."""
+    atribuicoes, valores = [], []
+    for coluna, valor in campos:
+        if coluna in COLUNAS_CIFRADAS_INDICACAO:
+            atribuicoes.append(f"{coluna} = {SQL_CIFRA}")
+            valores.extend((valor, AES_KEY, iv))
+        else:
+            atribuicoes.append(f"{coluna} = %s")
+            valores.append(valor)
+    atribuicoes.append("cpf_hash = %s")
+    valores.extend((hash_cpf(cpf), id_indicacao))
+    consulta = f"UPDATE indicacoes SET {', '.join(atribuicoes)} WHERE id = %s AND expurgo IS NULL"
     return consulta, tuple(valores)
 
 def gerar_codigo_auth(identificador, titulo, prefixo='declaracao_orientador'):
@@ -552,6 +586,7 @@ configure_uploads(app, anexos)
 configure_uploads(app, submissoes)
 
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
+app.jinja_env.filters['cpf'] = formatar_cpf  # {{ valor|cpf }}: CPF completo formatado, só nas telas do admin
 
 @app.context_processor
 def utility_processor():
@@ -987,6 +1022,23 @@ def atualizar2(consulta,valores=()):
     except MySQLdb.Error as e:
         logger.warning(e)
         logger.warning(consulta)
+    finally:
+        cursor.close()
+        conn.close()
+
+def executar_alteracao(consulta, valores=()):
+    """UPDATE/DELETE que devolve quantas linhas mudaram e propaga o erro (o atualizar2 engole os dois).
+    rowcount ANTES do commit: no conector mariadb o COMMIT o zera."""
+    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
+    cursor = conn.cursor()
+    try:
+        cursor.execute(consulta, tuple(valores))
+        linhas = cursor.rowcount
+        conn.commit()
+        return linhas
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         cursor.close()
         conn.close()
@@ -4951,6 +5003,32 @@ def efetivarIndicacao():
     else:
         return("OK")
 
+def consulta_lista_indicacoes(codigo_edital, tipo_de_vaga=None):
+    """
+    Lista de indicações do admin (/admin/indicacoes): uma única consulta, com ou sem o filtro de tipo de vaga,
+    para as posições das colunas serem sempre as mesmas no template. Posições 0-22 como antes; 23 = CPF
+    decifrado; 24 = data do expurgo (retenção de 6 anos), NULL se a indicação não foi anonimizada.
+    """
+    consulta = f"""SELECT indicacoes.id, indicacoes.idProjeto, indicacoes.nome,
+        IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
+        IF(tipo_de_vaga=1, 'BOLSISTA','VOLUNTÁRIO(A)'),
+        {sql_decifra('nome_banco', 'indicacoes')}, {sql_decifra('agencia', 'indicacoes')}, {sql_decifra('conta', 'indicacoes')},
+        arquivo_cpf_rg, arquivo_extrato, arquivo_historico, arquivo_termo,
+        DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'), DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'),
+        editalProjeto.nome, editalProjeto.obs, editalProjeto.tipo,
+        IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPQ','FUNCAP')),
+        {sql_decifra('endereco', 'indicacoes')}, {sql_decifra('celular', 'indicacoes')}, {sql_decifra('telefone', 'indicacoes')},
+        DATE_FORMAT({sql_decifra('nascimento', 'indicacoes')},'%d/%m/%Y'), {sql_decifra('rg', 'indicacoes')},
+        {sql_decifra('cpf', 'indicacoes')}, DATE_FORMAT(indicacoes.expurgo,'%d/%m/%Y')
+        FROM indicacoes, editalProjeto
+        WHERE indicacoes.idProjeto=editalProjeto.id AND editalProjeto.tipo=%s"""
+    parametros = [AES_KEY] * (consulta.count('%s') - 1) + [str(codigo_edital)]
+    if tipo_de_vaga is not None:
+        consulta += " AND indicacoes.tipo_de_vaga=%s"
+        parametros.append(str(tipo_de_vaga))
+    consulta += " ORDER BY editalProjeto.tipo, editalProjeto.nome, indicacoes.id"
+    return consulta, tuple(parametros)
+
 @app.route("/admin/indicacoes", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
@@ -4960,45 +5038,11 @@ def indicacoes():
         if 'edital' in request.args:
             codigoEdital = str(request.args.get('edital'))
             descricao_edital = obterColunaUnica('editais','nome','id',codigoEdital)
-            if 'tipo' in request.args:
-                tipo_de_vaga = str(request.args.get('tipo'))
-                consulta = f"""SELECT indicacoes.id,
-                indicacoes.idProjeto, 
-                indicacoes.nome,
-                IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
-                IF(tipo_de_vaga=1, 'BOLSISTA','VOLUNTÁRIO(A)'), 
-                {sql_decifra('nome_banco', 'indicacoes')},
-                {sql_decifra('agencia', 'indicacoes')},
-                {sql_decifra('conta', 'indicacoes')}, 
-                arquivo_cpf_rg,
-                arquivo_extrato,
-                arquivo_historico,
-                arquivo_termo,
-                DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),
-                DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'), 
-                editalProjeto.nome,
-                editalProjeto.obs,
-                editalProjeto.tipo,
-                IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPQ','FUNCAP')),
-                CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.endereco),%s,iv,'AES-256-CBC'), CHAR),
-                CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.celular),%s,iv,'AES-256-CBC'), CHAR),
-                CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.telefone),%s,iv,'AES-256-CBC'), CHAR),
-                DATE_FORMAT(CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.nascimento),%s,iv,'AES-256-CBC'), CHAR),'%d/%m/%Y'),
-                CONVERT(AES_DECRYPT(FROM_BASE64(indicacoes.rg),%s,iv,'AES-256-CBC'), CHAR)
-                FROM indicacoes,editalProjeto
-                WHERE indicacoes.tipo_de_vaga=%s
-                AND indicacoes.idProjeto=editalProjeto.id AND tipo=%s
-                ORDER BY editalProjeto.tipo,editalProjeto.nome,indicacoes.id """
-                parametros_consulta = (AES_KEY,) * 8 + (tipo_de_vaga, codigoEdital)
-            else:
-                consulta = f"""SELECT indicacoes.id,indicacoes.idProjeto, indicacoes.nome,IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')),
-                IF(tipo_de_vaga=1, 'BOLSISTA','VOLUNTÁRIO(A)'), {sql_decifra('nome_banco', 'indicacoes')},{sql_decifra('agencia', 'indicacoes')},{sql_decifra('conta', 'indicacoes')}, arquivo_cpf_rg,arquivo_extrato,
-                arquivo_historico,arquivo_termo,DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y'),DATE_FORMAT(indicacoes.fim,'%d/%m/%Y'), editalProjeto.nome,editalProjeto.obs,
-                editalProjeto.tipo,IF(indicacoes.fomento=0,'UFCA',IF(indicacoes.fomento=1,'CNPQ','FUNCAP'))
-                FROM indicacoes,editalProjeto WHERE indicacoes.idProjeto=editalProjeto.id AND tipo=%s ORDER BY editalProjeto.tipo,editalProjeto.nome,indicacoes.id """
-                parametros_consulta = (AES_KEY,) * 3 + (codigoEdital,)
+            tipo_de_vaga = request.args.get('tipo')
+            consulta, parametros_consulta = consulta_lista_indicacoes(codigoEdital, tipo_de_vaga)
             linhas,total = executarSelect2(consulta,valores=parametros_consulta)
-            return(render_template('listar_indicacoes.html',listaIndicacoes=linhas,total=total,descricao=descricao_edital))
+            return(render_template('listar_indicacoes.html',listaIndicacoes=linhas,total=total,descricao=descricao_edital,
+                                   edital=codigoEdital,tipo=tipo_de_vaga))
         else:
             return("OK")
     else:
@@ -5958,6 +6002,144 @@ def inserir_edital():
         return redirect(url_for('listar_editais'))
     else:
         return render_template('inserirEdital.html')
+
+# Edição de indicações pelo admin: dados do discente e do vínculo (os documentos não mudam aqui).
+# (coluna, rótulo, tipo): 'texto', 'data', 'email', 'cpf' ou o conjunto de códigos aceitos (os de indicacao.html)
+CAMPOS_EDICAO_INDICACAO = [
+    ('nome', 'Nome', 'texto'), ('cpf', 'CPF', 'cpf'), ('rg', 'RG', 'texto'), ('orgao_emissor', 'Órgão emissor', 'texto'),
+    ('uf', 'UF', 'texto'), ('nascimento', 'Nascimento', 'data'), ('estado_civil', 'Estado civil', {0, 1, 2, 3, 4, 5}),
+    ('sexo', 'Sexo', {1, 2}), ('curso', 'Curso', 'texto'), ('matricula', 'Matrícula', 'texto'),
+    ('ano_de_ingresso', 'Ano de ingresso', 'ano'), ('lattes', 'Lattes', 'texto'), ('escola', 'Escola', 'texto'),
+    ('ano_conclusao', 'Ano de conclusão', 'ano'), ('nome_banco', 'Banco', 'texto'), ('agencia', 'Agência', 'texto'),
+    ('conta', 'Conta', 'texto'), ('telefone', 'Telefone', 'texto'), ('celular', 'Celular', 'texto'),
+    ('email', 'E-mail', 'email'), ('endereco', 'Endereço', 'texto'), ('modalidade', 'Modalidade', {1, 2, 3}),
+    ('tipo_de_vaga', 'Tipo de vaga', {0, 1}), ('fomento', 'Fomento', {0, 1, 2}), ('inicio', 'Início', 'data'),
+    ('fim', 'Fim', 'data'),
+]
+RE_EMAIL = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+RE_DATA_ISO = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+
+def carregar_indicacao(id_indicacao):
+    """Indicação com as colunas pessoais decifradas, para a tela de edição; None se não existir."""
+    decifradas = [c for c, _, _ in CAMPOS_EDICAO_INDICACAO if c in COLUNAS_CIFRADAS_INDICACAO]
+    simples = [c for c, _, _ in CAMPOS_EDICAO_INDICACAO
+               if c not in COLUNAS_CIFRADAS_INDICACAO and c not in ('inicio', 'fim')]
+    colunas = ([f"{sql_decifra(c, 'i')} AS {c}" for c in decifradas] + [f"i.{c}" for c in simples] +
+               ["DATE_FORMAT(i.inicio,'%Y-%m-%d') AS inicio", "DATE_FORMAT(i.fim,'%Y-%m-%d') AS fim",
+                "i.id", "i.idProjeto", "i.iv", "DATE_FORMAT(i.expurgo,'%d/%m/%Y') AS expurgo",
+                "i.arquivo_cpf_rg", "i.arquivo_extrato", "i.arquivo_historico", "i.arquivo_termo", "i.arquivo_plano",
+                "e.tipo AS edital", "e.nome AS orientador"])
+    consulta = (f"SELECT {', '.join(colunas)} FROM indicacoes i LEFT JOIN editalProjeto e ON e.id = i.idProjeto "
+                f"WHERE i.id = %s")
+    linhas = consultar_dicts(consulta, [AES_KEY] * len(decifradas) + [id_indicacao])
+    return linhas[0] if linhas else None
+
+def validar_edicao_indicacao(form, atual):
+    """(novos, erros): novos = {coluna: valor normalizado} de TODOS os campos do formulário; erros = mensagens.
+    Um campo que não é texto livre (data, código, ano, CPF, e-mail) deixado em branco mantém o valor atual:
+    as indicações antigas podem ter esses campos vazios ou num formato antigo, e isso não deve impedir
+    a correção dos outros campos."""
+    novos, erros = {}, []
+    for coluna, rotulo, tipo in CAMPOS_EDICAO_INDICACAO:
+        valor = str(form.get(coluna, '')).strip()
+        if not valor and tipo != 'texto':
+            novos[coluna] = atual.get(coluna)
+            continue
+        if tipo == 'data':
+            try:
+                datetime.strptime(valor, '%Y-%m-%d')
+            except ValueError:
+                erros.append(f"{rotulo}: data inválida.")
+                continue
+        elif isinstance(tipo, set):
+            if not valor.lstrip('-').isdigit() or int(valor) not in tipo:
+                erros.append(f"{rotulo}: opção inválida.")
+                continue
+            valor = int(valor)
+        elif tipo == 'ano':
+            if not (valor.isdigit() and (int(valor) == 0 or 1900 <= int(valor) <= 2100)):
+                erros.append(f"{rotulo}: ano inválido.")
+                continue
+            valor = int(valor)
+        elif tipo == 'cpf':
+            if not cpf_valido(valor):
+                erros.append("CPF inválido.")
+                continue
+            valor = formatar_cpf(valor)
+        elif tipo == 'email':
+            if not RE_EMAIL.match(valor):
+                erros.append("E-mail inválido.")
+                continue
+        elif coluna == 'nome' and not valor:
+            erros.append("Nome: obrigatório.")
+            continue
+        novos[coluna] = valor
+    if novos.get('tipo_de_vaga') == 0:  # voluntário: sem dados bancários, como no efetivarIndicacao
+        novos.update(nome_banco='N/A', agencia='N/A', conta='N/A')
+    if not erros:
+        if novos.get('nascimento') and RE_DATA_ISO.match(str(novos['nascimento'])) and str(novos['nascimento']) >= date.today().isoformat():
+            erros.append("Nascimento: deve ser uma data no passado.")
+        if novos.get('inicio') and novos.get('fim') and str(novos['fim']) < str(novos['inicio']):
+            erros.append("Fim: não pode ser antes do início.")
+    return novos, erros
+
+def campos_alterados_indicacao(atual, novos):
+    """[(coluna, valor novo)] só do que mudou. Início e fim vão com a hora, como nas datas do edital."""
+    alterados = []
+    for coluna, _, _ in CAMPOS_EDICAO_INDICACAO:
+        antigo, novo = atual.get(coluna), novos.get(coluna)
+        if coluna == 'cpf':
+            antigo, novo = formatar_cpf(antigo), formatar_cpf(novo)
+        if str('' if antigo is None else antigo) == str('' if novo is None else novo):
+            continue
+        if coluna == 'inicio':
+            novo = f"{novo} 00:00:00"
+        elif coluna == 'fim':
+            novo = f"{novo} 23:59:59"
+        alterados.append((coluna, novo))
+    return alterados
+
+@app.route("/admin/indicacao/<int:id>/editar", methods=['GET', 'POST'])
+@login_required(role='admin')
+@log_required
+def editar_indicacao(id):
+    """
+    Correção dos dados de uma indicação pelo admin (art. 18, III): dados do discente e do vínculo.
+    Indicações anonimizadas pela retenção de 6 anos (expurgo) não podem ser editadas.
+    """
+    atual = carregar_indicacao(id)
+    if atual is None:
+        flash("Indicação não encontrada.", 'error')
+        return redirect(url_for('admin'))
+    voltar = url_for('indicacoes', edital=atual.get('edital'), tipo=atual.get('tipo_de_vaga'))
+    if atual.get('expurgo'):
+        return render_template('editarIndicacao.html', indicacao=atual, campos=atual, voltar=voltar, erros=[])
+    if request.method == 'GET':
+        return render_template('editarIndicacao.html', indicacao=atual, campos=atual, voltar=voltar, erros=[])
+
+    novos, erros = validar_edicao_indicacao(request.form, atual)
+    if erros:
+        return render_template('editarIndicacao.html', indicacao=atual, campos={**atual, **request.form.to_dict()},
+                               voltar=voltar, erros=erros), 400
+    alterados = campos_alterados_indicacao(atual, novos)
+    if not alterados:
+        flash("Nenhum dado foi alterado.")
+        return redirect(voltar)
+    if any(c in COLUNAS_CIFRADAS_INDICACAO for c, _ in alterados) and not atual.get('iv'):
+        flash("Esta indicação não tem o vetor de criptografia (iv); os dados pessoais não podem ser alterados.", 'error')
+        return redirect(url_for('editar_indicacao', id=id))
+    consulta, valores = montar_update_indicacao(alterados, atual.get('iv'), novos.get('cpf') or atual.get('cpf'), id)
+    try:
+        linhas = executar_alteracao(consulta, valores)
+    except Exception as e:
+        logger.error("[indicacao] Erro ao alterar a indicação id={}: {}", id, type(e).__name__)
+        linhas = 0
+    if linhas != 1:
+        flash("A indicação não foi alterada (erro ao gravar, ou ela foi anonimizada nesse meio-tempo).", 'error')
+        return redirect(url_for('editar_indicacao', id=id))
+    logger.info("[indicacao] id={} alterada por {}: campos {}", id, session.get('username'), [c for c, _ in alterados])
+    flash("Indicação alterada.")
+    return redirect(voltar)
 
 @app.route("/admin/alterarEdital/<int:id>", methods=['GET', 'POST'])
 @login_required(role='admin')

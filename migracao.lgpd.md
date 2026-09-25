@@ -142,9 +142,9 @@
 
 | Tabela | Coluna do prazo | Anonimizado (`NULL` ou valor vazio, se a coluna for NOT NULL) | Mantido |
 |---|---|---|---|
-| `indicacoes` | `fim` | CPF, `cpf_hash`, RG, órgão emissor, UF, nascimento, estado civil, sexo, banco, agência, conta, telefone, celular, e-mail, endereço, matrícula, Lattes, escola, ano de conclusão e as 5 colunas `arquivo_*`. Os arquivos são apagados de `pesquisa/docs_indicacoes/` | nome, projeto, modalidade, tipo de vaga, fomento, curso, período, situação |
-| `alunos` (legada) | `fim` | e-mail | nome, **CPF e `cpf_hash`**, para a busca das declarações antigas, e o projeto e o período |
-| `cadastro_geral` (legada) | `estudante_fim` | RG, telefone, celular, banco, agência, conta e `e-mail` do estudante | nome, **CPF e `cpf_hash`**, os dados do orientador e os do projeto |
+| `indicacoes` | `fim` | CPF, `cpf_hash`, RG, órgão emissor, UF, nascimento, estado civil, sexo, banco, agência, conta, telefone, celular, e-mail, endereço, matrícula, Lattes, escola, ano de conclusão e as 6 colunas `arquivo_*`. Os arquivos são apagados de `pesquisa/docs_indicacoes/`. O `arquivo_af` tem `N/A` em todas as linhas, um valor de preenchimento: a coluna é limpa, mas o `N/A` não gera exclusão no S3 | nome, projeto, modalidade, tipo de vaga, fomento, curso, período, situação e `data` |
+| `alunos` (legada) | `fim`, em texto: "Julho de 2018" ou "31/07/2019" | e-mail | nome, **CPF e `cpf_hash`**, para a busca das declarações antigas, o projeto, o período, o curso, o fomento e o programa |
+| `cadastro_geral` (legada) | `estudante_fim`; se estiver vazio, o `termino` | RG, telefone, celular, banco, agência, conta, `e-mail`, matrícula, `id_lattes` e `estudante_obs` do estudante | nome, **CPF e `cpf_hash`**, a situação e o fomento da bolsa, os dados do orientador (`orientador_*`) e os do projeto |
 
 **Código:**
 - `app/modules/retencao.py`, com a lista `TABELAS_RETENCAO`:
@@ -154,7 +154,18 @@
 - **Tarefa mensal** `job_expurgo_retencao`: roda no dia 1º, às 21:00, com no máximo 500 linhas por tabela. Não roda de madrugada porque a EC2 desliga às 22:00.
 - **Script** `app/scripts/expurgar_dados_estudantes.py`: faz a primeira execução, sem limite.
 - **Admin:** na lista de indicações, os documentos eliminados aparecem como "—".
-- **Testes:** 14 em `app/test_retencao.py`. O SQL também foi validado num MariaDB 11 descartável, em modo estrito.
+- **Datas:** são lidas em Python, e não com `CAST` no SQL, porque nas tabelas legadas elas são texto. O leitor aceita:
+  - data ou data e hora;
+  - `AAAA-MM-DD`;
+  - `DD/MM/AAAA`;
+  - "Mês de AAAA", que conta a partir do último dia do mês.
+- **Testes:** 27 em `app/test_retencao.py`. O código também foi validado num MariaDB 11 descartável, em modo estrito, com as datas em texto.
+- **Primeiro `--simular` em produção (2026-09-25):**
+  - `indicacoes`: 175 linhas e 822 arquivos, com fim entre 2019-09 e 2020-09;
+  - `alunos`: 3 linhas, e 682 ficaram sem data válida, o que levou ao leitor de datas em texto;
+  - `cadastro_geral`: 763 linhas, e 10 ficaram sem data, das quais 9 têm `termino`.
+
+  As colunas não classificadas foram revistas com o usuário.
 
 **Primeira execução, na EC2 (irreversível):**
 1. aplicar o `retencao.sql.sample`, que cria a coluna `expurgo` nas 3 tabelas;
@@ -162,7 +173,7 @@
 3. `env/bin/python scripts/expurgar_dados_estudantes.py --simular` e conferir:
    - as linhas vencidas e os arquivos;
    - o `fim` mais antigo;
-   - as linhas **sem data válida**, que não são tratadas. Se forem muitas em `cadastro_geral`, a data pode estar como `dd/mm/aaaa` e precisar de `STR_TO_DATE`;
+   - as linhas **sem data válida**, que não são tratadas e precisam ser revistas manualmente;
    - as **colunas não classificadas**, que precisam ser revisadas: se forem dados pessoais do estudante, entram em `anonimizar`;
 4. `--limite 5`, e conferir essas linhas no admin e a marca de exclusão no S3 (`aws s3api list-object-versions --prefix pesquisa/docs_indicacoes/<arquivo>`);
 5. rodar o script sem `--limite`.

@@ -11,6 +11,7 @@ from loguru import logger
 from modules import retencao as R
 
 HOJE = date.today()
+DOCS = ('arquivo_cpf_rg', 'arquivo_extrato', 'arquivo_historico', 'arquivo_termo', 'arquivo_plano')
 VENCIDA = date(HOJE.year - 7, 1, 31)
 NO_PRAZO = date(HOJE.year - 5, 1, 31)
 
@@ -29,13 +30,14 @@ def banco_padrao():
     def indicacao(id_, fim, **extra):
         linha = {c: f'{c}-{id_}' for c in ind}
         linha.update(id=id_, fim=fim, expurgo=None, nome=f'Estudante {id_}', idProjeto=10 + id_)
-        for c in R.TABELAS_RETENCAO['indicacoes']['arquivos']:
+        for c in DOCS:
             linha[c] = f'{c.upper()}.{id_}.pdf'
+        linha['arquivo_af'] = 'N/A'
         linha.update(extra)
         return linha
 
     cg = colunas(['id', 'expurgo', 'cpf', 'cpf_hash', 'estudante_nome_completo', 'orientador_cpf', 'orientador_email',
-                  'estudante_fim'] + list(R.TABELAS_RETENCAO['cadastro_geral']['anonimizar']), 'text')
+                  'estudante_fim', 'termino'] + list(R.TABELAS_RETENCAO['cadastro_geral']['anonimizar']), 'text')
     return {
         'indicacoes': {'colunas': ind, 'linhas': [
             indicacao(1, VENCIDA),
@@ -45,26 +47,16 @@ def banco_padrao():
             indicacao(5, VENCIDA, arquivo_termo='../../etc/passwd', arquivo_plano=''),
         ]},
         'alunos': {'colunas': colunas(['id', 'expurgo', 'nome', 'cpf', 'cpf_hash', 'email', 'fim']), 'linhas': [
-            {'id': 1, 'expurgo': None, 'nome': 'Aluno', 'cpf': 'cifrado', 'cpf_hash': 'h1', 'email': 'a@x.br', 'fim': VENCIDA},
+            {'id': 1, 'expurgo': None, 'nome': 'Aluno', 'cpf': 'cifrado', 'cpf_hash': 'h1', 'email': 'a@x.br', 'fim': 'Julho de 2018'},
+            {'id': 2, 'expurgo': None, 'nome': 'Aluno 2', 'cpf': 'c2', 'cpf_hash': 'h2', 'email': 'b@x.br', 'fim': '31/07/2019'},
+            {'id': 3, 'expurgo': None, 'nome': 'Aluno 3', 'cpf': 'c3', 'cpf_hash': 'h3', 'email': 'c@x.br', 'fim': f'Março de {HOJE.year}'},
         ]},
         'cadastro_geral': {'colunas': cg, 'linhas': [
             {**{c: f'{c}-1' for c in cg}, 'id': 1, 'expurgo': None, 'estudante_fim': VENCIDA.isoformat()},
-            {**{c: f'{c}-2' for c in cg}, 'id': 2, 'expurgo': None, 'estudante_fim': 'data inválida'},
+            {**{c: f'{c}-2' for c in cg}, 'id': 2, 'expurgo': None, 'estudante_fim': 'data inválida', 'termino': None},
+            {**{c: f'{c}-3' for c in cg}, 'id': 3, 'expurgo': None, 'estudante_fim': None, 'termino': '2018-07-01 00:00:00'},
         ]},
     }
-
-
-def como_data(valor):
-    try:
-        return date.fromisoformat(str(valor)[:10]) if valor is not None else None
-    except ValueError:
-        return None
-
-
-def vencida(linha, data, anos=R.RETENCAO_ANOS):
-    d = como_data(linha[data])
-    limite = date(HOJE.year - anos, HOJE.month, min(HOJE.day, 28))
-    return linha['expurgo'] is None and d is not None and d < limite
 
 
 class CursorFalso:
@@ -79,18 +71,8 @@ class CursorFalso:
             self.resultado = [(n, tp, 'YES' if an else 'NO') for n, (tp, an) in (t['colunas'].items() if t else [])]
         elif sql.startswith('SELECT id'):
             nomes = re.findall(r'`([\w-]+)`', sql.split(' FROM ')[0])
-            data = R.TABELAS_RETENCAO[tabela]['data']
-            linhas = [l for l in self.db[tabela]['linhas'] if vencida(l, data) and l['id'] > params[0]]
-            self.resultado = [(l['id'], *[l[n] for n in nomes]) for l in sorted(linhas, key=lambda l: l['id'])][:R.LOTE]
-        elif sql.startswith('SELECT COUNT(*), COALESCE'):
-            config = R.TABELAS_RETENCAO[tabela]
-            linhas = [l for l in self.db[tabela]['linhas'] if vencida(l, config['data'])]
-            arquivos = sum(1 for l in linhas for c in config['arquivos'] if l.get(c))
-            datas = [como_data(l[config['data']]) for l in linhas]
-            self.resultado = [(len(linhas), arquivos, min(datas, default=None), max(datas, default=None))]
-        elif sql.startswith('SELECT COUNT(*)'):
-            data = R.TABELAS_RETENCAO[tabela]['data']
-            self.resultado = [(sum(1 for l in self.db[tabela]['linhas'] if l['expurgo'] is None and como_data(l[data]) is None),)]
+            linhas = sorted((l for l in self.db[tabela]['linhas'] if l['expurgo'] is None), key=lambda l: l['id'])
+            self.resultado = [(l['id'], *[l.get(n) for n in nomes]) for l in linhas]
         elif sql.startswith('UPDATE'):
             if self.db.get('falhar_update'):
                 raise RuntimeError('banco fora')
@@ -155,7 +137,7 @@ def test_indicacao_vencida_perde_arquivos_e_dados_pessoais(ambiente):
     s3 = S3Falso()
     resultado = R.expurgar_dados_estudantes(conectar, s3=s3, bucket='b', tabelas=['indicacoes'])
 
-    esperadas = [R.PREFIXO_DOCS_S3 + f'{c.upper()}.1.pdf' for c in R.TABELAS_RETENCAO['indicacoes']['arquivos']]
+    esperadas = [R.PREFIXO_DOCS_S3 + f'{c.upper()}.1.pdf' for c in DOCS]
     esperadas += [R.PREFIXO_DOCS_S3 + f'{c.upper()}.5.pdf' for c in ('arquivo_cpf_rg', 'arquivo_extrato', 'arquivo_historico')]
     assert sorted(s3.apagadas) == sorted(esperadas)
     l1 = linha(db, 'indicacoes', 1)
@@ -163,6 +145,7 @@ def test_indicacao_vencida_perde_arquivos_e_dados_pessoais(ambiente):
         assert l1[c] in (None, '', 0), c
     assert l1['cpf'] is None and l1['cpf_hash'] is None
     assert l1['conta'] == '' and l1['ano_conclusao'] == 0   # NOT NULL: valor vazio do tipo
+    assert l1['arquivo_af'] is None                          # "N/A" não é arquivo, mas a coluna é limpa
     assert l1['nome'] == 'Estudante 1' and l1['idProjeto'] == 11 and l1['fim'] == VENCIDA
     assert l1['expurgo'] == HOJE
     assert resultado['indicacoes']['linhas'] == 2 and resultado['indicacoes']['arquivos'] == 8
@@ -205,9 +188,10 @@ def test_simular_nao_altera_nada(ambiente):
     resultado = R.expurgar_dados_estudantes(conectar, s3=s3, bucket='b', simular=True)
     assert s3.apagadas == []
     assert not any(sql.startswith('UPDATE') for sql, _ in sqls)
-    assert resultado['indicacoes']['linhas'] == 2 and resultado['indicacoes']['arquivos'] == 9
+    assert resultado['indicacoes']['linhas'] == 2 and resultado['indicacoes']['arquivos'] == 8
     assert resultado['indicacoes']['sem_data'] == 1
-    assert resultado['cadastro_geral']['linhas'] == 1 and resultado['cadastro_geral']['sem_data'] == 1
+    assert resultado['alunos']['linhas'] == 2 and resultado['alunos']['fim_mais_recente'] == date(2019, 7, 31)
+    assert resultado['cadastro_geral']['linhas'] == 2 and resultado['cadastro_geral']['sem_data'] == 1
 
 
 def test_limite_por_tabela(ambiente):
@@ -229,13 +213,16 @@ def test_legadas_mantem_cpf_e_dados_do_orientador(ambiente):
     R.expurgar_dados_estudantes(conectar, s3=S3Falso(), bucket='b', tabelas=['alunos', 'cadastro_geral'])
     aluno = linha(db, 'alunos', 1)
     assert aluno['email'] is None and aluno['cpf'] == 'cifrado' and aluno['cpf_hash'] == 'h1' and aluno['expurgo']
+    assert linha(db, 'alunos', 2)['email'] is None                          # 31/07/2019
+    assert linha(db, 'alunos', 3)['email'] == 'c@x.br'                      # este ano: no prazo
     cg = linha(db, 'cadastro_geral', 1)
     for c in R.TABELAS_RETENCAO['cadastro_geral']['anonimizar']:
         assert cg[c] is None, c
     assert cg['cpf'] == 'cpf-1' and cg['cpf_hash'] == 'cpf_hash-1'
     assert cg['orientador_cpf'] == 'orientador_cpf-1' and cg['orientador_email'] == 'orientador_email-1'
     assert cg['estudante_nome_completo'] == 'estudante_nome_completo-1'
-    assert linha(db, 'cadastro_geral', 2)['expurgo'] is None   # data inválida: fica para revisão
+    assert linha(db, 'cadastro_geral', 2)['expurgo'] is None   # sem data válida: fica para revisão
+    assert linha(db, 'cadastro_geral', 3)['rg'] is None        # estudante_fim vazio: vale o termino
 
 
 def test_e_mail_com_hifen_vai_entre_crases(ambiente):
@@ -273,6 +260,24 @@ def test_log_sem_dados_pessoais(ambiente):
     assert '[retencao]' in texto
     for proibido in ('Estudante', 'cpf-1', '.pdf', 'a@x.br', 'passwd'):
         assert proibido not in texto
+
+
+@pytest.mark.parametrize('valor, esperado', [
+    ('Julho de 2018', date(2018, 7, 31)),
+    ('Fevereiro de 2016', date(2016, 2, 29)),
+    ('Março de 2015', date(2015, 3, 31)),
+    ('marco 2015', date(2015, 3, 31)),
+    ('31/07/2019', date(2019, 7, 31)),
+    ('2018-07-01 00:00:00', date(2018, 7, 1)),
+    (date(2020, 9, 15), date(2020, 9, 15)),
+    ('0000-00-00', None), ('31/02/2019', None), ('', None), (None, None), ('Julhoo de 2018', None),
+])
+def test_interpretar_data(valor, esperado):
+    assert R.interpretar_data(valor) == esperado
+
+
+def test_data_limite_em_29_de_fevereiro():
+    assert R.data_limite(6, date(2028, 2, 29)) == date(2022, 2, 28)
 
 
 def test_politica_declara_6_anos():

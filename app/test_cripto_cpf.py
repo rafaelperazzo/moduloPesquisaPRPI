@@ -103,18 +103,23 @@ def test_busca_por_cpf_invalido_nao_consulta_o_banco(monkeypatch):
     assert P.gerarProjetosPorAluno('') == ([], [])
 
 
+CHAVE_INTERNA = {'X-Chave-Interna': 'chave-de-teste'}
+
+
 def test_api_indicacao_busca_pelo_hash(client, monkeypatch):
+    monkeypatch.setattr(P, 'INDICACAO_API_KEY', 'chave-de-teste')
     chamadas = []
     monkeypatch.setattr(P, 'executarSelect2', lambda c, tipo=0, valores=(): chamadas.append((c, valores)) or ([], 0))
-    assert client.get('/indicacao/12345678901').status_code == 200
+    assert client.get('/indicacao/12345678901', headers=CHAVE_INTERNA).status_code == 200
     consulta, valores = chamadas[0]
     assert 'cpf_hash = %s' in consulta
     assert valores == (P.hash_cpf('12345678901'), '123.456.789-01')
 
 
 def test_api_indicacao_cpf_invalido_nao_consulta(client, monkeypatch):
+    monkeypatch.setattr(P, 'INDICACAO_API_KEY', 'chave-de-teste')
     monkeypatch.setattr(P, 'executarSelect2', lambda *a, **k: pytest.fail('não deveria consultar o banco'))
-    assert client.get('/indicacao/123').get_json() == []
+    assert client.get('/indicacao/123', headers=CHAVE_INTERNA).get_json() == []
 
 
 def test_verificacao_publica_mostra_cpf_mascarado(client, monkeypatch):

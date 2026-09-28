@@ -75,8 +75,9 @@ def test_token_do_avaliador_nao_vai_para_o_log(client, registros):
 
 def test_cpf_no_caminho_nao_vai_para_o_log(client, registros, monkeypatch):
     monkeypatch.setattr(P, 'executarSelect2', lambda *a, **k: ([], 0))
-    client.get('/indicacao/' + CPF)
-    client.get('/indicacao/52998224725')
+    monkeypatch.setattr(P, 'INDICACAO_API_KEY', 'chave-de-teste')
+    client.get('/indicacao/' + CPF, headers={'X-Chave-Interna': 'chave-de-teste'})
+    client.get('/indicacao/52998224725', headers={'X-Chave-Interna': 'chave-de-teste'})
     rotas = [r['extra']['rota'] for r in de_acesso(registros)]
     assert rotas == ['/indicacao/[cpf]', '/indicacao/[cpf]']
     assert all('52998224725' not in json.dumps(r) and CPF not in json.dumps(r) for r in registros)

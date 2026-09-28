@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from flask import Flask
 from flask import render_template, send_file
-from flask import request,url_for,send_from_directory,redirect,session,flash,has_request_context
+from flask import request,url_for,send_from_directory,redirect,session,flash,has_request_context,abort
 from flask_httpauth import HTTPBasicAuth
 from waitress import serve
 import mariadb as MySQLdb
@@ -5816,17 +5816,27 @@ def auditoria_indicacoes():
     
     return(render_template('indicacoes_duplicadas.html',linhas=linhas,total=total,edital=edital,ano=ano_atual))
 
+INDICACAO_API_KEY = os.environ.pop("INDICACAO_API_KEY", "")
+
+def chave_interna_valida():
+    """Cabeçalho X-Chave-Interna com a chave compartilhada com o back-end do cppgi
+    (/pesquisa/INDICACAO_API_KEY = /cppgi/PESQUISA_API_KEY). Sem chave configurada, nada passa."""
+    recebida = request.headers.get('X-Chave-Interna', '')
+    return bool(INDICACAO_API_KEY) and hmac.compare_digest(recebida.encode(), INDICACAO_API_KEY.encode())
+
 @app.route("/indicacao/<cpf>", methods=['GET'])
 @log_required
 def get_dados_indicacao(cpf):
+    """Indicações do discente para o cppgi. Só o back-end do cppgi chama (por dentro da EC2, com a
+    chave), sempre com o CPF da conta logada lá; de fora, a rota responde 404 como se não existisse."""
+    if not chave_interna_valida():
+        abort(404)
     cpf_corrigido = cpf
     cpf_corrigido = cpf_corrigido[:3] + '.' + cpf_corrigido[3:]
     cpf_corrigido = cpf_corrigido[:7] + '.' + cpf_corrigido[7:]
     cpf_corrigido = cpf_corrigido[:11] + '-' + cpf_corrigido[11:]
     consulta = f"""
     SELECT upper(indicacoes.nome),
-    indicacoes.email,
-    IF(indicacoes.modalidade=1,'PIBIC',IF(indicacoes.modalidade=2,'PIBITI','PIBIC-EM')) as modalidade,
     tipo_de_vaga,
     fomento,
     idProjeto,
@@ -5842,12 +5852,9 @@ def get_dados_indicacao(cpf):
     linhas,total = executarSelect2(consulta,valores=valores_busca_cpf(cpf_corrigido)) if len(normalizar_cpf(cpf)) == 11 else ([], 0)
     dados = []
     for linha in linhas:
-        dado = {'nome': linha[0],'email': linha[1],'modalidade': linha[2],'tipo_vinculo': linha[3],'fomento': linha[4],'idProjeto': linha[5],'dados': linha[6]}
+        dado = {'nome': linha[0],'tipo_vinculo': linha[1],'fomento': linha[2],'idProjeto': linha[3],'dados': linha[4]}
         dados.append(dado)
-    resp = Response(json.dumps(dados),  mimetype='application/json')
-    resp.headers['Access-Control-Allow-Origin'] = '*'
-    #return Response(json.dumps(dados),  mimetype='application/json')
-    return resp
+    return Response(json.dumps(dados), mimetype='application/json')
 
 @app.route("/projetos_discente", methods=['GET','POST'])
 @log_required

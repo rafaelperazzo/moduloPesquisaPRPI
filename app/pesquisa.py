@@ -154,7 +154,11 @@ SERVER_PORT = os.getenv("SERVER_PORT", "80")
 
 UPLOAD_FOLDER = 'static/files'
 ALLOWED_EXTENSIONS = set(['pdf','xml'])
-URL_PREFIX = os.getenv('URL_PREFIX','/pesquisa')
+def normalizar_prefixo(valor):
+    """"/" = raiz. O SSM não aceita valor vazio, então a barra final sai: "/" vira "" e "/pesquisa/" vira "/pesquisa"."""
+    return valor.strip().rstrip('/')
+
+URL_PREFIX = normalizar_prefixo(os.getenv('URL_PREFIX','/pesquisa'))
 PLOTS_DIR = 'static/plots/'
 CURRICULOS_DIR='static/files/'
 XML_DIR = 'xml/'
@@ -6859,7 +6863,6 @@ if PRODUCAO==1:
     scheduler.start()
 
 if __name__ == "__main__":
-    prefixo = os.getenv('URL_PREFIX','/pesquisa')
     threads = int(os.getenv('WAITRESS_THREADS', '2'))
     with logger.catch():
-        serve(app, host='0.0.0.0', port=int(SERVER_PORT), url_prefix=prefixo,trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port',threads=threads)
+        serve(app, host='0.0.0.0', port=int(SERVER_PORT), url_prefix=URL_PREFIX,trusted_proxy='*',trusted_proxy_headers='x-forwarded-for x-forwarded-proto x-forwarded-port',threads=threads)

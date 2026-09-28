@@ -47,3 +47,19 @@ def test_url_for_segue_o_prefixo():
         assert url_for('meusProjetos') == '/outro/meusProjetos'
         assert url_for('indicacao', id=7, b=1) == '/outro/indicacao?id=7&b=1'
         assert url_for('verArquivosProjeto', filename='x.pdf') == '/outro/verArquivosProjeto/x.pdf'
+
+
+def test_url_for_na_raiz():
+    # URL_PREFIX="/" vira "" (raiz): o waitress passa SCRIPT_NAME vazio
+    with app.test_request_context('/', base_url='http://localhost'):
+        from flask import url_for
+        assert url_for('meusProjetos') == '/meusProjetos'
+        assert url_for('home') == '/'
+
+
+def test_url_prefix_normalizado():
+    from pesquisa import normalizar_prefixo
+    assert normalizar_prefixo('/') == ''
+    assert normalizar_prefixo(' / ') == ''
+    assert normalizar_prefixo('/pesquisa/') == '/pesquisa'
+    assert normalizar_prefixo('/pesquisa') == '/pesquisa'

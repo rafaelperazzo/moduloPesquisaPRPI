@@ -786,7 +786,10 @@ def exigir_cadastro_mfa():
         return redirect(url_for('login'))
     if session.get('mfa_pendente') and request.endpoint not in ROTAS_PERMITIDAS_MFA_PENDENTE:
         registrar_log_acesso("Acesso bloqueado (MFA pendente)")
-        flash("Para continuar, configure a verificação em duas etapas (MFA).", "error")
+        if exige_app_autenticador():
+            flash("Para continuar, configure o aplicativo autenticador: ele é obrigatório para administradores.", "error")
+        else:
+            flash("Para continuar, configure a verificação em duas etapas (MFA).", "error")
         return redirect(url_for('mfa_configurar'))
 
 ROTAS_PERMITIDAS_ACEITE = ({'lgpd', 'lgpd_aceite', 'lgpd_solicitacao', 'lgpd_consulta', 'health', 'version'}
@@ -1596,16 +1599,23 @@ def obter_access_token():
     guardar_tokens(resposta['AuthenticationResult'], refresh_anterior=tokens['refresh'])
     return session['cognito_tokens']['access']
 
-def concluir_login_cognito(username, resultado, via_mfa):
+def exige_app_autenticador():
+    """Administradores só podem usar o app autenticador (TOTP) como segundo fator."""
+    return 'admin' in session.get('roles', [])
+
+def concluir_login_cognito(username, resultado, via_mfa, tipo_mfa=None):
     """Ponto único de conclusão do login no Cognito: inicia a sessão e guarda os tokens.
-    Sem desafio de MFA o usuário ainda não tem MFA: fica preso ao cadastro (mfa_pendente)."""
+    Sem desafio de MFA o usuário ainda não tem MFA: fica preso ao cadastro (mfa_pendente).
+    Administrador que entrou pelo código por e-mail também fica preso, até cadastrar o app."""
     iniciar_sessao_cognito(username)
     guardar_tokens(resultado)
     session.pop('somente_basic_auth', None)
-    if via_mfa:
+    if via_mfa and not (exige_app_autenticador() and tipo_mfa != 'SOFTWARE_TOKEN_MFA'):
         session.pop('mfa_pendente', None)
     else:
         session['mfa_pendente'] = True
+        if via_mfa:
+            log_migracao('mfa_admin_exige_app', username, nivel='warning', origem='login', etapa=tipo_mfa)
 
 def autenticar_cognito(username, senha, interativo=True):
     """interativo=False (HTTP Basic Auth): valida só a senha, sem desafio de MFA nem tokens."""
@@ -4318,7 +4328,7 @@ def mfa_configurar():
         log_migracao('mfa_falha', session['username'], nivel='error', etapa='get_user', classe_erro=codigo_erro(e))
         return sessao_mfa_expirada()
     return render_template('mfaConfigurar.html', ativos=ativos, email=mascarar_email(email),
-                           pendente=bool(session.get('mfa_pendente')))
+                           pendente=bool(session.get('mfa_pendente')), somente_app=exige_app_autenticador())
 
 @app.route("/mfa/totp", methods=['GET', 'POST'])
 @login_required(role='user')
@@ -4382,6 +4392,10 @@ def mfa_email():
     if not USAR_COGNITO:
         return redirect(url_for('home'))
     username = session['username']
+    if exige_app_autenticador():
+        log_migracao('mfa_admin_email_recusado', username, nivel='warning', origem='cadastro_email')
+        flash("Administradores devem usar o aplicativo autenticador.", 'error')
+        return redirect(url_for('mfa_configurar'))
     access_token = obter_access_token()
     if access_token is None:
         return sessao_mfa_expirada()
@@ -4435,7 +4449,7 @@ def mfa_verificar():
             flash("Não foi possível concluir o login. Tente novamente.", 'error')
             return redirect(url_for('login'))
         try:
-            concluir_login_cognito(username, resposta['AuthenticationResult'], via_mfa=True)
+            concluir_login_cognito(username, resposta['AuthenticationResult'], via_mfa=True, tipo_mfa=tipo)
         except (ClientError, BotoCoreError) as e:
             log_migracao('login_falha_cognito', username, nivel='error', erro=str(e), classe_erro=codigo_erro(e))
             flash("Não foi possível concluir o login. Tente novamente.", 'error')
@@ -4443,8 +4457,28 @@ def mfa_verificar():
         log_migracao('mfa_ok', username, origem='login', etapa=tipo)
         with logger.contextualize(ip=ip_cliente(),username=username,rota=rota_para_log(),metodo=request.method,erro=""):
             logger.info("Usuário autenticado com sucesso (Cognito + MFA)")
-        return pos_login(username, desafio.get('senha_vazada', False))
+        destino = pos_login(username, desafio.get('senha_vazada', False))
+        # Quem entra pelo código por e-mail é convidado, a cada login, a trocar para o app
+        # (admins já ficam presos ao cadastro do app pelo mfa_pendente)
+        if tipo == 'EMAIL_OTP' and not session.get('mfa_pendente') and not session.get('senha_vazada'):
+            return redirect(url_for('mfa_sugerir_app'))
+        return destino
     return render_template('mfaVerificar.html', tipo=tipo, destino=desafio.get('destino', ''))
+
+@app.route("/mfa/sugerir-app", methods=['GET'])
+@login_required(role='user')
+@log_required
+def mfa_sugerir_app():
+    """Após o login pelo código por e-mail: recomenda trocar para o app autenticador
+    ou continuar com o e-mail (?continuar=1)."""
+    if not USAR_COGNITO:
+        return redirect(url_for('home'))
+    username = session['username']
+    if request.args.get('continuar') == '1':
+        log_migracao('mfa_sugestao_app_recusada', username, origem='login')
+        return redirect(url_for('home'))
+    log_migracao('mfa_sugestao_app_exibida', username, origem='login')
+    return render_template('mfaSugerirApp.html')
 
 MFA_RECUPERACAO_VALIDADE = 600  # segundos
 MFA_RECUPERACAO_TENTATIVAS = 5

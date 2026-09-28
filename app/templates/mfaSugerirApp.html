@@ -1,0 +1,44 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+  <div class="max-w-2xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+
+    <h2 class="text-2xl font-semibold text-gray-800 mb-4"><i class="bi bi-shield-exclamation text-amber-600"></i> Proteja melhor a sua conta</h2>
+
+    <p class="text-sm text-gray-700 mb-4">
+      Você entrou usando o <b>código por e-mail</b>. Recomendamos fortemente trocar para o
+      <b>aplicativo autenticador</b> (Google Authenticator), que protege muito mais a sua conta.
+    </p>
+
+    <div class="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-md mb-6 text-sm">
+      <p class="font-semibold mb-1"><i class="bi bi-exclamation-triangle"></i> Por que trocar?</p>
+      <ul class="list-disc list-inside space-y-1">
+        <li><b>Mais segurança:</b> com o código por e-mail, quem conseguir entrar no seu e-mail também recebe os códigos e pode acessar a sua conta. Com o aplicativo, o código fica só no seu celular.</li>
+        <li><b>Sem depender do e-mail:</b> nada de atrasos, mensagens no spam ou espera pelo código.</li>
+        <li><b>Funciona sem internet</b> no celular, depois de configurado.</li>
+      </ul>
+    </div>
+
+    <p class="text-sm text-gray-700 mb-6">
+      A configuração leva cerca de 5 minutos e só precisa ser feita uma vez.
+      <a href="{{ url_for('ajuda_autenticador') }}" target="_blank" rel="noopener" class="text-blue-600 font-semibold hover:underline">Veja o passo a passo de como configurar o aplicativo</a>
+      (abre em outra aba).
+    </p>
+
+    <div class="flex flex-col sm:flex-row gap-3">
+      <a href="{{ url_for('mfa_totp') }}"
+        class="flex-1 text-center px-4 py-3 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors font-medium">
+        <i class="bi bi-phone"></i> Trocar para o aplicativo agora (recomendado)
+      </a>
+      <a href="{{ url_for('mfa_sugerir_app', continuar=1) }}"
+        class="flex-1 text-center px-4 py-3 bg-white border border-gray-400 text-gray-600 rounded-md hover:bg-gray-50 transition-colors font-medium">
+        Continuar usando o e-mail
+      </a>
+    </div>
+
+    <p class="text-xs text-gray-500 mt-6">
+      Ao trocar, o código por e-mail é desativado automaticamente. Esta pergunta aparece a cada login enquanto você usar o código por e-mail.
+    </p>
+  </div>
+</div>
+{% endblock %}

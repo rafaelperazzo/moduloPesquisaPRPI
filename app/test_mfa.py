@@ -212,6 +212,86 @@ def test_verificar_email_otp(client, cognito):
     assert respostas['EMAIL_OTP_CODE'] == '12345678'
 
 
+# --- administradores: só o app autenticador ------------------------------------------
+
+def como_admin(cognito):
+    cognito.admin_get_user.return_value = {'UserStatus': 'CONFIRMED', 'UserAttributes': [
+        {'Name': 'custom:roles', 'Value': 'user,admin'}, {'Name': 'custom:permission', 'Value': '1'}]}
+
+
+def test_usuario_comum_com_email_otp_entra_e_recebe_a_sugestao_do_app(client, cognito, monkeypatch):
+    monkeypatch.setattr(P, 'aceite_pendente', lambda username: False)
+    desafio(client, 'EMAIL_OTP')
+    cognito.admin_respond_to_auth_challenge.return_value = resultado_tokens()
+    resposta = client.post('/mfa/verificar', data={'codigo': '12345678'})
+    assert resposta.location.endswith('/mfa/sugerir-app')
+    assert 'mfa_pendente' not in sessao(client)
+    html = client.get('/mfa/sugerir-app').get_data(as_text=True)
+    assert '/ajuda/autenticador' in html and '/mfa/totp' in html and 'continuar=1' in html
+
+
+def test_sugestao_do_app_continuar_com_email_vai_para_a_home(client, cognito):
+    logado(client)
+    resposta = client.get('/mfa/sugerir-app?continuar=1')
+    assert resposta.status_code == 302 and resposta.location.endswith('/')
+    cognito.set_user_mfa_preference.assert_not_called()
+
+
+def test_sugestao_do_app_nao_aparece_com_senha_vazada(client, cognito):
+    desafio(client, 'EMAIL_OTP')
+    with client.session_transaction() as s:
+        s['cognito_mfa'] = {**s['cognito_mfa'], 'senha_vazada': True}
+    cognito.admin_respond_to_auth_challenge.return_value = resultado_tokens()
+    resposta = client.post('/mfa/verificar', data={'codigo': '12345678'})
+    assert resposta.location.endswith('/novaSenha')
+
+
+def test_sugestao_do_app_nao_aparece_para_quem_usa_o_app(client, cognito):
+    desafio(client)
+    cognito.admin_respond_to_auth_challenge.return_value = resultado_tokens()
+    assert not client.post('/mfa/verificar', data={'codigo': '123456'}).location.endswith('/mfa/sugerir-app')
+
+
+def test_admin_com_email_otp_fica_preso_ao_cadastro_do_app(client, cognito):
+    como_admin(cognito)
+    desafio(client, 'EMAIL_OTP')
+    cognito.admin_respond_to_auth_challenge.return_value = resultado_tokens()
+    resposta = client.post('/mfa/verificar', data={'codigo': '12345678'})
+    assert not resposta.location.endswith('/mfa/sugerir-app')  # admin não pode escolher: vai direto ao cadastro
+    assert sessao(client)['mfa_pendente'] is True
+    resposta = client.get('/')
+    assert resposta.location.endswith('/mfa/configurar')
+    html = client.get('/mfa/configurar').get_data(as_text=True)
+    assert 'aplicativo autenticador obrigatório' in html and 'mesmo assim' not in html
+
+
+def test_admin_com_totp_entra_normalmente(client, cognito):
+    como_admin(cognito)
+    desafio(client)
+    cognito.admin_respond_to_auth_challenge.return_value = resultado_tokens()
+    client.post('/mfa/verificar', data={'codigo': '123456'})
+    assert 'mfa_pendente' not in sessao(client)
+
+
+def test_admin_nao_pode_escolher_email(client, cognito):
+    logado(client, roles=['user', 'admin'], mfa_pendente=True)
+    resposta = client.post('/mfa/email')
+    assert resposta.location.endswith('/mfa/configurar')
+    cognito.set_user_mfa_preference.assert_not_called()
+    assert sessao(client)['mfa_pendente'] is True
+
+
+def test_admin_cadastra_o_app_e_sai_da_pendencia(client, cognito):
+    cognito.get_user.return_value['UserMFASettingList'] = ['EMAIL_OTP']
+    logado(client, roles=['user', 'admin'], mfa_pendente=True)
+    client.get('/mfa/totp')
+    client.post('/mfa/totp', data={'codigo': '123456'})
+    cognito.set_user_mfa_preference.assert_called_once_with(
+        AccessToken='access', SoftwareTokenMfaSettings={'Enabled': True, 'PreferredMfa': True},
+        EmailMfaSettings={'Enabled': False, 'PreferredMfa': False})
+    assert 'mfa_pendente' not in sessao(client)
+
+
 def test_verificar_codigo_errado_permite_nova_tentativa(client, cognito):
     desafio(client)
     cognito.admin_respond_to_auth_challenge.side_effect = erro('CodeMismatchException')

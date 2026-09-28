@@ -6,6 +6,7 @@ from flask_httpauth import HTTPBasicAuth
 from waitress import serve
 import mariadb as MySQLdb
 from werkzeug.utils import secure_filename
+from itsdangerous import URLSafeTimedSerializer, BadSignature
 import hashlib
 import hmac
 import ipaddress
@@ -300,6 +301,30 @@ def sql_decifra(coluna, tabela=None):
     p = f"{tabela}." if tabela else ""
     return (f"IF({p}cpf_hash IS NULL OR {p}{coluna} IS NULL OR {p}{coluna} = '', {p}{coluna}, "
             f"CONVERT(AES_DECRYPT(FROM_BASE64({p}{coluna}), %s, {p}iv, 'aes-256-cbc'), CHAR))")
+
+DOCUMENTO_DISCENTE_VALIDADE = 3600  # segundos
+
+def serializador_documento_discente():
+    return URLSafeTimedSerializer(app.config['SECRET_KEY'], salt='documento-discente')
+
+@app.template_global()
+def token_documento_discente(id_indicacao):
+    """Link assinado e temporário para a declaração/certificado do discente. Só é gerado no
+    resultado da busca pelo CPF completo (com Turnstile): o id sequencial da indicação,
+    sozinho, não abre mais o documento (que traz nome e CPF)."""
+    return serializador_documento_discente().dumps(int(id_indicacao))
+
+def id_documento_discente(token):
+    """id da indicação do link assinado, ou None se o link for inválido ou tiver expirado."""
+    try:
+        return int(serializador_documento_discente().loads(str(token), max_age=DOCUMENTO_DISCENTE_VALIDADE))
+    except (BadSignature, TypeError, ValueError):
+        return None
+
+def link_documento_discente_invalido():
+    return (f"Link inválido ou expirado. Por segurança, os links das declarações e dos certificados valem "
+            f"por {DOCUMENTO_DISCENTE_VALIDADE // 60} minutos. Busque novamente pelo seu CPF em "
+            f"<a href=\"{url_for('get_projetos_discente')}\">Declarações de discentes</a>."), 403
 
 def sql_busca_cpf(tabela=None):
     """Condição de busca por CPF. Consome 2 parâmetros: valores_busca_cpf(cpf)."""
@@ -1226,34 +1251,6 @@ def nao_encontrado(e):
     registrar_log_acesso("Recurso inexistente (404)")
     return e
 
-def gerarDeclaracao(identificador):
-    #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
-    conn.select_db(MYSQL_DATABASE)
-    cursor  = conn.cursor()
-    consulta = f"SELECT nome,{sql_decifra('cpf')},modalidade,orientador,projeto,inicio,fim,id,ch FROM alunos WHERE id=%s"
-    cursor.execute(consulta, (AES_KEY, identificador))
-    linha = cursor.fetchone()
-
-    #RECUPERANDO DADOS
-    nome = linha[0]
-    cpf = linha[1]
-    modalidade = linha[2]
-    orientador = linha[3]
-    projeto = linha[4]
-    ch = linha[8]
-    vigencia_inicio = linha[5]
-    vigencia_fim = linha[6]
-    id_projeto = linha[7]
-    carga_horaria = linha[8]
-
-    consulta = "INSERT INTO autenticacao (idAluno,codigo,data) VALUES (%s,FLOOR(RAND()*(100000000-10000+1))+10000,NOW())"
-    cursor.execute(consulta, (identificador,))
-    conn.commit()
-    conn.commit()
-    conn.close()
-    return (linha)
-
 def gerarDeclaracaoOrientador(identificador):
     #CONEXÃO COM BD
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
@@ -2076,32 +2073,6 @@ def admin():
     else:
         return render_template('login.html',mensagem="É necessário autenticação para acessar a página solicitada")
 
-@app.route("/declaracao", methods=['GET', 'POST'])
-@log_required
-def declaracao():
-    if request.method == "GET":
-        if 'idProjeto' in request.args:
-            if not numero_valido(str(request.args['idProjeto'])):
-                return "ID do projeto inválido!"
-            texto_declaracao = gerarDeclaracao(str(request.args['idProjeto']))
-            data_agora = getData()
-            try:
-                options = {
-                    'page-size': 'A4',
-                    'margin-top': '20mm',
-                    'margin-right': '20mm',
-                    'margin-bottom': '20mm',
-                    'margin-left': '20mm',
-}
-                return render_template('a4.html',texto=texto_declaracao,
-                                       data=data_agora,identificador=texto_declaracao[7],raiz=ROOT_SITE)
-            except Exception as e:
-                logger.warning(e)
-                logger.warning("Nao foi possivel gerar o PDF da declaração.")
-                return "Erro ao gerar o PDF da declaração. Verifique os logs para mais detalhes."
-        else:
-            return "OK"
-
 @app.route("/projetosAluno", methods=['POST'])
 @log_required
 @limiter.limit("30/day;10/hour;3/minute",methods=["POST"])
@@ -2115,20 +2086,6 @@ def projetos():
         logger.warning(e)
         logger.warning("Nao foi possivel gerar os projetos do aluno.")
         return "Erro! Não utilize acentos ou caracteres especiais na busca."
-
-@app.route("/autenticacao", methods=['POST'])
-@log_required
-def autenticar():
-    if not numero_valido(str(request.form['tipo'])):
-        return "Tipo de autenticação inválido!"
-    if not token_valido(str(request.form['codigo'])):
-        return "Código de autenticação inválido!"
-    tipo = int(request.form['tipo'])
-    codigo = str(request.form['codigo'])
-    if tipo==0:
-        return redirect(url_for('declaracaoOrientador', idProjeto=codigo))
-    else:
-        return redirect(url_for('declaracao', idProjeto=codigo))
 
 @app.route("/verificarDeclaracao", methods=['GET', 'POST'])
 @log_required
@@ -3728,6 +3685,7 @@ def minhaDeclaracao():
 
 @app.route("/discente/minhaDeclaracao", methods=['GET', 'POST'])
 @log_required
+@limiter.limit("60/hour;10/minute")
 def minhaDeclaracaoDiscente():
     if request.method == "GET":
         # Recuperando o token da declaração
@@ -3778,6 +3736,7 @@ def minhaDeclaracaoDiscente():
 
 @app.route("/discente/meuCertificado2018", methods=['GET', 'POST'])
 @log_required
+@limiter.limit("60/hour;10/minute")
 def meuCertificado2018():
     if request.method == "GET":
         if 'token' in request.args:
@@ -3846,10 +3805,15 @@ def meuCertificado2018():
 
 @app.route("/discente/meuCertificado", methods=['GET', 'POST'])
 @log_required
+@limiter.limit("60/hour;10/minute")
 def meuCertificado():
     if request.method == "GET":
-        if 'id' in request.args:
-            idIndicacao = str(request.args.get('id'))
+        if 't' in request.args or 'id' in request.args:
+            # Só o link assinado da busca por CPF; o ?id= sequencial expunha nome e CPF de qualquer discente
+            idIndicacao = id_documento_discente(request.args.get('t'))
+            if idIndicacao is None:
+                return link_documento_discente_invalido()
+            idIndicacao = str(idIndicacao)
             consulta = f"""SELECT i.nome,{sql_decifra('cpf', 'i')},
             IF(i.modalidade=1,'PIBIC',IF(i.modalidade=2,'PIBITI',IF(i.modalidade=3,'PIBIC-EM','PIBIC-AF'))) as modalidade,
             IF(i.tipo_de_vaga=1,'BOLSISTA','VOLUNTÁRIO') as vaga,
@@ -3915,10 +3879,15 @@ def meuCertificado():
 
 @app.route("/discente/minhaDeclaracao2019", methods=['GET', 'POST'])
 @log_required
+@limiter.limit("60/hour;10/minute")
 def minhaDeclaracaoDiscente2019():
     if request.method == "GET":
-        if 'id' in request.args:
-            idIndicacao = str(request.args.get('id'))
+        if 't' in request.args or 'id' in request.args:
+            # Só o link assinado da busca por CPF; o ?id= sequencial expunha nome e CPF de qualquer discente
+            idIndicacao = id_documento_discente(request.args.get('t'))
+            if idIndicacao is None:
+                return link_documento_discente_invalido()
+            idIndicacao = str(idIndicacao)
             consulta = f"""SELECT 
             indicacoes.nome,{sql_decifra('cpf', 'indicacoes')},if(indicacoes.fim>NOW(),1,0) as verbo,
             IF(indicacoes.modalidade=1,'PIBIC',

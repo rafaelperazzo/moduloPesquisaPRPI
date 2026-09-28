@@ -1510,19 +1510,27 @@ def cognito_iniciar_recuperacao(linha, origem):
     Usuário não migrado é migrado antes, em silêncio. Se o convite ainda não foi usado,
     o Cognito reenvia o convite; senão envia um código (forgot_password no esqueci minha
     senha, admin_reset_user_password no reset pelo admin). Retorna 'convite' ou 'codigo'.
+
+    Com MFA por e-mail o Cognito recusa o forgot_password (InvalidParameterException: o
+    e-mail não pode ser fator de MFA e meio de recuperação ao mesmo tempo); nesse caso o
+    próprio app envia o código (enviar_codigo_redefinicao) e retorna 'codigo_app'.
     """
     username = str(linha[1])
     migrado = int(linha[5]) == 1
     if not migrado:
         cognito_migrar_usuario(linha, None, origem=origem)  # sem e-mail; conta fica CONFIRMED
     try:
-        status = 'CONFIRMED'
+        status, mfa = 'CONFIRMED', []
         if migrado:
-            status = cognito.admin_get_user(UserPoolId=COGNITO_USER_POOL_ID, Username=username)['UserStatus']
+            usuario = cognito.admin_get_user(UserPoolId=COGNITO_USER_POOL_ID, Username=username)
+            status, mfa = usuario['UserStatus'], usuario.get('UserMFASettingList') or []
         if status == 'FORCE_CHANGE_PASSWORD':
             cognito.admin_create_user(UserPoolId=COGNITO_USER_POOL_ID, Username=username, MessageAction='RESEND')
             log_migracao('convite_reenviado', username, origem=origem)
             return 'convite'
+        if origem == 'esqueci_senha' and 'EMAIL_OTP' in mfa:
+            enviar_codigo_redefinicao(linha)
+            return 'codigo_app'
         if origem == 'esqueci_senha':
             cognito.forgot_password(ClientId=COGNITO_APP_CLIENT_ID, Username=username)
         else:
@@ -4062,6 +4070,30 @@ def esqueciMinhaSenha():
 
 MENSAGEM_RECUPERACAO = "Se o e-mail estiver cadastrado, você receberá uma mensagem com as instruções para definir uma nova senha."
 
+SENHA_RECUPERACAO_VALIDADE = 3600  # segundos, igual ao código do Cognito
+SENHA_RECUPERACAO_TENTATIVAS = 5
+
+def enviar_codigo_redefinicao(linha):
+    """Esqueci minha senha de usuário com MFA por e-mail: o app gera o código, guarda só o
+    HMAC dele na sessão e o envia por e-mail; a /redefinirSenha confere e grava a nova senha
+    com admin_set_user_password. O MFA continua ativo."""
+    username = str(linha[1])
+    codigo = f"{secrets.randbelow(10**8):08d}"
+    sal = secrets.token_hex(16)
+    session['senha_recuperacao'] = {
+        'username': username,
+        'sal': sal,
+        'hash': hash_codigo_recuperacao(codigo, sal),
+        'expira': time.time() + SENHA_RECUPERACAO_VALIDADE,
+        'tentativas': 0,
+    }
+    corpo = render_template('email_senha_recuperacao.html', codigo=codigo, username=username,
+                            minutos=SENHA_RECUPERACAO_VALIDADE // 60)
+    if not send_email_async(str(linha[7]), "Plataforma Yoko - Código para redefinir a senha", corpo):
+        log_migracao('recuperacao_falha_email', username, nivel='error', origem='esqueci_senha', etapa='envio_email')
+        return
+    log_migracao('codigo_recuperacao_enviado_app', username, origem='esqueci_senha')
+
 @app.route("/enviarMinhaSenha", methods=['GET', 'POST'])
 @log_required
 @limiter.limit("3/day;2/hour;1/minute",methods=["POST"])
@@ -4121,9 +4153,30 @@ def redefinir_senha():
         if erro:
             flash(erro, 'error')
             return redirect(url_for('redefinir_senha'))
+        recuperacao = session.get('senha_recuperacao')
+        codigo_app = recuperacao is not None and recuperacao['username'] == siape
+        if codigo_app:
+            if time.time() > recuperacao['expira'] or recuperacao['tentativas'] >= SENHA_RECUPERACAO_TENTATIVAS:
+                session.pop('senha_recuperacao', None)
+                log_migracao('redefinicao_senha_falha', siape, nivel='warning', origem='redefinir_senha', etapa='codigo_app',
+                             classe_erro='ExpiredCodeException')
+                flash("Código expirado ou bloqueado. Solicite um novo código em \"Esqueci minha senha\".", 'error')
+                return redirect(url_for('redefinir_senha'))
+            if not hmac.compare_digest(hash_codigo_recuperacao(codigo, recuperacao['sal']), recuperacao['hash']):
+                recuperacao['tentativas'] += 1
+                session['senha_recuperacao'] = recuperacao
+                log_migracao('redefinicao_senha_falha', siape, nivel='warning', origem='redefinir_senha', etapa='codigo_app',
+                             classe_erro='CodeMismatchException')
+                flash("Código inválido. Confira o SIAPE e o código recebido.", 'error')
+                return redirect(url_for('redefinir_senha'))
         try:
-            cognito.confirm_forgot_password(ClientId=COGNITO_APP_CLIENT_ID, Username=siape,
-                                            ConfirmationCode=codigo, Password=nova)
+            if codigo_app:
+                cognito.admin_set_user_password(UserPoolId=COGNITO_USER_POOL_ID, Username=siape,
+                                                Password=nova, Permanent=True)
+                session.pop('senha_recuperacao', None)
+            else:
+                cognito.confirm_forgot_password(ClientId=COGNITO_APP_CLIENT_ID, Username=siape,
+                                                ConfirmationCode=codigo, Password=nova)
         except (ClientError, BotoCoreError) as e:
             codigo_e = codigo_erro(e)
             mensagens = {
@@ -4137,7 +4190,7 @@ def redefinir_senha():
             return redirect(url_for('redefinir_senha'))
         # Garante o espelho local caso a marcação da migração tenha falhado antes
         atualizar2("UPDATE users SET migrado=1 WHERE username=%s AND migrado=0", valores=[siape])
-        log_migracao('senha_redefinida', siape, origem='redefinir_senha')
+        log_migracao('senha_redefinida', siape, origem='redefinir_senha', etapa='codigo_app' if codigo_app else '')
         flash("Senha redefinida com sucesso! Entre com a nova senha.")
         return redirect(url_for('login'))
     return render_template('redefinirSenha.html')

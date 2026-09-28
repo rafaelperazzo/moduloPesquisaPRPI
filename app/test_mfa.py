@@ -276,6 +276,83 @@ def test_recuperacao_so_para_app_autenticador(client, emails):
     assert emails == []
 
 
+# --- esqueci minha senha com MFA por e-mail ----------------------------------------
+
+NOVA = 'Outra#Senha2026x'
+
+
+def buscar_por_email_ou_siape(valor, campo='username'):
+    if campo == 'email':
+        return next((u for u in USUARIOS.values() if u[7] == valor), None)
+    return USUARIOS.get(str(valor))
+
+
+@pytest.fixture
+def esqueci_sem_codigo(cognito, monkeypatch):
+    monkeypatch.setattr(P, 'turnstile_valido', lambda: True)
+    monkeypatch.setattr(P, 'atualizar2', lambda *a, **k: None)
+    monkeypatch.setattr(P, 'buscar_usuario', buscar_por_email_ou_siape)
+
+
+@pytest.fixture
+def esqueci(client, cognito, emails, esqueci_sem_codigo):
+    """Usuário 111 com MFA por e-mail pede a recuperação; o app envia o próprio código."""
+    cognito.admin_get_user.return_value = {'UserStatus': 'CONFIRMED', 'UserAttributes': [],
+                                           'UserMFASettingList': ['EMAIL_OTP']}
+    resposta = client.post('/enviarMinhaSenha', data={'email': 'fulano@ufca.edu.br'})
+    assert resposta.location.endswith('/redefinirSenha')
+    return client
+
+
+def redefinir(client, codigo, siape='111'):
+    return client.post('/redefinirSenha', data={'siape': siape, 'codigo': codigo,
+                                                'nova_senha': NOVA, 'confirmar_senha': NOVA})
+
+
+def test_esqueci_com_mfa_email_usa_codigo_do_app(esqueci, cognito, emails):
+    cognito.forgot_password.assert_not_called()
+    assert emails[0][0] == 'fulano@ufca.edu.br'
+    resposta = redefinir(esqueci, codigo_enviado(emails))
+    assert resposta.location.endswith('/login')
+    cognito.admin_set_user_password.assert_called_once_with(
+        UserPoolId=P.COGNITO_USER_POOL_ID, Username='111', Password=NOVA, Permanent=True)
+    cognito.confirm_forgot_password.assert_not_called()
+    cognito.admin_set_user_mfa_preference.assert_not_called()  # o MFA continua ativo
+    assert 'senha_recuperacao' not in sessao(esqueci)
+
+
+def test_esqueci_sem_mfa_email_continua_no_cognito(client, cognito, emails, esqueci_sem_codigo):
+    cognito.admin_get_user.return_value = {'UserStatus': 'CONFIRMED', 'UserAttributes': [],
+                                           'UserMFASettingList': ['SOFTWARE_TOKEN_MFA']}
+    client.post('/enviarMinhaSenha', data={'email': 'fulano@ufca.edu.br'})
+    cognito.forgot_password.assert_called_once_with(ClientId=P.COGNITO_APP_CLIENT_ID, Username='111')
+    assert emails == [] and 'senha_recuperacao' not in sessao(client)
+
+
+def test_codigo_do_app_errado_bloqueia_apos_5_tentativas(esqueci, cognito, emails):
+    certo = codigo_enviado(emails)
+    for _ in range(P.SENHA_RECUPERACAO_TENTATIVAS):
+        redefinir(esqueci, '00000000' if certo != '00000000' else '11111111')
+    redefinir(esqueci, certo)
+    cognito.admin_set_user_password.assert_not_called()
+    assert 'senha_recuperacao' not in sessao(esqueci)
+
+
+def test_codigo_do_app_expirado(esqueci, cognito, emails):
+    with esqueci.session_transaction() as s:
+        s['senha_recuperacao'] = {**s['senha_recuperacao'], 'expira': time.time() - 1}
+    redefinir(esqueci, codigo_enviado(emails))
+    cognito.admin_set_user_password.assert_not_called()
+
+
+def test_codigo_do_app_so_vale_para_o_proprio_siape(esqueci, cognito, emails):
+    """Outro SIAPE segue o fluxo do Cognito, e o código do app não serve para ele."""
+    cognito.confirm_forgot_password.side_effect = erro('CodeMismatchException')
+    redefinir(esqueci, codigo_enviado(emails), siape='222')
+    cognito.admin_set_user_password.assert_not_called()
+    cognito.confirm_forgot_password.assert_called_once()
+
+
 # --- troca de senha com MFA ativo -------------------------------------------------
 
 def test_nova_senha_usa_o_access_token_sem_reautenticar(client, cognito):

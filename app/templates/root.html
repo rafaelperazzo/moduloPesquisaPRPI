@@ -34,9 +34,15 @@
     </div>
 
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      {% if session.get('username') %}
+      <h5 class="text-lg font-semibold text-gray-800 mb-2">Alteração de senha</h5>
+      <p class="text-gray-600 text-sm mb-4">Alterar a senha de acesso da sua conta</p>
+      <a href="{{ url_for('nova_senha') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm">ALTERAR SENHA DE ACESSO</a>
+      {% else %}
       <h5 class="text-lg font-semibold text-gray-800 mb-2">Redefinição de senha</h5>
       <p class="text-gray-600 text-sm mb-4">Solicitar redefinição de senha esquecida</p>
       <a href="{{ url_for('esqueciMinhaSenha') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm">REDEFINIR SENHA DE ACESSO</a>
+      {% endif %}
     </div>
 
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">

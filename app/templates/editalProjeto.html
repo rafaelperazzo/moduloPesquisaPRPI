@@ -103,17 +103,17 @@
               {% else %}
                 <td>
               {% endif %}
-              <a href="/pesquisa/lattesDetalhado?id={{ linha[0] }}" class="text-blue-600 hover:underline">{{ linha[6] }}</a></td>
+              <a href="{{ url_for('lattesDetalhado', id=linha[0]) }}" class="text-blue-600 hover:underline">{{ linha[6] }}</a></td>
               <td>{{ linha[7] }}</td>
               {% if resultado==0 %}
-                <td>{% if linha[8]!="0" %}<a href="/pesquisa/verArquivosProjeto/{{ linha[8] }}" class="text-blue-600 hover:underline">PROJETO</a>{% else %}-{% endif %}</td>
-                <td>{% if linha[9]!="0" %}<a href="/pesquisa/verArquivosProjeto/{{ linha[9] }}" class="text-blue-600 hover:underline">PLANO1</a>{% else %}-{% endif %}</td>
-                <td>{% if linha[10]!="0" %}<a href="/pesquisa/verArquivosProjeto/{{ linha[10] }}" class="text-blue-600 hover:underline">PLANO2</a>{% else %}-{% endif %}</td>
-                <td>{% if linha[20]!="0" %}<a href="/pesquisa/verArquivosProjeto/{{ linha[20] }}" class="text-blue-600 hover:underline">PLANO3</a>{% else %}-{% endif %}</td>
+                <td>{% if linha[8]!="0" %}<a href="{{ url_for('verArquivosProjeto', filename=linha[8]) }}" class="text-blue-600 hover:underline">PROJETO</a>{% else %}-{% endif %}</td>
+                <td>{% if linha[9]!="0" %}<a href="{{ url_for('verArquivosProjeto', filename=linha[9]) }}" class="text-blue-600 hover:underline">PLANO1</a>{% else %}-{% endif %}</td>
+                <td>{% if linha[10]!="0" %}<a href="{{ url_for('verArquivosProjeto', filename=linha[10]) }}" class="text-blue-600 hover:underline">PLANO2</a>{% else %}-{% endif %}</td>
+                <td>{% if linha[20]!="0" %}<a href="{{ url_for('verArquivosProjeto', filename=linha[20]) }}" class="text-blue-600 hover:underline">PLANO3</a>{% else %}-{% endif %}</td>
               {% endif %}
-              <td><a href="/pesquisa/verArquivosProjeto/{{ linha[11] }}" class="text-blue-600 hover:underline">LATTES</a></td>
+              <td><a href="{{ url_for('verArquivosProjeto', filename=linha[11]) }}" class="text-blue-600 hover:underline">LATTES</a></td>
               {% if resultado==0 %}
-              <td>{% if linha[12]!="0" %}<a href="/pesquisa/verArquivosProjeto/{{ linha[12] }}" class="text-blue-600 hover:underline">COMPROVANTES</a>{% else %}-{% endif %}</td>
+              <td>{% if linha[12]!="0" %}<a href="{{ url_for('verArquivosProjeto', filename=linha[12]) }}" class="text-blue-600 hover:underline">COMPROVANTES</a>{% else %}-{% endif %}</td>
               {% endif %}
               {% if resultado==0 %}<td>{{ linha[13] }}</td><td>{{ linha[14] }}</td><td>{{ linha[15] }}</td>{% endif %}
               <td>{{ linha[17] }}</td>
@@ -190,9 +190,9 @@
               {% else %}
                 <td>
               {% endif %}
-              <a href="/pesquisa/meusPareceres?id={{linha[0]}}&todos=1" class="text-blue-600 hover:underline">{{linha[0]}}</a></td>
+              <a href="{{ url_for('meusPareceres', id=linha[0], todos=1) }}" class="text-blue-600 hover:underline">{{linha[0]}}</a></td>
               <td>{{linha[1]}}</td><td>{{linha[2]}}</td>
-              <td><a href="/pesquisa/verArquivosProjeto/{{ linha[4] }}" class="text-blue-600 hover:underline">{{linha[3]}}</a></td>
+              <td><a href="{{ url_for('verArquivosProjeto', filename=linha[4]) }}" class="text-blue-600 hover:underline">{{linha[3]}}</a></td>
               <td>{{linha[13]}}</td><td>{{linha[9]}}</td>
               <td><a href="{{url_for('avaliacoesNegadas', edital=codigoEdital, id=linha[0])}}" class="text-blue-600 hover:underline">Adicionar consultor</a></td>
               <td>{{linha[5]|safe}}</td><td>{{linha[6]|safe}}</td>

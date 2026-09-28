@@ -28,7 +28,7 @@
         <p><strong>Edital:</strong> {{edital}}</p>
       </div>
 
-      <form name="frmFrequencia" method="POST" action="/pesquisa/cadastrarFrequencia">
+      <form name="frmFrequencia" method="POST" action="{{ url_for('cadastrarFrequencia') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
         <div class="grid grid-cols-2 gap-4 mb-4">

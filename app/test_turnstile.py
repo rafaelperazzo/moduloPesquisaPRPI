@@ -149,8 +149,7 @@ def test_paginas_sem_formulario_publico_nao_carregam_turnstile(client):
 
 def test_templates_ativos_sem_recaptcha():
     import os
-    ignorados = {'base.html', 'consulta.html'}  # não são renderizados por nenhuma rota
     for arquivo in os.listdir('templates'):
-        if arquivo.endswith('.html') and arquivo not in ignorados:
+        if arquivo.endswith('.html'):
             with open(os.path.join('templates', arquivo), encoding='utf-8') as f:
                 assert 'recaptcha' not in f.read().lower(), arquivo

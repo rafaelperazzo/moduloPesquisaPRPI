@@ -16,7 +16,7 @@
     <nav class="bg-white border-b border-gray-200 shadow-sm mb-6">
       <div class="container mx-auto px-4 max-w-screen-xl flex items-center justify-between h-14">
         <span class="text-xl font-bold text-blue-600">YOKO — PESQUISA</span>
-        <a href="/pesquisa/logout" class="text-blue-600 hover:underline text-sm">Sair</a>
+        <a href="{{ url_for('encerrarSessao') }}" class="text-blue-600 hover:underline text-sm">Sair</a>
       </div>
     </nav>
 
@@ -57,7 +57,7 @@
               <td class="px-4 py-3 text-gray-700">{{ linha[5] }}</td>
               <td class="px-4 py-3 text-gray-700">{{ linha[6]|safe }}</td>
               <td class="px-4 py-3 text-gray-700">
-                <a href="/pesquisa/minhaDeclaracaoOrientador?token={{ linha[7] }}" class="text-blue-600 hover:underline">
+                <a href="{{ url_for('minhaDeclaracao', token=linha[7]) }}" class="text-blue-600 hover:underline">
                   <i class="bi bi-filetype-pdf"></i>
                 </a>
               </td>
@@ -95,7 +95,7 @@
             <tr class="border-b border-gray-100 hover:bg-gray-50">
               <td class="px-4 py-3 text-gray-700">{{linha[0]}}</td>
               <td class="px-4 py-3 text-gray-700">
-                <a href="/pesquisa/minhaDeclaracaoOrientador?id={{ linha[0] }}" class="text-blue-600 hover:underline">
+                <a href="{{ url_for('minhaDeclaracao', id=linha[0]) }}" class="text-blue-600 hover:underline">
                   <i class="bi bi-filetype-pdf"></i>
                 </a>
               </td>
@@ -108,7 +108,7 @@
               <td class="px-4 py-3 text-gray-700">{{linha[2]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[3]}}</td>
               {% if linha[7]==1 %}
-                <td class="px-4 py-3 text-gray-700"><a href="/pesquisa/static/files/{{linha[8]}}" class="text-blue-600 hover:underline">{{linha[4]}}</a></td>
+                <td class="px-4 py-3 text-gray-700"><a href="{{ url_for('static', filename='files/' ~ linha[8]) }}" class="text-blue-600 hover:underline">{{linha[4]}}</a></td>
               {% else %}
                 <td class="px-4 py-3 text-gray-700">{{linha[4]}}</td>
               {% endif %}
@@ -136,7 +136,7 @@
                 {% endif %}
               </td>
               {% if linha[7]==1 %}
-                <td class="px-4 py-3 text-gray-700"><a href="/pesquisa/meusPareceres?id={{linha[0]}}" class="text-blue-600 hover:underline"><i class="bi bi-search"></i></a></td>
+                <td class="px-4 py-3 text-gray-700"><a href="{{ url_for('meusPareceres', id=linha[0]) }}" class="text-blue-600 hover:underline"><i class="bi bi-search"></i></a></td>
               {% else %}
                 <td class="px-4 py-3 text-gray-700">-</td>
               {% endif %}
@@ -144,13 +144,13 @@
               <td class="px-4 py-3 text-gray-700">{{linha[12]}}</td>
               <td class="px-4 py-3 text-gray-700">
                 {% for i in range(1,linha[12]+1) %}
-                  <a href="/pesquisa/indicacao?id={{linha[0]}}&b=1" class="text-blue-600 hover:underline block mb-1">INDICAR BOLSISTA {{ i }}</a>
+                  <a href="{{ url_for('indicacao', id=linha[0], b=1) }}" class="text-blue-600 hover:underline block mb-1">INDICAR BOLSISTA {{ i }}</a>
                 {% endfor %}
                 {% if linha[17] !='0' %}
-                  <a href="/pesquisa/indicacao?id={{linha[0]}}&b=0" class="text-blue-600 hover:underline block mb-1">INDICAR VOLUNTÁRIO</a>
+                  <a href="{{ url_for('indicacao', id=linha[0], b=0) }}" class="text-blue-600 hover:underline block mb-1">INDICAR VOLUNTÁRIO</a>
                 {% endif %}
                 {% for i in range(1,linha[11]-linha[12]+1) %}
-                  <a href="/pesquisa/indicacao?id={{linha[0]}}&b=0" class="text-blue-600 hover:underline block mb-1">INDICAR VOLUNTÁRIO {{ i }}</a>
+                  <a href="{{ url_for('indicacao', id=linha[0], b=0) }}" class="text-blue-600 hover:underline block mb-1">INDICAR VOLUNTÁRIO {{ i }}</a>
                 {% endfor %}
               </td>
               <td class="px-4 py-3 text-gray-700">
@@ -191,13 +191,13 @@
             <tr class="border-b border-gray-100 hover:bg-gray-50">
               <td class="px-4 py-3 text-gray-700">{{linha[8]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[0]}}</td>
-              <td class="px-4 py-3 text-gray-700"><a href="/pesquisa/minhaDeclaracaoOrientador?idAluno={{linha[0]}}" class="text-blue-600 hover:underline">{{linha[1]}}</a></td>
+              <td class="px-4 py-3 text-gray-700"><a href="{{ url_for('minhaDeclaracao', idAluno=linha[0]) }}" class="text-blue-600 hover:underline">{{linha[1]}}</a></td>
               <td class="px-4 py-3 text-gray-700">{{linha[6]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[4]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[2]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[5]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[3]}}</td>
-              <td class="px-4 py-3 text-gray-700"><a href="/pesquisa/enviarFrequencia?id={{linha[0]}}" class="text-blue-600 hover:underline">Enviar Frequência</a></td>
+              <td class="px-4 py-3 text-gray-700"><a href="{{ url_for('enviarFrequencia', id=linha[0]) }}" class="text-blue-600 hover:underline">Enviar Frequência</a></td>
               <td class="px-4 py-3 text-gray-700">
                 {% if linha[7] == None %}
                   NENHUMA FREQUÊNCIA ENVIADA
@@ -242,13 +242,13 @@
             <tr class="border-b border-gray-100 hover:bg-gray-50">
               <td class="px-4 py-3 text-gray-700">{{linha[8]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[0]}}</td>
-              <td class="px-4 py-3 text-gray-700"><a href="/pesquisa/minhaDeclaracaoOrientador?idAluno={{linha[0]}}" class="text-blue-600 hover:underline">{{linha[1]}}</a></td>
+              <td class="px-4 py-3 text-gray-700"><a href="{{ url_for('minhaDeclaracao', idAluno=linha[0]) }}" class="text-blue-600 hover:underline">{{linha[1]}}</a></td>
               <td class="px-4 py-3 text-gray-700">{{linha[6]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[4]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[2]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[5]}}</td>
               <td class="px-4 py-3 text-gray-700">{{linha[3]}}</td>
-              <td class="px-4 py-3 text-gray-700"><a href="/pesquisa/enviarFrequencia?id={{linha[0]}}" class="text-blue-600 hover:underline">Enviar Frequência</a></td>
+              <td class="px-4 py-3 text-gray-700"><a href="{{ url_for('enviarFrequencia', id=linha[0]) }}" class="text-blue-600 hover:underline">Enviar Frequência</a></td>
               <td class="px-4 py-3 text-gray-700">
                 {% if linha[7] == None %}
                   NENHUMA FREQUÊNCIA ENVIADA

@@ -27,12 +27,12 @@
               <td class="px-4 py-3 text-gray-700">{{ linha[0] }}</td>
               <td class="px-4 py-3 text-gray-700">{{ linha[4] }}</td>
               <td class="px-4 py-3 text-gray-700">
-                <a href="/pesquisa/discente/minhaDeclaracao?token={{ linha[7] }}" class="text-blue-600 hover:underline">
+                <a href="{{ url_for('minhaDeclaracaoDiscente', token=linha[7]) }}" class="text-blue-600 hover:underline">
                   <img src="{{ url_for('static', filename='pdf.png')}}" style="width:24px" alt="PDF">
                 </a>
               </td>
               <td class="px-4 py-3 text-gray-700">
-                <a href="/pesquisa/discente/meuCertificado2018?token={{ linha[7] }}" class="text-blue-600 hover:underline">
+                <a href="{{ url_for('meuCertificado2018', token=linha[7]) }}" class="text-blue-600 hover:underline">
                   <img src="{{ url_for('static', filename='pdf.png')}}" style="width:24px" alt="PDF">
                 </a>
               </td>
@@ -62,12 +62,12 @@
               <td class="px-4 py-3 text-gray-700">{{ linha[0] }}</td>
               <td class="px-4 py-3 text-gray-700">{{ linha[4] }}</td>
               <td class="px-4 py-3 text-gray-700">
-                <a href="/pesquisa/discente/minhaDeclaracao2019?id={{linha[7]}}" class="text-blue-600 hover:underline">
+                <a href="{{ url_for('minhaDeclaracaoDiscente2019', id=linha[7]) }}" class="text-blue-600 hover:underline">
                   <img src="{{ url_for('static', filename='pdf.png')}}" style="width:24px" alt="PDF">
                 </a>
               </td>
               <td class="px-4 py-3 text-gray-700">
-                <a href="/pesquisa/discente/meuCertificado?id={{linha[7]}}" class="text-blue-600 hover:underline">
+                <a href="{{ url_for('meuCertificado', id=linha[7]) }}" class="text-blue-600 hover:underline">
                   <img src="{{ url_for('static', filename='pdf.png')}}" style="width:24px" alt="PDF">
                 </a>
               </td>

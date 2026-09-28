@@ -2098,9 +2098,9 @@ def autenticar():
     tipo = int(request.form['tipo'])
     codigo = str(request.form['codigo'])
     if tipo==0:
-        return redirect("/pesquisa/orientadorDeclaracao?idProjeto=" + codigo)
+        return redirect(url_for('declaracaoOrientador', idProjeto=codigo))
     else:
-        return redirect("/pesquisa/declaracao?idProjeto=" + codigo)
+        return redirect(url_for('declaracao', idProjeto=codigo))
 
 @app.route("/verificarDeclaracao", methods=['GET', 'POST'])
 @log_required
@@ -3555,7 +3555,7 @@ def invocar_declaracao_overlay(corpo_html, data_extenso, rotulo_id, id_ref, iden
         "rotulo_id": rotulo_id,
         "id_referencia": str(id_ref),
         "identificador": identificador,
-        "url_validacao": "https://aws.yokoapps.com.br/pesquisa/verificarDeclaracao"
+        "url_validacao": ROOT_SITE + URL_PREFIX + "/verificarDeclaracao"
     }
 
     response = lambda_client.invoke(
@@ -5372,7 +5372,7 @@ def cadastrarFrequencia():
         consulta = """INSERT INTO frequencias (idIndicacao,mes,ano,s1,s2,s3,s4,obs) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)"""
         valores = (idAluno,mes,ano,s1,s2,s3,s4,obs)
         inserir(consulta,valores)
-        return redirect("/pesquisa/meusProjetos")
+        return redirect(url_for('meusProjetos'))
     else:
         return("OK")
 
@@ -5656,7 +5656,7 @@ def enviarPedidoAvaliacao(idProjeto):
         link = str(linha[4])
         token = str(linha[7])
         email_avaliador = str(linha[3])
-        link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
+        link_recusa = ROOT_SITE + URL_PREFIX + "/recusarConvite?token=" + token
         deadline = obterColunaUnica('editais',"DATE_FORMAT(deadline_avaliacao,'%d/%m/%Y')",'id',str(linha[9]))
         nome_longo = obterColunaUnica('editais','nome','id',str(linha[9]))
         with app.app_context():
@@ -5701,7 +5701,7 @@ def aprovar_projetos(edital):
     atualizar2(consulta1, valores=(edital,))
     atualizar2(consulta2, valores=(edital,))
     flash("Projetos atualizados com sucesso")
-    return(redirect("/pesquisa/admin"))
+    return(redirect(url_for('admin')))
 
 @app.route("/desligar/<id_indicacao>", methods=['GET', 'POST'])
 @login_required(role='user')
@@ -6423,7 +6423,7 @@ def task_enviar_email_avaliadores():
             justificativa = str(linha[13])
             if 'TESTE' in email_avaliador:
                 continue
-            link_recusa = ROOT_SITE + "/pesquisa/recusarConvite?token=" + token
+            link_recusa = ROOT_SITE + URL_PREFIX + "/recusarConvite?token=" + token
             deadline = str(linha[11])
             nome_longo = str(linha[12])
             url_declaracao = SERVER_URL + URL_PREFIX + '/declaracaoAvaliador/' + token
@@ -6499,7 +6499,7 @@ def task_enviar_lembrete_frequencia():
                     nao_enviados.append(nome_indicado)
             if len(nao_enviados)==0:
                 continue
-            texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape)
+            texto_email = render_template('lembrete_frequencia.html',mes=str(nome_mes[str(mes)]),ano=ano,nomes=nao_enviados,usuario=siape,raiz=ROOT_SITE + URL_PREFIX)
             if send_email_async(str(linha[4]), assunto, texto_email):
                 logger.info("E-mail enfileirado: Lembrete de frequência {}/{} para o SIAPE {}",nome_mes[str(mes)],ano,siape)
             else:

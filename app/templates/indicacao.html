@@ -63,7 +63,7 @@
         {% endif %}
       </p>
 
-      <form name="frmIndicacao" action="/pesquisa/efetivarIndicacao" method="POST" enctype="multipart/form-data"
+      <form name="frmIndicacao" action="{{ url_for('efetivarIndicacao') }}" method="POST" enctype="multipart/form-data"
         data-upload-direto="docs_indicacoes" data-url-upload="{{ url_for('url_upload') }}" data-id-projeto="{{ idProjeto }}"
         data-campos="termo,rg_cpf,extrato,historico,plano">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>

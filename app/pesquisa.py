@@ -3497,6 +3497,19 @@ def invocar_declaracao_overlay(corpo_html, data_extenso, rotulo_id, id_ref, iden
         download_name=nome_arquivo_download
     )
 
+def pode_emitir_declaracao_orientador(idProjeto):
+    """Declaração de orientador por id (projeto ou indicação): só o coordenador do projeto ou um admin.
+    Sem isso, qualquer usuário logado emitia, com código de autenticação válido, a declaração
+    de outro professor trocando o id sequencial."""
+    idProjeto = str(idProjeto or '')
+    if not numero_valido(idProjeto):
+        return False
+    return idSiape(idProjeto, str(session.get('username', '0'))) or 'admin' in session.get('roles', [])
+
+def declaracao_orientador_negada():
+    registrar_log_acesso("Acesso negado (declaração de orientador de projeto de outro usuário)", 'WARNING')
+    return "Você só pode emitir declarações dos seus próprios projetos.", 403
+
 @app.route("/minhaDeclaracaoOrientador", methods=['GET', 'POST'])
 @log_required
 def minhaDeclaracao():
@@ -3534,7 +3547,9 @@ def minhaDeclaracao():
     # Cenário 2: Busca por ID do Projeto
     elif 'id' in request.args:
         idProjeto = str(request.args.get('id'))
-        consulta = """SELECT DISTINCT 
+        if not pode_emitir_declaracao_orientador(idProjeto):
+            return declaracao_orientador_negada()
+        consulta = """SELECT DISTINCT
             UPPER(editalProjeto.nome),
             editalProjeto.siape,
             UPPER(editalProjeto.titulo),
@@ -3561,7 +3576,11 @@ def minhaDeclaracao():
     # Cenário 3: Busca por ID do Aluno
     elif 'idAluno' in request.args:
         idAluno = str(request.args.get('idAluno'))
+        if not numero_valido(idAluno):
+            return declaracao_orientador_negada()
         idProjeto = obterColunaUnica("indicacoes", "idProjeto", "id", idAluno)
+        if not pode_emitir_declaracao_orientador(idProjeto):
+            return declaracao_orientador_negada()
         consulta = """SELECT DISTINCT editalProjeto.nome,editalProjeto.siape,editalProjeto.titulo,
             DATE_FORMAT(indicacoes.inicio,'%d/%m/%Y') as inicio,DATE_FORMAT(indicacoes.fim,'%d/%m/%Y') as fim,
             indicacoes.nome as indicados,

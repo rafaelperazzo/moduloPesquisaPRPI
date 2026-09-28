@@ -1251,30 +1251,6 @@ def nao_encontrado(e):
     registrar_log_acesso("Recurso inexistente (404)")
     return e
 
-def gerarDeclaracaoOrientador(identificador):
-    #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
-    conn.select_db(MYSQL_DATABASE)
-    cursor  = conn.cursor()
-    consulta = "SELECT id,coordenador,siape,titulo,inicio,fim FROM projetos WHERE id=%s"
-    cursor.execute(consulta, (identificador,))
-    linha = cursor.fetchone()
-    consultaBolsistas = "SELECT a.nome FROM alunos a, projetos p WHERE a.projeto=p.titulo AND p.id=%s"
-    cursor.execute(consultaBolsistas, (identificador,))
-    bolsistas = cursor.fetchall()
-    #Montando lista de bolsistas:
-    total_bolsistas = len(bolsistas)
-    i = 0
-    frase_bolsistas = ""
-    for bolsista in bolsistas:
-        if i==total_bolsistas: #Se for o ultimo bolsista
-            frase_bolsistas = frase_bolsistas + str(bolsista[0])
-        else: #Se nao for o ultimo bolsista
-            frase_bolsistas = frase_bolsistas + str(bolsista[0]) + ", "
-        i = i + 1
-    conn.close()
-    return (linha,frase_bolsistas)
-
 def gerarProjetosPorAluno(cpf):
     if len(normalizar_cpf(cpf)) != 11:
         return ([], [])
@@ -1298,28 +1274,6 @@ def gerarProjetosPorAluno(cpf):
     finally:
         cursor.close()
         conn.close()
-
-def gerarProjetosPorOrientador(identificador):
-    #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
-    conn.select_db(MYSQL_DATABASE)
-    cursor  = conn.cursor()
-    consulta = "SELECT id,coordenador,titulo,inicio,fim FROM projetos WHERE SIAPE=%s"
-    cursor.execute(consulta, (identificador,))
-    linhas = cursor.fetchall()
-    conn.close()
-    return (linhas)
-
-def gerarAutenticacao(identificador):
-    #CONEXÃO COM BD
-    conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
-    conn.select_db(MYSQL_DATABASE)
-    cursor  = conn.cursor()
-    consulta = f"SELECT a.nome,{sql_decifra('cpf', 'a')},a.modalidade,a.orientador,a.projeto,a.inicio,a.fim,b.codigo FROM alunos a, autenticacao b WHERE a.id=b.idAluno and b.codigo=%s ORDER BY b.data DESC LIMIT 1"
-    cursor.execute(consulta, (AES_KEY, identificador))
-    linha = cursor.fetchone()
-    conn.close()
-    return (linha)
 
 def getEditaisAbertos():
     conn = MySQLdb.connect(host=MYSQL_DB, user="pesquisa", passwd=PASSWORD, db=MYSQL_DATABASE, ssl="required")
@@ -2134,26 +2088,6 @@ def verificarDeclaracao():
         if verificar_codigo_auth(id_doc, linha_disc[2], codigo, 'declaracao_discente'):
             return render_template('verificar_declaracao.html', resultado='valido', tipo='discente', dados=linha_disc, erro=None)
     return render_template('verificar_declaracao.html', resultado='invalido', tipo=None, dados=None, erro="Código inválido. Este documento pode não ter sido emitido pelo sistema.")
-
-@app.route("/projetosPorOrientador", methods=['POST'])
-@log_required
-def projetosOrientador():
-    if not username_valido(str(request.form['txtSiape'])):
-        return "SIAPE do orientador inválido!"
-    projetos_por_orientador = gerarProjetosPorOrientador(str(request.form['txtSiape']))
-    return render_template('projetos_orientador.html',listaProjetos=projetos_por_orientador)
-
-@app.route("/orientadorDeclaracao", methods=['GET'])
-@log_required
-def declaracaoOrientador():
-    if not numero_valido(str(request.args['idProjeto'])):
-        return "ID do projeto inválido!"
-    resultados = gerarDeclaracaoOrientador(str(request.args['idProjeto']))
-    texto_declaracao = resultados[0]
-    bolsistas = resultados[1]
-    data_agora = getData()
-    return render_template('orientador.html',texto=texto_declaracao,
-                           data=data_agora,identificador=texto_declaracao[0],bolsistas=bolsistas)
 
 def extrair_conteudo_xml_lattes(arquivo):
     """

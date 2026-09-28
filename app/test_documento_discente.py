@@ -70,7 +70,8 @@ def test_busca_por_cpf_gera_links_assinados():
     assert P.id_documento_discente(token) == 7975
 
 
-@pytest.mark.parametrize('rota', ['/declaracao?idProjeto=1', '/autenticacao'])
+@pytest.mark.parametrize('rota', ['/declaracao?idProjeto=1', '/autenticacao',
+                                  '/orientadorDeclaracao?idProjeto=1', '/projetosPorOrientador'])
 def test_rotas_legadas_removidas(client, rota):
     assert client.get(rota).status_code == 404
     assert client.post(rota, data={'tipo': '1', 'codigo': '1'}).status_code == 404

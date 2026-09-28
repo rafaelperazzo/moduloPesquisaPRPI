@@ -353,6 +353,17 @@ def test_codigo_do_app_so_vale_para_o_proprio_siape(esqueci, cognito, emails):
     cognito.confirm_forgot_password.assert_called_once()
 
 
+# --- passo a passo do aplicativo autenticador ----------------------------------------
+
+def test_ajuda_autenticador_publica_e_ligada_na_home(client, monkeypatch):
+    resposta = client.get('/ajuda/autenticador')
+    assert resposta.status_code == 200
+    html = resposta.get_data(as_text=True)
+    assert 'Como configurar o aplicativo autenticador' in html and P.EMISSOR_TOTP in html
+    monkeypatch.setattr(P, 'mensagens', [], raising=False)
+    assert '/ajuda/autenticador' in client.get('/').get_data(as_text=True)
+
+
 # --- troca de senha com MFA ativo -------------------------------------------------
 
 def test_nova_senha_usa_o_access_token_sem_reautenticar(client, cognito):

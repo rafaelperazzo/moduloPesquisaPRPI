@@ -1748,6 +1748,12 @@ def seguranca():
     (Cloudflare) e da aplicação, para dar transparência aos usuários."""
     return render_template('seguranca.html')
 
+@app.route("/ajuda/autenticador")
+@log_required
+def ajuda_autenticador():
+    """Passo a passo público para configurar o aplicativo autenticador (MFA por TOTP)."""
+    return render_template('ajudaAutenticador.html', emissor=EMISSOR_TOTP)
+
 # ---------------------------------------------------------------------------
 # LGPD (migracao.lgpd.md): política de privacidade, ciência dos termos após o login,
 # "Meus dados" (acesso e portabilidade) e solicitações dos titulares

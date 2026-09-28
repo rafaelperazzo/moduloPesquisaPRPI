@@ -1,0 +1,211 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+  <div class="max-w-3xl mx-auto">
+
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+        <i class="bi bi-phone text-blue-600"></i>
+        Como configurar o aplicativo autenticador
+      </h1>
+      <p class="text-gray-600 text-sm mt-2">
+        Passo a passo para usar a <b>verificação em duas etapas</b> da plataforma com um aplicativo no
+        celular. Leva cerca de 5 minutos e só precisa ser feito uma vez.
+      </p>
+    </div>
+
+    <!-- O que é -->
+    <div class="bg-blue-50 border border-blue-200 text-blue-900 px-5 py-4 rounded-xl mb-6 text-sm leading-relaxed">
+      <p class="font-semibold mb-1"><i class="bi bi-question-circle"></i> O que é a verificação em duas etapas?</p>
+      <p>
+        É uma proteção extra para a sua conta. Além do SIAPE e da senha, a plataforma pede um
+        <b>código de 6 números</b> que aparece no seu celular. Esse código muda a cada 30 segundos.
+        Assim, mesmo que alguém descubra a sua senha, não consegue entrar sem o seu celular.
+      </p>
+    </div>
+
+    <!-- Antes de começar -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+        <i class="bi bi-list-check text-emerald-600"></i> Antes de começar, você vai precisar de:
+      </h2>
+      <ul class="text-sm text-gray-700 space-y-2 list-disc list-inside">
+        <li>Um <b>celular</b> (Android ou iPhone) com câmera.</li>
+        <li>Um <b>computador</b> (ou outro aparelho) para abrir a plataforma, com o seu SIAPE e a sua senha.</li>
+        <li>Internet no celular <b>apenas para instalar o aplicativo</b>. Depois, os códigos funcionam mesmo sem internet.</li>
+      </ul>
+    </div>
+
+    <!-- Passo 1 -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-3">
+        <span class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-base font-bold shrink-0">1</span>
+        Instale o aplicativo no celular
+      </h2>
+      <p class="text-sm text-gray-700 mb-3">Recomendamos o <b>Google Authenticator</b>, que é gratuito.</p>
+      <ol class="text-sm text-gray-700 space-y-2 list-decimal list-inside mb-4">
+        <li>No celular, abra a loja de aplicativos:
+          <b>Play Store</b> (Android) ou <b>App Store</b> (iPhone).</li>
+        <li>Na busca, digite <b>Google Authenticator</b>.</li>
+        <li>Confira se o aplicativo é do fabricante <b>Google LLC</b> e toque em <b>Instalar</b> (ou <b>Obter</b>, no iPhone).</li>
+        <li>Abra o aplicativo. Se ele pedir para entrar com uma conta do Google, você pode entrar
+          (assim os códigos ficam guardados caso troque de celular) ou tocar em
+          <b>Usar o Authenticator sem uma conta</b>.</li>
+      </ol>
+      <p class="text-sm text-gray-700 mb-4">Se preferir, use os links diretos:</p>
+      <div class="flex flex-wrap gap-2 mb-4">
+        <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2" target="_blank" rel="noopener"
+          class="px-4 py-2 bg-white border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors font-medium text-sm"><i class="bi bi-google-play"></i> Google Play (Android)</a>
+        <a href="https://apps.apple.com/app/google-authenticator/id388497605" target="_blank" rel="noopener"
+          class="px-4 py-2 bg-white border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors font-medium text-sm"><i class="bi bi-apple"></i> App Store (iPhone)</a>
+      </div>
+      <p class="text-xs text-gray-500">
+        Outros aplicativos autenticadores também funcionam, como o <b>Microsoft Authenticator</b>.
+        Os nomes dos botões podem ser um pouco diferentes dos descritos aqui.
+      </p>
+    </div>
+
+    <!-- Passo 2 -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-3">
+        <span class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-base font-bold shrink-0">2</span>
+        Abra a tela de configuração na plataforma
+      </h2>
+      <ol class="text-sm text-gray-700 space-y-2 list-decimal list-inside">
+        <li>No computador, entre na plataforma com o seu <b>SIAPE</b> e a sua <b>senha</b>.</li>
+        <li><b>Primeiro acesso:</b> a plataforma abre sozinha a tela <b>Verificação em duas etapas (MFA)</b>.
+          <br><span class="text-gray-500">Se você já usa o código por e-mail e quer trocar para o aplicativo, clique em
+          <b>Segurança da conta</b>, no alto da página, ao lado do seu SIAPE.</span></li>
+        <li>No quadro <b>Aplicativo autenticador</b>, clique no botão <b>Usar aplicativo (recomendado)</b>.</li>
+        <li>Vai aparecer um <b>quadrado preto e branco</b> (o QR code). Deixe essa tela aberta.</li>
+      </ol>
+    </div>
+
+    <!-- Passo 3 -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-3">
+        <span class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-base font-bold shrink-0">3</span>
+        Leia o QR code com o celular
+      </h2>
+      <ol class="text-sm text-gray-700 space-y-2 list-decimal list-inside mb-4">
+        <li>No celular, abra o <b>Google Authenticator</b>.</li>
+        <li>Toque no botão <b>+</b> (no canto inferior direito da tela) ou em <b>Adicionar um código</b>.</li>
+        <li>Toque em <b>Ler QR code</b>. Se o celular perguntar, <b>permita o uso da câmera</b>.</li>
+        <li>Aponte a câmera para o QR code que está na tela do computador, até o celular vibrar ou mudar de tela.</li>
+        <li>Pronto: aparece no aplicativo uma linha chamada <b>{{ emissor }}</b>, com o seu SIAPE e um número de 6 dígitos.</li>
+      </ol>
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-700">
+        <p class="font-semibold mb-1"><i class="bi bi-keyboard"></i> A câmera não leu o QR code?</p>
+        <p class="mb-2">Você pode digitar a chave em vez de ler o código:</p>
+        <ol class="space-y-1 list-decimal list-inside">
+          <li>No aplicativo, toque em <b>+</b> e depois em <b>Inserir chave de configuração</b>.</li>
+          <li>Em <b>Conta</b> (ou nome), digite o seu <b>SIAPE</b>.</li>
+          <li>Em <b>Chave</b>, digite a sequência de letras e números que aparece ao lado do QR code na plataforma.</li>
+          <li>Em tipo de chave, deixe <b>Baseado no horário</b> e toque em <b>Adicionar</b>.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Passo 4 -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-3">
+        <span class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-base font-bold shrink-0">4</span>
+        Confirme com o código de 6 números
+      </h2>
+      <ol class="text-sm text-gray-700 space-y-2 list-decimal list-inside mb-4">
+        <li>Olhe o número de 6 dígitos que aparece no aplicativo, na linha <b>{{ emissor }}</b>.</li>
+        <li>No computador, digite esse número no campo <b>Código do aplicativo</b>, abaixo do QR code.</li>
+        <li>Clique em <b>Ativar verificação em duas etapas</b>.</li>
+      </ol>
+      <p class="text-sm text-gray-700 mb-2">
+        O número muda a cada 30 segundos. Ao lado dele há um pequeno relógio (círculo) que mostra o tempo que falta.
+        <b>Se o círculo estiver quase acabando, espere o próximo número</b> para ter tempo de digitar.
+      </p>
+      <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg px-4 py-3 text-sm">
+        <i class="bi bi-check-circle"></i> Se aparecer a mensagem de que a verificação foi ativada, <b>está tudo pronto</b>.
+      </div>
+    </div>
+
+    <!-- Uso no dia a dia -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+        <i class="bi bi-box-arrow-in-right text-emerald-600"></i> Como entrar na plataforma daqui para frente
+      </h2>
+      <ol class="text-sm text-gray-700 space-y-2 list-decimal list-inside">
+        <li>Entre com o seu <b>SIAPE</b> e a sua <b>senha</b>, como sempre.</li>
+        <li>A plataforma vai pedir o <b>código</b>.</li>
+        <li>Abra o <b>Google Authenticator</b> no celular e digite o número de 6 dígitos da linha <b>{{ emissor }}</b>.</li>
+        <li>Clique em <b>Entrar</b>.</li>
+      </ol>
+      <p class="text-xs text-gray-500 mt-3">Não apague a linha <b>{{ emissor }}</b> do aplicativo: sem ela você não consegue gerar os códigos.</p>
+    </div>
+
+    <!-- Problemas comuns -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+        <i class="bi bi-tools text-amber-600"></i> Problemas comuns
+      </h2>
+      <div class="space-y-3 text-sm text-gray-700">
+        <details class="border border-gray-200 rounded-lg p-3">
+          <summary class="font-semibold cursor-pointer">O código é recusado (“código inválido”)</summary>
+          <ul class="mt-2 space-y-1 list-disc list-inside">
+            <li>Confira se você está usando a linha <b>{{ emissor }}</b> do aplicativo, e não a de outro site.</li>
+            <li>Espere o próximo número e digite logo que ele aparecer.</li>
+            <li>Verifique se a <b>data e a hora do celular estão automáticas</b>. Esse é o motivo mais comum:
+              <br><span class="text-gray-500">Android: Configurações &rarr; Sistema &rarr; Data e hora &rarr; ative “Data e hora automáticas”.
+              iPhone: Ajustes &rarr; Geral &rarr; Data e Hora &rarr; ative “Automaticamente”.</span></li>
+          </ul>
+        </details>
+        <details class="border border-gray-200 rounded-lg p-3">
+          <summary class="font-semibold cursor-pointer">Vou trocar de celular</summary>
+          <p class="mt-2">
+            <b>Antes de desfazer do celular antigo</b>, instale o Google Authenticator no novo. Se você entrou
+            com uma conta do Google no aplicativo, os códigos aparecem sozinhos no celular novo. Se não entrou,
+            depois de fazer login na plataforma clique em <b>Segurança da conta</b> e em <b>Cadastrar em outro celular</b>,
+            e repita os passos 3 e 4 com o celular novo.
+          </p>
+        </details>
+        <details class="border border-gray-200 rounded-lg p-3">
+          <summary class="font-semibold cursor-pointer">Perdi, quebrei ou troquei de celular e não consigo entrar</summary>
+          <ol class="mt-2 space-y-1 list-decimal list-inside">
+            <li>Entre com o seu SIAPE e a sua senha normalmente.</li>
+            <li>Na tela que pede o código, clique em <b>Perdi acesso ao aplicativo autenticador</b>.</li>
+            <li>Enviaremos um código de recuperação para o seu e-mail cadastrado. Digite esse código na plataforma.</li>
+            <li>O aplicativo antigo será desvinculado. No próximo login, configure de novo seguindo este passo a passo.</li>
+          </ol>
+        </details>
+        <details class="border border-gray-200 rounded-lg p-3">
+          <summary class="font-semibold cursor-pointer">Não tenho celular ou não quero instalar aplicativo</summary>
+          <p class="mt-2">
+            Existem autenticadores para computador, como os que vêm em gerenciadores de senha (por exemplo,
+            Bitwarden ou 1Password). Se precisar de ajuda, procure a Coordenadoria de Pesquisa.
+          </p>
+        </details>
+        <details class="border border-gray-200 rounded-lg p-3">
+          <summary class="font-semibold cursor-pointer">Esqueci a minha senha</summary>
+          <p class="mt-2">
+            O aplicativo autenticador não substitui a senha. Para criar uma nova senha, use
+            <a href="{{ url_for('esqueciMinhaSenha') }}" class="text-blue-600 hover:underline">Esqueci minha senha</a>.
+            Depois, entre com a nova senha e o código do aplicativo, como de costume.
+          </p>
+        </details>
+      </div>
+    </div>
+
+    <!-- Segurança -->
+    <div class="bg-amber-50 border border-amber-200 text-amber-900 px-5 py-4 rounded-xl mb-6 text-sm leading-relaxed">
+      <p class="font-semibold mb-1"><i class="bi bi-exclamation-triangle"></i> Cuidados importantes</p>
+      <ul class="space-y-1 list-disc list-inside">
+        <li><b>Nunca informe o código</b> a ninguém, nem por telefone, e-mail ou mensagem. A Coordenadoria de Pesquisa nunca pede esse código.</li>
+        <li>Não envie foto nem print do QR code: com ele, outra pessoa consegue gerar os seus códigos.</li>
+        <li>Se o aplicativo pedir, proteja-o com a senha ou a digital do celular.</li>
+      </ul>
+    </div>
+
+    <p class="text-sm text-gray-600">
+      Ainda com dúvidas? Entre em contato com a Coordenadoria de Pesquisa, informando o seu nome completo e o seu SIAPE.
+    </p>
+
+  </div>
+</div>
+{% endblock %}

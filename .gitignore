@@ -18,6 +18,7 @@ app/staging.env
 cicd.sh
 cron
 *.conf
+!nginx/*.conf
 *directory*
 *.ini
 cron.avaliacao.sh

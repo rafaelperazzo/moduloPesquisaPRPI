@@ -218,7 +218,11 @@ nonce_list = ['script-src', 'style-src','font-src']
 if PRODUCAO==0:
     Talisman(app,content_security_policy=[],force_https=False,content_security_policy_nonce_in=nonce_list)
 else:
-    Talisman(app,content_security_policy=[],force_https=True)
+    # HSTS igual ao do nginx (nginx/pesquisa.yokoapps.com.br.conf): 2 anos, subdomínios e preload
+    Talisman(app,content_security_policy=[],force_https=True,
+             strict_transport_security_max_age=63072000,
+             strict_transport_security_include_subdomains=True,
+             strict_transport_security_preload=True)
 
 limiter = Limiter(
     get_remote_address,

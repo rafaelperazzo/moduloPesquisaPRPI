@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Meus Projetos</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
     <style nonce="{{ csp_nonce() }}">
       .aprovado { color: #059669; }
       .indefinido { color: #d97706; }
       .reprovado { color: #dc2626; }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
   </head>
   <body class="bg-gray-50 text-gray-900 font-sans">
     <nav class="bg-white border-b border-gray-200 shadow-sm mb-6">

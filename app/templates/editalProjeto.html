@@ -7,12 +7,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Propostas submetidas a edital</title>
-    <script>{{ asset_inline('vendor/tailwind-play.js') | safe }}</script>
     <style>
       .aprovado { color: #059669; }
       .indefinido { color: #d97706; }
       .reprovado { color: #dc2626; }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
   </head>
   <body class="bg-gray-50 text-gray-900 font-sans">
     <div class="container mx-auto px-4 max-w-screen-xl py-8">

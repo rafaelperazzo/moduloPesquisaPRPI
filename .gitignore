@@ -33,6 +33,7 @@ cron.avaliacao.sh
 *.sh
 !systemd/pesquisa-healthcheck.sh
 !systemd/instalar-healthcheck.sh
+!tailwind/build.sh
 *.pdf
 *.xml
 mysql/*

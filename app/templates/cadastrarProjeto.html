@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cadastro de Projeto de Pesquisa - Plataforma Yoko</title>
-  <script src="https://cdn.tailwindcss.com"></script>
 
   <script>
     var _validFileExtensions = [".pdf",".xml"];
@@ -132,6 +131,7 @@
       return true;
     }
   </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}">
 </head>
 
 <body class="bg-gray-50 text-gray-900 font-sans" onload="iniciar()">

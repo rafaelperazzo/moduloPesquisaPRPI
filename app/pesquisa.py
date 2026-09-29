@@ -29,6 +29,7 @@ import json
 from flask_wtf.csrf import CSRFProtect
 from brseclabcripto.cripto3 import SecCripto
 from git import Repo
+from gitdb import GitDB
 import secrets
 import io
 import base64
@@ -238,12 +239,18 @@ if PRODUCAO==1:
 else:
     app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 
+def versao_do_repositorio(caminho):
+    """Última tag (pela data do commit, não pelo nome: v9 > v13 na ordem alfabética) e data do último commit.
+    Lê o .git direto (GitDB), sem o binário git, que recusa repositório de outro dono (o serviço não roda como root)."""
+    repo = Repo(caminho, search_parent_directories=True, odbt=GitDB)
+    tags = sorted(repo.tags, key=lambda t: t.commit.committed_date)
+    return tags[-1].name, repo.head.commit.committed_datetime.strftime('%d/%m/%Y')
+
 try:
-    __version__ = Repo('/git').tags[-1].name
-    app.config['versao'] = __version__
+    __version__, DATA_ATUALIZACAO = versao_do_repositorio(BASE_DIR)
 except Exception as e:
-    __version__ = "0.0.0"
-    app.config['versao'] = __version__
+    __version__, DATA_ATUALIZACAO = "0.0.0", ""
+app.config['versao'] = __version__
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['CURRICULOS_FOLDER'] = CURRICULOS_DIR
@@ -650,6 +657,11 @@ def inject_messages():
 @app.context_processor
 def inject_default_support():
     return dict(default_support=DEFAULT_SUPPORT, default_institutional=DEFAULT_INSTITUCIONAL)
+
+@app.context_processor
+def inject_versao():
+    # Rodapé do BASE_v3 (no lugar dos badges do shields.io)
+    return dict(versao_app=__version__, data_atualizacao=DATA_ATUALIZACAO)
 
 # ---------------------------------------------------------------------------
 # Cloudflare Turnstile (substitui o reCAPTCHA): o widget fica em templates/_turnstile.html e o

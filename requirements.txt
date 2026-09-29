@@ -20,6 +20,7 @@ brseclabcripto
 beautifulsoup4
 apprise
 gitpython
+gitdb
 Flask-RESTful
 Flask-Cors
 sentry-sdk[flask,loguru]

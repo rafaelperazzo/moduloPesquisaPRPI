@@ -49,7 +49,7 @@ REFERENCE_FILES=(
 # URLs para o smoke test pós-corte (uma requisição HTTP real por serviço,
 # equivalente ao "curl" que seria feito manualmente).
 SMOKE_TEST_URLS=(
-    "https://aws.yokoapps.com.br/pesquisa"
+    "https://pesquisa.yokoapps.com.br"
     "https://aws.yokoapps.com.br/cppgi"
 )
 

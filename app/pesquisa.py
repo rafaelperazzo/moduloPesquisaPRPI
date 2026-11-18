@@ -5350,69 +5350,90 @@ def jaEnviouFrequenciaAtual(idAluno,mes,ano):
         return(False)
 
 
+PRAZO_FREQUENCIA_DIAS = 240  # depois do fim da indicação, o orientador ainda pode enviar frequências atrasadas
+
+def meses_da_indicacao(inicio, fim, hoje):
+    """(mes, ano) de cada mês do período da indicação, do mês do início ao do fim, sem passar do mês atual."""
+    limite = min(fim, hoje)
+    mes, ano, meses = inicio.month, inicio.year, []
+    while (ano, mes) <= (limite.year, limite.month):
+        meses.append((mes, ano))
+        mes, ano = (1, ano + 1) if mes == 12 else (mes + 1, ano)
+    return meses
+
+def verificar_envio_frequencia(siape, id_indicacao, hoje=None):
+    """(meses, erro): os meses que o orientador pode enviar para a indicação, ou a mensagem de por que não pode.
+    Regras: a indicação é do orientador; tem início e fim; o prazo (fim + 240 dias) não passou; e o mês está
+    dentro do período da indicação, até o mês atual."""
+    hoje = hoje or date.today()
+    if not verificarSiapeIndicacao(siape, id_indicacao):
+        return [], "Permissão negada!"
+    linhas = consultar_dicts("SELECT DATE(inicio) AS inicio, DATE(fim) AS fim FROM indicacoes WHERE id=%s",
+                             (id_indicacao,))
+    if not linhas or not linhas[0]['inicio'] or not linhas[0]['fim']:
+        return [], "A indicação não tem início e fim cadastrados. Entre em contato com a coordenação de pesquisa."
+    inicio, fim = linhas[0]['inicio'], linhas[0]['fim']
+    prazo = fim + timedelta(days=PRAZO_FREQUENCIA_DIAS)
+    if hoje > prazo:
+        return [], "Prazo para envio de frequências expirado (%s)!" % prazo.strftime('%d/%m/%Y')
+    meses = meses_da_indicacao(inicio, fim, hoje)
+    if not meses:
+        return [], "A indicação só começa em %s." % inicio.strftime('%d/%m/%Y')
+    return meses, None
+
 @app.route("/enviarFrequencia", methods=['GET', 'POST'])
 @login_required(role='user')
 @log_required
 def enviarFrequencia():
-    if request.method == "GET":
-        if 'id' in request.args:
-            idAluno = str(request.args.get('id'))
-            siape = session['username']
-            if verificarSiapeIndicacao(siape,idAluno): #O aluno é indicação do usuário atual
-                from datetime import datetime
-                nomeAluno = obterColunaUnica('indicacoes','nome','id',idAluno)
-                idProjeto = obterColunaUnica('indicacoes','idProjeto','id',idAluno)
-                titulo_projeto = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
-                codigoEdital = obterColunaUnica('editalProjeto','tipo','id',idProjeto)
-                descricaoEdital = obterColunaUnica('editais','nome','id',codigoEdital)
-                data_final = obterColunaUnica('indicacoes','ADDDATE(DATE(fim),INTERVAL 240 DAY)','id',idAluno)
-                data_hoje = obterColunaUnica('indicacoes','DATE(NOW())','id',idAluno)
-                if data_hoje>data_final:
-                    return("Prazo para envio de frequencias expirado (%s)!" %(data_final))
-                mes_ext = NOMES_MESES
-                now = datetime.now()
-                mesReferencia = now.month-1
-                anoReferencia = now.year
-                if (mesReferencia==0):
-                    mesReferencia = 12
-                    anoReferencia = anoReferencia-1
-                #if jaEnviouFrequenciaAtual(idAluno,str(mesReferencia),str(anoReferencia)):
-                #    return("A frequência atual já foi enviada, não é possível realizar um novo envio.")
-                #else:
-                return(render_template('frequencia.html',nomeAluno=nomeAluno,referencia=mes_ext[mesReferencia],ano=anoReferencia,idAluno=idAluno,titulo=titulo_projeto,mes=mesReferencia,edital=descricaoEdital))
-            else:
-                return("Permissão negada!")
-        else:
-            return("OK")
-    else:
+    if request.method != "GET" or 'id' not in request.args:
         return("OK")
+    idAluno = str(request.args.get('id'))
+    meses, erro = verificar_envio_frequencia(session['username'], idAluno)
+    if erro:
+        return(erro)
+    nomeAluno = obterColunaUnica('indicacoes','nome','id',idAluno)
+    idProjeto = obterColunaUnica('indicacoes','idProjeto','id',idAluno)
+    titulo_projeto = obterColunaUnica('editalProjeto','titulo','id',idProjeto)
+    codigoEdital = obterColunaUnica('editalProjeto','tipo','id',idProjeto)
+    descricaoEdital = obterColunaUnica('editais','nome','id',codigoEdital)
+    enviadas = {(int(l[0]), int(l[1])) for l in
+                executarSelect2("SELECT mes, ano FROM frequencias WHERE idIndicacao=%s", valores=(idAluno,))[0]}
+    opcoes = [{'valor': f"{m}-{a}", 'rotulo': f"{NOMES_MESES[m]}/{a}", 'enviada': (m, a) in enviadas}
+              for m, a in reversed(meses)]
+    pendentes = [o for o in opcoes if not o['enviada']]
+    if not pendentes:
+        return("Todas as frequências do período da indicação já foram enviadas.")
+    # Pré-seleciona o mês anterior, se estiver pendente; senão, o pendente mais recente
+    mes_anterior, ano_anterior = mes_ano_anterior()
+    padrao = next((o['valor'] for o in pendentes if o['valor'] == f"{mes_anterior}-{ano_anterior}"),
+                  pendentes[0]['valor'])
+    return(render_template('frequencia.html',nomeAluno=nomeAluno,idAluno=idAluno,titulo=titulo_projeto,
+                           edital=descricaoEdital,opcoes=opcoes,padrao=padrao))
 
 
 @app.route("/cadastrarFrequencia", methods=['GET', 'POST'])
 @login_required(role='user')
 @log_required
 def cadastrarFrequencia():
-    if request.method == "POST":
-        s1 = str(request.form['s1'])
-        s2 = str(request.form['s2'])
-        s3 = str(request.form['s3'])
-        s4 = str(request.form['s4'])
-        mes = str(request.form['mes'])
-        ano = str(request.form['ano'])
-        idAluno = str(request.form['idAluno'])
-        obs = str(request.form['obs'])
-        consulta_verificacao = """
-        SELECT id FROM frequencias WHERE idIndicacao=%s AND mes=%s AND ano=%s
-        """
-        linhas,total = executarSelect2(consulta_verificacao,valores=(idAluno,mes,ano))
-        if total>0:
-            return("A frequência para o mes/ano solicitado já foi enviada anteriormente! Não é possível modificar!")
-        consulta = """INSERT INTO frequencias (idIndicacao,mes,ano,s1,s2,s3,s4,obs) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)"""
-        valores = (idAluno,mes,ano,s1,s2,s3,s4,obs)
-        inserir(consulta,valores)
-        return redirect(url_for('meusProjetos'))
-    else:
+    if request.method != "POST":
         return("OK")
+    idAluno = str(request.form.get('idAluno', ''))
+    meses, erro = verificar_envio_frequencia(session['username'], idAluno)
+    if erro:
+        return(erro), 403
+    mes, _, ano = str(request.form.get('referencia', '')).partition('-')
+    novos, erros = validar_frequencia({**request.form.to_dict(), 'mes': mes, 'ano': ano})
+    if not erros and (novos['mes'], novos['ano']) not in meses:
+        erros.append("O mês escolhido está fora do período da indicação.")
+    if erros:
+        return("Frequência não enviada: " + " ".join(erros)), 400
+    _, total = executarSelect2("SELECT id FROM frequencias WHERE idIndicacao=%s AND mes=%s AND ano=%s",
+                               valores=(idAluno, novos['mes'], novos['ano']))
+    if total>0:
+        return("A frequência para o mes/ano solicitado já foi enviada anteriormente! Não é possível modificar!"), 400
+    consulta = """INSERT INTO frequencias (idIndicacao,mes,ano,s1,s2,s3,s4,obs) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)"""
+    inserir(consulta,(idAluno,novos['mes'],novos['ano'],novos['s1'],novos['s2'],novos['s3'],novos['s4'],novos['obs']))
+    return redirect(url_for('meusProjetos'))
 
 def mes_ano_anterior():
     """Retorna (mes, ano) do mês anterior ao atual, como strings. Em janeiro, dezembro do ano anterior."""

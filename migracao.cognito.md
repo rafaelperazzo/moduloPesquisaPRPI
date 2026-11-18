@@ -321,3 +321,10 @@ Nunca entram no log o `Session`, o segredo TOTP, os códigos nem os tokens.
   6. `/get_bib` com Basic Auth.
   7. Primeiro acesso de um convidado.
   8. Migração silenciosa de um usuário legado.
+
+## 12. Cadastro de novos usuários só no Cognito (produção)
+- `/admin/cadastrar_usuario` não grava mais na tabela `users` em produção: `cadastrar_novo_usuario` chama `cognito_convidar_usuario` com `custom:roles` (escolhido no formulário: `user`, `admin` ou `user,admin`), `custom:permission` derivado de roles (`permissao_de_roles`: 0 se houver `admin`, senão 1) e `custom:legacy_id=0`. Em dev (`PRODUCAO=0`) o cadastro continua em `users`, agora gravando `permission`.
+- Antes do convite, `cadastro_duplicado` confere o SIAPE e o e-mail em `users` e no Cognito (`admin_get_user` e `list_users` com `Filter='email = "..."'`). E-mails de usuários novos são gravados em minúsculas.
+- `buscar_usuario` busca no Cognito quem não tem linha em `users` e devolve a linha no mesmo formato, com `id=None` e `migrado=1`. Assim o login, o esqueci minha senha, a recuperação do MFA, o `/novaSenha`, o "Meus dados" e o Basic Auth (`get_user_roles`) funcionam para esses usuários sem mudanças. Erro de banco não cai no Cognito (continua `None`).
+- `listar_usuarios` junta `users` com os usuários do pool sem linha local (`cognito_listar_usuarios`, paginado). Esses usuários são editados em `/admin/alterarUsuarioCognito/<username>`, que grava direto no Cognito. `/admin/alterarUsuario/<id>` agora também grava `permission` derivado de roles e o sincroniza.
+- **IAM:** a role `CloudWatch` precisa de `cognito-idp:ListUsers` (busca por e-mail e listagem). Sem ela, a listagem mostra só `users` com um aviso, e a busca por e-mail de quem está só no Cognito falha (fica registrada no log como `busca_falha_cognito`).

@@ -35,9 +35,9 @@
             <td class="px-4 py-3 text-gray-700">{{ usuario[2] }}</td>
             <td class="px-4 py-3 text-gray-700">{{ usuario[3] }}</td>
             <td class="px-4 py-3 text-gray-500 text-xs">{{ usuario[4] }}</td>
-            <td class="px-4 py-3 text-gray-500 text-xs">{{ 'Sim' if usuario[5] == 1 else 'Não' }}</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">{% if usuario[0] is none %}Só no Cognito{% else %}{{ 'Sim' if usuario[5] == 1 else 'Não' }}{% endif %}</td>
             <td class="px-4 py-3">
-              <a href="{{ url_for('alterar_usuario', id=usuario[0]) }}"
+              <a href="{{ url_for('alterar_usuario', id=usuario[0]) if usuario[0] is not none else url_for('alterar_usuario_cognito', username=usuario[1]) }}"
                  class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs font-medium">
                 Alterar
               </a>

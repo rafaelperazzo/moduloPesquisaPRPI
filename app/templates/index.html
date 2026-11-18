@@ -113,7 +113,6 @@
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
             <th class="px-4 py-3 font-semibold text-gray-700">Edital</th>
-            <th class="px-4 py-3 font-semibold text-gray-700">Cadastrar Usuários</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Lista de Bolsistas</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Lista de Voluntários</th>
             <th class="px-4 py-3 font-semibold text-gray-700">Situação das Indicações</th>
@@ -128,7 +127,6 @@
           {% for edital in editais %}
           <tr class="border-b border-gray-100 hover:bg-gray-50">
             <td class="px-4 py-3 font-medium text-gray-800">{{edital[1]}}</td>
-            <td class="px-4 py-3"><a href="{{url_for('cadastrar_usuarios_projetos', edital=edital[0])}}" class="text-blue-600 hover:underline">Cadastrar</a></td>
             <td class="px-4 py-3"><a href="{{url_for('indicacoes', edital=edital[0], tipo=1)}}" class="text-blue-600 hover:underline">BOLSISTAS</a></td>
             <td class="px-4 py-3"><a href="{{url_for('indicacoes', edital=edital[0], tipo=0)}}" class="text-blue-600 hover:underline">VOLUNTÁRIOS</a></td>
             <td class="px-4 py-3"><a href="{{url_for('situacaoIndicacoes', edital=edital[0])}}" class="text-blue-600 hover:underline">Situação das indicações</a></td>

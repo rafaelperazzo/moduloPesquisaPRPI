@@ -14,6 +14,7 @@ import os
 import string
 import sys
 import re
+import unicodedata
 from flask_uploads import UploadSet, configure_uploads, ALL, DOCUMENTS
 import threading
 import zeep
@@ -1315,12 +1316,23 @@ CONSULTAS_USUARIO = {
 
 def buscar_usuario(valor, campo='username'):
     """Retorna a linha (id, username, permission, roles, password, migrado, nome, email)
-    do usuário ou None se não existir."""
+    do usuário ou None se não existir.
+
+    Em produção, quem não está na tabela users (cadastrado só no Cognito) é buscado no
+    Cognito e volta no mesmo formato, com id=None e migrado=1."""
     resultado = executarSelect2(CONSULTAS_USUARIO[campo], valores=[valor])
     if resultado is None:  # executarSelect2 retorna None em caso de erro
         return None
     linhas, total = resultado
-    return linhas[0] if total > 0 else None
+    if total > 0:
+        return linhas[0]
+    if USAR_COGNITO and campo in ('username', 'email'):
+        try:
+            return cognito_buscar_usuario(valor, campo)
+        except (ClientError, BotoCoreError) as e:
+            log_migracao('busca_falha_cognito', str(valor) if campo == 'username' else resumo_email(valor),
+                         nivel='error', etapa=campo, erro=str(e), classe_erro=codigo_erro(e))
+    return None
 
 def iniciar_sessao(username, permissao, roles):
     """Preenche a sessão usada pelo login_required (igual para os dois backends)."""
@@ -1377,11 +1389,64 @@ def atributos_cognito(linha):
         {'Name': 'email_verified', 'Value': 'true'},
         {'Name': 'custom:roles', 'Value': str(linha[3])},
         {'Name': 'custom:permission', 'Value': str(int(linha[2]))},
-        {'Name': 'custom:legacy_id', 'Value': str(int(linha[0]))},
+        # Usuário cadastrado só no Cognito não tem id na tabela users
+        {'Name': 'custom:legacy_id', 'Value': str(int(linha[0] or 0))},
     ]
 
 def atributos_para_dict(atributos):
     return {a['Name']: a['Value'] for a in atributos}
+
+ROLES_VALIDAS = ('user', 'admin', 'user,admin')
+EMAIL_VALIDO = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
+
+def permissao_de_roles(roles):
+    """permission derivado de roles: 0 (admin) se 'admin' estiver em roles, senão 1 (normal)."""
+    return 0 if 'admin' in str(roles).split(',') else 1
+
+def email_valido(email):
+    """E-mail simples, sem aspas nem barras (também vai no filtro do list_users do Cognito)."""
+    return bool(EMAIL_VALIDO.fullmatch(str(email)))
+
+def linha_cognito(usuario):
+    """Converte o usuário do Cognito (admin_get_user ou item do list_users) para o formato
+    da linha de users: (id=None, username, permission, roles, password=None, migrado=1, nome, email)."""
+    atributos = atributos_para_dict(usuario.get('UserAttributes') or usuario.get('Attributes') or [])
+    roles = atributos.get('custom:roles', 'user')
+    permissao = int(atributos.get('custom:permission', permissao_de_roles(roles)))
+    return (None, str(usuario['Username']), permissao, roles, None, 1,
+            atributos.get('name', ''), atributos.get('email', ''))
+
+def cognito_buscar_usuario(valor, campo='username'):
+    """Busca no Cognito pelo username (SIAPE) ou pelo e-mail. Retorna a linha no formato de
+    users (ver linha_cognito) ou None. Levanta ClientError/BotoCoreError em caso de falha."""
+    if campo == 'username':
+        try:
+            return linha_cognito(cognito.admin_get_user(UserPoolId=COGNITO_USER_POOL_ID, Username=str(valor)))
+        except ClientError as e:
+            if codigo_erro(e) == 'UserNotFoundException':
+                return None
+            raise
+    if campo == 'email':
+        email = str(valor).strip().lower()
+        if not email_valido(email):
+            return None
+        resposta = cognito.list_users(UserPoolId=COGNITO_USER_POOL_ID, Filter=f'email = "{email}"', Limit=1)
+        usuarios = resposta.get('Users') or []
+        return linha_cognito(usuarios[0]) if usuarios else None
+    return None
+
+def cognito_listar_usuarios():
+    """Todos os usuários do pool, no formato de users (ver linha_cognito)."""
+    usuarios, token = [], None
+    while True:
+        parametros = {'UserPoolId': COGNITO_USER_POOL_ID, 'Limit': 60}
+        if token:
+            parametros['PaginationToken'] = token
+        resposta = cognito.list_users(**parametros)
+        usuarios.extend(linha_cognito(u) for u in resposta.get('Users') or [])
+        token = resposta.get('PaginationToken')
+        if not token:
+            return usuarios
 
 def marcar_migrado(linha, sub, origem):
     """Grava migrado=1 e o sub do Cognito na tabela users."""
@@ -1444,7 +1509,8 @@ def cognito_migrar_usuario(linha, senha=None, origem='login'):
     return sub
 
 def cognito_convidar_usuario(linha):
-    """Cadastra um usuário novo no Cognito; o Cognito envia o convite (senha provisória) por e-mail."""
+    """Cadastra um usuário novo no Cognito; o Cognito envia o convite (senha provisória) por e-mail.
+    Com linha[0] None (cadastro só no Cognito) não há espelho em users para marcar."""
     username = str(linha[1])
     try:
         resposta = cognito.admin_create_user(
@@ -1458,7 +1524,8 @@ def cognito_convidar_usuario(linha):
                      erro=str(e), classe_erro=codigo_erro(e))
         raise
     sub = atributos_para_dict(resposta['User']['Attributes']).get('sub')
-    marcar_migrado(linha, sub, 'cadastro')
+    if linha[0] is not None:
+        marcar_migrado(linha, sub, 'cadastro')
     log_migracao('convite_enviado', username, origem='cadastro', cognito_sub=sub)
     return sub
 
@@ -1688,16 +1755,13 @@ def verify_password(username, password):
 
 @auth.get_user_roles
 def get_user_roles(user):
-    consulta = "SELECT roles FROM users WHERE username=%s"
-    linhas,total = executarSelect2(consulta,valores=(auth.username(),))
-    if total>0:
-        for linha in linhas:
-            roles = str(linha[0])
-            roles = roles.split(',')
-            session['roles'] = roles
-            return (roles)
-    else:
+    # buscar_usuario também encontra quem foi cadastrado só no Cognito
+    linha = buscar_usuario(auth.username())
+    if linha is None:
         return (['user'])
+    roles = str(linha[3]).split(',')
+    session['roles'] = roles
+    return (roles)
 
 def autenticado():
     if ('username') in session:
@@ -5932,48 +5996,78 @@ def hash_passwords():
         atualizar2(consulta, valores=[hashed_password, idUsuario])
     return("OK\n")
 
-def cadastrar_novo_usuario(siape, nome, email):
-    """Cadastra o usuário na tabela users e, em produção, no Cognito, que envia o convite
-    (senha provisória) por e-mail. A senha local é aleatória e descartada."""
-    hashed_password = cripto.hash_argon2id(generate_secure_password())
-    role = 'user'
-    consulta = """INSERT INTO users (username,nome,email,password,roles) 
-    VALUES (%s, %s, %s, %s, %s)"""
-    atualizar2(consulta,valores=[siape, nome, email, hashed_password, role])
+def cadastrar_novo_usuario(siape, nome, email, roles='user'):
+    """Em produção cadastra o usuário só no Cognito (sem linha em users), com custom:roles e
+    custom:permission (derivado de roles); o Cognito envia o convite (senha provisória) por e-mail.
+    Em dev grava na tabela users, com senha aleatória."""
+    permissao = permissao_de_roles(roles)
     if USAR_COGNITO:
-        linha = buscar_usuario(siape)
-        if linha is None:
-            raise RuntimeError(f"Usuário {siape} não encontrado após o cadastro")
-        cognito_convidar_usuario(linha)
+        cognito_convidar_usuario((None, siape, permissao, roles, None, 1, nome, email))
+        return
+    hashed_password = cripto.hash_argon2id(generate_secure_password())
+    consulta = """INSERT INTO users (username,nome,email,password,roles,permission)
+    VALUES (%s, %s, %s, %s, %s, %s)"""
+    atualizar2(consulta,valores=[siape, nome, email, hashed_password, roles, permissao])
+
+def cadastro_duplicado(siape, email):
+    """Mensagem de erro se o SIAPE ou o e-mail já estiverem cadastrados (na tabela users e, em
+    produção, no Cognito), ou None. Levanta exceção se não for possível consultar."""
+    for campo, valor, mensagem in (('username', siape, "Usuário já cadastrado!"),
+                                   ('email', email, "E-mail já cadastrado!")):
+        resultado = executarSelect2(CONSULTAS_USUARIO[campo], valores=[valor])
+        if resultado is None:
+            raise RuntimeError("Erro ao consultar a tabela users")
+        if resultado[1] > 0 or (USAR_COGNITO and cognito_buscar_usuario(valor, campo) is not None):
+            return mensagem
+    return None
+
+def email_de_outro_usuario(email, username):
+    """True se o e-mail já pertence a outro usuário (na tabela users e, em produção, no Cognito).
+    Levanta exceção se não for possível consultar."""
+    resultado = executarSelect2("SELECT id FROM users WHERE email=%s AND username != %s",
+                                valores=[email, str(username)])
+    if resultado is None:
+        raise RuntimeError("Erro ao consultar a tabela users")
+    if resultado[1] > 0:
+        return True
+    if USAR_COGNITO:
+        outro = cognito_buscar_usuario(email, 'email')
+        return outro is not None and outro[1] != str(username)
+    return False
+
+def dados_formulario_usuario():
+    """Nome, e-mail e roles enviados pelo formulário de cadastro/alteração, ou None se inválidos."""
+    nome = ' '.join(str(request.form.get('nome', '')).split())
+    email = str(request.form.get('email', '')).strip().lower()
+    roles = str(request.form.get('roles', 'user'))
+    if not nome or len(nome) > 100 or not email_valido(email) or len(email) > 100 or roles not in ROLES_VALIDAS:
+        return None
+    return nome, email, roles
 
 @app.route("/admin/cadastrar_usuario", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def cadastrar_usuario():
     if request.method == 'POST':
-        #Recebendo siape, nome e email do formulário
-        siape = str(request.form['siape'])
-        nome = str(request.form['nome'])
-        email = str(request.form['email'])
-        #Verificando se o usuário já existe
-        consulta = """SELECT id FROM users WHERE username= %s """
-        linhas,total = executarSelect2(consulta, valores=[siape])
-        if total > 0:
-            flash("Usuário já cadastrado!")
+        siape = str(request.form.get('siape', '')).strip()
+        dados = dados_formulario_usuario()
+        if not siape or len(siape) > 10 or not username_valido(siape) or dados is None:
+            flash("Dados inválidos. Confira o SIAPE (só letras e números), o nome, o e-mail e as roles.")
             return redirect(url_for('cadastrar_usuario'))
-        #Verificando se o e-mail já está cadastrado
-        consulta = """SELECT id FROM users WHERE email= %s """
-        linhas,total = executarSelect2(consulta, valores=[email])
-        if total > 0:
-            flash("E-mail já cadastrado!")
-            return redirect(url_for('cadastrar_usuario'))
-        #Cadastrando novo usuário no banco de dados
+        nome, email, roles = dados
         try:
-            cadastrar_novo_usuario(siape, nome, email)
+            duplicado = cadastro_duplicado(siape, email)
+            if duplicado:
+                flash(duplicado)
+                return redirect(url_for('cadastrar_usuario'))
+            cadastrar_novo_usuario(siape, nome, email, roles)
         except Exception as e:
             logger.warning("Erro ao cadastrar novo usuário")
             logger.warning(str(e))
-            flash("Erro ao cadastrar usuário. Se ele aparecer na lista de usuários, use \"Redefinir senha\" em Alterar para enviar o acesso.")
+            if codigo_erro(e) == 'UsernameExistsException':
+                flash("Usuário já cadastrado!")
+            else:
+                flash("Erro ao cadastrar usuário. Nada foi gravado; tente novamente.")
             return redirect(url_for('cadastrar_usuario'))
         if USAR_COGNITO:
             flash("Usuário cadastrado com sucesso! O convite foi enviado por e-mail.")
@@ -5981,7 +6075,7 @@ def cadastrar_usuario():
             flash("Usuário cadastrado com sucesso!")
         return redirect(url_for('admin'))
     else:
-        return render_template('cadastrar_usuario.html')
+        return render_template('cadastrar_usuario.html', roles_validas=ROLES_VALIDAS)
 
 @app.route("/admin/cadastrar_usuarios_projetos/<edital>", methods=['GET'])
 @login_required(role='admin')
@@ -6026,32 +6120,67 @@ def cadastrar_usuarios_projetos(edital):
 @log_required
 def listar_usuarios():
     """
-    Lista todos os usuários cadastrados no sistema.
+    Lista os usuários da tabela users e, em produção, também os cadastrados só no Cognito
+    (estes com id None).
     """
     consulta = """SELECT id, username, nome, email, roles, migrado FROM users ORDER BY nome"""
     linhas, total = executarSelect2(consulta, valores=[])
-    return render_template('listarUsuarios.html', usuarios=linhas, total=total)
+    usuarios = list(linhas)
+    if USAR_COGNITO:
+        try:
+            locais = {str(u[1]) for u in usuarios}
+            so_cognito = [(None, l[1], l[6], l[7], l[3], 1) for l in cognito_listar_usuarios() if l[1] not in locais]
+        except (ClientError, BotoCoreError) as e:
+            log_migracao('listagem_falha_cognito', '', nivel='error', origem='listar_usuarios',
+                         erro=str(e), classe_erro=codigo_erro(e))
+            flash("Não foi possível consultar o Cognito; a lista mostra só os usuários da tabela local.", 'error')
+            so_cognito = []
+        if so_cognito:
+            sem_acento = lambda texto: ''.join(c for c in unicodedata.normalize('NFKD', str(texto or '').lower())
+                                               if not unicodedata.combining(c))
+            usuarios = sorted(usuarios + so_cognito, key=lambda u: sem_acento(u[2]))
+    return render_template('listarUsuarios.html', usuarios=usuarios, total=len(usuarios))
+
+def resetar_senha_pelo_admin(linha):
+    """Redefinição de senha pedida em Alterar usuário: o Cognito reenvia o convite ou envia o código."""
+    if not USAR_COGNITO:
+        flash("A redefinição de senha pelo Cognito está disponível apenas em produção.", 'error')
+        return
+    if linha is None:
+        return
+    try:
+        tipo = cognito_iniciar_recuperacao(linha, origem='reset_admin')
+        if tipo == 'convite':
+            flash("O convite ainda não havia sido usado e foi reenviado por e-mail.")
+        else:
+            flash("Senha redefinida. Um código para definir a nova senha foi enviado ao e-mail do usuário.")
+    except (ClientError, BotoCoreError):
+        flash("Erro ao redefinir a senha no Cognito.", 'error')
 
 @app.route("/admin/alterarUsuario/<int:id>", methods=['GET', 'POST'])
 @login_required(role='admin')
 @log_required
 def alterar_usuario(id):
     """
-    Permite ao admin alterar dados de um usuário existente.
+    Permite ao admin alterar dados de um usuário da tabela users. permission é derivado de
+    roles e, se o usuário já migrou, os dois vão para o Cognito (custom:roles e custom:permission).
     """
     if request.method == 'POST':
-        nome = str(request.form['nome'])
-        email = str(request.form['email'])
-        roles = str(request.form['roles'])
-        resetar_senha = request.form.get('resetar_senha')
-        consulta = """SELECT id FROM users WHERE email=%s AND id != %s"""
-        linhas, total = executarSelect2(consulta, valores=[email, id])
-        if total > 0:
-            flash("E-mail já cadastrado para outro usuário.", 'error')
+        atual = buscar_usuario(id, 'id')
+        if atual is None:
+            flash("Usuário não encontrado.", 'error')
+            return redirect(url_for('listar_usuarios'))
+        dados = dados_formulario_usuario()
+        if dados is None:
+            flash("Dados inválidos. Confira o nome, o e-mail e as roles.", 'error')
             return redirect(url_for('alterar_usuario', id=id))
+        nome, email, roles = dados
         try:
-            atualizar2("""UPDATE users SET nome=%s, email=%s, roles=%s WHERE id=%s""",
-                       valores=[nome, email, roles, id])
+            if email_de_outro_usuario(email, atual[1]):
+                flash("E-mail já cadastrado para outro usuário.", 'error')
+                return redirect(url_for('alterar_usuario', id=id))
+            atualizar2("""UPDATE users SET nome=%s, email=%s, roles=%s, permission=%s WHERE id=%s""",
+                       valores=[nome, email, roles, permissao_de_roles(roles), id])
         except Exception as e:
             logger.warning("Erro ao alterar usuário id={}: {}", id, str(e))
             flash("Erro ao alterar usuário.", 'error')
@@ -6062,18 +6191,8 @@ def alterar_usuario(id):
                 cognito_sincronizar_atributos(linha)
             except (ClientError, BotoCoreError):
                 flash("Dados alterados localmente, mas houve erro ao atualizar o Cognito.", 'error')
-        if resetar_senha:
-            if not USAR_COGNITO:
-                flash("A redefinição de senha pelo Cognito está disponível apenas em produção.", 'error')
-            elif linha is not None:
-                try:
-                    tipo = cognito_iniciar_recuperacao(linha, origem='reset_admin')
-                    if tipo == 'convite':
-                        flash("O convite ainda não havia sido usado e foi reenviado por e-mail.")
-                    else:
-                        flash("Senha redefinida. Um código para definir a nova senha foi enviado ao e-mail do usuário.")
-                except (ClientError, BotoCoreError):
-                    flash("Erro ao redefinir a senha no Cognito.", 'error')
+        if request.form.get('resetar_senha'):
+            resetar_senha_pelo_admin(linha)
         flash("Usuário alterado com sucesso!")
         return redirect(url_for('listar_usuarios'))
     else:
@@ -6082,7 +6201,58 @@ def alterar_usuario(id):
         if total == 0:
             flash("Usuário não encontrado.", 'error')
             return redirect(url_for('listar_usuarios'))
-        return render_template('alterarUsuario.html', usuario=linhas[0])
+        return render_template('alterarUsuario.html', usuario=linhas[0], roles_validas=ROLES_VALIDAS,
+                               acao=url_for('alterar_usuario', id=id))
+
+@app.route("/admin/alterarUsuarioCognito/<username>", methods=['GET', 'POST'])
+@login_required(role='admin')
+@log_required
+def alterar_usuario_cognito(username):
+    """
+    Alteração de usuário cadastrado só no Cognito (sem linha em users): nome, e-mail,
+    custom:roles e custom:permission (derivado de roles) são gravados direto no Cognito.
+    """
+    if not USAR_COGNITO:
+        flash("Usuários do Cognito existem apenas em produção.", 'error')
+        return redirect(url_for('listar_usuarios'))
+    if not username_valido(username):
+        flash("Usuário não encontrado.", 'error')
+        return redirect(url_for('listar_usuarios'))
+    local = executarSelect2("SELECT id FROM users WHERE username=%s", valores=[username])
+    if local is not None and local[1] > 0:
+        return redirect(url_for('alterar_usuario', id=local[0][0][0]))
+    try:
+        linha = cognito_buscar_usuario(username, 'username')
+    except (ClientError, BotoCoreError) as e:
+        log_migracao('busca_falha_cognito', username, nivel='error', origem='alterar_usuario',
+                     erro=str(e), classe_erro=codigo_erro(e))
+        flash("Erro ao consultar o usuário no Cognito.", 'error')
+        return redirect(url_for('listar_usuarios'))
+    if linha is None:
+        flash("Usuário não encontrado.", 'error')
+        return redirect(url_for('listar_usuarios'))
+    if request.method == 'POST':
+        dados = dados_formulario_usuario()
+        if dados is None:
+            flash("Dados inválidos. Confira o nome, o e-mail e as roles.", 'error')
+            return redirect(url_for('alterar_usuario_cognito', username=username))
+        nome, email, roles = dados
+        nova = (None, linha[1], permissao_de_roles(roles), roles, None, 1, nome, email)
+        try:
+            if email_de_outro_usuario(email, linha[1]):
+                flash("E-mail já cadastrado para outro usuário.", 'error')
+                return redirect(url_for('alterar_usuario_cognito', username=username))
+            cognito_sincronizar_atributos(nova)
+        except Exception as e:
+            logger.warning("Erro ao alterar usuário do Cognito {}: {}", username, str(e))
+            flash("Erro ao alterar usuário no Cognito.", 'error')
+            return redirect(url_for('alterar_usuario_cognito', username=username))
+        if request.form.get('resetar_senha'):
+            resetar_senha_pelo_admin(nova)
+        flash("Usuário alterado com sucesso!")
+        return redirect(url_for('listar_usuarios'))
+    return render_template('alterarUsuario.html', usuario=(None, linha[1], linha[6], linha[7], linha[3]),
+                           roles_validas=ROLES_VALIDAS, acao=url_for('alterar_usuario_cognito', username=username))
 
 @app.route("/admin/listarEditais", methods=['GET'])
 @login_required(role='admin')

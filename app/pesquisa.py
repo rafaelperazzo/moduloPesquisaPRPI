@@ -5335,6 +5335,9 @@ def verificarSiapeIndicacao(siape,idIndicacao):
     else:
         return(False)
 
+NOMES_MESES = {1: 'janeiro', 2: 'fevereiro', 3: 'março', 4: 'abril', 5: 'maio', 6: 'junho', 7: 'julho',
+               8: 'agosto', 9: 'setembro', 10: 'outubro', 11: 'novembro', 12: 'dezembro'}
+
 '''
 Verifica se a frequência do Mês atual já foi enviada
 '''
@@ -5366,7 +5369,7 @@ def enviarFrequencia():
                 data_hoje = obterColunaUnica('indicacoes','DATE(NOW())','id',idAluno)
                 if data_hoje>data_final:
                     return("Prazo para envio de frequencias expirado (%s)!" %(data_final))
-                mes_ext = {1: 'janeiro', 2 : 'fevereiro', 3: 'marco', 4: 'abril', 5: 'maio', 6: 'junho', 7: 'julho',8: 'agosto', 9: 'setembro', 10: 'outubro', 11: 'novembro', 12: 'dezembro'}
+                mes_ext = NOMES_MESES
                 now = datetime.now()
                 mesReferencia = now.month-1
                 anoReferencia = now.year
@@ -6896,6 +6899,119 @@ def nova_senha():
         flash("Senha alterada com sucesso!")
         return redirect(url_for('home'))
     return render_template('novaSenha.html')
+
+# ----- Frequências das indicações (admin): listar, editar e excluir -----
+
+CAMPOS_TEXTO_FREQUENCIA = ('s1', 's2', 's3', 's4', 'obs')
+LIMITE_TEXTO_FREQUENCIA = 300
+
+def carregar_frequencia(id_frequencia):
+    """Frequência como dicionário (a data de envio vem formatada, só para exibição); None se não existir."""
+    linhas = consultar_dicts("""SELECT id, idIndicacao, mes, ano, s1, s2, s3, s4, obs,
+        DATE_FORMAT(data,'%d/%m/%Y %H:%i') AS data FROM frequencias WHERE id=%s""", (id_frequencia,))
+    return linhas[0] if linhas else None
+
+def validar_frequencia(form):
+    """(novos, erros): mes e ano inteiros, semanas 1-4 obrigatórias, obs opcional; textos até 300 caracteres."""
+    novos, erros = {}, []
+    try:
+        novos['mes'] = int(form.get('mes', ''))
+        if not 1 <= novos['mes'] <= 12:
+            raise ValueError
+    except ValueError:
+        erros.append("Mês inválido.")
+    try:
+        novos['ano'] = int(form.get('ano', ''))
+        if not 2018 <= novos['ano'] <= date.today().year + 1:
+            raise ValueError
+    except ValueError:
+        erros.append(f"Ano inválido (de 2018 a {date.today().year + 1}).")
+    for campo in CAMPOS_TEXTO_FREQUENCIA:
+        valor = str(form.get(campo, '')).strip()
+        rotulo = "Observações" if campo == 'obs' else f"Semana {campo[1]}"
+        if campo != 'obs' and not valor:
+            erros.append(f"{rotulo}: obrigatório.")
+        elif len(valor) > LIMITE_TEXTO_FREQUENCIA:
+            erros.append(f"{rotulo}: no máximo {LIMITE_TEXTO_FREQUENCIA} caracteres.")
+        novos[campo] = valor
+    return novos, erros
+
+@app.route("/admin/indicacao/<int:id>/frequencias", methods=['GET'])
+@login_required(role='admin')
+@log_required
+def frequencias_indicacao(id):
+    """Frequências enviadas de uma indicação (bolsista ou voluntário), da mais antiga para a mais recente."""
+    indicacao = carregar_indicacao(id)
+    if indicacao is None:
+        flash("Indicação não encontrada.", 'error')
+        return redirect(url_for('admin'))
+    frequencias = consultar_dicts("""SELECT id, mes, ano, s1, s2, s3, s4, obs,
+        DATE_FORMAT(data,'%d/%m/%Y %H:%i') AS data FROM frequencias WHERE idIndicacao=%s ORDER BY ano, mes""", (id,))
+    voltar = url_for('indicacoes', edital=indicacao.get('edital'), tipo=indicacao.get('tipo_de_vaga'))
+    return render_template('frequencias_indicacao.html', indicacao=indicacao, frequencias=frequencias,
+                           meses=NOMES_MESES, voltar=voltar)
+
+@app.route("/admin/frequencia/<int:id>/editar", methods=['GET', 'POST'])
+@login_required(role='admin')
+@log_required
+def editar_frequencia(id):
+    """Correção de uma frequência pelo admin: mês/ano (sem colidir com outra da mesma indicação) e textos."""
+    atual = carregar_frequencia(id)
+    if atual is None:
+        flash("Frequência não encontrada.", 'error')
+        return redirect(url_for('admin'))
+    voltar = url_for('frequencias_indicacao', id=atual['idIndicacao'])
+    if request.method == 'GET':
+        return render_template('editarFrequencia.html', frequencia=atual, campos=atual, meses=NOMES_MESES,
+                               voltar=voltar, erros=[])
+    novos, erros = validar_frequencia(request.form)
+    if not erros and (novos['mes'], novos['ano']) != (int(atual['mes']), int(atual['ano'])):
+        _, total = executarSelect2("""SELECT id FROM frequencias WHERE idIndicacao=%s AND mes=%s AND ano=%s AND id<>%s""",
+                                   valores=(atual['idIndicacao'], novos['mes'], novos['ano'], id))
+        if total > 0:
+            erros.append(f"Já existe outra frequência desta indicação para {NOMES_MESES[novos['mes']]}/{novos['ano']}.")
+    if erros:
+        return render_template('editarFrequencia.html', frequencia=atual, campos={**atual, **request.form.to_dict()},
+                               meses=NOMES_MESES, voltar=voltar, erros=erros), 400
+    if (novos['mes'] == int(atual['mes']) and novos['ano'] == int(atual['ano'])
+            and all(novos[c] == (atual[c] or '').strip() for c in CAMPOS_TEXTO_FREQUENCIA)):
+        flash("Nenhum dado foi alterado.")
+        return redirect(voltar)
+    try:
+        linhas = executar_alteracao("""UPDATE frequencias SET mes=%s, ano=%s, s1=%s, s2=%s, s3=%s, s4=%s, obs=%s
+            WHERE id=%s""", (novos['mes'], novos['ano'], novos['s1'], novos['s2'], novos['s3'], novos['s4'],
+                             novos['obs'], id))
+    except Exception as e:
+        logger.error("[frequencia] Erro ao alterar a frequência id={}: {}", id, type(e).__name__)
+        linhas = 0
+    if linhas != 1:
+        flash("A frequência não foi alterada (erro ao gravar, ou ela foi excluída nesse meio-tempo).", 'error')
+        return redirect(url_for('editar_frequencia', id=id))
+    logger.info("[frequencia] id={} (indicação {}) alterada por {}", id, atual['idIndicacao'], session.get('username'))
+    flash("Frequência alterada.")
+    return redirect(voltar)
+
+@app.route("/admin/frequencia/<int:id>/excluir", methods=['POST'])
+@login_required(role='admin')
+@log_required
+def excluir_frequencia(id):
+    """Exclusão de uma frequência (enviada em duplicidade ou no mês errado). Só POST, com CSRF."""
+    atual = carregar_frequencia(id)
+    if atual is None:
+        flash("Frequência não encontrada.", 'error')
+        return redirect(url_for('admin'))
+    try:
+        linhas = executar_alteracao("DELETE FROM frequencias WHERE id=%s", (id,))
+    except Exception as e:
+        logger.error("[frequencia] Erro ao excluir a frequência id={}: {}", id, type(e).__name__)
+        linhas = 0
+    if linhas == 1:
+        logger.info("[frequencia] id={} (indicação {}, {}/{}) excluída por {}", id, atual['idIndicacao'],
+                    atual['mes'], atual['ano'], session.get('username'))
+        flash("Frequência excluída.")
+    else:
+        flash("A frequência não foi excluída.", 'error')
+    return redirect(url_for('frequencias_indicacao', id=atual['idIndicacao']))
 
 if PRODUCAO==1:
     scheduler.start()

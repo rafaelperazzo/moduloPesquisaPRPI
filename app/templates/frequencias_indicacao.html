@@ -1,0 +1,54 @@
+{% extends "BASE_v3.html" %}
+{% block content %}
+<div class="container mx-auto px-4 max-w-screen-xl py-8">
+  <h2 class="text-2xl font-semibold text-gray-800 mb-1">Frequências enviadas</h2>
+  <p class="text-sm text-gray-500 mb-6">
+    Indicação {{ indicacao.id }}{% if indicacao.nome %} &middot; {{ indicacao.nome }}{% endif %}
+    &middot; {{ 'BOLSISTA' if indicacao.tipo_de_vaga|string == '1' else 'VOLUNTÁRIO(A)' }}
+    &middot; projeto {{ indicacao.idProjeto }}{% if indicacao.orientador %} &middot; {{ indicacao.orientador }}{% endif %}
+  </p>
+
+  {% if frequencias %}
+  <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm">
+    <table class="w-full text-sm text-left border-collapse">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="px-4 py-3 font-semibold text-gray-700">Mês/Ano</th>
+          <th class="px-4 py-3 font-semibold text-gray-700">Enviada em</th>
+          <th class="px-4 py-3 font-semibold text-gray-700">Semana 1</th>
+          <th class="px-4 py-3 font-semibold text-gray-700">Semana 2</th>
+          <th class="px-4 py-3 font-semibold text-gray-700">Semana 3</th>
+          <th class="px-4 py-3 font-semibold text-gray-700">Semana 4</th>
+          <th class="px-4 py-3 font-semibold text-gray-700">Obs</th>
+          <th class="px-4 py-3 font-semibold text-gray-700">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in frequencias %}
+        <tr class="border-b border-gray-100 hover:bg-gray-50 align-top">
+          <td class="px-4 py-3 text-gray-700 whitespace-nowrap">{{ meses.get(f.mes|int, f.mes) }}/{{ f.ano }}</td>
+          <td class="px-4 py-3 text-gray-700 whitespace-nowrap">{{ f.data or '—' }}</td>
+          {% for campo in ['s1', 's2', 's3', 's4', 'obs'] %}
+          <td class="px-4 py-3 text-gray-700 whitespace-pre-line min-w-[12rem]">{{ f[campo] or '' }}</td>
+          {% endfor %}
+          <td class="px-4 py-3 text-gray-700 whitespace-nowrap">
+            <a href="{{ url_for('editar_frequencia', id=f.id) }}" class="text-blue-600 hover:underline">Editar</a>
+            <form method="POST" action="{{ url_for('excluir_frequencia', id=f.id) }}" class="inline"
+                  onsubmit="return confirm('Excluir a frequência de {{ meses.get(f.mes|int, f.mes) }}/{{ f.ano }}? Esta ação não pode ser desfeita.');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <span class="text-gray-300 mx-1">|</span><button type="submit" class="text-red-600 hover:underline">Excluir</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="rounded-md bg-gray-50 border border-gray-200 p-4 text-sm text-gray-600">Nenhuma frequência enviada.</div>
+  {% endif %}
+
+  <p class="text-gray-600 text-sm mt-4">Total de frequências: {{ frequencias|length }}</p>
+  <a href="{{ voltar }}" class="text-blue-600 hover:underline text-sm">&larr; Voltar à lista de indicações</a>
+</div>
+{% endblock %}

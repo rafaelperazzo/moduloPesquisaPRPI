@@ -1,3 +1,168 @@
+	2026-11-18 09:36:43 -0300	feat: Frequências das indicações para o admin: link "Frequências" em listar_indicacoes leva à lista de frequências enviadas (bolsistas e voluntários, com data de envio); edição de mês/ano e textos (sem colidir com outra frequência da mesma indicação, data de envio preservada) e exclusão com confirmação; nomes dos meses numa constante única (NOMES_MESES, "março" com cedilha); testes em test_frequencia_admin.py
+	2026-09-29 09:27:12 -0300	feat: CSS, JS, fontes e imagens servidos pelo próprio app: Tailwind compilado localmente (tailwind/build.sh) no lugar do Play CDN, Bootstrap Icons, flexboxgrid e jQuery em static/vendor, rodapé com versão e data locais no lugar dos badges do shields.io; /version volta a mostrar a tag real (mais recente pela data, lida do .git sem o binário git); removidos menu.html, indicacao_arquivos e tailwind-play.js, sem uso
+	2026-09-29 09:01:05 -0300	chore: HSTS do app igual ao do nginx (2 anos, includeSubDomains e preload); configuração do nginx de pesquisa.yokoapps.com.br versionada em nginx/; removidos de app/static as páginas de exemplo (a4.html, dropzone.html), a biblioteca Dropzone e a cópia antiga do reCAPTCHA (dist/), sem uso
+	2026-09-29 08:54:45 -0300	chore: Watchdog usa /health na raiz do domínio novo; removidos os HTMLs estáticos órfãos (consulta_publica, declaracoes_servidor, projetos) que apontavam para /pesquisa; smoke test do migrar_para_opt aponta para pesquisa.yokoapps.com.br
+	2026-09-29 08:44:19 -0300	docs: Templates do Cognito (convite e código de redefinição de senha) apontam para https://pesquisa.yokoapps.com.br
+	2026-09-28 16:22:03 -0300	fix: /indicacao/<cpf> só para o back-end do cppgi (cabeçalho X-Chave-Interna com chave do SSM; de fora responde 404), sem CORS e sem e-mail e modalidade na resposta
+	2026-09-28 15:16:41 -0300	fix: Declaração de orientador por id do projeto ou da indicação só para o coordenador do projeto ou admin (qualquer usuário logado emitia a de outro professor trocando o id); removida a cadeia legada /projetosPorOrientador e /orientadorDeclaracao, com funções e templates sem uso
+	2026-09-28 15:12:46 -0300	fix: Removida a cadeia legada /projetosPorOrientador e /orientadorDeclaracao (declaração pública por id sequencial, com nome e SIAPE do orientador e nomes dos bolsistas), com as funções e os templates sem uso
+	2026-09-28 15:10:16 -0300	fix: Declaração e certificado do discente só abrem por link assinado e temporário, gerado na busca pelo CPF (o ?id= sequencial expunha nome e CPF sem login); limite de acessos nas rotas /discente/*; removidas as rotas legadas /declaracao e /autenticacao e seus templates
+	2026-09-28 15:01:15 -0300	feat: MFA: aplicativo autenticador obrigatório para administradores; a cada login pelo código por e-mail, os demais usuários recebem a recomendação de trocar para o app (/mfa/sugerir-app); página pública /ajuda/autenticador com passo a passo; tela de escolha recomenda fortemente o app
+	2026-09-28 14:15:54 -0300	feat: Página pública /ajuda/autenticador com passo a passo do aplicativo autenticador (link na página inicial e na tela do QR code); tela de escolha do MFA recomenda fortemente o aplicativo em vez do código por e-mail
+	2026-09-28 12:57:56 -0300	fix: Esqueci minha senha com MFA por e-mail: o Cognito recusa o forgot_password, então o app envia o próprio código e grava a senha com admin_set_user_password; cartão da página inicial leva a /novaSenha quando há login
+	2026-09-28 10:40:21 -0300	chore: Removido o formulário estático projetos_orientador.html, sem uso
+	2026-09-28 08:57:32 -0300	feat: URL_PREFIX normalizado ("/" vira raiz, barra final removida) e usado também no waitress, para servir o app na raiz de pesquisa.yokoapps.com.br
+	2026-09-28 08:41:33 -0300	fix: Prefixo /pesquisa fixo trocado por url_for e URL_PREFIX no pesquisa.py e nos templates (inclusive a URL de validação das declarações e os links do lembrete de frequência), 10 templates sem uso removidos e teste que impede o prefixo fixo
+	2026-09-25 11:05:17 -0300	docs: Política da LGPD: logs no Amazon CloudWatch por 1 ano, além do arquivo mensal de 2 anos no S3
+	2026-09-25 10:57:09 -0300	fix: Ajustado tests dos logs
+	2026-09-25 10:52:27 -0300	fix: Log sem dados pessoais nem a AES_KEY: inserir() não grava mais os valores, CPF, e-mails e nomes trocados por resumos, mascaramento global de CPF e e-mail no loguru e teste que trava dados pessoais nas chamadas de log
+	2026-09-25 10:46:25 -0300	feat: Registro de acessos completo e sem dados pessoais: tentativas negadas (login, permissão, MFA, aceite, limite e 404) registradas, IP da Cloudflare, caminho com CPF, e-mail e tokens mascarados, e log_required no url_upload
+	2026-09-25 10:36:55 -0300	feat: CPF decifrado na lista de indicações do admin e edição das indicações (dados do discente e do vínculo), com UPDATE cifrado no iv da linha, cpf_hash recalculado, bloqueio das indicações anonimizadas e log só com os nomes dos campos alterados
+	2026-09-25 10:13:53 -0300	docs: Política de privacidade e termos de uso publicados no repositório (PRIVACY.md), espelhando a página /lgpd da plataforma
+	2026-09-25 10:08:27 -0300	docs: Registrada a execução do expurgo da tabela acessos em produção (29.653 registros com mais de 2 anos apagados)
+	2026-09-25 10:06:06 -0300	fix: Expurgo da tabela acessos: rowcount lido antes do commit (no conector mariadb o COMMIT o zera, e a exclusão parava no primeiro lote informando 0)
+	2026-09-25 10:01:39 -0300	feat: Expurgo mensal da tabela acessos (IP e data dos logins) após 2 anos, o mesmo prazo dos logs, e política da LGPD corrigida sobre os registros do sistema anterior (bolsas encerradas até 2020)
+	2026-09-25 09:48:05 -0300	fix: Mais uma correção no expurgo
+	2026-09-25 09:45:26 -0300	fix: Correção de script de expurgo
+	2026-09-25 09:42:03 -0300	feat: Retenção de 6 anos após o fim da bolsa: documentos da indicação apagados do S3 e dados pessoais dos estudantes anonimizados (CPF mantido nas tabelas legadas), com leitura das datas em texto das tabelas legadas, tarefa mensal às 21h, script de primeira execução com simulação e prazo declarado na política da LGPD
+	2026-09-25 09:32:25 -0300	fix: Corrigido horário do expurgo.
+	2026-09-25 09:29:51 -0300	feat: Retenção de 6 anos após o fim da bolsa: documentos da indicação apagados do S3 e dados pessoais dos estudantes anonimizados (CPF mantido nas tabelas legadas), com tarefa mensal, script de primeira execução com simulação e prazo declarado na política da LGPD
+	2026-09-25 08:55:26 -0300	feat: Rotação do log só no dia 1º de cada mês, com o arquivo do mês compactado e enviado ao S3 (pesquisa/logs, SSE-KMS), reenvio dos pendentes ao iniciar e retenção de 2 anos declarada na política da LGPD
+	2026-09-24 18:04:57 -0300	feat: Sentry sem dados pessoais: send_default_pii desligado, sem variáveis locais nos stack traces e com IP, e-mail e CPF mascarados nas mensagens
+	2026-09-24 17:58:30 -0300	docs: Transferência internacional detalhada na política de privacidade (AWS DPA, criptografia em repouso e em trânsito, ciência dos usuários) e registrada a criptografia do CPF em produção
+	2026-09-24 17:56:06 -0300	docs: Registrada a criptografia do CPF e dos dados bancários em produção na v12.0.0, com os dados migrados e verificados
+	2026-09-24 17:48:12 -0300	feat: Criptografia do CPF e dos dados bancários com busca por HMAC (cpf_hash), cifra já no INSERT da indicação, CPF mascarado na verificação pública e script de migração dos dados existentes
+	2026-09-24 17:21:29 -0300	feat: Troca do reCAPTCHA pelo Cloudflare Turnstile com validação no servidor nos formulários públicos (login, recuperação de senha, consultas e LGPD), e levantamento da criptografia do CPF e dos dados bancários
+	2026-09-24 15:59:31 -0300	chore: Preparando migração para criptografia das tabelas
+	2026-09-24 15:12:15 -0300	feat: Adequação à LGPD: página /lgpd com política de privacidade e quadro de requisitos, registro de ciência dos termos após o login, Meus dados com exportação em JSON, solicitações dos titulares com protocolo, consulta pelo protocolo e resposta enviada por e-mail, e remoção do Google Analytics
+	2026-09-24 14:28:03 -0300	docs: Atualizado o plano de migração do S3 com a fase 3 em produção e a remoção da AmazonS3FullAccess da role da EC2
+	2026-09-23 20:06:33 -0300	feat: pload direto do navegador para o S3 com URL assinada e validação pela Lambda validar-upload
+	2026-09-23 19:55:39 -0300	docs: Atualizado o plano de migração do S3 com a fase 2 em produção e a bucket policy aplicada
+	2026-09-23 19:53:03 -0300	feat: Upload dos arquivos direto para o S3 em SSE-KMS, sem disco nem GPG, com nomes gerados por secrets
+	2026-09-23 19:45:06 -0300	feat: Downloads dos arquivos do S3 por URL assinada (SSE-KMS), com login em /verArquivosProjeto e links de 30 dias para os avaliadores
+	2026-09-23 17:34:48 -0300	chore: Adicionados os scripts de migração dos arquivos do S3 de GPG para SSE-KMS, com execução pela máquina local
+	2026-09-23 17:30:33 -0300	chore: Adicionados os scripts de migração dos arquivos do S3 de GPG para SSE-KMS, com execução pela máquina local
+	2026-09-23 17:20:21 -0300	chore: Adicionado o script de migração dos arquivos do S3 de GPG para SSE-KMS com chave gerenciada pela AWS
+	2026-09-23 16:37:47 -0300	docs: Atualizado o TODO com o MFA concluído e a migração dos arquivos do S3 para uma função Lambda
+	2026-09-23 16:33:19 -0300	docs: Atualizada documentação
+	2026-09-23 16:30:28 -0300	refactor: Exibido o autor nas mensagens gerais, criada a página de admin para liberar o limitador de acessos e movidas as ações gerais para o topo do painel
+	2026-09-23 16:22:18 -0300	refactor: Incluído o autor das mensagens gerais no painel admin
+	2026-09-23 15:58:57 -0300	feat: Implementado CRUD das mensagens gerais no painel admin e descrita a proteção tripla do acesso administrativo
+	2026-09-23 15:47:37 -0300	feat: feat: Implementado MFA obrigatório via Cognito com app autenticador ou código por e-mail
+	2026-09-23 10:45:12 -0300	docs: Adicionados templates HTML dos e-mails do Cognito (convite e código de senha)
+	2026-09-23 10:29:47 -0300	feat: feat: Migrada autenticação para o AWS Cognito com migração silenciosa no primeiro login e removido envio de senhas por e-mail
+	2026-09-21 17:18:38 -0300	docs: Atualizada documentação
+	2026-09-21 09:41:04 -0300	refactor: Removidos BasicAuth para login_required
+	2026-09-21 09:31:58 -0300	refactor: Rotas admin agora ficam sob o prefixo admin
+	2026-09-18 15:45:38 -0300	docs: Documentada migração do envio de e-mails para SQS (README, seguranca.html, .env.sample) e refactor: Removida constante EMAIL_TESTES não utilizada
+	2026-09-18 15:40:31 -0300	fix: orrigido cálculo do mês anterior em janeiro e removida leitura desnecessária do hash de senha no lembrete de frequência
+	2026-09-18 15:37:31 -0300	refactor: Migração do Postfix para SES
+	2026-09-15 11:35:18 -0300	fix: Removida função antiga de geração de pdf
+	2026-09-15 11:33:48 -0300	fix: Ajustado relatorio do editalProjeto para novo tipo de pdf
+	2026-09-15 11:13:57 -0300	fix: Corrigida declaração avaliador
+	2026-09-15 11:11:10 -0300	fix: Corrigidos certificados dos discentes para novo padrão
+	2026-09-15 11:04:08 -0300	fix: Ajustadas declarações dos discentes
+	2026-09-15 10:46:56 -0300	fix: Abre declaração direto no navegador
+	2026-09-15 10:45:43 -0300	feat: Mudança na geração de declaração do orientador.
+	2026-09-15 10:09:21 -0300	fix: Voltei para a imagem docker
+	2026-09-15 09:45:26 -0300	fix: Modificada função lambda evitando imagem docker
+	2026-09-15 09:20:44 -0300	fix: Todas as declarações são geradas pelo lambda agora
+	2026-09-15 09:01:07 -0300	feat: Geração de declaração do orientador pela lambda
+	2026-09-15 08:47:57 -0300	fix: Imagens das declarações agora vem de Base64
+	2026-09-15 08:44:17 -0300	fix: Declaração orientador - Base64
+	2026-09-10 10:05:50 -0300	feat: Adicionadas funções de criptografia em security_service
+	2026-09-10 08:50:31 -0300	fix: Ajustado o limiter das rotas do scorelattes
+	2026-09-09 15:53:49 -0300	docs: Inserido link de ajuda para baixar o XML do Lattes
+	2026-09-09 14:27:32 -0300	feat: O cadastrarProjeto agora aceita também o arquivo xml
+	2026-09-09 13:59:14 -0300	fix: Corrigido script de update.yml
+	2026-09-09 13:55:27 -0300	feat: Pontuação lattes agora verifica se a api está online
+	2026-09-09 09:44:40 -0300	fix: Automatizo script de migração
+	2026-09-09 09:05:29 -0300	feat: Scorelattes a partir do Zip do XML
+	2026-08-31 09:42:55 -0300	fix: Corrigido script de atualizar.db.sh
+	2026-08-26 15:29:35 -0300	fix: Inseridos orientações para mudar o crontab e o config do cloudwatch
+	2026-08-26 15:25:02 -0300	fix: Corrigido script de backup do mariadb
+	2026-08-26 15:23:08 -0300	feat: Incluido script para migração para o /opt
+	2026-08-26 11:28:32 -0300	fix: Ajustado o .service com mais segurança
+	2026-08-24 18:09:13 -0300	fix: Finalmente corrigido o deploy para manter as permissões dos arquivos
+	2026-08-24 17:17:43 -0300	fix: Corrigido inicio da thread do verArquivoProjeto
+	2026-08-24 16:27:19 -0300	fix: Incluido base_dir no log
+	2026-08-24 16:21:35 -0300	fix: Mais uma mudança no log apagar arquivo
+	2026-08-24 16:17:56 -0300	fix: Modificado log do apagar aquivo
+	2026-08-24 15:52:09 -0300	fix: lOGGER AO APAGAR ARQUIVO EM VERarauivosProjeto
+	2026-08-24 15:47:15 -0300	fix: Incluído log na hora de apagar arquivo
+	2026-08-24 15:28:43 -0300	fix: pesquisa.service atualizado
+	2026-08-24 15:15:23 -0300	fix: Todos os send_from_directory estão com caminho absoluto
+	2026-08-24 14:54:12 -0300	fix: Caminho absoluto no s3 verArquivo
+	2026-08-23 15:25:10 -0300	fix: Removido betterstack. Agora é Cloudwatch.
+	2026-08-23 10:53:07 -0300	fix: Removidas variáveis de ambiente sensíveis
+	2026-08-23 10:26:37 -0300	docs: Atualizadas informações de segurança - mariadb
+	2026-08-23 10:20:06 -0300	feat: O scorelattes agora é "proxiado" por uma função lamda
+	2026-08-23 09:00:31 -0300	fix: Dual stack para ssm
+	2026-08-21 11:11:13 -0300	docs: Documentação de segurança atualizada
+	2026-08-20 16:20:24 -0300	feat: Usando credenciais do ssm
+	2026-08-20 08:29:52 -0300	fix: Corrigido recipients dos emails enviados
+	2026-08-18 09:00:46 -0300	fix: Correção dos endereços de email do código
+	2026-08-17 14:58:19 -0300	fix: Removido delays dos envio de emails
+	2026-08-17 14:52:17 -0300	fix: Trocados logs de error por warnings.
+	2026-08-15 19:17:10 -0300	docs: Incluídas informações de segurança
+	2026-08-15 18:30:30 -0300	feat: Envio de email agora vai direto para o postfix local, tirando essa responsabilidade do app.
+	2026-08-14 14:57:53 -0300	feat: Implementado recurso que impede usuário usar o sistema enquanto não mudar a senha vazada
+	2026-08-14 14:38:52 -0300	feat: Incluída possibilidade de mudança de senha.
+	2026-08-12 17:19:52 -0300	fix: mais um
+	2026-08-12 17:18:22 -0300	fix: Mais um fix
+	2026-08-12 17:15:14 -0300	fix: Mais um fix no CI
+	2026-08-12 17:11:45 -0300	fix: CI corrigido
+	2026-08-12 17:00:39 -0300	fix: S3 para ipv6
+	2026-08-12 12:04:20 -0300	fix: Corrigido dominio intermediário do scorelattes
+	2026-08-12 10:42:14 -0300	fix: Versão do action atualizada
+	2026-08-12 10:09:23 -0300	fix: Mais um ajuste no aws ssm
+	2026-08-12 10:02:17 -0300	fix: Corrigido arn do iam para update
+	2026-08-12 09:54:25 -0300	feat: Atualização via aws ssm
+	2026-08-11 18:25:00 -0300	docs: Atualizada documentação com relação a segurança
+	2026-08-11 18:22:28 -0300	fix: Removidas consultas vulneraveis a sqli
+	2026-08-11 17:42:23 -0300	fix: Envio de frequencias e horários dos agendamentos
+	2026-08-05 18:48:05 -0300	fix: Problemas com memória corrigidos.
+	2026-08-05 16:31:00 -0300	fix: Systemd
+	2026-08-04 17:35:31 -0300	fix: Correção dos scripts de healthcheck
+	2026-08-04 17:21:19 -0300	fix: Ajustes no systemd
+	2026-08-04 17:18:35 -0300	fix: script implementado (healthcheck)
+	2026-08-04 17:14:46 -0300	feat: Healthcheck implementado
+	2026-06-29 08:37:11 -0300	fix: Tempo de CSRF corrigido!
+	2026-06-12 11:43:31 -0300	fix: Codigo da declaração estava inválido por conta de um UPPER na consulta
+	2026-06-10 12:32:21 -0300	fix: Novo recurso
+	2026-06-10 09:46:26 -0300	feat: Lista de avaliadores disponível ao inserir um novo avaliador
+	2026-06-10 09:21:28 -0300	fix: Aceita . no final do email, e remove
+	2026-06-10 09:01:24 -0300	fix: Validação de email no /inserirAvaliador
+	2026-06-09 18:50:34 -0300	fix: /inserirAvaliador - Email verificado
+	2026-05-06 18:46:55 -0300	feat: Filtragem na lista de editais, projetos e usuarios
+	2026-05-06 17:03:57 -0300	fix: Scorelattes = 0 agora possuem fundo vermelho
+	2026-05-06 16:58:34 -0300	feat: Recalculo do scorelattes na listagem de projetos
+	2026-05-06 16:40:39 -0300	fix: Inclusão da coluna scorelattes na lista de projetos
+	2026-05-06 16:32:22 -0300	feat: Gerenciamento de projetos implementado
+	2026-05-06 15:56:31 -0300	feat: Gerenciamento de usuários e editais
+	2026-05-06 14:46:14 -0300	fix: Incluido delay de 1s antes do envio de cada email
+	2026-05-06 10:24:58 -0300	fix: Corrigida função de lembrete de frequência
+	2026-05-06 10:20:00 -0300	fix: O envio de emails agora agrupa os envios a cada 5 emails
+	2026-05-06 10:07:06 -0300	fix: Envio de email para avaliadores agora tenta 3 vezes
+	2026-05-06 09:42:27 -0300	fix: Corrigido erro no processarPontuacaoLattes, idProjeto convertido para str
+	2026-05-06 09:11:20 -0300	feat: Todas as declarações com código de verificação de autenticidade
+	2026-05-05 19:10:47 -0300	feat: Código de autenticação na declaração orientador
+	2026-05-05 19:09:30 -0300	feat: Declaração de orientador com código de autenticação
+	2026-05-05 18:06:36 -0300	style: Emails reformatados
+	2026-05-05 17:29:09 -0300	style: emails para avaliadores reestilizados
+	2026-05-05 17:17:16 -0300	style: Aplicado estilo tailwind na confirmacao_submissao
+	2026-04-09 10:59:06 -0300	style: Incluidos marcadores de campos obrigatórios no cadastrarProjeto
+	2026-04-07 11:13:53 -0300	fix: Removido enctype do scorelattes
+	2026-04-07 10:58:38 -0300	fix: Removido limit do /score
+	2026-04-07 10:48:19 -0300	fix: Aumentado de 300/dia para 1000/dia
+	2026-04-07 10:25:25 -0300	fix: Limit da rota /score alterada
+	2026-04-07 10:14:10 -0300	fix: Areas capes 2021-2024
+	2026-04-04 08:55:51 -0300	chore: Novos scripts de commit e deploy
+	2026-04-04 08:54:14 -0300	style: Aplicado novo estilo geral para a plataforma: Tailwind
+	2026-04-03 22:29:15 -0300	style: declaracao_orientador.html
+	2026-04-03 20:10:51 -0300	style: index.html com estilo alterado
+	2026-04-03 20:04:38 -0300	style: Modificados templates para tailwind
+	2026-03-26 10:25:04 -0300	chore: alterados estilos das declarações dos orientadores e email do avaliador
 	2026-03-25 10:11:53 -0300	fix: Ajustes no cadastrarProjeto a pedido de Clarice, na declaração orientador e no email de solicitação de avaliação
 	2026-03-24 09:39:59 -0300	fix: Erro do /score resolvido. Estilo do cadastrar projeto modificado.
 	2026-03-24 09:18:51 -0300	fix: update actions - atualizado host
